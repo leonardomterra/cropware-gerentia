@@ -1,17 +1,14 @@
-import { useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Receipt,
   Sprout,
   User as UserIcon,
-  Menu,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,43 +33,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/conta", label: "Conta", icon: UserIcon },
 ];
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <nav className="flex flex-col gap-1 px-2 py-3">
-      {NAV_ITEMS.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-              isActive
-                ? "bg-farm-primary text-white"
-                : "text-slate-700 hover:bg-slate-100",
-            )
-          }
-        >
-          <item.icon className="size-4" />
-          <span>{item.label}</span>
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
-
-function FarmBrand({ subtitle }: { subtitle?: string }) {
-  return (
-    <div className="bg-farm-primary px-4 py-5">
-      <Logo className="text-white h-5 w-auto" />
-      {subtitle ? (
-        <p className="text-xs text-white/80 mt-1.5 truncate">{subtitle}</p>
-      ) : null}
-    </div>
-  );
-}
-
 function UserMenu() {
   const { user, signOut } = useAuth();
   if (!user) return null;
@@ -81,13 +41,15 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 px-2">
-          <div className="size-7 rounded-full bg-farm-primary text-white text-xs font-medium flex items-center justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 px-2 text-white hover:bg-white/15 hover:text-white"
+        >
+          <div className="size-7 rounded-full bg-white text-farm-primary text-xs font-semibold flex items-center justify-center">
             {firstName.charAt(0).toUpperCase()}
           </div>
-          <span className="hidden sm:inline text-sm text-slate-700">
-            {firstName}
-          </span>
+          <span className="hidden sm:inline text-sm">{firstName}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -96,7 +58,9 @@ function UserMenu() {
             <span className="text-sm font-medium text-slate-900">
               {user.fullName}
             </span>
-            <span className="text-xs text-slate-500 truncate">{user.email}</span>
+            <span className="text-xs text-slate-500 truncate">
+              {user.email}
+            </span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -114,57 +78,54 @@ function UserMenu() {
   );
 }
 
-export function AppShell({ children }: { children?: ReactNode }) {
+export function AppShell() {
   const { user } = useAuth();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col w-60 bg-white border-r border-slate-200 shrink-0">
-        <FarmBrand subtitle={user?.organizationName} />
-        <NavList />
-      </aside>
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Header unico de ponta a ponta */}
+      <header className="bg-farm-primary px-4 sm:px-6 h-14 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <Logo className="text-white h-5 w-auto shrink-0" />
+          {user?.organizationName ? (
+            <>
+              <span className="hidden sm:inline-block h-5 w-px bg-white/30" />
+              <span className="hidden sm:inline text-white/90 text-sm truncate">
+                {user.organizationName}
+              </span>
+            </>
+          ) : null}
+        </div>
+        <UserMenu />
+      </header>
 
-      {/* Main column */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-slate-200 px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {/* Mobile menu trigger */}
-            <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden"
-                  aria-label="Abrir menu"
-                >
-                  <Menu className="size-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 p-0">
-                <FarmBrand subtitle={user?.organizationName} />
-                <NavList onNavigate={() => setDrawerOpen(false)} />
-              </SheetContent>
-            </Sheet>
+      {/* Barra de menus horizontal */}
+      <nav className="bg-white border-b border-slate-200 px-2 sm:px-4 shrink-0">
+        <div className="flex items-center gap-0.5 overflow-x-auto">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2 px-3 py-3 text-sm transition-colors whitespace-nowrap border-b-2 -mb-px",
+                  isActive
+                    ? "border-farm-primary text-farm-primary font-medium"
+                    : "border-transparent text-slate-600 hover:text-slate-900",
+                )
+              }
+            >
+              <item.icon className="size-4" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
 
-            <div className="md:hidden min-w-0 flex flex-col">
-              <Logo className="text-farm-primary h-4 w-auto" />
-              {user?.organizationName ? (
-                <p className="text-xs text-slate-500 truncate mt-0.5">
-                  {user.organizationName}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          <UserMenu />
-        </header>
-
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
-          {children ?? <Outlet />}
-        </main>
-      </div>
+      <main className="flex-1 overflow-auto p-4 sm:p-6">
+        <Outlet />
+      </main>
     </div>
   );
 }
