@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* ==========================================================
+   TAILWIND V4 THEME - CROPWARE FARM
+   Paleta: verde campo + trigo + terra (decisao V1 - 2026-05-20)
+   ========================================================== */
+
+@theme {
+  /* Farm brand colors */
+  --color-farm-green: #2f7d4e;
+  --color-farm-green-light: #4a9d6a;
+  --color-farm-green-dark: #1f5e3a;
+  --color-farm-wheat: #c89b5d;
+  --color-farm-soil: #6b4423;
+  --color-farm-cream: #f8f4ec;
+  --color-chumbo-800: #333333;
+  --color-chumbo-900: #1a1a1a;
+
+  /* shadcn-compat tokens - mapeados pra HSL vars em :root.
+     Quando o commit 3 trouxer shadcn/ui, todos os components
+     ja vao herdar a paleta Farm sem ajuste. */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-ui, "Inter Tight Variable", ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ==========================================================
+   CSS VARIABLES - shadcn/ui design tokens (HSL)
+   Primary = farm-green #2f7d4e ~= hsl(144, 45%, 34%)
+   ========================================================== */
+
+:root {
+  --font-ui: "Inter Tight Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --primary: 144 45% 34%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 38 36% 95%;
+  --secondary-foreground: 25 50% 27%;
+
+  --muted: 40 20% 96%;
+  --muted-foreground: 220 9% 46%;
+
+  --accent: 33 45% 58%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 75% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 30 12% 88%;
+  --input: 30 12% 88%;
+  --ring: 144 45% 34%;
+
+  --radius: 6px;
+}
+
+.native-ios {
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ==========================================================
+   BASE
+   Regra Cropware: body 14px. Nunca 13px. Titulos 16/18/20.
+   ========================================================== */
+
+html,
+body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  background: var(--color-farm-cream);
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
