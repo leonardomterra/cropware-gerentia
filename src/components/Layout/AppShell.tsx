@@ -46,7 +46,7 @@ function UserMenu() {
           size="sm"
           className="gap-2 px-2 text-white hover:bg-white/15 hover:text-white"
         >
-          <div className="size-7 rounded-full bg-white text-farm-primary text-xs font-semibold flex items-center justify-center">
+          <div className="size-8 rounded-full bg-white text-farm-primary text-sm font-medium flex items-center justify-center">
             {firstName.charAt(0).toUpperCase()}
           </div>
           <span className="hidden sm:inline text-sm">{firstName}</span>
@@ -58,7 +58,7 @@ function UserMenu() {
             <span className="text-sm font-medium text-slate-900">
               {user.fullName}
             </span>
-            <span className="text-xs text-slate-500 truncate">
+            <span className="text-sm text-slate-500 truncate">
               {user.email}
             </span>
           </div>

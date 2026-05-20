@@ -52,7 +52,7 @@ export default function AccountPage() {
             <dd className="text-slate-900">{trial}</dd>
           </div>
         </dl>
-        <p className="text-xs text-slate-400 mt-4">
+        <p className="text-sm text-slate-400 mt-4">
           Billing Mercado Pago + RevenueCat entram no commit 7/10.
         </p>
       </section>

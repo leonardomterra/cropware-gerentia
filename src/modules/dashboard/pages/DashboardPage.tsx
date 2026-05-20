@@ -16,17 +16,17 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-xs text-slate-500">Entradas (mes)</p>
+          <p className="text-sm text-slate-500">Entradas (mes)</p>
           <p className="text-base font-medium text-farm-primary mt-1">
             R$ 0,00
           </p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-xs text-slate-500">Saidas (mes)</p>
+          <p className="text-sm text-slate-500">Saidas (mes)</p>
           <p className="text-base font-medium text-slate-900 mt-1">R$ 0,00</p>
         </div>
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <p className="text-xs text-slate-500">Saldo (mes)</p>
+          <p className="text-sm text-slate-500">Saldo (mes)</p>
           <p className="text-base font-medium text-slate-900 mt-1">R$ 0,00</p>
         </div>
       </div>

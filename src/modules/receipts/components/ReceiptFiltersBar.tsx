@@ -46,7 +46,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-end gap-2">
       <div className="flex-1 min-w-[180px] max-w-sm">
-        <label className="block text-xs text-slate-500 mb-1">Busca</label>
+        <label className="block text-sm text-slate-500 mb-1">Busca</label>
         <div className="relative">
           <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <Input
@@ -61,7 +61,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
       </div>
 
       <div className="min-w-[140px]">
-        <label className="block text-xs text-slate-500 mb-1">Tipo</label>
+        <label className="block text-sm text-slate-500 mb-1">Tipo</label>
         <Select
           value={value.direction ?? "all"}
           onValueChange={(v) =>
@@ -80,7 +80,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
       </div>
 
       <div className="min-w-[140px]">
-        <label className="block text-xs text-slate-500 mb-1">Status</label>
+        <label className="block text-sm text-slate-500 mb-1">Status</label>
         <Select
           value={value.status ?? "all"}
           onValueChange={(v) =>
@@ -102,7 +102,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
       </div>
 
       <div className="min-w-[160px]">
-        <label className="block text-xs text-slate-500 mb-1">Categoria</label>
+        <label className="block text-sm text-slate-500 mb-1">Categoria</label>
         <Select
           value={value.category ?? "all"}
           onValueChange={(v) =>
@@ -124,7 +124,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
       </div>
 
       <div>
-        <label className="block text-xs text-slate-500 mb-1">De</label>
+        <label className="block text-sm text-slate-500 mb-1">De</label>
         <Input
           type="date"
           value={value.from ?? ""}
@@ -134,7 +134,7 @@ export function ReceiptFiltersBar({ value, onChange }: ReceiptFiltersBarProps) {
       </div>
 
       <div>
-        <label className="block text-xs text-slate-500 mb-1">Ate</label>
+        <label className="block text-sm text-slate-500 mb-1">Ate</label>
         <Input
           type="date"
           value={value.to ?? ""}

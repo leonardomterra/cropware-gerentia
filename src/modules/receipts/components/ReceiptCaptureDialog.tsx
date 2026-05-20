@@ -134,7 +134,7 @@ export function ReceiptCaptureDialog({
           />
 
           {selectedFile ? (
-            <div className="text-xs text-slate-500 flex items-center justify-between">
+            <div className="text-sm text-slate-500 flex items-center justify-between">
               <span className="truncate">{selectedFile.name}</span>
               <Button
                 type="button"
@@ -168,7 +168,7 @@ export function ReceiptCaptureDialog({
                 manualmente, ou trocar a foto e tentar de novo.
               </p>
               {lastScan.scan_error ? (
-                <p className="mt-2 text-xs font-mono text-amber-700">
+                <p className="mt-2 text-sm font-mono text-amber-700">
                   Detalhe: {lastScan.scan_error}
                 </p>
               ) : null}

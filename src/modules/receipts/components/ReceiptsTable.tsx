@@ -52,7 +52,7 @@ export function ReceiptsTable({ receipts, onEdit, onDelete }: ReceiptsTableProps
                   {r.vendor ?? r.description ?? "(sem fornecedor)"}
                 </p>
                 {r.vendor && r.description ? (
-                  <p className="text-xs text-slate-500 truncate max-w-[40ch]">
+                  <p className="text-sm text-slate-500 truncate max-w-[40ch]">
                     {r.description}
                   </p>
                 ) : null}
@@ -63,7 +63,7 @@ export function ReceiptsTable({ receipts, onEdit, onDelete }: ReceiptsTableProps
               <TableCell>
                 <span
                   className={cn(
-                    "inline-flex items-center text-xs px-2 py-0.5 rounded border font-medium",
+                    "inline-flex items-center text-[13px] px-2 py-0.5 rounded border font-medium",
                     STATUS_TONE[r.status],
                   )}
                 >

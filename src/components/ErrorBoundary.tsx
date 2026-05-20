@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   <p className="text-sm font-medium text-slate-900">
                     Detalhes tecnicos
                   </p>
-                  <p className="text-xs font-mono text-slate-500 break-all leading-relaxed">
+                  <p className="text-sm font-mono text-slate-500 break-all leading-relaxed">
                     {errorText}
                   </p>
                   {error?.stack && (

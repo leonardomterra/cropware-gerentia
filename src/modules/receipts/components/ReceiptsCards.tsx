@@ -50,14 +50,14 @@ export function ReceiptsCards({ receipts, onEdit, onDelete }: ReceiptsCardsProps
                 {formatBRL(r.total_value)}
               </p>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5 truncate">
+            <p className="text-sm text-slate-500 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
               {r.category ? ` - ${r.category}` : ""}
             </p>
             <div className="mt-2">
               <span
                 className={cn(
-                  "inline-flex items-center text-xs px-2 py-0.5 rounded border font-medium",
+                  "inline-flex items-center text-[13px] px-2 py-0.5 rounded border font-medium",
                   STATUS_TONE[r.status],
                 )}
               >

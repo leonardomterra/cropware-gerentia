@@ -21,11 +21,11 @@ export default function FarmsPage() {
           <p className="text-sm font-medium text-slate-900 truncate">
             {user?.organizationName ?? "-"}
           </p>
-          <p className="text-xs text-slate-500">Fazenda inicial</p>
+          <p className="text-sm text-slate-500">Fazenda inicial</p>
         </div>
       </div>
 
-      <p className="text-xs text-slate-400 mt-4">
+      <p className="text-sm text-slate-400 mt-4">
         CRUD completo de fazendas (area, cidade, cultura) vem no V2.
       </p>
     </div>

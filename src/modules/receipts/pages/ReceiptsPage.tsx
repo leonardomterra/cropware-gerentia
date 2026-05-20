@@ -155,19 +155,19 @@ export default function ReceiptsPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
         <div className="bg-white border border-slate-200 rounded-lg p-3">
-          <p className="text-xs text-slate-500">Entradas</p>
+          <p className="text-sm text-slate-500">Entradas</p>
           <p className="text-base font-medium text-emerald-700 tabular-nums">
             {formatBRL(totalIncome)}
           </p>
         </div>
         <div className="bg-white border border-slate-200 rounded-lg p-3">
-          <p className="text-xs text-slate-500">Saidas</p>
+          <p className="text-sm text-slate-500">Saidas</p>
           <p className="text-base font-medium text-slate-900 tabular-nums">
             {formatBRL(totalExpenses)}
           </p>
         </div>
         <div className="bg-white border border-slate-200 rounded-lg p-3 col-span-2 sm:col-span-1">
-          <p className="text-xs text-slate-500">Saldo</p>
+          <p className="text-sm text-slate-500">Saldo</p>
           <p className="text-base font-medium text-farm-primary tabular-nums">
             {formatBRL(totalIncome - totalExpenses)}
           </p>
@@ -193,7 +193,7 @@ export default function ReceiptsPage() {
             <p className="text-sm font-medium text-slate-900">
               Nenhum lancamento ainda
             </p>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs">
+            <p className="text-sm text-slate-500 mt-1 max-w-xs">
               Adiciona seu primeiro pelo botao acima. Captura por foto chega no
               proximo commit.
             </p>
