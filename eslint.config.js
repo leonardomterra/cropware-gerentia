@@ -29,4 +29,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // shadcn/ui components - convencoes do template diferem do lint geral.
+    // Variants exportados junto com componente (cva), uso ocasional de any em casts de eventos.
+    // Mantemos a base copiada legivel; codigo do dominio (Farm) usa as regras estritas.
+    files: ["src/components/ui/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );
