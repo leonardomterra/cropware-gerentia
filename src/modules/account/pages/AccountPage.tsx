@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
 
 export default function AccountPage() {
   const { user, signOut } = useAuth();
@@ -56,6 +57,8 @@ export default function AccountPage() {
           Billing Mercado Pago + RevenueCat entram no commit 7/10.
         </p>
       </section>
+
+      <WhatsAppLinkCard />
 
       <section className="bg-white rounded-lg border border-slate-200 p-4">
         <h2 className="text-sm font-medium text-slate-900 mb-3">Sessao</h2>
