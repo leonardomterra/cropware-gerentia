@@ -9,11 +9,12 @@
  * Usa aws4fetch (SigV4 leve) pra evitar o cold-start timeout do
  * @aws-sdk/client-s3 no edge Deno.
  *
- * Secrets esperados na edge farm-api:
- * - R2_ACCOUNT_ID
- * - R2_ACCESS_KEY_ID
- * - R2_SECRET_ACCESS_KEY
- * - R2_BUCKET_NAME (ex: "cropware-farm-storage")
+ * Secrets esperados na edge farm-api (prefixo FARM_ pra NAO colidir com os
+ * secrets R2_* do Studio, que divide o mesmo projeto Supabase):
+ * - FARM_R2_ACCOUNT_ID
+ * - FARM_R2_ACCESS_KEY_ID
+ * - FARM_R2_SECRET_ACCESS_KEY
+ * - FARM_R2_BUCKET_NAME (ex: "cropware-farm")
  */
 
 import { AwsClient } from "npm:aws4fetch@1.0.20";
@@ -23,11 +24,11 @@ let _client: AwsClient | null = null;
 function getR2Client(): AwsClient {
   if (_client) return _client;
 
-  const accessKeyId = Deno.env.get("R2_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY");
+  const accessKeyId = Deno.env.get("FARM_R2_ACCESS_KEY_ID");
+  const secretAccessKey = Deno.env.get("FARM_R2_SECRET_ACCESS_KEY");
   if (!accessKeyId || !secretAccessKey) {
     throw new Error(
-      "R2 nao configurado. Defina R2_ACCESS_KEY_ID e R2_SECRET_ACCESS_KEY.",
+      "R2 nao configurado. Defina FARM_R2_ACCESS_KEY_ID e FARM_R2_SECRET_ACCESS_KEY.",
     );
   }
 
@@ -41,9 +42,9 @@ function getR2Client(): AwsClient {
 }
 
 function getEndpoint(): string {
-  const accountId = Deno.env.get("R2_ACCOUNT_ID");
-  if (!accountId) throw new Error("R2_ACCOUNT_ID nao configurado.");
-  const bucket = Deno.env.get("R2_BUCKET_NAME") || "cropware-farm-storage";
+  const accountId = Deno.env.get("FARM_R2_ACCOUNT_ID");
+  if (!accountId) throw new Error("FARM_R2_ACCOUNT_ID nao configurado.");
+  const bucket = Deno.env.get("FARM_R2_BUCKET_NAME") || "cropware-farm";
   return `https://${accountId}.r2.cloudflarestorage.com/${bucket}`;
 }
 

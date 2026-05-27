@@ -17,6 +17,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@fontsource-variable/inter-tight": "^5.2.7",
     "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "@fontsource/alumni-sans": "^5.2.8",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
