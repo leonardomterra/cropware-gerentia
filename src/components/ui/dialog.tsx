@@ -109,7 +109,9 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sticky bottom-0 bg-background pt-3 pb-1 -mx-6 px-6 -mb-6 z-10 border-t border-slate-100",
+        // Botoes dividem a largura (*:flex-1), linha suave em cima.
+        // Mesmo padrao do AlertDialogFooter.
+        "flex flex-row gap-2 *:flex-1 sticky bottom-0 bg-background pt-4 pb-1 -mx-6 px-6 -mb-6 z-10 border-t border-slate-100",
         className,
       )}
       {...props}
@@ -124,8 +126,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-medium", className)}
-      style={{ fontFamily: "'Inter Tight', sans-serif", ...props.style }}
+      className={cn("text-base leading-none font-medium", className)}
       {...props}
     />
   );

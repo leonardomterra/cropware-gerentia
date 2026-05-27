@@ -75,7 +75,7 @@ export function ReceiptCaptureDialog({
     <Dialog open={open} onOpenChange={(o) => !scanning && onOpenChange(o)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Capturar recibo</DialogTitle>
+          <DialogTitle>Capturar Recibo</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
