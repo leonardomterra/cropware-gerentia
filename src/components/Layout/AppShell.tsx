@@ -64,7 +64,7 @@ export function AppShell() {
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Mobile */}
           <div className="flex md:hidden items-center justify-between">
-            <Logo className="text-white h-5 w-auto" />
+            <Logo className="text-white h-7 w-auto" />
             <button
               onClick={() => void signOut()}
               className="inline-flex items-center justify-center rounded p-2 transition-all active:scale-95"
@@ -77,7 +77,7 @@ export function AppShell() {
 
           {/* Desktop */}
           <div className="hidden md:flex items-center justify-between">
-            <Logo className="text-white h-6 w-auto shrink-0" />
+            <Logo className="text-white h-8 w-auto shrink-0" />
 
             <div className="flex items-center gap-3">
               <p
