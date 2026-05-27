@@ -79,6 +79,9 @@ function DialogContent({
             }
             onAnimationStart?.(e);
           }}
+          // Bloqueia fechar ao clicar fora (padrao Farm: dialog so fecha
+          // via X, Cancelar ou acao explicita). Override via props se preciso.
+          onInteractOutside={(e) => e.preventDefault()}
           {...props}
         >
           <ModalScopeProvider>{children}</ModalScopeProvider>
@@ -109,9 +112,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        // Botoes dividem a largura (*:flex-1), linha suave em cima.
-        // Mesmo padrao do AlertDialogFooter.
-        "flex flex-row gap-2 *:flex-1 sticky bottom-0 bg-background pt-4 pb-1 -mx-6 px-6 -mb-6 z-10 border-t border-slate-100",
+        // Botoes dividem a largura (*:flex-1), linha suave em cima
+        // (full-width via -mx-6 px-6). Mesmo padrao do AlertDialogFooter.
+        // NAO sticky - flui no fim do conteudo (o DialogContent ja tem
+        // overflow-y-auto), evita sobrepor o ultimo campo.
+        "flex flex-row gap-2 *:flex-1 border-t border-slate-100 pt-4 -mx-6 px-6",
         className,
       )}
       {...props}
