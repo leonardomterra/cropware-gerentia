@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Camera, Plus, Receipt as ReceiptIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,8 +122,10 @@ export default function ReceiptsPage() {
       await deleteReceipt(pendingDelete.id);
       setPendingDelete(null);
       await refetch();
+      toast.success("Lançamento excluído");
     } catch (err) {
       console.error("[ReceiptsPage] delete failed:", err);
+      toast.error("Erro ao excluir. Tente de novo.");
     } finally {
       setDeleting(false);
     }

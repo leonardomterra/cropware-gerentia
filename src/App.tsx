@@ -12,6 +12,7 @@ import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
 import { ResetPasswordScreen } from "@/components/auth/ResetPasswordScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppShell } from "@/components/Layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
 import { lazyWithRetry } from "@/utils/lazyWithRetry";
 
 const DashboardPage = lazyWithRetry(
@@ -107,6 +108,7 @@ export default function App() {
           <RootRoutes />
         </AuthProvider>
       </BrowserRouter>
+      <Toaster />
     </ErrorBoundary>
   );
 }

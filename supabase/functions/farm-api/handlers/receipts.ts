@@ -1,6 +1,6 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
-import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
+import { uploadToR2, presignGetUrl } from "../lib/r2.ts";
 import { extractReceiptFromImage } from "../lib/gemini.ts";
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -257,19 +257,16 @@ export function mountReceiptRoutes(app: Hono) {
         return c.json({ error: "image_too_large_10mb_max" }, 413);
       }
 
-      const admin = getSupabaseAdmin();
       const yyyymm = new Date().toISOString().slice(0, 7);
       const uuid = crypto.randomUUID();
       const ext = extFromMime(mimeType);
       const key = `org-${auth.organizationId}/${yyyymm}/${uuid}.${ext}`;
 
-      const { error: uploadError } = await admin.storage
-        .from("farm-receipts")
-        .upload(key, bytes, { contentType: mimeType, upsert: false });
-
-      if (uploadError) {
-        console.error("[scan] upload failed:", uploadError);
-        return c.json({ error: `upload_failed: ${uploadError.message}` }, 500);
+      try {
+        await uploadToR2(key, bytes, mimeType);
+      } catch (err) {
+        console.error("[scan] R2 upload failed:", err);
+        return c.json({ error: "upload_failed" }, 500);
       }
 
       // Clean base64 (sem data URL prefix) pra Gemini
@@ -296,6 +293,36 @@ export function mountReceiptRoutes(app: Hono) {
         attachment_mime: mimeType,
         extracted: gemini.data,
       });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      throw resp;
+    }
+  });
+
+  /**
+   * Presigned URL pra baixar o anexo de um recibo. Bucket R2 e privado, entao
+   * o cliente nunca acessa direto. RLS (user client) garante que so o dono da
+   * org enxerga o attachment_key; presign tem TTL curto (5min).
+   */
+  app.get("/receipts/:id/attachment-url", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+
+      const id = c.req.param("id");
+      const { data, error } = await client
+        .from("farm_receipts")
+        .select("attachment_key")
+        .eq("id", id)
+        .single();
+
+      if (error) return c.json({ error: error.message }, 400);
+      if (!data) return c.json({ error: "not_found" }, 404);
+      if (!data.attachment_key) return c.json({ error: "no_attachment" }, 404);
+
+      const url = await presignGetUrl(data.attachment_key, 300);
+      return c.json({ url, expires_in: 300 });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;

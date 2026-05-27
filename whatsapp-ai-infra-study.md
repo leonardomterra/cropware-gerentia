@@ -195,13 +195,25 @@ e responde confirmando. Reaproveita 100% o pipeline `scan`.
 
 > Entrega: o diferencial do Farm ("foto + WhatsApp + zero planilha") funcionando ponta a ponta.
 
-### Fase B — Bot conversacional financeiro 💬
+### Fase B — Bot conversacional financeiro 💬 (Gemini function calling)
 
-Replicar `callOpenAIWithFunctions` (OpenAI, gpt-5.x-mini, prompt cacheável, histórico KV),
-trocando tools agronômicas por **financeiras**:
+Replicar o *padrão* do `callOpenAIWithFunctions`, mas com **Gemini 3.5 Flash function calling**
+(não OpenAI) — decisão de custo/atualidade. Mudanças de API vs CDM:
 
-- `create_receipt` (texto: "paguei 1200 de diesel na fazenda X") — espelha o fallback de chuva
-  do CDM pra resiliência.
+- Function calling em Gemini = `tools: [{ functionDeclarations: [...] }]`; o modelo devolve
+  `functionCall` parts, você responde com `functionResponse` parts (loop multi-turn). Difere do
+  `tool_calls`/`role:tool` da OpenAI — a camada de orquestração precisa ser reescrita pra esse
+  formato.
+- **⚠️ Pré-requisito:** confirmar que o proxy `gemini` compartilhado encaminha o campo `tools`
+  no `body`. Se não encaminhar, ou (a) ajustar o proxy, ou (b) usar `GEMINI_API_KEY` direta só
+  pro bot. Validar antes de construir a Fase B.
+- Histórico de conversa em KV (Supabase) por telefone — espelhar `conversationHistory.tsx`.
+- Manter os **fallbacks determinísticos** (regex) do CDM pra resiliência (ex: "paguei 1200 de
+  diesel" → `create_receipt` mesmo se o modelo não chamar a tool).
+
+Tools financeiras (substituem as agronômicas):
+
+- `create_receipt` (texto: "paguei 1200 de diesel na fazenda X").
 - `list_receipts` / `get_financial_summary` (a pagar, a receber, vencido, por categoria/período).
 - `mark_paid`, `get_cashflow` (consultas read-only).
 - **Persona fazendeiro** (não RTV/GD) — novo `prompts/botSystem.pt-br.ts`.
@@ -248,15 +260,70 @@ trocando tools agronômicas por **financeiras**:
 
 ---
 
-## 7. Decisões pendentes (pra destravar a Fase A)
+## 7. Decisões (RESOLVIDAS — 2026-05-27)
 
-1. **Confirmar Supabase Storage vs R2** pro Farm. (Recomendo Storage; blueprint dizia R2.)
-2. **Número Farm:** Salvy novo dedicado (recomendado) ou test number Meta no piloto?
-3. **WABA:** compartilhar a WABA do CDM (PNID filter) ou abrir WABA própria do Farm?
-4. **Recibo via WhatsApp cria direto ou entra em fila de revisão?** (Sugiro: `confidence`
-   alta = cria `a_pagar`; baixa = `a_revisar` no app.)
-5. **Bot conversacional (Fase B) entra no piloto ou só o scan (Fase A)?** O blueprint do Farm
-   marcou WhatsApp como "commit 9/10" e há nota na memória de que está pausado pós-8c.
+1. **Storage:** ✅ **Cloudflare R2 dedicado** (`cropware-farm-storage`), **privado + presigned
+   URL** (não público como o CDM, por ser documento fiscal). Migrar o `/receipts/scan` do
+   Supabase Storage pro R2.
+2. **Número Farm:** ✅ **Salvy dedicado** (novo número exclusivo do Farm). Ver passos no §8.
+3. **WABA:** ✅ **WABA própria do Farm** (na conta Meta Business existente). PNID será único de
+   qualquer forma; WABA separada dá isolamento de limites/templates/billing.
+4. **Recibo via WhatsApp:** ✅ **Cria direto, após confirmação dos dados pelo próprio WhatsApp.**
+   Fluxo: scan → bot mostra os campos extraídos → usuário confirma (botão Sim) → `INSERT
+   farm_receipts` com `source='whatsapp'`. Se quiser corrigir, botão Editar abre no app web.
+   (Sem fila `a_revisar` separada — a revisão é a confirmação no chat.)
+5. **Bot conversacional (Fase B):** ✅ **Sim, implementar** — com Gemini 3.5 Flash (ver Fase B).
+   Só **Services Bot**; sem Leads Bot no piloto.
+
+---
+
+## 8. Setup externo (o que VOCÊ faz no painel) — pré-requisitos da Fase A
+
+### 8.1 R2 — bucket dedicado privado
+1. Cloudflare → **R2** → **Create bucket** → nome `cropware-farm-storage`, location hint
+   **South America**. **NÃO** conectar custom domain (mantém privado — diferente do
+   `cropware-storage` do CDM, que é público).
+2. **Manage R2 API Tokens** → **Create API token**: nome `cropware-farm-edge`, permissão
+   **Object Read & Write**, escopo só no bucket `cropware-farm-storage`.
+3. Copiar **Access Key ID**, **Secret Access Key** e o **Account ID** (do endpoint
+   `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`).
+4. Setar secrets na edge `farm-api` (projeto Supabase do Farm — `tzsmxhwvtobwkqffgsxo`):
+   ```
+   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+   R2_BUCKET_NAME=cropware-farm-storage
+   ```
+   (Sem `R2_PUBLIC_URL` — acesso é por presigned URL, não domínio público.)
+
+### 8.2 Meta — WABA própria do Farm
+1. [business.facebook.com](https://business.facebook.com) (mesma conta Meta Business) →
+   **WhatsApp Accounts** → criar **nova WABA** "Cropware Farm".
+2. Meta Developers → criar app Business "Cropware Farm Bot" → adicionar produto **WhatsApp**.
+3. **System User Token** (never-expire) com `whatsapp_business_messaging` +
+   `whatsapp_business_management`, acesso à WABA nova.
+
+### 8.3 Salvy — número dedicado
+1. Criar conta Salvy → ativar **1 número novo** (R$ 29,90/mês, sem fidelidade) só pro Farm.
+2. Em **WhatsApp → API Setup** da WABA do Farm: **Add phone number** → número Salvy.
+3. Receber o **SMS de verificação via webhook Salvy** (configurar `SALVY_API_KEY` + endpoint que
+   captura o código) → confirmar na Meta. O número vira "API only".
+4. Anotar o **Phone Number ID (PNID)** do número → secret `WHATSAPP_FARM_BOT_PNID`.
+5. ⚠️ Guardar o **PIN 2FA do WhatsApp Business** num vault próprio (não só na Salvy).
+6. Configurar webhook na Meta → Callback URL:
+   `https://tzsmxhwvtobwkqffgsxo.supabase.co/functions/v1/farm-api/webhook/whatsapp`,
+   Verify Token = `WHATSAPP_VERIFY_TOKEN`, subscribe `messages` + `message_status`.
+
+Secrets WhatsApp da edge: `WHATSAPP_FARM_BOT_TOKEN` (system user token), `WHATSAPP_FARM_BOT_PNID`,
+`WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_FARM_BOT_WABA_ID`, `SALVY_API_KEY`.
+
+### 8.4 Divisão de trabalho
+
+| Você (painel) | Eu (código) |
+|---|---|
+| 8.1 bucket+token R2 | `lib/r2.ts` + migrar `/receipts/scan` pro R2 + presigned read |
+| 8.2 WABA + token Meta | webhook real (`POST /webhook/whatsapp`) + dispatch + safety nets |
+| 8.3 número Salvy + webhook SMS | tabelas de vínculo + `generate-code` + verificação 6 dígitos |
+| setar secrets | handler de imagem/PDF → OCR → confirma → cria `farm_receipts` |
+| (Fase B) — | bot Gemini function calling + tools financeiras + histórico KV |
 
 ---
 

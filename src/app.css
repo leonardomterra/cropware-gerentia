@@ -182,6 +182,12 @@ select,
   touch-action: manipulation;
 }
 
+/* Toast (sonner): usa a fonte UI do app (padrao CDM). */
+[data-sonner-toast] {
+  font-family: var(--font-ui) !important;
+  font-weight: 400 !important;
+}
+
 /* Badges: padronizacao global (padrao CDM). JetBrains Mono 12px
    UPPERCASE em TODOS os [data-slot="badge"]. !important vence o
    inline fontSize do componente Badge. */

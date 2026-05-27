@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -181,6 +182,7 @@ export function ReceiptFormDialog({
 
       if (isEdit && receipt) {
         await updateReceipt(receipt.id, payload);
+        toast.success("Lançamento atualizado");
       } else if (prefill) {
         await createReceipt({
           ...payload,
@@ -190,8 +192,10 @@ export function ReceiptFormDialog({
           ai_confidence: prefill.ai_confidence ?? null,
           ai_raw: prefill.ai_raw ?? null,
         });
+        toast.success("Lançamento criado");
       } else {
         await createReceipt(payload);
+        toast.success("Lançamento criado");
       }
       onSaved();
       onOpenChange(false);
