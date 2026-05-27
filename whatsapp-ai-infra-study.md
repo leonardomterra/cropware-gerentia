@@ -279,20 +279,28 @@ Tools financeiras (substituem as agronômicas):
 
 ## 8. Setup externo (o que VOCÊ faz no painel) — pré-requisitos da Fase A
 
-### 8.1 R2 — bucket dedicado privado
-1. Cloudflare → **R2** → **Create bucket** → nome `cropware-farm-storage`, location hint
-   **South America**. **NÃO** conectar custom domain (mantém privado — diferente do
-   `cropware-storage` do CDM, que é público).
-2. **Manage R2 API Tokens** → **Create API token**: nome `cropware-farm-edge`, permissão
-   **Object Read & Write**, escopo só no bucket `cropware-farm-storage`.
-3. Copiar **Access Key ID**, **Secret Access Key** e o **Account ID** (do endpoint
-   `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`).
-4. Setar secrets na edge `farm-api` (projeto Supabase do Farm — `tzsmxhwvtobwkqffgsxo`):
+> **Estratégia recomendada — dev primeiro, Salvy depois.** O número Salvy + WABA própria
+> dependem de verificação de negócio na Meta (1-3 dias úteis). Pra NÃO travar o desenvolvimento:
+> usar o **número de teste da Meta** (API Testing, grátis 90 dias, até 5 destinatários
+> cadastrados) pra construir e testar o webhook + fluxo de recibo AGORA, e migrar pro número
+> Salvy quando a WABA estiver verificada. O código é o mesmo — só mudam PNID e secrets.
+
+### 8.1 R2 — bucket dedicado privado ✅ (bucket criado: `cropware-farm`)
+1. ✅ Bucket `cropware-farm` criado. Account ID = `8bcccd537c6c256b830b982e0027ac29`.
+   **NÃO** conectar custom domain (mantém privado — diferente do `cropware-storage` do CDM).
+2. ⏳ **Criar o API token** (é o que falta): Cloudflare → R2 → **Manage R2 API Tokens** →
+   **Create API token** → nome `cropware-farm-edge`, permissão **Object Read & Write**, escopo
+   só no bucket `cropware-farm`. Copiar **Access Key ID** + **Secret Access Key** (mostrados 1x).
+3. ⏳ **Setar 4 secrets** no projeto Supabase do Farm (`tzsmxhwvtobwkqffgsxo`):
+   Dashboard → **Project Settings → Edge Functions → Secrets → Add new secret** (ou
+   `supabase secrets set NOME=valor`). Prefixo `FARM_` pra **não colidir com o Studio**:
    ```
-   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-   R2_BUCKET_NAME=cropware-farm-storage
+   FARM_R2_ACCOUNT_ID=8bcccd537c6c256b830b982e0027ac29
+   FARM_R2_ACCESS_KEY_ID=<do token>
+   FARM_R2_SECRET_ACCESS_KEY=<do token>
+   FARM_R2_BUCKET_NAME=cropware-farm
    ```
-   (Sem `R2_PUBLIC_URL` — acesso é por presigned URL, não domínio público.)
+   (Sem `FARM_R2_PUBLIC_URL` — acesso é por presigned URL, não domínio público.)
 
 ### 8.2 Meta — WABA própria do Farm
 1. [business.facebook.com](https://business.facebook.com) (mesma conta Meta Business) →
@@ -301,19 +309,37 @@ Tools financeiras (substituem as agronômicas):
 3. **System User Token** (never-expire) com `whatsapp_business_messaging` +
    `whatsapp_business_management`, acesso à WABA nova.
 
-### 8.3 Salvy — número dedicado
-1. Criar conta Salvy → ativar **1 número novo** (R$ 29,90/mês, sem fidelidade) só pro Farm.
-2. Em **WhatsApp → API Setup** da WABA do Farm: **Add phone number** → número Salvy.
-3. Receber o **SMS de verificação via webhook Salvy** (configurar `SALVY_API_KEY` + endpoint que
-   captura o código) → confirmar na Meta. O número vira "API only".
-4. Anotar o **Phone Number ID (PNID)** do número → secret `WHATSAPP_FARM_BOT_PNID`.
+### 8.3 Salvy — número dedicado (número do Farm: **(64) 93618-0235** → E.164 `+5564936180235`)
+
+**Fatos da API Salvy** (docs.salvy.com.br):
+- Base URL `https://api.salvy.com.br`; auth `Authorization: Bearer <token>` (token criado no
+  dashboard, **exibido 1x**).
+- Criar número: `POST /api/v2/virtual-phone-accounts` body `{ "areaCode": 64 }` → retorna
+  `{ id, phoneNumber (E.164), status: pending|active|... }`. Listar: `GET /api/v2/virtual-phone-accounts`.
+- **Número virtual NÃO tem SIM físico → SMS só chega via webhook.** Evento `sms.received`
+  (entregue por **Svix**), payload `{ type, timestamp, data: {...} }`. **Registro do webhook é
+  pelo DASHBOARD** (Settings → Functionalities → Webhooks), não pela API. Assinatura no header
+  `svix-signature` → guardar o signing secret como `SALVY_WEBHOOK_SECRET`.
+
+**Por que isso importa:** pra registrar o número na Meta (WABA), a Meta manda um **SMS com
+código** pro número. Como é virtual, esse SMS **só** chega via webhook Salvy → precisamos de um
+endpoint que capture o código.
+
+Passos (fazer quando a WABA de produção estiver verificada — ver 8.2):
+1. Salvy dashboard → gerar token API (se for usar a API) e **registrar webhook** apontando pra
+   `…/farm-api/webhook/salvy-sms` (endpoint que eu construo), evento `sms.received`. Copiar o
+   signing secret → `SALVY_WEBHOOK_SECRET`.
+2. Meta WABA do Farm → **Add phone number** → `+5564936180235` → escolher SMS.
+3. Salvy recebe o SMS → dispara webhook → endpoint guarda o código → você lê (GET admin) e
+   digita na Meta. Número vira "API only".
+4. Anotar o **Phone Number ID (PNID)** → secret `WHATSAPP_FARM_BOT_PNID`.
 5. ⚠️ Guardar o **PIN 2FA do WhatsApp Business** num vault próprio (não só na Salvy).
-6. Configurar webhook na Meta → Callback URL:
+6. Webhook Meta → Callback URL
    `https://tzsmxhwvtobwkqffgsxo.supabase.co/functions/v1/farm-api/webhook/whatsapp`,
    Verify Token = `WHATSAPP_VERIFY_TOKEN`, subscribe `messages` + `message_status`.
 
 Secrets WhatsApp da edge: `WHATSAPP_FARM_BOT_TOKEN` (system user token), `WHATSAPP_FARM_BOT_PNID`,
-`WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_FARM_BOT_WABA_ID`, `SALVY_API_KEY`.
+`WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_FARM_BOT_WABA_ID`, `SALVY_WEBHOOK_SECRET`.
 
 ### 8.4 Divisão de trabalho
 

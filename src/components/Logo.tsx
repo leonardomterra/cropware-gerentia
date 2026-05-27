@@ -1,6 +1,33 @@
 import type { SVGProps } from "react";
 
 /**
+ * Apenas o glifo (icone) do Cropware - sem o quadrado de fundo e sem
+ * wordmark. fill=currentColor pra tingir via Tailwind text-*.
+ * Tratamento monocromatico igual ao CDM (logo branco no header).
+ * Extraido de icons-logos/icon-svg.svg (so o path, sem os rects).
+ */
+export function LogoIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 150 150"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Cropware"
+      {...props}
+    >
+      <g transform="matrix(0.93985,0,0,1.030498,3.874577,-0.427471)">
+        <g transform="matrix(1.292245,0,0,1.178572,-21.298044,-15.145047)">
+          <path
+            fill="currentColor"
+            d="M75.544,33.636C75.235,33.457 74.854,33.457 74.544,33.636L39.511,53.863C39.201,54.041 39.011,54.371 39.011,54.729L39.011,95.182C39.011,95.539 39.201,95.869 39.511,96.048L74.544,116.275C74.854,116.454 75.235,116.454 75.544,116.275L110.578,96.048C110.887,95.869 111.078,95.539 111.078,95.182L111.078,75.261L75.044,96.065L56.763,85.51L56.763,64.4L75.044,74.955L111.078,54.151L75.544,33.636Z"
+          />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/**
  * Logo wordmark do Cropware Farm.
  * SVG inline com `fill="currentColor"` - cor controlada via Tailwind
  * `text-*` no elemento pai.

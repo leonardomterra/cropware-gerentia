@@ -12,7 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Logo } from "@/components/Logo";
+import { LogoIcon } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 
@@ -75,7 +75,7 @@ export function AppShell() {
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Mobile */}
           <div className="flex md:hidden items-center justify-between">
-            <Logo className="text-white h-6 w-auto" />
+            <LogoIcon className="text-white h-7 w-auto" />
             <button
               onClick={() => void signOut()}
               className="inline-flex items-center justify-center rounded p-2 transition-all active:scale-95"
@@ -89,7 +89,7 @@ export function AppShell() {
           {/* Desktop */}
           <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center">
-              <Logo className="text-white h-8 w-auto shrink-0" />
+              <LogoIcon className="text-white h-9 w-auto shrink-0" />
               <div
                 className="mx-3"
                 style={{
