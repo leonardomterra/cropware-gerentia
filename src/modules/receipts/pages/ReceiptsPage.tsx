@@ -253,7 +253,7 @@ export default function ReceiptsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir lancamento?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDelete?.vendor || pendingDelete?.description}
               {" - "}
@@ -264,11 +264,7 @@ export default function ReceiptsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={deleting}
-              className="bg-slate-800 text-white hover:bg-slate-900 border-0"
-            >
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
               {deleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>

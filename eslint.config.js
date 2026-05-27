@@ -5,7 +5,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["build", "dist", "node_modules"] },
+  // supabase/functions e' codigo Deno (npm: imports, Deno.env) - tem o
+  // proprio linter (deno lint). Fora do escopo do ESLint do app Vite.
+  { ignores: ["build", "dist", "node_modules", "supabase"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
