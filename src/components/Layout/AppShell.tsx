@@ -1,16 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Receipt,
-  Sprout,
-  User as UserIcon,
-  LogOut,
-  Wifi,
-  WifiOff,
-  Building2,
-  Clock,
-} from "lucide-react";
+import { LogOut, Wifi, WifiOff, Building2, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
@@ -19,15 +9,14 @@ import { cn } from "@/components/ui/utils";
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof LayoutDashboard;
   end?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/lancamentos", label: "Lancamentos", icon: Receipt },
-  { to: "/fazendas", label: "Fazendas", icon: Sprout },
-  { to: "/conta", label: "Conta", icon: UserIcon },
+  { to: "/", label: "Dashboard", end: true },
+  { to: "/lancamentos", label: "Lancamentos" },
+  { to: "/fazendas", label: "Fazendas" },
+  { to: "/conta", label: "Conta" },
 ];
 
 /** Estilo glass pra botoes sobre o header colorido (padrao CDM). */
@@ -172,9 +161,9 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* TAB BAR */}
-      <div className="bg-white border-b border-slate-200 overflow-x-auto">
-        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 flex h-12 items-stretch">
+      {/* TAB BAR - tabs dividem a largura igualmente (flex-1), sem icone */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-[1600px] w-full mx-auto flex h-12 items-stretch">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
@@ -182,7 +171,7 @@ export function AppShell() {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  "relative flex items-center justify-center gap-1.5 px-5 h-12 whitespace-nowrap text-sm transition-colors",
+                  "relative flex-1 flex items-center justify-center px-3 h-12 whitespace-nowrap text-sm transition-colors",
                   isActive
                     ? "text-white"
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
@@ -194,7 +183,6 @@ export function AppShell() {
             >
               {({ isActive }) => (
                 <>
-                  <item.icon className="size-4" />
                   <span>{item.label}</span>
                   {isActive ? (
                     <span
