@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { LogOut, Wifi, WifiOff, Building2, Clock } from "lucide-react";
+import {
+  LogOut,
+  Wifi,
+  WifiOff,
+  Building2,
+  Clock,
+  HelpCircle,
+  Settings,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +27,38 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/conta", label: "Conta" },
 ];
 
-/** Estilo glass pra botoes sobre o header colorido (padrao CDM). */
-const GLASS: React.CSSProperties = {
-  backgroundColor: "rgba(255,255,255,0.12)",
-  border: "1px solid rgba(255,255,255,0.25)",
-  color: "#ffffff",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
-};
+/**
+ * Botao glass sobre o header colorido (padrao CDM). bg translucido +
+ * borda branca suave + hover. shadow via classe.
+ */
+function GlassButton({
+  icon: Icon,
+  label,
+  onClick,
+  iconOnly = false,
+  title,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  onClick?: () => void;
+  iconOnly?: boolean;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title ?? label}
+      className={cn(
+        "inline-flex items-center justify-center gap-1.5 rounded h-8 text-[14px] font-normal text-white bg-white/10 border border-white/25 shadow-sm transition-colors active:scale-95 hover:bg-white/20",
+        iconOnly ? "w-8" : "px-3",
+      )}
+    >
+      <Icon className="size-3.5" />
+      {iconOnly ? null : <span>{label}</span>}
+    </button>
+  );
+}
 
 function useOnline() {
   const [online, setOnline] = useState(
@@ -65,23 +98,64 @@ export function AppShell() {
           {/* Mobile */}
           <div className="flex md:hidden items-center justify-between">
             <Logo className="text-white h-7 w-auto" />
-            <button
-              onClick={() => void signOut()}
-              className="inline-flex items-center justify-center rounded p-2 transition-all active:scale-95"
-              style={GLASS}
-              aria-label="Sair"
-            >
-              <LogOut className="size-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <GlassButton
+                icon={HelpCircle}
+                label="Ajuda"
+                iconOnly
+                onClick={() => {}}
+              />
+              <GlassButton
+                icon={Settings}
+                label="Configuracoes"
+                iconOnly
+                onClick={() => {}}
+              />
+              <GlassButton
+                icon={LogOut}
+                label="Sair"
+                iconOnly
+                onClick={() => void signOut()}
+              />
+            </div>
           </div>
 
           {/* Desktop */}
           <div className="hidden md:flex items-center justify-between">
-            <Logo className="text-white h-8 w-auto shrink-0" />
-
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
+              <Logo className="text-white h-8 w-auto shrink-0" />
+              <div
+                className="mx-3"
+                style={{
+                  width: "1px",
+                  height: "26px",
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(255,255,255,0.35) 30%, rgba(255,255,255,0.35) 70%, transparent)",
+                }}
+              />
               <p
-                className="text-white font-medium leading-none"
+                style={{
+                  fontFamily: "'Alumni Sans', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  letterSpacing: "3px",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.9)",
+                  lineHeight: 1.1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Farm Data<span style={{ color: "#cbd5e1" }}>.</span>
+                <br />
+                <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>
+                  Smart Decisions.
+                </span>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <p
+                className="text-white font-medium leading-none mr-0.5"
                 style={{ fontSize: "14px" }}
               >
                 {user?.fullName}
@@ -102,14 +176,22 @@ export function AppShell() {
                     : `Trial - ${days} ${days === 1 ? "dia" : "dias"}`}
                 </span>
               ) : null}
-              <button
+              {/* Ajuda e Configuracoes sem funcao por enquanto */}
+              <GlassButton
+                icon={HelpCircle}
+                label="Ajuda"
+                onClick={() => {}}
+              />
+              <GlassButton
+                icon={Settings}
+                label="Configurações"
+                onClick={() => {}}
+              />
+              <GlassButton
+                icon={LogOut}
+                label="Sair"
                 onClick={() => void signOut()}
-                className="inline-flex items-center gap-1.5 rounded h-8 px-3 transition-all active:scale-95 font-normal text-[14px]"
-                style={GLASS}
-              >
-                <LogOut className="size-3.5" />
-                <span>Sair</span>
-              </button>
+              />
             </div>
           </div>
         </div>
