@@ -108,7 +108,7 @@ export function AppShell() {
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Mobile */}
           <div className="flex md:hidden items-center justify-between min-h-9">
-            <Logo className="text-white h-9 w-auto" />
+            <Logo className="text-white h-7 w-auto" />
             <div className="flex items-center gap-2">
               <GlassButton
                 icon={HelpCircle}
@@ -134,7 +134,7 @@ export function AppShell() {
           {/* Desktop */}
           <div className="hidden md:flex items-center justify-between min-h-12">
             <div className="flex items-center">
-              <Logo className="text-white h-9 w-auto shrink-0" />
+              <Logo className="text-white h-8 w-auto shrink-0" />
               <div
                 className="mx-3"
                 style={{

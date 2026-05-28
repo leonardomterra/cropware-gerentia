@@ -32,17 +32,22 @@ export function LogoIcon(props: SVGProps<SVGSVGElement>) {
  * SVG inline com `fill="currentColor"` - cor controlada via Tailwind
  * `text-*` no elemento pai.
  *
- * viewBox original: 1000x140. Aspect ratio ~7.14:1.
- * Default width 140px (= ~20px de altura), bom encaixe em header.
+ * viewBox original do arquivo SVG: `250 430 1000 140` (aspect 7.14:1).
+ * O path do texto "CROPWARE FARM" vai de y=444 a y=557 (113 alto) - o
+ * restante e' padding do quadrado do icone. Pra renderizar com mesmo
+ * cap-height visual do CDM `h-8`, cropamos o viewBox em y=442 ate y=558
+ * (altura 116, aspect 8.62:1 ~ proximo do CDM 9.6:1). Resultado: as
+ * letras preenchem ~97% da altura, e o quadrado do icone vira retangulo
+ * 150x126 (glifo C continua centralizado).
  *
  * Exemplo:
- *   <Logo className="text-white h-5" />            // branco, 20px alto
- *   <Logo className="text-farm-primary h-8" />     // laranja, 32px alto
+ *   <Logo className="text-white h-8" />            // 32px alto (header CDM)
+ *   <Logo className="text-farm-primary h-7" />     // 28px alto
  */
 export function Logo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      viewBox="250 430 1000 140"
+      viewBox="250 442 1000 116"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Cropware Farm"
