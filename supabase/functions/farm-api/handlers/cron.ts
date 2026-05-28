@@ -188,6 +188,26 @@ export function mountCronRoutes(app: Hono) {
    * One-shot: submete os templates Meta pra aprovacao. Guard via verify_token
    * (mesmo padrao do antigo wa-subscribe). Remover apos uso.
    */
+  // Lista status atual dos templates da WABA (usa token + WABA_ID do env, nao
+  // expoe nada). Guard pelo verify_token. Retorna name, status, category,
+  // rejected_reason, quality_score.
+  app.get("/admin/list-templates", async (c) => {
+    const key = c.req.query("key");
+    if (key !== Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
+      return c.json({ error: "forbidden" }, 403);
+    }
+    const waba = Deno.env.get("WHATSAPP_FARM_BOT_WABA_ID");
+    const token = Deno.env.get("WHATSAPP_FARM_BOT_TOKEN");
+    if (!waba || !token) return c.json({ error: "config_missing" }, 500);
+    const res = await fetch(
+      `https://graph.facebook.com/v25.0/${waba}/message_templates?fields=name,status,category,language,rejected_reason,quality_score&limit=50`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const body = await res.text();
+    if (!res.ok) return c.json({ error: "graph_error", status: res.status, body }, 500);
+    return c.json(JSON.parse(body));
+  });
+
   app.get("/admin/submit-templates", async (c) => {
     const key = c.req.query("key");
     if (key !== Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
