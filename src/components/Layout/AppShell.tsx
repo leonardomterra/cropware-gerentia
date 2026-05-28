@@ -123,7 +123,7 @@ export function AppShell() {
           {/* Desktop */}
           <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center">
-              <Logo className="text-white h-8 w-auto shrink-0" />
+              <Logo className="text-white h-7 w-auto shrink-0" />
               <div
                 className="mx-3"
                 style={{
