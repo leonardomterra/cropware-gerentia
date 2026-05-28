@@ -3,7 +3,7 @@ import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
-import { applyCreateReceipt, applyMarkPaid, runFarmAi, type LinkedUser } from "../lib/farmAi.ts";
+import { applyCreateReceipt, applyMarkPaid, askDateButtons, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser } from "../lib/farmAi.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
 import {
   bytesToBase64,
@@ -181,6 +181,52 @@ function confirmButtons(showChangeCC: boolean) {
   return buttons;
 }
 
+const PHOTO_DATE_BUTTONS = [
+  { id: "cr_date:hoje", title: "Hoje" },
+  { id: "cr_date:ontem", title: "Ontem" },
+  { id: "cr_date:custom", title: "Outra data" },
+];
+
+/**
+ * Insere farm_receipts a partir do pending receipt_confirm (foto/PDF).
+ * Aceita override de data quando a OCR nao extraiu.
+ */
+// deno-lint-ignore no-explicit-any
+async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null, linked: LinkedUser | null): Promise<string | null> {
+  const e = p.extracted;
+  const direction = e.direction === "income" ? "income" : "expense";
+  const { error } = await admin.from("farm_receipts").insert({
+    organization_id: p.organization_id,
+    created_by: p.user_id,
+    doc_type: e.doc_type || "outro",
+    direction,
+    status: direction === "income" ? "a_receber" : "a_pagar",
+    total_value: Number.isFinite(e.total_value) ? e.total_value : 0,
+    currency: "BRL",
+    transaction_date: dateOverride ?? e.transaction_date ?? null,
+    vendor: e.vendor ?? null,
+    vendor_cnpj: e.vendor_cnpj ?? null,
+    payment_method: e.payment_method ?? null,
+    description: e.description ?? null,
+    category: e.category ?? null,
+    invoice_number: e.invoice_number ?? null,
+    cost_center_id: p.cost_center_id ?? null,
+    attachment_key: p.attachment_key ?? null,
+    attachment_mime: p.attachment_mime ?? null,
+    source: "whatsapp",
+    ai_confidence: typeof e.confidence === "number" ? e.confidence : null,
+    ai_raw: e,
+  });
+  if (error) {
+    console.error("[wa] insert photo receipt failed:", error);
+    return null;
+  }
+  const ccTail = p.cost_center_name && (linked?.cost_centers.length ?? 0) > 1
+    ? "\nCentro: " + p.cost_center_name : "";
+  return "✅ Lancamento salvo!\n" + fmtBRL(e.total_value) + " - " +
+    (e.category || e.doc_type) + ccTail + "\n\nVer no app: " + APP_URL;
+}
+
 // ---------- mensagem -> ação ----------
 
 // deno-lint-ignore no-explicit-any
@@ -200,44 +246,16 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         return;
       }
       const p = pending.data;
-      const e = p.extracted;
-      const direction = e.direction === "income" ? "income" : "expense";
-      const { error } = await admin.from("farm_receipts").insert({
-        organization_id: p.organization_id,
-        created_by: p.user_id,
-        doc_type: e.doc_type || "outro",
-        direction,
-        status: direction === "income" ? "a_receber" : "a_pagar",
-        total_value: Number.isFinite(e.total_value) ? e.total_value : 0,
-        currency: "BRL",
-        transaction_date: e.transaction_date ?? null,
-        vendor: e.vendor ?? null,
-        vendor_cnpj: e.vendor_cnpj ?? null,
-        payment_method: e.payment_method ?? null,
-        description: e.description ?? null,
-        category: e.category ?? null,
-        invoice_number: e.invoice_number ?? null,
-        cost_center_id: p.cost_center_id ?? null,
-        attachment_key: p.attachment_key ?? null,
-        attachment_mime: p.attachment_mime ?? null,
-        source: "whatsapp",
-        ai_confidence: typeof e.confidence === "number" ? e.confidence : null,
-        ai_raw: e,
-      });
-      await clearPending(admin, from);
-      if (error) {
-        console.error("[wa] insert receipt failed:", error);
-        await sendText(from, "❌ Nao consegui salvar o lancamento. Tenta de novo ou usa o app.");
+      // Se a OCR nao extraiu data, pergunta antes de salvar.
+      if (!p.extracted?.transaction_date) {
+        await setPending(admin, from, "photo_select_date", p);
+        await sendButtons(from, "Qual a data desse lançamento?", PHOTO_DATE_BUTTONS);
         return;
       }
-      const ccTail = p.cost_center_name && (linked?.cost_centers.length ?? 0) > 1
-        ? "\nCentro: " + p.cost_center_name
-        : "";
-      await sendText(
-        from,
-        "✅ Lancamento salvo!\n" + fmtBRL(e.total_value) + " - " +
-          (e.category || e.doc_type) + ccTail + "\n\nVer no app: " + APP_URL,
-      );
+      const ok = await savePhotoReceipt(admin, p, null, linked);
+      await clearPending(admin, from);
+      if (!ok) { await sendText(from, "❌ Nao consegui salvar o lancamento. Tenta de novo ou usa o app."); return; }
+      await sendText(from, ok);
       return;
     }
 
@@ -256,13 +274,48 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         return;
       }
       const cc = linked.cost_centers.find((c) => c.id === ccId);
-      if (!cc) {
-        await sendText(from, "Esse centro nao ta na sua lista.");
+      if (!cc) { await sendText(from, "Esse centro nao ta na sua lista."); return; }
+      // Se data ja veio do Gemini, salva direto; senao pergunta data.
+      if (pending.data.args.transaction_date) {
+        await clearPending(admin, from);
+        const reply = await applyCreateReceipt(admin, linked, pending.data.args, cc);
+        await sendText(from, reply);
+      } else {
+        await askDateButtons(admin, from, pending.data.args, cc.id);
+      }
+      return;
+    }
+
+    // Seleção de data: cr_date:hoje | ontem | custom (cobre create + photo)
+    if (actionId.startsWith("cr_date:")) {
+      const which = actionId.slice("cr_date:".length);
+      const pending = await getPending(admin, from);
+      if (!pending || (pending.kind !== "create_select_date" && pending.kind !== "photo_select_date")) {
+        await sendText(from, "⏳ Esse pedido expirou.");
         return;
       }
-      await clearPending(admin, from);
-      const reply = await applyCreateReceipt(admin, linked, pending.data.args, cc);
-      await sendText(from, reply);
+      if (which === "custom") {
+        // Muda pra modo input de texto (mesmo data shape)
+        const nextKind = pending.kind === "create_select_date" ? "create_input_date" : "photo_input_date";
+        await setPending(admin, from, nextKind, pending.data);
+        await sendText(from, "Beleza, me diz a data.\n\nEx: *25/03/26*, *25/03*, *ontem*, *anteontem*, *dia 25*, *terça*, *amanhã*, *próxima sexta*...\n\n_Ou manda 'cancelar' pra abortar._");
+        return;
+      }
+      const date = which === "hoje" ? todayBR() : yesterdayBR();
+      if (pending.kind === "create_select_date" && linked) {
+        const cc = linked.cost_centers.find((c) => c.id === pending.data.cc_id);
+        if (!cc) { await sendText(from, "Centro saiu da lista. Tenta de novo."); await clearPending(admin, from); return; }
+        await clearPending(admin, from);
+        const args = { ...pending.data.args, transaction_date: date };
+        const reply = await applyCreateReceipt(admin, linked, args, cc);
+        await sendText(from, reply);
+      } else {
+        // photo_select_date
+        const ok = await savePhotoReceipt(admin, pending.data, date, linked);
+        await clearPending(admin, from);
+        if (!ok) { await sendText(from, "❌ Nao consegui salvar."); return; }
+        await sendText(from, ok);
+      }
       return;
     }
 
@@ -356,6 +409,43 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         "🔒 Pra eu te ajudar, vincule sua conta primeiro: gere um codigo de 6 digitos no app (*Conta -> WhatsApp*) e me envie aqui.",
       );
       return;
+    }
+
+    // Cancelar a qualquer momento se houver pending
+    const lowerText = text.toLowerCase().trim();
+
+    // Input de data livre (cr_date:custom selecionado): parse via Gemini.
+    if (lowerText !== "" && (lowerText === "cancelar" || lowerText === "voltar")) {
+      const pending = await getPending(admin, from);
+      if (pending) {
+        await clearPending(admin, from);
+        await sendText(from, "Ok, cancelei.");
+        return;
+      }
+    }
+    {
+      const pending = await getPending(admin, from);
+      if (pending && (pending.kind === "create_input_date" || pending.kind === "photo_input_date")) {
+        const parsed = await parseDateBR(text);
+        if (!parsed.ok) {
+          await sendText(from, `🤔 ${parsed.reason}. Tenta outra vez (ex: *25/03/26*, *ontem*, *dia 25*) ou manda *cancelar*.`);
+          return;
+        }
+        if (pending.kind === "create_input_date") {
+          const cc = linked?.cost_centers.find((c) => c.id === pending.data.cc_id);
+          if (!cc) { await clearPending(admin, from); await sendText(from, "Centro saiu da sua lista. Tenta de novo."); return; }
+          await clearPending(admin, from);
+          const args = { ...pending.data.args, transaction_date: parsed.date };
+          const reply = await applyCreateReceipt(admin, linked!, args, cc);
+          await sendText(from, reply);
+        } else {
+          const ok = await savePhotoReceipt(admin, pending.data, parsed.date, linked);
+          await clearPending(admin, from);
+          if (!ok) { await sendText(from, "❌ Nao consegui salvar."); return; }
+          await sendText(from, ok);
+        }
+        return;
+      }
     }
 
     // Desambiguacao de mark_receipt_paid: user respondeu "1", "2", etc apos

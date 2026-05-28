@@ -19,9 +19,20 @@ interface HistTurn {
   text: string;
 }
 
-function todayBR(): string {
-  return new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+// TZ-safe: usa Intl com timezone explicito. A prova de DST (se BR voltar a adotar).
+// Formato en-CA = YYYY-MM-DD (espelha ISO date).
+export function todayBR(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 }
+
+export function shiftDateBR(days: number): string {
+  const t = todayBR();
+  const [y, m, d] = t.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
+
+export function yesterdayBR(): string { return shiftDateBR(-1); }
 
 function fmtBRL(v: number | null | undefined): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return "-";
@@ -39,6 +50,7 @@ const SYSTEM_PROMPT_BASE =
   "- 'recebi <quem/descricao>' SEM valor = marcar receita pendente como recebida, use mark_receipt_paid (a tool cobre ambos).\n" +
   "- Valores em reais (number). Se o usuario falar '1,2 mil' entenda 1200.\n" +
   "- Se faltar o VALOR numa criacao, pergunte so o valor. Nao invente.\n" +
+  "- DATA: se o usuario mencionar uma data ou tempo relativo no texto ('ontem', 'anteontem', 'dia 25', '25/03', 'na terca passada', 'amanha'), RESOLVA pra YYYY-MM-DD e preencha 'transaction_date'. Use 'Hoje e <data>' acima como referencia. Se NAO mencionar, NAO preencha 'transaction_date' - o backend vai perguntar.\n" +
   "- Categorias de despesa: combustivel, defensivos, sementes, fertilizantes, manutencao, pecas, frete, servicos, alimentacao, arrendamento, folha, outros_despesa. Receita: venda_graos, venda_gado, outros_receita.\n" +
   "- Para consultas (quanto gastei, o que tenho a pagar, resumo, quanto devo) use get_financial_summary ou list_receipts.\n" +
   "- EDICAO e EXCLUSAO de lancamentos NAO sao possiveis pelo WhatsApp - oriente a usar o app web.\n" +
@@ -190,51 +202,95 @@ export async function applyCreateReceipt(admin: any, linked: LinkedUser, args: a
     " (" + category + ")" + showCC + ".";
 }
 
+/**
+ * Pede a data via 3 botoes (Hoje / Ontem / Outra data). Persiste pending
+ * com kind='create_select_date' carregando args + cc_id pra retomar depois.
+ */
+// deno-lint-ignore no-explicit-any
+export async function askDateButtons(admin: any, from: string, args: any, ccId: string): Promise<void> {
+  await admin.from("farm_wa_pending").upsert({
+    phone_number: from,
+    kind: "create_select_date",
+    data: { args, cc_id: ccId },
+    expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+  });
+  const total = Number(args.total_value);
+  const direction = args.direction === "income" ? "Receita" : "Despesa";
+  const cat = args.category ? ` (${args.category})` : "";
+  const body = `${direction} de ${fmtBRL(total)}${cat}.\n\nQual a data?`;
+  await sendButtons(from, body, [
+    { id: "cr_date:hoje", title: "Hoje" },
+    { id: "cr_date:ontem", title: "Ontem" },
+    { id: "cr_date:custom", title: "Outra data" },
+  ]);
+}
+
+/**
+ * Parser de data em linguagem natural PT-BR via Gemini. Usa "hoje" como
+ * referencia. Resolve "ontem", "anteontem", "amanha", dia da semana,
+ * "dia N", "25/03", "25/03/26", "DD/MM/YYYY", ISO YYYY-MM-DD. Retorna
+ * data: null + reason quando ambiguo (ex: "semana passada" sem dia).
+ */
+export async function parseDateBR(text: string): Promise<{ ok: true; date: string } | { ok: false; reason: string }> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const anon = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !anon) return { ok: false, reason: "ia indisponivel" };
+  const today = todayBR();
+  const prompt = `Voce e um parser de data em portugues brasileiro. Hoje e ${today}.\n\nTexto do usuario: "${text}"\n\nRegras:\n- "hoje" -> hoje\n- "ontem" -> hoje-1\n- "anteontem" -> hoje-2\n- "amanha" -> hoje+1\n- nomes de dia da semana ('segunda', 'terça', 'qua', etc): se texto diz 'proxima' ou 'que vem' = proxima ocorrencia DEPOIS de hoje; senao = ultima ocorrencia ANTES ou IGUAL a hoje\n- "dia N" ou apenas "N" (1-31): default = mais recente N <= hoje (este mes se N <= dia atual, senao mes anterior); se texto diz 'proximo' = proxima ocorrencia futura\n- "DD/MM" sem ano: ano atual\n- "DD/MM/YY" (YY 00-69 = 2000+, 70-99 = 1900+) ou "DD/MM/YYYY": literal\n- ISO YYYY-MM-DD: literal\n- AMBIGUO (sem dia: 'semana passada', 'mes passado'): retorna null + razao pedindo o dia\n\nResponda APENAS JSON valido: {"date":"YYYY-MM-DD","reason":"interpretacao curta"} ou {"date":null,"reason":"o que falta"}`;
+  const payload = { model: MODEL, body: { contents: [{ parts: [{ text: prompt }] }], generationConfig: { response_mime_type: "application/json", temperature: 0.0 } } };
+  try {
+    const resp = await fetch(url + "/functions/v1/gemini", { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + anon }, body: JSON.stringify(payload) });
+    if (!resp.ok) return { ok: false, reason: "ia falhou" };
+    const j = await resp.json();
+    const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!t) return { ok: false, reason: "ia sem resposta" };
+    const parsed = JSON.parse(t);
+    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) return { ok: true, date: parsed.date };
+    return { ok: false, reason: parsed.reason || "nao entendi a data" };
+  } catch (e) {
+    console.error("[parseDateBR]", e);
+    return { ok: false, reason: "erro ao processar" };
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 async function execCreateReceipt(admin: any, linked: LinkedUser, args: any, from: string): Promise<string> {
   const total = Number(args.total_value);
   if (!Number.isFinite(total)) return "Nao entendi o valor. Pode repetir? Ex: paguei 850 de diesel.";
 
-  // CC mencionado explicitamente: resolve direto.
+  // 1) Resolve CC
+  let cc: CostCenterRow | null = null;
   if (args.cost_center) {
-    const cc = resolveCCFromList(args.cost_center, linked.cost_centers);
+    cc = resolveCCFromList(args.cost_center, linked.cost_centers);
     if (!cc) return `Nao achei o centro '${args.cost_center}'. Seus centros: ${linked.cost_centers.map((c) => c.name).join(", ")}.`;
-    return await applyCreateReceipt(admin, linked, args, cc);
-  }
-
-  // So 1 CC permitido: usa direto sem perguntar (nao ha ambiguidade).
-  if (linked.cost_centers.length === 1) {
-    return await applyCreateReceipt(admin, linked, args, linked.cost_centers[0]);
-  }
-  if (linked.cost_centers.length === 0) {
+  } else if (linked.cost_centers.length === 1) {
+    cc = linked.cost_centers[0];
+  } else if (linked.cost_centers.length === 0) {
     return "Voce ainda nao tem nenhum centro de custo. Pede pro admin liberar um pra voce.";
-  }
-
-  // >1 CCs e user nao mencionou: pergunta via botoes/lista. Persiste args.
-  await admin.from("farm_wa_pending").upsert({
-    phone_number: from,
-    kind: "create_select_cc",
-    data: { args },
-    expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-  });
-
-  const direction = args.direction === "income" ? "Receita" : "Despesa";
-  const cat = args.category ? ` (${args.category})` : "";
-  const vend = args.vendor ? ` - ${args.vendor}` : "";
-  const body = `${direction} de ${fmtBRL(total)}${vend}${cat}.\n\nEm qual centro lançar?`;
-
-  if (linked.cost_centers.length <= 3) {
-    await sendButtons(
-      from,
-      body,
-      linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })),
-    );
   } else {
-    await sendList(from, body, "Escolher centro", [{
-      rows: linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })),
-    }]);
+    // Pergunta CC via botoes/lista
+    await admin.from("farm_wa_pending").upsert({
+      phone_number: from,
+      kind: "create_select_cc",
+      data: { args },
+      expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+    });
+    const direction = args.direction === "income" ? "Receita" : "Despesa";
+    const cat = args.category ? ` (${args.category})` : "";
+    const vend = args.vendor ? ` - ${args.vendor}` : "";
+    const body = `${direction} de ${fmtBRL(total)}${vend}${cat}.\n\nEm qual centro lançar?`;
+    if (linked.cost_centers.length <= 3) {
+      await sendButtons(from, body, linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })));
+    } else {
+      await sendList(from, body, "Escolher centro", [{ rows: linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })) }]);
+    }
+    return "";
   }
-  return ""; // sinal pro handler nao enviar sendText
+
+  // 2) CC resolvido. Se data ja veio do Gemini -> salva. Senao -> pergunta.
+  if (args.transaction_date) return await applyCreateReceipt(admin, linked, args, cc);
+  await askDateButtons(admin, from, args, cc.id);
+  return "";
 }
 
 // deno-lint-ignore no-explicit-any
