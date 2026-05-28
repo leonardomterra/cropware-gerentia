@@ -118,6 +118,52 @@ export function sendList(
   });
 }
 
+/**
+ * Envia mensagem template aprovada (necessario quando o usuario nao mandou
+ * mensagem nas ultimas 24h - so templates passam a 'janela').
+ * Params sao posicionais ({{1}}, {{2}}, ...).
+ */
+export function sendTemplate(
+  to: string,
+  templateName: string,
+  language: string,
+  params: string[],
+): Promise<void> {
+  const components = params.length === 0 ? [] : [{
+    type: "body",
+    parameters: params.map((p) => ({ type: "text", text: String(p) })),
+  }];
+  return postMessage({
+    to,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: language },
+      components,
+    },
+  });
+}
+
+/**
+ * Submete um message template pra aprovacao Meta. Aprovacao tipica 0-48h.
+ * Endpoint: POST /{WABA_ID}/message_templates
+ * Retorna o id se aceito ou lanca com o body de erro.
+ */
+export async function submitTemplate(
+  body: Record<string, unknown>,
+): Promise<{ id: string; status: string }> {
+  const waba = Deno.env.get("WHATSAPP_FARM_BOT_WABA_ID");
+  if (!waba) throw new Error("WHATSAPP_FARM_BOT_WABA_ID nao configurado.");
+  const res = await fetch(`${GRAPH}/${waba}/message_templates`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const txt = await res.text();
+  if (!res.ok) throw new Error(`template submit ${res.status}: ${txt}`);
+  return JSON.parse(txt);
+}
+
 export function bytesToBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let binary = "";
