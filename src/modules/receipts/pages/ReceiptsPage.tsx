@@ -242,7 +242,7 @@ export default function ReceiptsPage() {
                       )}
                       <span className="flex-1 text-left truncate">
                         {activeCCId === "all"
-                          ? "Todos os centros"
+                          ? "Todos os Centros"
                           : userCCs.find((c) => c.id === activeCCId)?.name ||
                             "Centro"}
                       </span>
@@ -258,7 +258,7 @@ export default function ReceiptsPage() {
                           : "gap-2"
                       }
                     >
-                      Todos os centros
+                      Todos os Centros
                     </DropdownMenuItem>
                     {userCCs.map((cc) => (
                       <DropdownMenuItem
