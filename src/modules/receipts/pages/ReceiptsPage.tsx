@@ -228,11 +228,11 @@ export default function ReceiptsPage() {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 inline-flex items-center justify-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
+                      className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
                     >
                       {activeCCId !== "all" && (
                         <span
-                          className="size-2 rounded-full inline-block"
+                          className="size-2 rounded-full inline-block shrink-0"
                           style={{
                             backgroundColor:
                               userCCs.find((c) => c.id === activeCCId)
@@ -240,13 +240,13 @@ export default function ReceiptsPage() {
                           }}
                         />
                       )}
-                      <span>
+                      <span className="flex-1 text-left truncate">
                         {activeCCId === "all"
                           ? "Todos os centros"
                           : userCCs.find((c) => c.id === activeCCId)?.name ||
                             "Centro"}
                       </span>
-                      <ChevronDown className="size-4 text-slate-500" />
+                      <ChevronDown className="size-4 text-slate-500 shrink-0" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[180px]">
@@ -288,23 +288,27 @@ export default function ReceiptsPage() {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="h-9 inline-flex items-center justify-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
+                    className="h-9 w-[160px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
                   >
-                    {sortBy === "recent" && <ClockArrowDown className="size-4" />}
-                    {sortBy === "old" && <ClockArrowUp className="size-4" />}
+                    {sortBy === "recent" && (
+                      <ClockArrowDown className="size-4 shrink-0" />
+                    )}
+                    {sortBy === "old" && (
+                      <ClockArrowUp className="size-4 shrink-0" />
+                    )}
                     {sortBy === "value_desc" && (
-                      <ArrowDownNarrowWide className="size-4" />
+                      <ArrowDownNarrowWide className="size-4 shrink-0" />
                     )}
                     {sortBy === "value_asc" && (
-                      <ArrowUpNarrowWide className="size-4" />
+                      <ArrowUpNarrowWide className="size-4 shrink-0" />
                     )}
-                    <span>
+                    <span className="flex-1 text-left truncate">
                       {sortBy === "recent" && "Recentes"}
                       {sortBy === "old" && "Antigos"}
                       {sortBy === "value_desc" && "Maior valor"}
                       {sortBy === "value_asc" && "Menor valor"}
                     </span>
-                    <ChevronDown className="size-4 text-slate-500" />
+                    <ChevronDown className="size-4 text-slate-500 shrink-0" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[180px]">
