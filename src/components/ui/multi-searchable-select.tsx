@@ -100,6 +100,8 @@ export function MultiSearchableSelect({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        side="bottom"
+        avoidCollisions={false}
         className={cn(
           "p-0 w-[var(--radix-popover-trigger-width)] min-w-[240px]",
           contentClassName,
@@ -115,7 +117,7 @@ export function MultiSearchableSelect({
                 heading={g.name}
                 className={
                   g.name
-                    ? "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-slate-400 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
+                    ? "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
                     : undefined
                 }
               >
