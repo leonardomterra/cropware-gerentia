@@ -96,7 +96,10 @@ export function AppShell() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div
+      className="flex flex-col overflow-hidden bg-white"
+      style={{ height: "100dvh" }}
+    >
       {/* HEADER */}
       <header className="shadow-none" style={{ backgroundColor: "#475569" }}>
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -270,8 +273,18 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* MAIN */}
-      <main className="flex-1 overflow-auto">
+      {/* MAIN - flex-1 + min-h-0 garante que o overflow-y-auto ativa
+          (sem min-h-0, flex item tem min-height: auto = content size,
+          main expande junto com conteudo e scroll interno nunca aciona).
+          Padrao CDM (App.tsx data-app-scroll-container). */}
+      <main
+        className="flex-1 w-full min-h-0 overflow-y-auto"
+        data-app-scroll-container
+        style={{
+          WebkitOverflowScrolling: "touch",
+          overscrollBehaviorY: "contain",
+        }}
+      >
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <Outlet />
         </div>
