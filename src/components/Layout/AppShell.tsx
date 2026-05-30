@@ -302,6 +302,12 @@ export function AppShell() {
         style={{
           WebkitOverflowScrolling: "touch",
           overscrollBehaviorY: "contain",
+          // Reserva o espaco do scrollbar permanentemente. Sem isso, o
+          // scroll aparece/some conforme a quantidade de conteudo e
+          // a pagina "espreme/desespreme" 15px. Com stable, o scroll
+          // continua aparecendo so quando ha overflow, mas a largura
+          // util do conteudo nunca muda.
+          scrollbarGutter: "stable",
         }}
       >
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
