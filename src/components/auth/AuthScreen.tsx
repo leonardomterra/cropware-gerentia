@@ -113,10 +113,10 @@ export function AuthScreen({
         <div className="flex flex-col gap-3 pt-2">
           <button
             type="submit"
-            className="w-full font-medium text-white rounded-lg transition-all duration-300"
+            className="w-full font-medium text-white rounded-lg transition-all duration-300 inline-flex items-center justify-center"
             disabled={submitting || !email || !password}
             style={{
-              padding: "13px 0",
+              height: "46px",
               fontSize: "14px",
               background:
                 "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
