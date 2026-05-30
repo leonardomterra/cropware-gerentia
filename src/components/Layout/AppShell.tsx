@@ -30,7 +30,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { to: "/centros", label: "Centros" },
+  { to: "/configuracoes", label: "Configurações" },
   { to: "/recorrencias", label: "Recorrências" },
   { to: "/equipe", label: "Equipe" },
 ];

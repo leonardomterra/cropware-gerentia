@@ -27,8 +27,8 @@ const FarmsPage = lazyWithRetry(
 const AccountPage = lazyWithRetry(
   () => import("@/modules/account/pages/AccountPage"),
 );
-const CostCentersPage = lazyWithRetry(
-  () => import("@/modules/cost-centers/pages/CostCentersPage"),
+const ConfiguracoesPage = lazyWithRetry(
+  () => import("@/modules/settings/pages/ConfiguracoesPage"),
 );
 const TeamPage = lazyWithRetry(
   () => import("@/modules/team/pages/TeamPage"),
@@ -127,12 +127,18 @@ function RootRoutes() {
         {isAdmin && (
           <>
             <Route
-              path="centros"
+              path="configuracoes"
               element={
                 <Suspense fallback={<LoadingScreen />}>
-                  <CostCentersPage />
+                  <ConfiguracoesPage />
                 </Suspense>
               }
+            />
+            {/* /centros legado -> redireciona pra /configuracoes (a aba foi
+                renomeada e absorveu o gerenciamento de categorias). */}
+            <Route
+              path="centros"
+              element={<Navigate to="/configuracoes" replace />}
             />
             <Route
               path="equipe"
