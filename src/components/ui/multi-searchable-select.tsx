@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import {
   Command,
@@ -55,6 +55,19 @@ export function MultiSearchableSelect({
   disabled = false,
 }: MultiSearchableSelectProps) {
   const [open, setOpen] = useState(false);
+
+  // Fecha o popup ao scrollar o main. Radix Floating UI nao re-ancora
+  // sempre direito quando o trigger sai da viewport por scroll de um
+  // container interno (nosso <main> em vez do body) - sem isso, o popup
+  // "boia" no topo da viewport descolado do trigger.
+  useEffect(() => {
+    if (!open) return;
+    const main = document.querySelector("[data-app-scroll-container]");
+    if (!main) return;
+    const onScroll = () => setOpen(false);
+    main.addEventListener("scroll", onScroll, { passive: true });
+    return () => main.removeEventListener("scroll", onScroll);
+  }, [open]);
 
   const selectedSet = new Set(value);
   const singleSelected =

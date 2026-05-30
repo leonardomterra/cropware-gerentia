@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import {
   Command,
@@ -64,6 +64,16 @@ export function SearchableSelect({
   disabled = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
+
+  // Fecha o popup ao scrollar o main (idem MultiSearchableSelect).
+  useEffect(() => {
+    if (!open) return;
+    const main = document.querySelector("[data-app-scroll-container]");
+    if (!main) return;
+    const onScroll = () => setOpen(false);
+    main.addEventListener("scroll", onScroll, { passive: true });
+    return () => main.removeEventListener("scroll", onScroll);
+  }, [open]);
 
   const selected = options.find((o) => o.value === value);
 
