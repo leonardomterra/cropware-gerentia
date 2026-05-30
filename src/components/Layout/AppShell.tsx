@@ -6,6 +6,7 @@ import {
   WifiOff,
   Building2,
   HelpCircle,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -148,17 +149,10 @@ export function AppShell() {
               </p>
             </div>
 
-            {/* Lado direito - gap-3 entre grupos (padrao CDM).
-                Sub-container agrupa user name + trial badge. */}
+            {/* Lado direito - so glass buttons. Nome do usuario foi
+                pro sub-header como Badge (espelho do CDM, 2026-05-30).
+                Configuracoes saiu daqui pro tab Conta. */}
             <div className="flex items-center gap-3">
-              <p
-                className="text-white font-medium leading-none"
-                style={{ fontSize: "14px" }}
-              >
-                {user?.fullName}
-              </p>
-              {/* Ajuda sem funcao por enquanto. Configuracoes saiu daqui
-                  pro tab "Conta" (espelho do CDM, decisao 2026-05-30). */}
               <GlassButton
                 icon={HelpCircle}
                 label="Ajuda"
@@ -184,6 +178,23 @@ export function AppShell() {
       >
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-2">
           <div className="flex flex-col md:flex-row md:justify-end items-stretch md:items-center gap-2">
+            {/* Badge do usuario logado - empurrado pra esquerda no desktop
+                via md:mr-auto (padrao CDM). Stack em cima no mobile. */}
+            {user ? (
+              <Badge
+                className="gap-1.5 px-2.5 py-1 justify-center md:justify-start md:mr-auto"
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#ffffff",
+                  borderColor: "transparent",
+                }}
+              >
+                <User className="size-3.5 shrink-0" />
+                <span className="truncate max-w-[160px]">
+                  {user.fullName || user.email}
+                </span>
+              </Badge>
+            ) : null}
             {user?.organizationName ? (
               <Badge
                 className="gap-1.5 px-2.5 py-1 justify-center md:justify-start"
