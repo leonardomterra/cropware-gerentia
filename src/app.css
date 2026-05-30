@@ -43,6 +43,17 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: var(--font-ui, "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+
+  /* ESCALA TIPOGRAFICA FIXA - "sempre" estes 4 tamanhos (ver bloco
+     BASE TYPOGRAPHY abaixo). Tailwind v4 gera as font-size utilities a
+     partir destes tokens, entao redefinir aqui muda .text-xs/.text-sm/etc.
+       14px  texto padrao  -> text-sm  (e body default p/ texto sem classe)
+       13px  complementar  -> text-xs  (remapeado de 12 -> 13)
+       16px  destaque      -> text-base
+       12.5px badges       -> regra global [data-slot="badge"]
+     text-sm (14) e text-base (16) ja batem com o default do Tailwind
+     (html=16px); so o xs precisa virar 13. */
+  --text-xs: 13px;
 }
 
 /* ==========================================================
@@ -92,8 +103,12 @@
    --------------------------------------------------------------
    * Inter Tight Variable como fonte principal (self-hosted via
      @fontsource-variable/inter-tight) - mesma do Cropware Field.
-   * 14px default; 16px em titulos (page h1, KPI value);
-     badges com override global mais abaixo.
+   * ESCALA FIXA (4 tamanhos, "sempre" - nao usar outros):
+       - 14px   texto padrao  -> body default / text-sm
+       - 13px   complementar  -> text-xs (remapeado no @theme acima)
+       - 16px   destaque      -> text-base (page h1, KPI value)
+       - 12.5px badges        -> override global [data-slot="badge"]
+     Excecoes: displays de codigo/OTP (text-2xl/3xl mono) e o logo.
    * font-weight 400 default; 300 (light) pra texto secundario.
    * font-variation-settings: normal (igual CDM).
    * letter-spacing -0.015em + font-optical-sizing auto.
@@ -161,23 +176,33 @@ body {
   }
 }
 
-/* Scroll stability: evita layout-shift quando Radix Dialog abre
-   (Radix compensa a scrollbar com padding-right; travamos isso). */
+/* Scroll stability: evita layout-shift quando Radix Dialog/Select/etc
+   abrem. Radix usa react-remove-scroll-bar que injeta padding-right no
+   body (compensar scrollbar removida). Forcamos a variavel pra 0px e
+   sobrescrevemos padding/margin no body+html pra anular a tentativa. */
+:root {
+  --removed-body-scroll-bar-size: 0px;
+}
 html:root:root {
   scrollbar-gutter: stable;
   overflow-y: scroll !important;
   padding-right: 0 !important;
+  margin-right: 0 !important;
 }
 body,
 body[style] {
   padding-right: 0 !important;
+  margin-right: 0 !important;
 }
-html[data-scroll-locked] {
+html[data-scroll-locked],
+html[style] {
   overflow-y: scroll !important;
   padding-right: 0 !important;
+  margin-right: 0 !important;
 }
 body[data-scroll-locked] {
   padding-right: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Tap highlight + touch action em elementos interativos. */
