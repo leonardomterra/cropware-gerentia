@@ -8,9 +8,11 @@ import {
   ClockArrowDown,
   ClockArrowUp,
   FileText,
+  Loader2,
   Plus,
   Receipt as ReceiptIcon,
 } from "lucide-react";
+import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -119,6 +121,10 @@ export default function ReceiptsPage() {
 
   const { receipts, loading, error, refetch } = useReceipts(effectiveFilters);
   const isMobile = useIsMobile();
+  // Loading inicial = sem dados em tela ainda. Refetch = trocou filtro
+  // com dados ja exibidos - dimm sutil em vez de trocar pelo card grande.
+  const isInitialLoad = loading && receipts.length === 0 && !error;
+  const isRefetching = loading && receipts.length > 0;
 
   // Sort client-side. Default 'recent' usa paid_date || transaction_date
   // (mais recente primeiro). Tie-break por created order do array.
@@ -228,7 +234,7 @@ export default function ReceiptsPage() {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
+                      className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                     >
                       {activeCCId !== "all" && (
                         <span
@@ -288,7 +294,7 @@ export default function ReceiptsPage() {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="h-9 w-[160px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm"
+                    className="h-9 w-[160px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                   >
                     {sortBy === "recent" && (
                       <ClockArrowDown className="size-4 shrink-0" />
@@ -403,69 +409,90 @@ export default function ReceiptsPage() {
         </DropdownMenu>
       </div>
 
-      {/* KPIs do resultado filtrado */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-        <div className="bg-white border border-slate-200 rounded-lg p-3">
-          <p className="text-sm text-slate-500">Entradas</p>
-          <p className="text-base font-medium text-emerald-700 tabular-nums">
-            {formatBRL(totalIncome)}
-          </p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-lg p-3">
-          <p className="text-sm text-slate-500">Saídas</p>
-          <p className="text-base font-medium text-slate-900 tabular-nums">
-            {formatBRL(totalExpenses)}
-          </p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-lg p-3 col-span-2 sm:col-span-1">
-          <p className="text-sm text-slate-500">Saldo</p>
-          <p className="text-base font-medium text-farm-primary tabular-nums">
-            {formatBRL(totalIncome - totalExpenses)}
-          </p>
-        </div>
-      </div>
-
+      {/* Estados:
+          - error: error card (sempre)
+          - isInitialLoad (loading + sem dados): big "Carregando..."
+          - isRefetching (loading + ja tem dados): mantem tabela visivel,
+            dim sutil + spinner inline ao lado de "Mostrando N" (evita
+            piscar de layout ao trocar de CC/filtro).
+          - empty (sem loading, sem dados): empty state
+          - data: tabela */}
       {error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
           {error}
         </div>
-      ) : loading ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center text-sm text-slate-500">
+      ) : isInitialLoad ? (
+        <div className="bg-white border border-slate-200 rounded-lg p-12 flex items-center justify-center gap-2 text-sm text-slate-500">
+          <Loader2 className="size-4 animate-spin" />
           Carregando...
         </div>
-      ) : receipts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-12 flex flex-col items-center text-center gap-3">
-          <ReceiptIcon className="size-10 text-slate-300" />
-          <div>
-            <p className="text-sm font-medium text-slate-900">
-              Nenhum lancamento ainda
-            </p>
-            <p className="text-sm text-slate-500 mt-1 max-w-xs">
-              Adiciona seu primeiro pelo botao "Novo Lançamento" ou tira foto
-              de um recibo em "Capturar Recibo".
-            </p>
-          </div>
-        </div>
       ) : (
-        <>
-          <p className="text-sm text-slate-500 mb-2 px-1">
-            Mostrando {receipts.length}{" "}
-            {receipts.length === 1 ? "lançamento" : "lançamentos"}
-          </p>
-          {isMobile ? (
-            <ReceiptsCards
-              receipts={sortedReceipts}
-              onEdit={openEdit}
-              onDelete={(r) => setPendingDelete(r)}
-            />
-          ) : (
-            <ReceiptsTable
-              receipts={sortedReceipts}
-              onEdit={openEdit}
-              onDelete={(r) => setPendingDelete(r)}
-            />
+        <div
+          className={cn(
+            "transition-opacity duration-200",
+            isRefetching && "opacity-50 pointer-events-none",
           )}
-        </>
+        >
+          {/* KPIs do resultado filtrado */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            <div className="bg-white border border-slate-200 rounded-lg p-3">
+              <p className="text-sm text-slate-500">Entradas</p>
+              <p className="text-base font-medium text-emerald-700 tabular-nums">
+                {formatBRL(totalIncome)}
+              </p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-lg p-3">
+              <p className="text-sm text-slate-500">Saídas</p>
+              <p className="text-base font-medium text-slate-900 tabular-nums">
+                {formatBRL(totalExpenses)}
+              </p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-lg p-3 col-span-2 sm:col-span-1">
+              <p className="text-sm text-slate-500">Saldo</p>
+              <p className="text-base font-medium text-farm-primary tabular-nums">
+                {formatBRL(totalIncome - totalExpenses)}
+              </p>
+            </div>
+          </div>
+
+          {receipts.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-lg p-12 flex flex-col items-center text-center gap-3">
+              <ReceiptIcon className="size-10 text-slate-300" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">
+                  Nenhum lançamento ainda
+                </p>
+                <p className="text-sm text-slate-500 mt-1 max-w-xs">
+                  Adiciona seu primeiro pelo botão "Novo Lançamento" ou
+                  tira foto de um recibo em "Capturar Recibo".
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500 mb-2 px-1 inline-flex items-center gap-2">
+                Mostrando {receipts.length}{" "}
+                {receipts.length === 1 ? "lançamento" : "lançamentos"}
+                {isRefetching ? (
+                  <Loader2 className="size-3 animate-spin text-slate-400" />
+                ) : null}
+              </p>
+              {isMobile ? (
+                <ReceiptsCards
+                  receipts={sortedReceipts}
+                  onEdit={openEdit}
+                  onDelete={(r) => setPendingDelete(r)}
+                />
+              ) : (
+                <ReceiptsTable
+                  receipts={sortedReceipts}
+                  onEdit={openEdit}
+                  onDelete={(r) => setPendingDelete(r)}
+                />
+              )}
+            </>
+          )}
+        </div>
       )}
 
       <ReceiptFormDialog
