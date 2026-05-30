@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,6 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import {
+  SearchableSelect,
+  type SearchableOption,
+} from "@/components/ui/searchable-select";
 import { cn } from "@/components/ui/utils";
 import { useCategories } from "../hooks/useCategories";
 import type {
@@ -52,6 +57,26 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   // slate-900 default). Aplica via className no Trigger/Input.
   const fieldText = "text-slate-500";
 
+  const statusOptions: SearchableOption[] = useMemo(
+    () => [
+      { value: "all", label: "Todos os status" },
+      ...STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
+    ],
+    [],
+  );
+
+  const categoryOptions: SearchableOption[] = useMemo(
+    () => [
+      { value: "all", label: "Todas as categorias" },
+      ...categories.map((c) => ({
+        value: c.slug,
+        label: c.name,
+        group: c.group_name ?? "Outras",
+      })),
+    ],
+    [categories],
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex-1 min-w-[200px] max-w-sm">
@@ -86,46 +111,28 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         </Select>
       </div>
 
-      <div className="min-w-[160px]">
-        <Select
+      <div className="w-[180px]">
+        <SearchableSelect
+          options={statusOptions}
           value={value.status ?? "all"}
           onValueChange={(v) =>
             set("status", v === "all" ? undefined : (v as ReceiptStatus))
           }
-        >
-          <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Todos os status"
+          searchPlaceholder="Buscar status..."
+        />
       </div>
 
-      <div className="min-w-[180px]">
-        <Select
+      <div className="w-[200px]">
+        <SearchableSelect
+          options={categoryOptions}
           value={value.category ?? "all"}
           onValueChange={(v) =>
             set("category", v === "all" ? undefined : v)
           }
-        >
-          <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.slug} value={c.slug}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Todas as categorias"
+          searchPlaceholder="Buscar categoria..."
+        />
       </div>
 
       <Input
