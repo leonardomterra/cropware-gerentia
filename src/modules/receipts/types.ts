@@ -62,8 +62,10 @@ export interface Receipt {
 }
 
 export interface ReceiptFilters {
-  status?: ReceiptStatus;
-  category?: string;
+  /** Multiplos status (OR). Vazio = sem filtro. */
+  status?: ReceiptStatus[];
+  /** Multiplas categorias (OR). Vazio = sem filtro. */
+  category?: string[];
   direction?: ReceiptDirection;
   cost_center_id?: string;
   search?: string;

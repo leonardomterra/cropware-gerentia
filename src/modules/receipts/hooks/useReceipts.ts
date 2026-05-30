@@ -12,8 +12,14 @@ interface UseReceiptsResult {
 function filtersToQuery(filters?: ReceiptFilters): string {
   if (!filters) return "";
   const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  if (filters.category) params.set("category", filters.category);
+  // Arrays viram CSV (status=a_pagar,vencido). Edge function deserializa
+  // com split(",") e usa .in() no supabase.
+  if (filters.status && filters.status.length > 0) {
+    params.set("status", filters.status.join(","));
+  }
+  if (filters.category && filters.category.length > 0) {
+    params.set("category", filters.category.join(","));
+  }
   if (filters.direction) params.set("direction", filters.direction);
   if (filters.cost_center_id) params.set("cost_center_id", filters.cost_center_id);
   if (filters.search) params.set("search", filters.search);

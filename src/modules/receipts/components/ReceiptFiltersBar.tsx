@@ -9,10 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {
-  SearchableSelect,
-  type SearchableOption,
-} from "@/components/ui/searchable-select";
+import { type SearchableOption } from "@/components/ui/searchable-select";
+import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { cn } from "@/components/ui/utils";
 import { useCategories } from "../hooks/useCategories";
 import type {
@@ -57,23 +55,20 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   // slate-900 default). Aplica via className no Trigger/Input.
   const fieldText = "text-slate-500";
 
+  // Sem "Todos os status / Todas as categorias" no inicio - no multi,
+  // array vazio = sem filtro (label trigger ja mostra placeholder).
   const statusOptions: SearchableOption[] = useMemo(
-    () => [
-      { value: "all", label: "Todos os status" },
-      ...STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
-    ],
+    () => STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
     [],
   );
 
   const categoryOptions: SearchableOption[] = useMemo(
-    () => [
-      { value: "all", label: "Todas as categorias" },
-      ...categories.map((c) => ({
+    () =>
+      categories.map((c) => ({
         value: c.slug,
         label: c.name,
         group: c.group_name ?? "Outras",
       })),
-    ],
     [categories],
   );
 
@@ -112,26 +107,28 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
       </div>
 
       <div className="w-[180px]">
-        <SearchableSelect
+        <MultiSearchableSelect
           options={statusOptions}
-          value={value.status ?? "all"}
-          onValueChange={(v) =>
-            set("status", v === "all" ? undefined : (v as ReceiptStatus))
+          value={value.status ?? []}
+          onValueChange={(arr) =>
+            set("status", arr.length > 0 ? (arr as ReceiptStatus[]) : undefined)
           }
           placeholder="Todos os status"
           searchPlaceholder="Buscar status..."
+          multiLabel={(n) => `${n} status`}
         />
       </div>
 
       <div className="w-[200px]">
-        <SearchableSelect
+        <MultiSearchableSelect
           options={categoryOptions}
-          value={value.category ?? "all"}
-          onValueChange={(v) =>
-            set("category", v === "all" ? undefined : v)
+          value={value.category ?? []}
+          onValueChange={(arr) =>
+            set("category", arr.length > 0 ? arr : undefined)
           }
           placeholder="Todas as categorias"
           searchPlaceholder="Buscar categoria..."
+          multiLabel={(n) => `${n} categorias`}
         />
       </div>
 

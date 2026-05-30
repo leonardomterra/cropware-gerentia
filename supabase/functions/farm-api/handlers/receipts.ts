@@ -51,8 +51,16 @@ export function mountReceiptRoutes(app: Hono) {
       if (auth.error) return auth.error;
 
       const q = new URL(c.req.url).searchParams;
+      // status e category aceitam CSV ("a_pagar,vencido") pra multi-select.
+      // split(",") e .in() no supabase. Valor unico tb funciona em .in().
       const status = q.get("status");
       const category = q.get("category");
+      const statusArr = status
+        ? status.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const categoryArr = category
+        ? category.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
       const direction = q.get("direction");
       const costCenterId = q.get("cost_center_id");
       const search = q.get("search")?.trim();
@@ -67,8 +75,8 @@ export function mountReceiptRoutes(app: Hono) {
         .order("created_at", { ascending: false })
         .limit(limit);
 
-      if (status) query = query.eq("status", status);
-      if (category) query = query.eq("category", category);
+      if (statusArr.length > 0) query = query.in("status", statusArr);
+      if (categoryArr.length > 0) query = query.in("category", categoryArr);
       if (direction) query = query.eq("direction", direction);
       if (costCenterId) query = query.eq("cost_center_id", costCenterId);
       if (from) query = query.gte("transaction_date", from);
