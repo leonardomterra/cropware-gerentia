@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface AuthLayoutProps {
   title: string;
@@ -7,6 +14,11 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Shell das telas de auth (login, signup, forgot, reset). Espelha o
+ * padrao do Cropware CDM (logo + tagline + Card branco), so a paleta
+ * vai de green pra slate.
+ */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -15,15 +27,25 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           <Logo className="h-7 w-auto" />
           <p className="text-sm text-slate-500 mt-2">A fazenda no celular.</p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-base font-medium text-slate-900 mb-1">{title}</h2>
-          {subtitle ? (
-            <p className="text-sm text-slate-500 mb-4">{subtitle}</p>
-          ) : (
-            <div className="mb-4" />
-          )}
-          {children}
-        </div>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle style={{ fontSize: "16px", fontWeight: 600 }}>
+              {title}
+            </CardTitle>
+            {subtitle ? (
+              <CardDescription
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 400,
+                  color: "#94a3b8",
+                }}
+              >
+                {subtitle}
+              </CardDescription>
+            ) : null}
+          </CardHeader>
+          <CardContent>{children}</CardContent>
+        </Card>
       </div>
     </main>
   );
