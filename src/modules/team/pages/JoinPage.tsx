@@ -4,7 +4,7 @@ import { Building2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Logo } from "@/components/Logo";
+import { Logo, LogoName } from "@/components/Logo";
 import { supabase } from "@/utils/supabase/client";
 import { api, ApiError } from "@/utils/api";
 import type { InviteLookup } from "../types";
@@ -99,8 +99,9 @@ export default function JoinPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <Logo className="h-10 w-auto mx-auto" />
+        <div className="flex flex-col items-center text-center">
+          <Logo className="h-12 w-auto" />
+          <LogoName className="h-4 w-auto mt-2.5" />
           <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na equipe</h1>
         </div>
 

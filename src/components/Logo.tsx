@@ -29,3 +29,26 @@ export function Logo({
     />
   );
 }
+
+/**
+ * Wordmark "CROPWARE FARM" (so o texto, sem o simbolo). Servido em
+ * `/logo-farm-name.svg` (viewBox 0 0 965 115, aspect ~8.4:1). Cor nativa
+ * preta; usar `white` no header escuro. Combina com <Logo> (simbolo) pra
+ * formar o lockup completo.
+ */
+export function LogoName({
+  className,
+  white = false,
+  alt = "Cropware Farm",
+  ...props
+}: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
+  return (
+    <img
+      src="/logo-farm-name.svg"
+      alt={alt}
+      className={cn("w-auto object-contain", className)}
+      style={white ? { filter: "brightness(0) invert(1)" } : undefined}
+      {...props}
+    />
+  );
+}

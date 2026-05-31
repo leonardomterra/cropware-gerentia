@@ -9,7 +9,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Logo } from "@/components/Logo";
+import { Logo, LogoName } from "@/components/Logo";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
@@ -119,9 +119,12 @@ export function AppShell() {
       {/* HEADER */}
       <header className="shadow-none" style={{ backgroundColor: "#475569" }}>
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          {/* Mobile */}
+          {/* Mobile - simbolo + wordmark CROPWARE FARM */}
           <div className="flex md:hidden items-center justify-between min-h-9">
-            <Logo className="h-7 w-auto" white />
+            <div className="flex items-center gap-2">
+              <Logo className="h-7 w-auto shrink-0" white />
+              <LogoName className="h-3.5 w-auto shrink-0" white />
+            </div>
             <div className="flex items-center gap-2">
               <GlassButton
                 icon={HelpCircle}
@@ -138,37 +141,11 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* Desktop */}
+          {/* Desktop - lockup simbolo + wordmark CROPWARE FARM (sem tagline) */}
           <div className="hidden md:flex items-center justify-between min-h-12">
-            <div className="flex items-center">
-              <Logo className="h-8 w-auto shrink-0" white />
-              <div
-                className="mx-3"
-                style={{
-                  width: "1px",
-                  height: "26px",
-                  background:
-                    "linear-gradient(to bottom, transparent, rgba(255,255,255,0.35) 30%, rgba(255,255,255,0.35) 70%, transparent)",
-                }}
-              />
-              <p
-                style={{
-                  fontFamily: "'Alumni Sans', sans-serif",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  letterSpacing: "3px",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.9)",
-                  lineHeight: 1.1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Farm Data<span style={{ color: "#cbd5e1" }}>.</span>
-                <br />
-                <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.4)" }}>
-                  Smart Decisions.
-                </span>
-              </p>
+            <div className="flex items-center gap-2.5">
+              <Logo className="h-9 w-auto shrink-0" white />
+              <LogoName className="h-4 w-auto shrink-0" white />
             </div>
 
             {/* Lado direito - so glass buttons. Nome do usuario foi

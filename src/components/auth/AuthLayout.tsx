@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Logo } from "@/components/Logo";
+import { Logo, LogoName } from "@/components/Logo";
 import {
   Card,
   CardContent,
@@ -23,8 +23,9 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <Logo className="h-7 w-auto" />
+        <div className="mb-6 flex flex-col items-center gap-2.5 text-center">
+          <Logo className="h-12 w-auto" />
+          <LogoName className="h-4 w-auto" />
         </div>
         <Card className="shadow-sm">
           <CardHeader>
