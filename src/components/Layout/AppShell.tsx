@@ -38,8 +38,8 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
 const ACCOUNT_NAV_ITEM: NavItem = { to: "/conta", label: "Conta" };
 
 /**
- * Botao glass sobre o header colorido (padrao CDM). bg translucido +
- * borda branca suave + hover. shadow via classe.
+ * Botao de acao do header (branco). Outline slate: borda slate-200,
+ * texto slate-700, hover slate-50. Combina com header claro.
  */
 function GlassButton({
   icon: Icon,
@@ -60,7 +60,7 @@ function GlassButton({
       onClick={onClick}
       title={title ?? label}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded h-8 text-[14px] font-normal text-white bg-white/10 border border-white/25 shadow-sm transition-colors active:scale-95 hover:bg-white/20",
+        "inline-flex items-center justify-center gap-1.5 rounded h-8 text-[14px] font-normal text-slate-700 bg-white border border-slate-200 transition-colors active:scale-95 hover:bg-slate-50",
         iconOnly ? "w-8" : "px-3",
       )}
     >
@@ -116,14 +116,14 @@ export function AppShell() {
       className="flex flex-col overflow-hidden bg-white"
       style={{ height: "100dvh" }}
     >
-      {/* HEADER */}
-      <header className="shadow-none" style={{ backgroundColor: "#475569" }}>
+      {/* HEADER (branco) */}
+      <header className="shadow-none bg-white">
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Mobile - simbolo + wordmark CROPWARE FARM */}
           <div className="flex md:hidden items-center justify-between min-h-9">
             <div className="flex items-center gap-2">
-              <Logo className="h-7 w-auto shrink-0" white />
-              <LogoName className="h-3.5 w-auto shrink-0" white />
+              <Logo className="h-7 w-auto shrink-0" />
+              <LogoName className="h-3.5 w-auto shrink-0" />
             </div>
             <div className="flex items-center gap-2">
               <GlassButton
@@ -144,8 +144,8 @@ export function AppShell() {
           {/* Desktop - lockup simbolo + wordmark CROPWARE FARM (sem tagline) */}
           <div className="hidden md:flex items-center justify-between min-h-12">
             <div className="flex items-center gap-2.5">
-              <Logo className="h-9 w-auto shrink-0" white />
-              <LogoName className="h-4 w-auto shrink-0" white />
+              <Logo className="h-9 w-auto shrink-0" />
+              <LogoName className="h-4 w-auto shrink-0" />
             </div>
 
             {/* Lado direito - so glass buttons. Nome do usuario foi
@@ -167,14 +167,8 @@ export function AppShell() {
         </div>
       </header>
 
-      {/* SUB-HEADER status bar */}
-      <div
-        className="border-t"
-        style={{
-          backgroundColor: "#64748b",
-          borderTopColor: "rgba(148,163,184,0.45)",
-        }}
-      >
+      {/* SUB-HEADER status bar (branco, separado do header por borda fina) */}
+      <div className="bg-white border-t border-slate-100">
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-2">
           <div className="flex flex-col md:flex-row md:justify-end items-stretch md:items-center gap-2">
             {/* Badge do usuario logado - empurrado pra esquerda no desktop
@@ -184,7 +178,7 @@ export function AppShell() {
                 className="gap-1.5 px-2.5 py-1 justify-center md:justify-start md:mr-auto"
                 style={{
                   backgroundColor: "transparent",
-                  color: "#ffffff",
+                  color: "#475569",
                   borderColor: "transparent",
                 }}
               >
@@ -199,7 +193,7 @@ export function AppShell() {
                 className="gap-1.5 px-2.5 py-1 justify-center md:justify-start"
                 style={{
                   backgroundColor: "transparent",
-                  color: "#ffffff",
+                  color: "#475569",
                   borderColor: "transparent",
                 }}
               >
@@ -212,11 +206,10 @@ export function AppShell() {
             <Badge
               className="gap-1.5 px-2.5 py-1 justify-center md:justify-start"
               style={{
-                // online: transparente (herda o slate-500 do sub-header).
-                // offline: fundo escuro pra destacar o estado de alerta.
-                backgroundColor: online ? "transparent" : "rgba(15,23,42,0.85)",
-                color: "#ffffff",
-                borderColor: online ? "transparent" : "rgba(30,41,59,0.9)",
+                // online: discreto (slate). offline: vermelho pra alertar.
+                backgroundColor: online ? "transparent" : "#fef2f2",
+                color: online ? "#475569" : "#b91c1c",
+                borderColor: online ? "transparent" : "#fecaca",
               }}
             >
               {online ? (
@@ -230,8 +223,9 @@ export function AppShell() {
         </div>
       </div>
 
-      {/* TAB BAR - tabs dividem a largura igualmente (flex-1), sem icone */}
-      <div className="bg-white border-b border-slate-200">
+      {/* TAB BAR - tabs dividem a largura igualmente (flex-1), sem icone.
+          border-t separa do sub-header branco (antes era contraste de cor). */}
+      <div className="bg-white border-t border-b border-slate-200">
         <div className="max-w-[1600px] w-full mx-auto flex h-12 items-stretch">
           {navItems.map((item) => (
             <NavLink
