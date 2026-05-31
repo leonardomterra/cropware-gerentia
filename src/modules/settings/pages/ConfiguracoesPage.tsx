@@ -20,7 +20,7 @@ export default function ConfiguracoesPage() {
   const [active, setActive] = useState<SubTab>("centros");
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="space-y-4">
       {/* Sub-tabs - pill underline estilo leve (nao confundir com a tab
           bar principal slate-600 do AppShell). */}
       <div className="border-b border-slate-200 flex items-center gap-1">
