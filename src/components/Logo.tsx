@@ -1,15 +1,13 @@
-import type { ImgHTMLAttributes, SVGProps } from "react";
+import type { ImgHTMLAttributes } from "react";
 import { cn } from "@/components/ui/utils";
 
 /**
- * Wordmark "CROPWARE" + icone C - asset oficial compartilhado com o
- * Cropware CDM (Field). Servido em `/logo-cropware.svg` (public/).
- *
- * Renderiza via `<img>` pra preservar exatamente o glyph e a proporcao
- * do SVG original (viewBox 0 0 8150.5 1247.02, aspect 6.53:1). O SVG
- * tem cor nativa #1A1A1A, entao em fundo claro renderiza preto/grafite
- * naturalmente. Pra fundo escuro (header slate), usar prop `white` que
- * aplica `filter: brightness(0) invert(1)`.
+ * Simbolo proprio do Cropware Farm. Servido em `/logo-farm-01.svg`
+ * (public/). E' um glifo quase quadrado (viewBox 0 0 450 500, aspect
+ * ~0.9:1) - NAO tem wordmark; o nome aparece na tagline ao lado no
+ * header (AppShell). Cor nativa do path = preto, entao em fundo claro
+ * renderiza escuro; pra fundo escuro (header slate) usar prop `white`
+ * que aplica `filter: brightness(0) invert(1)`.
  *
  * Exemplos:
  *   <Logo className="h-8 w-auto shrink-0" white />     // header
@@ -18,12 +16,12 @@ import { cn } from "@/components/ui/utils";
 export function Logo({
   className,
   white = false,
-  alt = "Cropware",
+  alt = "Cropware Farm",
   ...props
 }: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
   return (
     <img
-      src="/logo-cropware.svg"
+      src="/logo-farm-01.svg"
       alt={alt}
       className={cn("w-auto object-contain", className)}
       style={white ? { filter: "brightness(0) invert(1)" } : undefined}
