@@ -120,9 +120,9 @@ export function AppShell() {
       <header className="shadow-none bg-white">
         <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Mobile - simbolo + wordmark CROPWARE FARM */}
-          <div className="flex md:hidden items-center justify-between min-h-9">
+          <div className="flex md:hidden items-center justify-between min-h-11">
             <div className="flex items-center gap-2">
-              <Logo className="h-9 w-auto shrink-0" />
+              <Logo className="h-11 w-auto shrink-0" />
               <LogoName className="h-8 w-auto shrink-0" />
             </div>
             <div className="flex items-center gap-2">
@@ -142,9 +142,9 @@ export function AppShell() {
           </div>
 
           {/* Desktop - lockup simbolo + wordmark CROPWARE FARM (sem tagline) */}
-          <div className="hidden md:flex items-center justify-between min-h-12">
+          <div className="hidden md:flex items-center justify-between min-h-14">
             <div className="flex items-center gap-2.5">
-              <Logo className="h-11 w-auto shrink-0" />
+              <Logo className="h-14 w-auto shrink-0" />
               <LogoName className="h-9 w-auto shrink-0" />
             </div>
 
