@@ -101,7 +101,7 @@ export default function JoinPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center">
           <Logo className="h-12 w-auto" />
-          <LogoName className="h-4 w-auto mt-2.5" />
+          <LogoName className="h-6 w-auto mt-2.5" />
           <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na equipe</h1>
         </div>
 
