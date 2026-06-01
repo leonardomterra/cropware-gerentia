@@ -24,8 +24,8 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-2.5 text-center">
-          <Logo className="h-12 w-auto" />
-          <LogoName className="h-6 w-auto" />
+          <Logo className="h-14 w-auto" />
+          <LogoName className="h-8 w-auto" />
         </div>
         <Card className="shadow-sm">
           <CardHeader>

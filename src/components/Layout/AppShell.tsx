@@ -122,8 +122,8 @@ export function AppShell() {
           {/* Mobile - simbolo + wordmark CROPWARE FARM */}
           <div className="flex md:hidden items-center justify-between min-h-9">
             <div className="flex items-center gap-2">
-              <Logo className="h-7 w-auto shrink-0" />
-              <LogoName className="h-5 w-auto shrink-0" />
+              <Logo className="h-8 w-auto shrink-0" />
+              <LogoName className="h-7 w-auto shrink-0" />
             </div>
             <div className="flex items-center gap-2">
               <GlassButton
@@ -144,8 +144,8 @@ export function AppShell() {
           {/* Desktop - lockup simbolo + wordmark CROPWARE FARM (sem tagline) */}
           <div className="hidden md:flex items-center justify-between min-h-12">
             <div className="flex items-center gap-2.5">
-              <Logo className="h-9 w-auto shrink-0" />
-              <LogoName className="h-6 w-auto shrink-0" />
+              <Logo className="h-10 w-auto shrink-0" />
+              <LogoName className="h-8 w-auto shrink-0" />
             </div>
 
             {/* Lado direito - so glass buttons. Nome do usuario foi

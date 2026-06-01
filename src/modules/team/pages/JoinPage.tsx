@@ -100,8 +100,8 @@ export default function JoinPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center">
-          <Logo className="h-12 w-auto" />
-          <LogoName className="h-6 w-auto mt-2.5" />
+          <Logo className="h-14 w-auto" />
+          <LogoName className="h-8 w-auto mt-2.5" />
           <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na equipe</h1>
         </div>
 
