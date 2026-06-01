@@ -18,7 +18,7 @@ export function Logo({
 }: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
   return (
     <img
-      src="/logo-farm-01.png"
+      src="/icon.png"
       alt={alt}
       className={cn("w-auto object-contain", className)}
       style={white ? { filter: "brightness(0) invert(1)" } : undefined}
