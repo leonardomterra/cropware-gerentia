@@ -39,6 +39,9 @@ const JoinPage = lazyWithRetry(
 const RecurringPage = lazyWithRetry(
   () => import("@/modules/recurring/pages/RecurringPage"),
 );
+const IconLabPage = lazyWithRetry(
+  () => import("@/modules/dev/pages/IconLabPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -157,6 +160,18 @@ function RootRoutes() {
               }
             />
           </>
+        )}
+        {/* DEV-only: laboratorio de icones (Iconify). So existe em dev, por URL
+            /icones. Em producao a rota nao e registrada (cai no catch-all). */}
+        {import.meta.env.DEV && (
+          <Route
+            path="icones"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <IconLabPage />
+              </Suspense>
+            }
+          />
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

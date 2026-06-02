@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Plus, Star, Archive, Pencil } from "lucide-react";
+import Plus from "~icons/material-symbols-light/add";
+import Star from "~icons/material-symbols-light/star-outline";
+import Archive from "~icons/material-symbols-light/archive-outline";
+import Pencil from "~icons/material-symbols-light/edit-outline";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,7 +114,7 @@ export default function CostCentersPage() {
             >
               <div
                 className="w-2 self-stretch rounded-sm shrink-0"
-                style={{ backgroundColor: cc.color || "#64748b" }}
+                style={{ backgroundColor: cc.color || "#71717a" }}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

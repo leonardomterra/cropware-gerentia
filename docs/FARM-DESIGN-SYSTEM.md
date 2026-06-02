@@ -24,15 +24,24 @@ Quando houver dúvida visual, **ler o código do CDM primeiro** — não chutar.
 
 ## 2. Paleta
 
-**Brand: SLATE.** Token `--color-farm-primary: #475569` (slate-600).
+**Neutro: ZINC** (desde 2026-06-01; era slate). Token `--color-farm-primary: #52525b` (zinc-600).
+
+> **Importante — as classes continuam `slate-*` no app inteiro.** Em
+> `app.css @theme` os tokens `--color-slate-50..950` foram redefinidos pros
+> hex do **zinc**, então `text-slate-900`/`bg-slate-100`/etc. **renderizam
+> zinc**. **Single source of truth** da paleta neutra = esses 11 valores +
+> os tokens HSL shadcn (`:root`, hue ~240). Trocar a paleta do app inteiro =
+> editar só ali. (Tema escuro futuro = converter pra `var(--n-*)` + `.dark`.)
+> Logo segue #111827; cores de Centro de Custo são paleta à parte.
+> Abaixo, "slate-N" = a classe que renderiza zinc.
 
 | Token | Hex | Uso |
 |---|---|---|
-| `farm-primary` | `#475569` (slate-600) | header, tab ativa, KPI de destaque |
-| `farm-primary-dark` | `#334155` (slate-700) | linha inferior da tab ativa, gradientes |
-| `farm-primary-darker` | `#1e293b` (slate-800) | confirmação destrutiva, gradiente botão |
-| `farm-primary-darkest`| `#0f172a` (slate-900) | ação principal (botão default) |
-| `farm-primary-light` | `#64748b` (slate-500) | sub-header, texto secundário |
+| `farm-primary` | `#52525b` (zinc-600) | header, tab ativa, KPI de destaque |
+| `farm-primary-dark` | `#3f3f46` (zinc-700) | linha inferior da tab ativa, gradientes |
+| `farm-primary-darker` | `#27272a` (zinc-800) | confirmação destrutiva, gradiente botão |
+| `farm-primary-darkest`| `#18181b` (zinc-900) | ação principal (botão default) |
+| `farm-primary-light` | `#71717a` (zinc-500) | sub-header, texto secundário |
 
 HSL shadcn: `--primary: 215 19% 35%`. Radius global: **4px**.
 
@@ -86,6 +95,14 @@ rara (KPI, h1, section labels) · **600+ não usar**.
   neutraliza a utility. (Logo usa textTransform inline, fica de fora.)
 - **Português sempre acentuado** em texto visível (Lançamentos, Você, Saídas).
   Código (vars/slugs/comentários) pode ser ASCII.
+- **Title Case em títulos e botões.** Títulos (de cards/seções/dialogs, linhas
+  de configuração, page h1) e **labels de botões** vão em Title Case PT: cada
+  palavra principal maiúscula, artigos/preposições/conjunções minúsculos
+  (de, da, do, e, ou, em, no, na, com, por, para, a) — salvo se forem a 1ª.
+  Ex.: "Acesso e Segurança", "Zona de Perigo", "Gerar Código de Vínculo".
+  **Title Case ≠ CAIXA ALTA** (a regra acima continua valendo).
+  Descrições/subtítulos, labels de campo, texto corrido, placeholders e badges
+  ficam em **sentence case**.
 
 ---
 
@@ -124,17 +141,36 @@ Paleta slate. Sempre `text-sm` (14px) `font-normal`.
   fixo + `inline-flex items-center justify-center`, NUNCA padding vertical
   (o ícone de 16px é mais alto que a linha de 14px e cresceria o botão).
 
+**Botões de ação em ícone** (listas/cards/tabelas — ex: Ver/Editar/Excluir/
+Ocultar): usar SEMPRE o componente `ui/ActionIconButton.tsx` (props `icon`,
+`label`, `tone="default"|"danger"`, `onClick`; `forwardRef` → pode ser trigger
+de Tooltip/Popover). Visual: box `size-9 rounded-md border border-slate-200`,
+ícone `size-5` `text-slate-500`, hover `bg-slate-100 text-slate-700`; `danger`
+= hover `bg-red-50 text-red-600 border-red-200`. **Indicador inerte** (ex:
+estrela do CC padrão): `<span>` no mesmo box, sem hover, amber. **Descrição
+sem coluna** (ReceiptsTable): ActionIconButton (ícone `notes`) na coluna Ações
+dentro de um `<Tooltip>` mostrando a descrição (ou "Sem descrição").
+
 ---
 
-## 6. Dialogs (`ui/dialog.tsx` + `ui/alert-dialog.tsx`)
+## 6. Dialogs — DOIS TIPOS (`ui/dialog.tsx` + `ui/alert-dialog.tsx`)
 
-- **AlertDialog** (confirmação): `max-w-md`. Título `text-base` medium Title Case.
-  Footer com `border-t border-slate-100` full-width + botões `*:flex-1` (50/50).
-  Ação = slate-800, Cancel = slate-100.
-- **Dialog de form** (ReceiptFormDialog, ReceiptViewDialog): `max-w-2xl`.
-  `overflow-y-auto max-h-90vh`, footer não-sticky.
-- **NÃO fecham ao clicar fora** — só X / Cancelar / ação explícita
-  (`onInteractOutside preventDefault` por padrão). Vale pra todos.
+O sistema tem **dois tamanhos canônicos**:
+
+- **Padrão** — `DialogContent` (`ui/dialog.tsx`), base `max-w-4xl` (forms costumam
+  estreitar pra `max-w-2xl`). Para **formulários / conteúdo**: criar/editar
+  Centro de Custo, Categoria, Recorrência, ReceiptFormDialog, ReceiptViewDialog.
+- **Compacto** — `max-w-md` (~448px). Para **confirmações rápidas e curtas**:
+  confirmar exclusão, descartar alterações, "tornar padrão", etc. São os wrappers
+  `ConfirmActionDialog`, `DeleteConfirmationDialog`, `DiscardChangesDialog`
+  (todos `max-w-md`; a base do `alert-dialog.tsx` já é `max-w-md`). **Regra:
+  confirmação curta → compacto; nunca usar o padrão largo pra confirmar.**
+
+Comum a todos: título `text-base` medium **Title Case**; footer
+`border-t border-slate-100` full-width + botões `*:flex-1` (50/50); ação =
+slate-800, Cancel = slate-100 (destrutivo usa slate-800, não vermelho).
+**NÃO fecham ao clicar fora** — só X / Cancelar / ação explícita
+(`onInteractOutside preventDefault`).
 
 ---
 
@@ -229,15 +265,47 @@ Sem `<h1>` na página (o breadcrumb já diz o título). "Exportar" é dropdown
 
 ---
 
-## 11. Logo
+## 11. Logo — marca **DIRETOR IA**
 
-Asset oficial **compartilhado com o CDM**: `public/logo-cropware.svg` (cópia de
-`cropware/public/logo-e-name-cropware.svg`, cor nativa `#1A1A1A`).
-`Logo.tsx` renderiza via `<img>`; prop `white` aplica
-`filter: brightness(0) invert(1)`. **Não usar SVG inline custom** — a fonte do
-wordmark é própria do CorelDRAW e não bate se redesenhada.
+> A marca é **DIRETOR IA** (não "Cropware Farm" — esse é só o nome do repo).
+> Lockup = **símbolo** (rosto/agrônomo) + **wordmark** "DIRETOR IA", onde o
+> "IA" fica **dentro de um balãozinho de chat**. Cor mono `#111827`.
 
-Tamanhos: header `h-8 white`, AuthLayout `h-7` (cor nativa).
+**Símbolo** — `src/components/Logo.tsx` → `<img src="/icon.png">` (PNG @3x,
+136×144, Lanczos transparente). PNG e não SVG porque o desenho é detalhado e
+serrilhava como vetor em tamanho pequeno. Prop `white` = `filter
+brightness(0) invert(1)` pra fundo escuro. Na sidebar: `h-7 opacity-90`.
+
+**Wordmark estático** — `LogoName` (`Logo.tsx`) → `<img src="/logo-farm-name.svg">`.
+Usado só em telas fora da sidebar (ex: JoinPage).
+
+**Wordmark animado (sidebar)** — `src/components/LogoWordmark.tsx`. "DIRETOR"
+em **JetBrains Mono 500** (texto vivo, `@fontsource/jetbrains-mono/500`) +
+"IA" dentro de um balão SVG estilo **mdi-light:message** (`public/mdi-light--message.svg`,
+path exato, `fill=currentColor`). Animação (só 1x por page-load = a cada
+refresh; flag de módulo `played`; respeita `prefers-reduced-motion`):
+
+1. "DIRETOR" **digita** (typewriter CSS, `steps(7)`, width `calc(7ch + 4px)`
+   — o `+4px` compensa o `letter-spacing` que o `overflow` cortaria, senão o
+   "R" some) + caret piscando.
+2. No fim (~0.78s), balão e "IA" **entram juntos** com pop (scale bouncy
+   `cubic-bezier(0.34,1.56,0.64,1)`). São animados **separadamente** (SVG e
+   label) pra cada um ter efeito próprio sincronizado.
+
+Tudo em `.logo-wordmark*` / `.logo-ia*` no `app.css`. CAIXA ALTA aqui é
+**exceção de marca** (texto literal, não a utility `.uppercase`).
+
+**Valores calibrados (não re-mexer sem pedir):**
+- `IA` font-size **13px** (DIRETOR é 15px).
+- balão SVG **32×32**.
+- `.logo-wordmark` `gap: 3px`; `.logo-ia` `margin-left: -2px` (mata o padding
+  transparente do SVG) — pra colar o balão no "DIRETOR".
+- posição vertical, 3 níveis independentes (todos via `position:relative; top`
+  ou transform, **sem** mexer no fluxo pra "DIRETOR" não re-centralizar):
+  - conjunto balão+IA: `.logo-ia { top: 0.5px }`
+  - só o desenho do balão: `.logo-ia-bubble { top: 1px }`
+  - só o "IA": `.logo-ia-label { transform: translateY(calc(-50% + 1.5px)) }`
+    (o `+1.5px` também é o baseline dos keyframes de entrada, pra não "pular").
 
 ---
 

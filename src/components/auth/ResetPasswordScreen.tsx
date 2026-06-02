@@ -77,7 +77,7 @@ export function ResetPasswordScreen() {
 
   return (
     <AuthLayout
-      title="Nova senha"
+      title="Nova Senha"
       subtitle="Defina uma senha nova pra sua conta."
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">

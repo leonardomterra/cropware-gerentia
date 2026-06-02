@@ -35,7 +35,7 @@ export function ForgotPasswordScreen({
   if (sent) {
     return (
       <AuthLayout
-        title="Link enviado"
+        title="Link Enviado"
         subtitle={`Enviamos instruções pra ${email}. Olha também a caixa de spam.`}
       >
         <Button
@@ -52,7 +52,7 @@ export function ForgotPasswordScreen({
 
   return (
     <AuthLayout
-      title="Esqueci minha senha"
+      title="Esqueci Minha Senha"
       subtitle="Digite seu e-mail e te mandamos um link pra redefinir."
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">

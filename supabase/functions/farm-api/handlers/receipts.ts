@@ -1,7 +1,7 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
 import { uploadToR2, presignGetUrl } from "../lib/r2.ts";
-import { extractReceiptFromImage } from "../lib/gemini.ts";
+import { extractReceiptFromImage, suggestCategory } from "../lib/gemini.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { getUserDefaultCostCenter, userCanAccessCC } from "../lib/cc.ts";
 
@@ -33,15 +33,107 @@ function decodeBase64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
+// ============================================================
+// Itens (line items) - cada item tem categoria + CC proprios.
+// ============================================================
+
+interface NormalizedItem {
+  description: string | null;
+  category: string | null;
+  cost_center_id: string | null;
+  quantity: number | null;
+  unit_value: number | null;
+  total_value: number;
+  position: number;
+}
+
+/** Le body.items -> itens normalizados, ou null se nao veio um array. */
+function parseItems(raw: unknown): NormalizedItem[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.map((it, i) => {
+    const o = (it ?? {}) as Record<string, unknown>;
+    const qtyN = o.quantity != null && o.quantity !== "" ? Number(o.quantity) : null;
+    const unitN = o.unit_value != null && o.unit_value !== "" ? Number(o.unit_value) : null;
+    let total = Number(o.total_value);
+    if (!Number.isFinite(total) && qtyN != null && unitN != null) total = qtyN * unitN;
+    return {
+      description: typeof o.description === "string" ? o.description : null,
+      category: typeof o.category === "string" ? o.category : null,
+      cost_center_id:
+        typeof o.cost_center_id === "string" ? o.cost_center_id : null,
+      quantity: qtyN != null && Number.isFinite(qtyN) ? qtyN : null,
+      unit_value: unitN != null && Number.isFinite(unitN) ? unitN : null,
+      total_value: total,
+      position: typeof o.position === "number" ? o.position : i,
+    };
+  });
+}
+
+/** Soma arredondada UMA vez (evita drift de centavo). */
+function sumItems(items: NormalizedItem[]): number {
+  return Number(
+    items.reduce((s, it) => s + (Number(it.total_value) || 0), 0).toFixed(2),
+  );
+}
+
+/** Valida total de cada item (finito >= 0). Retorna erro ou null. */
+function validateItems(items: NormalizedItem[]): string | null {
+  for (const it of items) {
+    if (!Number.isFinite(it.total_value) || it.total_value < 0) {
+      return "item_total_invalido";
+    }
+  }
+  return null;
+}
+
+/** Valida acesso por item ao cost_center_id (igual ao header). */
+async function itemsCCAccessOk(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  items: NormalizedItem[],
+): Promise<boolean> {
+  for (const it of items) {
+    if (it.cost_center_id) {
+      const ok = await userCanAccessCC(admin, userId, it.cost_center_id);
+      if (!ok) return false;
+    }
+  }
+  return true;
+}
+
+type AnyClient = ReturnType<typeof getUserClient>;
+
+/** Monta as rows pra inserir em farm_receipt_items. */
+function itemRowsFor(
+  receiptId: string,
+  organizationId: string,
+  items: NormalizedItem[],
+) {
+  return items.map((it) => ({
+    receipt_id: receiptId,
+    organization_id: organizationId,
+    position: it.position,
+    description: it.description,
+    category: it.category,
+    cost_center_id: it.cost_center_id,
+    quantity: it.quantity,
+    unit_value: it.unit_value,
+    total_value: it.total_value,
+  }));
+}
+
 /**
- * Rotas de farm_receipts. Auth via JWT do user; RLS scopes por org.
+ * Rotas de farm_receipts. Auth via JWT do user; RLS scopes por org/cc.
  *
- * GET /receipts?status=&category=&direction=&from=&to=&search=&limit=
- * POST /receipts
- * PATCH /receipts/:id
- * DELETE /receipts/:id
- *
- * Scan via /receipts/scan vem no commit 8c.
+ * GET /receipts?status=&category=&direction=&cost_center_id=&from=&to=&search=&limit=
+ *   -> retorna recibos com `items` embutidos. category/cost_center casam
+ *      HEADER OU qualquer ITEM (split).
+ * POST /receipts          (aceita items[] -> total/categoria/cc derivados)
+ * PATCH /receipts/:id      (items[] = replace total dos itens)
+ * DELETE /receipts/:id     (cascade apaga itens)
+ * POST /receipts/:id/items/:itemId/promote  (converter item em lançamento)
+ * POST /receipts/scan      (OCR)
+ * GET /receipts/:id/attachment-url
  */
 export function mountReceiptRoutes(app: Hono) {
   app.get("/receipts", async (c) => {
@@ -51,8 +143,6 @@ export function mountReceiptRoutes(app: Hono) {
       if (auth.error) return auth.error;
 
       const q = new URL(c.req.url).searchParams;
-      // status e category aceitam CSV ("a_pagar,vencido") pra multi-select.
-      // split(",") e .in() no supabase. Valor unico tb funciona em .in().
       const status = q.get("status");
       const category = q.get("category");
       const statusArr = status
@@ -70,15 +160,13 @@ export function mountReceiptRoutes(app: Hono) {
 
       let query = client
         .from("farm_receipts")
-        .select("*")
+        .select("*, items:farm_receipt_items(*)")
         .order("transaction_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(limit);
 
       if (statusArr.length > 0) query = query.in("status", statusArr);
-      if (categoryArr.length > 0) query = query.in("category", categoryArr);
       if (direction) query = query.eq("direction", direction);
-      if (costCenterId) query = query.eq("cost_center_id", costCenterId);
       if (from) query = query.gte("transaction_date", from);
       if (to) query = query.lte("transaction_date", to);
       if (search) {
@@ -88,9 +176,40 @@ export function mountReceiptRoutes(app: Hono) {
         );
       }
 
+      // category / cost_center: casa HEADER ou qualquer ITEM. Busca os
+      // receipt_ids dos itens que casam e combina via .or(header, id.in(...)).
+      if (categoryArr.length > 0) {
+        const { data: rows } = await client
+          .from("farm_receipt_items")
+          .select("receipt_id")
+          .in("category", categoryArr);
+        const ids = [...new Set((rows ?? []).map((r) => r.receipt_id))];
+        const ors = [`category.in.(${categoryArr.join(",")})`];
+        if (ids.length) ors.push(`id.in.(${ids.join(",")})`);
+        query = query.or(ors.join(","));
+      }
+      if (costCenterId) {
+        const { data: rows } = await client
+          .from("farm_receipt_items")
+          .select("receipt_id")
+          .eq("cost_center_id", costCenterId);
+        const ids = [...new Set((rows ?? []).map((r) => r.receipt_id))];
+        const ors = [`cost_center_id.eq.${costCenterId}`];
+        if (ids.length) ors.push(`id.in.(${ids.join(",")})`);
+        query = query.or(ors.join(","));
+      }
+
       const { data, error } = await query;
       if (error) return c.json({ error: error.message }, 400);
-      return c.json({ receipts: data ?? [] });
+
+      // ordena itens por position (embed nao garante ordem)
+      const receipts = (data ?? []).map((r) => ({
+        ...r,
+        items: Array.isArray(r.items)
+          ? [...r.items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+          : [],
+      }));
+      return c.json({ receipts });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
@@ -107,31 +226,48 @@ export function mountReceiptRoutes(app: Hono) {
       if (!body || typeof body !== "object") {
         return c.json({ error: "invalid_body" }, 400);
       }
-
-      const totalValue = Number(body.total_value);
-      if (!body.doc_type || !Number.isFinite(totalValue)) {
-        return c.json(
-          { error: "doc_type e total_value sao obrigatorios" },
-          400,
-        );
+      if (!body.doc_type) {
+        return c.json({ error: "doc_type obrigatorio" }, 400);
       }
 
-      // Cost center: usa o que veio, ou default do user. Valida acesso pra cortar
-      // erro feio de RLS depois.
       const admin = getSupabaseAdmin();
-      let costCenterId: string | null = typeof body.cost_center_id === "string"
-        ? body.cost_center_id
-        : null;
-      if (costCenterId) {
-        const ok = await userCanAccessCC(admin, auth.user!.id, costCenterId);
-        if (!ok) return c.json({ error: "no_access_to_cost_center" }, 403);
+      const items = parseItems(body.items);
+      const hasItems = !!items && items.length > 0;
+
+      // Valida itens + acesso por item; deriva total / zera header cat+cc.
+      let totalValue: number;
+      let costCenterId: string | null = null;
+      let category: string | null = null;
+      if (hasItems) {
+        const invalid = validateItems(items!);
+        if (invalid) return c.json({ error: invalid }, 400);
+        if (!(await itemsCCAccessOk(admin, auth.user!.id, items!))) {
+          return c.json({ error: "no_access_to_cost_center" }, 403);
+        }
+        totalValue = sumItems(items!);
+        costCenterId = null;
+        category = null;
       } else {
-        const def = await getUserDefaultCostCenter(
-          admin,
-          auth.user!.id,
-          auth.organizationId!,
-        );
-        costCenterId = def?.id ?? null;
+        totalValue = Number(body.total_value);
+        if (!Number.isFinite(totalValue)) {
+          return c.json({ error: "total_value obrigatorio" }, 400);
+        }
+        category = body.category ?? null;
+        // Cost center: usa o que veio ou o default do user (caso simples).
+        costCenterId = typeof body.cost_center_id === "string"
+          ? body.cost_center_id
+          : null;
+        if (costCenterId) {
+          const ok = await userCanAccessCC(admin, auth.user!.id, costCenterId);
+          if (!ok) return c.json({ error: "no_access_to_cost_center" }, 403);
+        } else {
+          const def = await getUserDefaultCostCenter(
+            admin,
+            auth.user!.id,
+            auth.organizationId!,
+          );
+          costCenterId = def?.id ?? null;
+        }
       }
 
       const row = {
@@ -151,7 +287,7 @@ export function mountReceiptRoutes(app: Hono) {
         vendor_cnpj: body.vendor_cnpj ?? null,
         payment_method: body.payment_method ?? null,
         description: body.description ?? null,
-        category: body.category ?? null,
+        category,
         invoice_number: body.invoice_number ?? null,
         attachment_key: body.attachment_key ?? null,
         attachment_mime: body.attachment_mime ?? null,
@@ -159,16 +295,32 @@ export function mountReceiptRoutes(app: Hono) {
         source: body.source ?? "manual",
         ai_confidence: body.ai_confidence ?? null,
         ai_raw: body.ai_raw ?? null,
+        item_count: hasItems ? items!.length : 0,
       };
 
-      const { data, error } = await client
+      const { data: receipt, error } = await client
         .from("farm_receipts")
         .insert(row)
         .select()
         .single();
-
       if (error) return c.json({ error: error.message }, 400);
-      return c.json({ receipt: data }, 201);
+
+      if (hasItems) {
+        const { data: insertedItems, error: itemsErr } = await client
+          .from("farm_receipt_items")
+          .insert(itemRowsFor(receipt.id, auth.organizationId!, items!))
+          .select();
+        if (itemsErr) {
+          // Compensa: sem transacao no PostgREST, desfaz o cabeçalho.
+          await client.from("farm_receipts").delete().eq("id", receipt.id);
+          return c.json({ error: itemsErr.message }, 400);
+        }
+        return c.json(
+          { receipt: { ...receipt, items: insertedItems ?? [] } },
+          201,
+        );
+      }
+      return c.json({ receipt: { ...receipt, items: [] } }, 201);
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
@@ -187,7 +339,6 @@ export function mountReceiptRoutes(app: Hono) {
         return c.json({ error: "invalid_body" }, 400);
       }
 
-      // Whitelist - nao deixa user trocar org_id, created_by, id, timestamps
       const ALLOWED = [
         "farm_id",
         "cost_center_id",
@@ -212,13 +363,35 @@ export function mountReceiptRoutes(app: Hono) {
       for (const k of ALLOWED) {
         if (k in body) patch[k] = body[k];
       }
-      if (Object.keys(patch).length === 0) {
-        return c.json({ error: "no_fields_to_update" }, 400);
-      }
 
-      // Valida acesso ao novo cost_center_id se sendo trocado.
-      if (typeof patch.cost_center_id === "string") {
-        const admin = getSupabaseAdmin();
+      const admin = getSupabaseAdmin();
+      const itemsProvided = "items" in body;
+      const items = itemsProvided ? parseItems(body.items) ?? [] : null;
+
+      if (items) {
+        // items[] presente = replace total dos itens.
+        if (items.length > 0) {
+          const invalid = validateItems(items);
+          if (invalid) return c.json({ error: invalid }, 400);
+          if (!(await itemsCCAccessOk(admin, auth.user!.id, items))) {
+            return c.json({ error: "no_access_to_cost_center" }, 403);
+          }
+          patch.total_value = sumItems(items);
+          patch.item_count = items.length;
+          patch.category = null;
+          patch.cost_center_id = null;
+        } else {
+          // items: [] -> volta a header-only. Exige total_value no body.
+          const t = Number(body.total_value);
+          if (!Number.isFinite(t)) {
+            return c.json({ error: "total_value obrigatorio" }, 400);
+          }
+          patch.total_value = t;
+          patch.item_count = 0;
+          // category/cost_center_id ficam o que vier no whitelist (se vier).
+        }
+      } else if (typeof patch.cost_center_id === "string") {
+        // patch legado direto no header: valida acesso ao CC.
         const ok = await userCanAccessCC(
           admin,
           auth.user!.id,
@@ -227,16 +400,41 @@ export function mountReceiptRoutes(app: Hono) {
         if (!ok) return c.json({ error: "no_access_to_cost_center" }, 403);
       }
 
-      const { data, error } = await client
+      if (Object.keys(patch).length === 0) {
+        return c.json({ error: "no_fields_to_update" }, 400);
+      }
+
+      const { data: receipt, error } = await client
         .from("farm_receipts")
         .update(patch)
         .eq("id", id)
         .select()
         .single();
-
       if (error) return c.json({ error: error.message }, 400);
-      if (!data) return c.json({ error: "not_found" }, 404);
-      return c.json({ receipt: data });
+      if (!receipt) return c.json({ error: "not_found" }, 404);
+
+      if (items) {
+        // replace: apaga itens antigos, insere novos (se houver).
+        await client.from("farm_receipt_items").delete().eq("receipt_id", id);
+        let newItems: unknown[] = [];
+        if (items.length > 0) {
+          const { data: ins, error: itemsErr } = await client
+            .from("farm_receipt_items")
+            .insert(itemRowsFor(id, auth.organizationId!, items))
+            .select();
+          if (itemsErr) return c.json({ error: itemsErr.message }, 400);
+          newItems = ins ?? [];
+        }
+        return c.json({ receipt: { ...receipt, items: newItems } });
+      }
+
+      // patch sem mexer em itens: re-le os itens atuais pra resposta coerente.
+      const { data: cur } = await client
+        .from("farm_receipt_items")
+        .select("*")
+        .eq("receipt_id", id)
+        .order("position");
+      return c.json({ receipt: { ...receipt, items: cur ?? [] } });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
@@ -258,6 +456,160 @@ export function mountReceiptRoutes(app: Hono) {
       if (error) return c.json({ error: error.message }, 400);
       if (!count) return c.json({ error: "not_found" }, 404);
       return c.json({ ok: true, deleted: count });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      throw resp;
+    }
+  });
+
+  /**
+   * Converter item em lançamento principal (MOVER/extrair): cria um recibo
+   * novo herdando o cabeçalho do pai + categoria/CC/valor do item; remove o
+   * item do pai e recalcula total/item_count do pai. So permitido quando o
+   * pai tem >= 2 itens (converter o unico deixaria o pai vazio).
+   */
+  app.post("/receipts/:id/items/:itemId/promote", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+
+      const id = c.req.param("id");
+      const itemId = c.req.param("itemId");
+
+      const { data: parent, error: pErr } = await client
+        .from("farm_receipts")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (pErr || !parent) return c.json({ error: "not_found" }, 404);
+
+      const { data: item, error: iErr } = await client
+        .from("farm_receipt_items")
+        .select("*")
+        .eq("id", itemId)
+        .eq("receipt_id", id)
+        .single();
+      if (iErr || !item) return c.json({ error: "item_not_found" }, 404);
+
+      if ((parent.item_count ?? 0) < 2) {
+        return c.json({ error: "cannot_promote_last_item" }, 400);
+      }
+
+      if (item.cost_center_id) {
+        const admin = getSupabaseAdmin();
+        const ok = await userCanAccessCC(admin, auth.user!.id, item.cost_center_id);
+        if (!ok) return c.json({ error: "no_access_to_cost_center" }, 403);
+      }
+
+      const newRow = {
+        organization_id: parent.organization_id,
+        created_by: auth.user!.id,
+        farm_id: parent.farm_id,
+        cost_center_id: item.cost_center_id,
+        doc_type: parent.doc_type,
+        direction: parent.direction,
+        status: parent.status,
+        total_value: item.total_value,
+        currency: parent.currency,
+        transaction_date: parent.transaction_date,
+        due_date: parent.due_date,
+        paid_date: parent.paid_date,
+        vendor: parent.vendor,
+        vendor_cnpj: parent.vendor_cnpj,
+        payment_method: parent.payment_method,
+        description: item.description,
+        category: item.category,
+        invoice_number: parent.invoice_number,
+        attachment_key: parent.attachment_key,
+        attachment_mime: parent.attachment_mime,
+        notes: parent.notes,
+        source: parent.source,
+        item_count: 0,
+      };
+
+      const { data: created, error: cErr } = await client
+        .from("farm_receipts")
+        .insert(newRow)
+        .select()
+        .single();
+      if (cErr) return c.json({ error: cErr.message }, 400);
+
+      // Remove o item do pai.
+      await client.from("farm_receipt_items").delete().eq("id", itemId);
+
+      // Recalcula o pai a partir dos itens restantes.
+      const { data: remaining } = await client
+        .from("farm_receipt_items")
+        .select("total_value")
+        .eq("receipt_id", id);
+      const remTotal = Number(
+        (remaining ?? [])
+          .reduce((s, r) => s + (Number(r.total_value) || 0), 0)
+          .toFixed(2),
+      );
+      await client
+        .from("farm_receipts")
+        .update({ total_value: remTotal, item_count: (remaining ?? []).length })
+        .eq("id", id);
+
+      const { data: parentFull } = await client
+        .from("farm_receipts")
+        .select("*, items:farm_receipt_items(*)")
+        .eq("id", id)
+        .single();
+
+      return c.json({
+        created: { ...created, items: [] },
+        parent: parentFull,
+      });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      throw resp;
+    }
+  });
+
+  /**
+   * Sugere a melhor categoria (slug) via IA a partir de fornecedor +
+   * descricao, escolhendo dentre as categorias que o cliente manda (as que
+   * ele ve). Usado pelo botao "Sugerir com IA" do form.
+   */
+  app.post("/receipts/suggest-category", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+
+      const body = await c.req.json().catch(() => null);
+      if (!body || typeof body !== "object") {
+        return c.json({ error: "invalid_body" }, 400);
+      }
+      const direction = body.direction === "income" ? "income" : "expense";
+      const cats = Array.isArray(body.categories)
+        ? body.categories
+            .filter(
+              (x: unknown) =>
+                x &&
+                typeof (x as { slug?: unknown }).slug === "string" &&
+                typeof (x as { name?: unknown }).name === "string",
+            )
+            .map((x: { slug: string; name: string }) => ({
+              slug: x.slug,
+              name: x.name,
+            }))
+        : [];
+
+      const res = await suggestCategory(
+        {
+          vendor: typeof body.vendor === "string" ? body.vendor : null,
+          description:
+            typeof body.description === "string" ? body.description : null,
+          direction,
+        },
+        cats,
+      );
+      if (!res.ok) return c.json({ error: res.error }, 502);
+      return c.json({ category: res.category });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;

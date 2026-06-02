@@ -10,8 +10,9 @@ export interface ManageCategory extends FarmCategory {
 
 export interface CreateCategoryInput {
   name: string;
-  color: string;
   direction: ReceiptDirection;
+  /** grupo (group_name) em que a categoria custom vai aparecer. */
+  group_name: string;
 }
 
 /** slug ASCII a partir do nome + sufixo do user pra garantir unicidade
@@ -83,10 +84,9 @@ export function useManageCategories() {
         created_by_user_id: user.id,
         slug: slugify(input.name, user.id),
         name: input.name.trim(),
-        color: input.color,
         direction: input.direction,
         is_preset: false,
-        group_name: "Minhas Categorias",
+        group_name: input.group_name || "Minhas Categorias",
       });
       if (e) {
         setError(
@@ -103,10 +103,7 @@ export function useManageCategories() {
   );
 
   const update = useCallback(
-    async (
-      id: string,
-      patch: { name?: string; color?: string },
-    ): Promise<boolean> => {
+    async (id: string, patch: { name?: string }): Promise<boolean> => {
       const { error: e } = await supabase
         .from("farm_categories")
         .update(patch)

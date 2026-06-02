@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Copy, Trash2, UserPlus, X } from "lucide-react";
+import Copy from "~icons/material-symbols-light/content-copy-outline";
+import Trash2 from "~icons/material-symbols-light/delete-outline";
+import UserPlus from "~icons/material-symbols-light/person-add-outline";
+import X from "~icons/material-symbols-light/close";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,7 +120,7 @@ export default function TeamPage() {
         </div>
         <Button onClick={openInvite}>
           <UserPlus className="size-4 mr-1" />
-          Convidar membro
+          Convidar Membro
         </Button>
       </header>
 
@@ -200,7 +203,7 @@ export default function TeamPage() {
       {invites.length > 0 && (
         <section className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200">
-            <h2 className="text-sm font-medium text-slate-900">Convites pendentes ({invites.length})</h2>
+            <h2 className="text-sm font-medium text-slate-900">Convites Pendentes ({invites.length})</h2>
           </div>
           <ul className="divide-y divide-slate-100">
             {invites.map((inv) => (
@@ -245,7 +248,7 @@ export default function TeamPage() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convidar membro</DialogTitle>
+            <DialogTitle>Convidar Membro</DialogTitle>
           </DialogHeader>
           {lastInviteCode ? (
             <div className="space-y-4 py-2">
@@ -318,7 +321,7 @@ export default function TeamPage() {
                         />
                         <span
                           className="size-3 rounded-full"
-                          style={{ backgroundColor: cc.color || "#64748b" }}
+                          style={{ backgroundColor: cc.color || "#71717a" }}
                         />
                         <span className="text-sm text-slate-700">{cc.name}</span>
                       </label>
@@ -335,7 +338,7 @@ export default function TeamPage() {
               <>
                 <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
                 <Button onClick={handleCreateInvite} disabled={creating}>
-                  {creating ? "Criando..." : "Gerar codigo"}
+                  {creating ? "Criando..." : "Gerar Código"}
                 </Button>
               </>
             )}
@@ -390,7 +393,7 @@ export default function TeamPage() {
                         />
                         <span
                           className="size-3 rounded-full"
-                          style={{ backgroundColor: cc.color || "#64748b" }}
+                          style={{ backgroundColor: cc.color || "#71717a" }}
                         />
                         <span className="text-sm text-slate-700">{cc.name}</span>
                       </label>

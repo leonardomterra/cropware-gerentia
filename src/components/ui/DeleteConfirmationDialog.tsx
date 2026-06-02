@@ -52,16 +52,16 @@ export function DeleteConfirmationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-lg max-w-4xl">
+      <AlertDialogContent className="rounded-lg max-w-md">
         <AlertDialogHeader className="space-y-3">
-          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#0f172a' }}>
+          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#18181b' }}>
             {title}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p
                 className="font-normal leading-relaxed"
-                style={{ fontSize: '14px', color: '#64748b' }}
+                style={{ fontSize: '14px', color: '#71717a' }}
               >
                 Esta ação é irreversível.{' '}
                 {isBatch
@@ -72,7 +72,7 @@ export function DeleteConfirmationDialog({
               </p>
 
               {/* Subtle warning */}
-              <p className="font-normal" style={{ fontSize: '14px', color: '#94a3b8' }}>
+              <p className="font-normal" style={{ fontSize: '14px', color: '#a1a1aa' }}>
                 Esta exclusão é definitiva e não poderá ser desfeita.
               </p>
 
@@ -81,21 +81,21 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#64748b' }}
+                    style={{ fontSize: '14px', color: '#71717a' }}
                   >
                     Itens selecionados:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto"
-                    style={{ backgroundColor: '#f8fafc', fontSize: '14px', border: '1px solid #e2e8f0' }}
+                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e4e4e7' }}
                   >
                     {batchItems!.map((name, i) => (
                       <div key={i} className="flex items-center gap-1.5 font-normal">
-                        <span style={{ color: '#475569' }}>{name}</span>
+                        <span style={{ color: '#52525b' }}>{name}</span>
                       </div>
                     ))}
                     {totalBatch > batchItems!.length && (
-                      <p className="font-normal italic" style={{ fontSize: '14px', color: '#94a3b8' }}>
+                      <p className="font-normal italic" style={{ fontSize: '14px', color: '#a1a1aa' }}>
                         ...e mais {totalBatch - batchItems!.length} item(ns)
                       </p>
                     )}
@@ -108,20 +108,20 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#64748b' }}
+                    style={{ fontSize: '14px', color: '#71717a' }}
                   >
                     A exclusão {isBatch ? 'destes itens' : 'deste item'} irá impactar:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1"
-                    style={{ backgroundColor: '#f8fafc', fontSize: '14px', border: '1px solid #e2e8f0' }}
+                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e4e4e7' }}
                   >
                     {cascadeItems!
                       .filter(c => c.count > 0)
                       .map((item) => (
                         <div key={item.label} className="flex items-center justify-between font-normal">
-                          <span style={{ color: '#475569' }}>{item.label}</span>
-                          <span style={{ color: '#0f172a' }}>{item.count}</span>
+                          <span style={{ color: '#52525b' }}>{item.label}</span>
+                          <span style={{ color: '#18181b' }}>{item.count}</span>
                         </div>
                       ))}
                   </div>

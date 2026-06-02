@@ -52,7 +52,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   if (success) {
     return (
       <AuthLayout
-        title="Conta criada"
+        title="Conta Criada"
         subtitle={
           success.needsConfirmation
             ? `Confirme seu e-mail (${email}) pra entrar. Olha também a caixa de spam.`
@@ -73,8 +73,8 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
 
   return (
     <AuthLayout
-      title="Criar conta"
-      subtitle="14 dias gratis. Sem cartao agora."
+      title="Criar Conta"
+      subtitle="14 dias grátis. Sem cartão agora."
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -166,7 +166,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
           className="text-sm text-farm-primary hover:text-farm-primary-dark underline-offset-2 hover:underline mt-2"
           disabled={submitting}
         >
-          Ja Tenho Conta — Entrar
+          Já Tenho Conta — Entrar
         </button>
       </form>
     </AuthLayout>

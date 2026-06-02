@@ -1,5 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AlertTriangle, RefreshCw, Copy, Check, Home } from "lucide-react";
+import AlertTriangle from "~icons/material-symbols-light/warning-outline";
+import RefreshCw from "~icons/material-symbols-light/refresh";
+import Copy from "~icons/material-symbols-light/content-copy-outline";
+import Check from "~icons/material-symbols-light/check";
+import Home from "~icons/material-symbols-light/home-outline";
 import { Button } from "@/components/ui/button";
 
 interface Props {

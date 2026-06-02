@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, EyeOff, Eye } from "lucide-react";
+import Plus from "~icons/material-symbols-light/add";
+import Pencil from "~icons/material-symbols-light/edit-outline";
+import Trash2 from "~icons/material-symbols-light/delete-outline";
+import EyeOff from "~icons/material-symbols-light/visibility-off-outline";
+import Eye from "~icons/material-symbols-light/visibility-outline";
+import Search from "~icons/material-symbols-light/search";
+import ChevronRight from "~icons/material-symbols-light/keyboard-arrow-right";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/components/ui/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { CC_COLORS } from "@/modules/cost-centers/types";
 import type { ReceiptDirection } from "@/modules/receipts/types";
 import {
   useManageCategories,
@@ -22,14 +26,14 @@ import {
 
 interface FormState {
   name: string;
-  color: string;
   direction: ReceiptDirection;
+  group_name: string;
 }
 
 const EMPTY_FORM: FormState = {
   name: "",
-  color: CC_COLORS[0],
   direction: "expense",
+  group_name: "",
 };
 
 /**
@@ -38,7 +42,11 @@ const EMPTY_FORM: FormState = {
  * - Presets: ocultar/reativar pela org (so admin). Oculto = esmaecido.
  * - Custom: editar nome/cor + excluir (so as proprias).
  */
-export function CategoriesManager() {
+export function CategoriesManager({
+  direction,
+}: {
+  direction: ReceiptDirection;
+}) {
   const { isAdmin } = useAuth();
   const { categories, loading, error, create, update, remove, setHidden } =
     useManageCategories();
@@ -50,11 +58,30 @@ export function CategoriesManager() {
   const [pendingDelete, setPendingDelete] = useState<ManageCategory | null>(
     null,
   );
+  const [query, setQuery] = useState("");
+  // Grupos colapsados por padrao (Set = grupos abertos). Busca abre todos.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const searching = query.trim() !== "";
 
-  // Agrupa por group_name. "Minhas Categorias" sempre por ultimo.
+  function toggleGroup(name: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  // Filtra (busca + tipo) e agrupa por group_name. "Minhas Categorias" por ultimo.
   const groups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = categories.filter((c) => {
+      if (c.direction !== direction) return false;
+      if (q && !c.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
     const map = new Map<string, ManageCategory[]>();
-    for (const c of categories) {
+    for (const c of filtered) {
       const g = c.group_name || "Outras";
       const arr = map.get(g) ?? [];
       arr.push(c);
@@ -66,12 +93,23 @@ export function CategoriesManager() {
       if (b === "Minhas Categorias") return -1;
       return a.localeCompare(b, "pt-BR");
     });
-    return entries.map(([name, items]) => ({ name, items }));
-  }, [categories]);
+    // Dentro de cada grupo: presets primeiro, personalizadas (custom) por
+    // ultimo; cada bloco em ordem alfabetica.
+    return entries.map(([name, items]) => ({
+      name,
+      items: [...items].sort(
+        (a, b) =>
+          Number(b.is_preset) - Number(a.is_preset) ||
+          a.name.localeCompare(b.name, "pt-BR"),
+      ),
+    }));
+  }, [categories, query, direction]);
 
-  function openNew() {
+  // Criar dentro de um grupo: o tipo (despesa/receita) e o group_name vem da
+  // propria secao onde o usuario clicou o slot "+ Nova categoria".
+  function openNew(groupName: string, direction: ReceiptDirection) {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, group_name: groupName, direction });
     setDialogOpen(true);
   }
 
@@ -79,8 +117,8 @@ export function CategoriesManager() {
     setEditing(cat);
     setForm({
       name: cat.name,
-      color: cat.color || CC_COLORS[0],
       direction: cat.direction,
+      group_name: cat.group_name || "",
     });
     setDialogOpen(true);
   }
@@ -92,11 +130,11 @@ export function CategoriesManager() {
     }
     setSaving(true);
     const ok = editing
-      ? await update(editing.id, { name: form.name.trim(), color: form.color })
+      ? await update(editing.id, { name: form.name.trim() })
       : await create({
           name: form.name.trim(),
-          color: form.color,
           direction: form.direction,
+          group_name: form.group_name,
         });
     setSaving(false);
     if (ok) {
@@ -120,16 +158,16 @@ export function CategoriesManager() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-start justify-between gap-3">
-        <p className="text-sm text-slate-500 max-w-xl">
-          Categorias usadas pra classificar lançamentos. Os presets cobrem os
-          casos comuns; você pode criar as suas
-          {isAdmin ? " e ocultar os presets que a equipe não usa" : ""}.
-        </p>
-        <Button variant="outline" onClick={openNew} className="gap-1 shrink-0">
-          <Plus className="size-4" />
-          Nova Categoria
-        </Button>
+      <header>
+        <div className="relative">
+          <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar categoria..."
+            className="pl-9"
+          />
+        </div>
       </header>
 
       {error && (
@@ -140,87 +178,109 @@ export function CategoriesManager() {
 
       {loading ? (
         <p className="text-sm text-slate-500">Carregando...</p>
+      ) : groups.length === 0 ? (
+        <p className="text-sm text-slate-500">Nenhuma categoria encontrada.</p>
       ) : (
-        <div className="space-y-5">
-          {groups.map((group) => (
+        <div className="space-y-2">
+          {groups.map((group) => {
+            const isOpen = searching || expanded.has(group.name);
+            return (
             <section key={group.name}>
-              <h3 className="text-xs font-medium text-slate-500 mb-2">
-                {group.name}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.name)}
+                className="group/sec flex items-center gap-2 w-full text-left py-1"
+              >
+                <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 group-hover/sec:bg-slate-100 group-hover/sec:text-slate-700 transition-colors shrink-0">
+                  <ChevronRight
+                    className={cn(
+                      "size-5 transition-transform",
+                      isOpen && "rotate-90",
+                    )}
+                  />
+                </span>
+                <span className="text-sm font-medium text-slate-500">
+                  {group.name} ({group.items.length})
+                </span>
+              </button>
+              {isOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 pb-1">
                 {group.items.map((cat) => {
                   const isCustom = !cat.is_preset;
+                  const hasActions = isCustom || isAdmin;
                   return (
                     <div
                       key={cat.id}
+                      title={isCustom ? "Categoria personalizada" : undefined}
                       className={cn(
-                        "bg-white rounded-lg border border-slate-200 px-3 py-2.5",
+                        "group flex items-center gap-2.5 h-full rounded-lg border px-3 py-2 transition-colors",
+                        isCustom
+                          ? direction === "income"
+                            ? "bg-blue-50/70 border-blue-200 hover:bg-blue-100/70"
+                            : "bg-red-50/60 border-red-200 hover:bg-red-100/70"
+                          : "bg-white border-slate-200 hover:bg-slate-50",
                         cat.hidden && "opacity-50",
                       )}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className="size-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color || "#64748b" }}
-                        />
-                        <span className="text-sm text-slate-700 truncate flex-1">
-                          {cat.name}
-                        </span>
-                        <Badge
-                          size="compact"
-                          colorScheme={
-                            cat.direction === "income" ? "emerald" : "slate"
-                          }
-                        >
-                          {cat.direction === "income" ? "receita" : "despesa"}
-                        </Badge>
-                      </div>
-
-                      {/* Acoes: custom -> editar/excluir; preset -> ocultar (admin) */}
-                      <div className="flex items-center gap-3 mt-2 pl-5">
-                        {isCustom ? (
-                          <>
+                      <span className="text-sm text-slate-700 truncate flex-1">
+                        {cat.name}
+                      </span>
+                      {hasActions && (
+                        <div className="flex items-center gap-1.5 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          {isCustom ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEdit(cat)}
+                                title="Editar"
+                                aria-label="Editar"
+                                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                              >
+                                <Pencil className="size-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPendingDelete(cat)}
+                                title="Excluir"
+                                aria-label="Excluir"
+                                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                              >
+                                <Trash2 className="size-5" />
+                              </button>
+                            </>
+                          ) : (
                             <button
                               type="button"
-                              onClick={() => openEdit(cat)}
-                              className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                              onClick={() => handleToggleHidden(cat)}
+                              title={cat.hidden ? "Reativar" : "Ocultar"}
+                              aria-label={cat.hidden ? "Reativar" : "Ocultar"}
+                              className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                             >
-                              <Pencil className="size-3" /> Editar
+                              {cat.hidden ? (
+                                <Eye className="size-5" />
+                              ) : (
+                                <EyeOff className="size-5" />
+                              )}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setPendingDelete(cat)}
-                              className="text-xs text-slate-600 hover:text-red-600 inline-flex items-center gap-1"
-                            >
-                              <Trash2 className="size-3" /> Excluir
-                            </button>
-                          </>
-                        ) : isAdmin ? (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleHidden(cat)}
-                            className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
-                          >
-                            {cat.hidden ? (
-                              <>
-                                <Eye className="size-3" /> Reativar
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="size-3" /> Ocultar
-                              </>
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400">preset</span>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => openNew(group.name, direction)}
+                  className="flex items-center justify-start gap-1.5 h-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-400 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <Plus className="size-4" />
+                  Nova Categoria
+                </button>
               </div>
+              )}
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -247,67 +307,13 @@ export function CategoriesManager() {
               />
             </div>
 
-            {/* Tipo: so na criacao (mudar depois bagunçaria lancamentos) */}
-            {!editing && (
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Tipo
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((s) => ({ ...s, direction: "expense" }))
-                    }
-                    className={cn(
-                      "flex-1 h-9 rounded border text-sm transition-colors",
-                      form.direction === "expense"
-                        ? "border-slate-700 bg-slate-50 text-slate-900 font-medium"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300",
-                    )}
-                  >
-                    Despesa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((s) => ({ ...s, direction: "income" }))
-                    }
-                    className={cn(
-                      "flex-1 h-9 rounded border text-sm transition-colors",
-                      form.direction === "income"
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-medium"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300",
-                    )}
-                  >
-                    Receita
-                  </button>
-                </div>
-              </div>
+            {/* Tipo e grupo vem da secao onde foi criada (nao editavel aqui). */}
+            {!editing && form.group_name && (
+              <p className="text-xs text-slate-500">
+                {form.direction === "income" ? "Receita" : "Despesa"} em{" "}
+                <span className="text-slate-700">{form.group_name}</span>
+              </p>
             )}
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-2">
-                Cor
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {CC_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setForm((s) => ({ ...s, color: c }))}
-                    className={cn(
-                      "size-8 rounded-full border-2 transition-all",
-                      form.color === c
-                        ? "border-slate-900 scale-110"
-                        : "border-transparent",
-                    )}
-                    style={{ backgroundColor: c }}
-                    aria-label={`Cor ${c}`}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>

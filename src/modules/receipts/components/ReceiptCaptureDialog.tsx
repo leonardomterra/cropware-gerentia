@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Upload, Loader2 } from "lucide-react";
+import Camera from "~icons/material-symbols-light/photo-camera-outline";
+import Upload from "~icons/material-symbols-light/upload";
+import Loader2 from "~icons/svg-spinners/ring-resize";
 import {
   Dialog,
   DialogContent,
@@ -177,7 +179,7 @@ export function ReceiptCaptureDialog({
 
           {scanning ? (
             <div className="flex items-center justify-center gap-2 text-sm text-slate-600 py-2">
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-4" />
               Processando com IA...
             </div>
           ) : null}

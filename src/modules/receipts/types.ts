@@ -31,6 +31,36 @@ export type ReceiptSource =
   | "telegram"
   | "csv";
 
+/**
+ * Item (line item) de um lançamento. Cada item tem categoria + centro de
+ * custo PROPRIOS (split). Quando um lançamento tem itens, o total/categoria/
+ * CC do cabeçalho sao derivados (total = soma; categoria/CC = null).
+ */
+export interface ReceiptItem {
+  id: string;
+  receipt_id: string;
+  organization_id: string;
+  position: number;
+  description: string | null;
+  category: string | null;
+  cost_center_id: string | null;
+  quantity: number | null;
+  unit_value: number | null;
+  total_value: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReceiptItemInput {
+  description?: string | null;
+  category?: string | null;
+  cost_center_id?: string | null;
+  quantity?: number | null;
+  unit_value?: number | null;
+  total_value: number;
+  position?: number;
+}
+
 export interface Receipt {
   id: string;
   organization_id: string;
@@ -57,6 +87,10 @@ export interface Receipt {
   source: ReceiptSource;
   ai_confidence: number | null;
   ai_raw: unknown;
+  /** Qtd de itens (0 = lançamento simples, sem itens). */
+  item_count: number;
+  /** Itens embutidos no GET (presente quando item_count > 0). */
+  items?: ReceiptItem[];
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +129,9 @@ export interface ReceiptInput {
   source?: ReceiptSource;
   ai_confidence?: number | null;
   ai_raw?: unknown;
+  /** Itens (split). Quando presente e nao-vazio, o backend deriva
+   *  total_value/category/cost_center_id do cabeçalho a partir dos itens. */
+  items?: ReceiptItemInput[];
 }
 
 export interface FarmCategory {

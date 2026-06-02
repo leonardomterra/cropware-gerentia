@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Search, X } from "lucide-react";
+import Search from "~icons/material-symbols-light/search";
+import X from "~icons/material-symbols-light/close";
 import { Input } from "@/components/ui/input";
 import {
   Select,

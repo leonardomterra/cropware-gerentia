@@ -28,10 +28,10 @@ export function Logo({
 }
 
 /**
- * Wordmark "CROPWARE FARM" (so o texto, sem o simbolo). Via <img> ainda -
- * o wordmark e' "cheio" e nao sofre o serrilhamento que o simbolo sofria.
- * Cor nativa: CROPWARE #111827 + FARM emerald. NUNCA usar white (mataria
- * o verde via filter).
+ * Wordmark "DIRETOR IA" (so o texto + balaozinho, sem o simbolo), via <img>.
+ * Versao estatica do logo, usada em telas fora da sidebar (ex: JoinPage).
+ * Na sidebar usamos o <LogoWordmark> (texto vivo + animacao). Cor nativa
+ * #111827.
  */
 export function LogoName({
   className,

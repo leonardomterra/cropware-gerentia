@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Logo, LogoName } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/LogoWordmark";
 import {
   Card,
   CardContent,
@@ -21,11 +22,11 @@ interface AuthLayoutProps {
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-2.5 text-center">
-          <Logo className="h-14 w-auto" />
-          <LogoName className="h-8 w-auto" />
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <Logo className="h-12 w-auto opacity-80" />
+          <LogoWordmark className="text-slate-500/80 [--logo-size:24px]" />
         </div>
         <Card className="shadow-sm">
           <CardHeader>
@@ -37,7 +38,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
                 style={{
                   fontSize: "14px",
                   fontWeight: 400,
-                  color: "#94a3b8",
+                  color: "#a1a1aa",
                 }}
               >
                 {subtitle}

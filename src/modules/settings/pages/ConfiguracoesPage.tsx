@@ -3,11 +3,12 @@ import { cn } from "@/components/ui/utils";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
 
-type SubTab = "centros" | "categorias";
+type SubTab = "centros" | "cat-despesa" | "cat-receita";
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "centros", label: "Centros de Custo" },
-  { id: "categorias", label: "Categorias" },
+  { id: "cat-despesa", label: "Categorias de Despesa" },
+  { id: "cat-receita", label: "Categorias de Receita" },
 ];
 
 /**
@@ -44,7 +45,14 @@ export default function ConfiguracoesPage() {
         ))}
       </div>
 
-      {active === "centros" ? <CostCentersManager /> : <CategoriesManager />}
+      {active === "centros" ? (
+        <CostCentersManager />
+      ) : (
+        <CategoriesManager
+          key={active}
+          direction={active === "cat-receita" ? "income" : "expense"}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
+import Loader2 from "~icons/svg-spinners/ring-resize";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -116,31 +116,28 @@ export function AuthScreen({
             className="w-full font-medium text-white rounded-lg transition-all duration-300 inline-flex items-center justify-center"
             disabled={submitting || !email || !password}
             style={{
-              height: "46px",
+              height: "40px",
               fontSize: "14px",
               background:
-                "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
-              boxShadow: "0 2px 8px rgba(30, 41, 59, 0.3)",
+                "linear-gradient(135deg, #3f3f46 0%, #27272a 100%)",
               opacity: submitting || !email || !password ? 0.6 : 1,
               cursor:
                 submitting || !email || !password ? "not-allowed" : "pointer",
             }}
             onMouseEnter={(e) => {
               if (!submitting && email && password) {
-                e.currentTarget.style.boxShadow =
-                  "0 4px 16px rgba(30, 41, 59, 0.45)";
-                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.background =
+                  "linear-gradient(135deg, #52525b 0%, #3f3f46 100%)";
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow =
-                "0 2px 8px rgba(30, 41, 59, 0.3)";
-              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background =
+                "linear-gradient(135deg, #3f3f46 0%, #27272a 100%)";
             }}
           >
             {submitting ? (
               <span className="inline-flex items-center justify-center">
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="size-4 mr-2" />
                 Entrando...
               </span>
             ) : (
@@ -153,20 +150,20 @@ export function AuthScreen({
             disabled={submitting}
             onClick={onGoToSignUp}
             style={{
-              padding: "10px 0",
+              padding: "7px 0",
               fontSize: "14px",
               background: "transparent",
-              border: "1.5px solid #64748b",
-              color: "#475569",
+              border: "1.5px solid #71717a",
+              color: "#52525b",
               cursor: submitting ? "not-allowed" : "pointer",
               opacity: submitting ? 0.6 : 1,
             }}
             onMouseEnter={(e) => {
               if (!submitting) {
-                e.currentTarget.style.background = "rgba(100, 116, 139, 0.08)";
+                e.currentTarget.style.background = "rgba(113, 113, 122, 0.08)";
                 e.currentTarget.style.transform = "translateY(-1px)";
                 e.currentTarget.style.boxShadow =
-                  "0 2px 8px rgba(100, 116, 139, 0.15)";
+                  "0 2px 8px rgba(113, 113, 122, 0.15)";
               }
             }}
             onMouseLeave={(e) => {

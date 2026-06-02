@@ -1,5 +1,13 @@
-import { Eye, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Eye from "~icons/material-symbols-light/visibility-outline";
+import Pencil from "~icons/material-symbols-light/edit-outline";
+import Trash2 from "~icons/material-symbols-light/delete-outline";
+import Notes from "~icons/material-symbols-light/notes";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -14,6 +22,8 @@ import { cn } from "@/components/ui/utils";
 import type { Receipt } from "../types";
 import { STATUS_COLOR_SCHEME, STATUS_LABEL } from "../constants";
 import { useCategories } from "../hooks/useCategories";
+import { useAuth } from "@/contexts/AuthContext";
+import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import {
   formatBRL,
   formatDateBR,
@@ -48,6 +58,8 @@ export function ReceiptsTable({
   onToggleAll,
 }: ReceiptsTableProps) {
   const { categories } = useCategories();
+  const { user } = useAuth();
+  const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c] as const));
   const allSelected = receipts.length > 0 && receipts.every((r) => selectedIds.has(r.id));
 
   return (
@@ -65,16 +77,22 @@ export function ReceiptsTable({
             <TableHead className="font-medium text-sm py-3 w-[120px]">
               Data
             </TableHead>
-            <TableHead className="font-medium text-sm py-3">
-              Fornecedor / Descrição
+            <TableHead className="font-medium text-sm py-3 w-[120px]">
+              Vencimento
             </TableHead>
-            <TableHead className="font-medium text-sm py-3 w-[180px]">
+            <TableHead className="font-medium text-sm py-3">
+              Fornecedor
+            </TableHead>
+            <TableHead className="font-medium text-sm py-3 w-[150px]">
               Categoria
             </TableHead>
-            <TableHead className="font-medium text-sm py-3 w-[120px]">
+            <TableHead className="font-medium text-sm py-3 w-[160px]">
+              Centro de Custo
+            </TableHead>
+            <TableHead className="font-medium text-sm py-3 w-[100px]">
               Status
             </TableHead>
-            <TableHead className="font-medium text-sm py-3 w-[140px] text-right">
+            <TableHead className="font-medium text-sm py-3 w-[120px] text-right">
               Valor
             </TableHead>
             <TableHead className="font-medium text-sm py-3 w-[160px] text-right pr-4">
@@ -85,6 +103,17 @@ export function ReceiptsTable({
         <TableBody>
           {receipts.map((r) => {
             const isSelected = selectedIds.has(r.id);
+            // Com itens: se TODOS partilham a mesma categoria/CC, mostra ela;
+            // so' vira "Vários" quando realmente diverge (independente p/ cat e CC).
+            const its = r.items ?? [];
+            const hasItems = r.item_count > 0 && its.length > 0;
+            const uCats = hasItems ? [...new Set(its.map((i) => i.category))] : [];
+            const uCcs = hasItems ? [...new Set(its.map((i) => i.cost_center_id))] : [];
+            const catMulti = uCats.length > 1;
+            const ccMulti = uCcs.length > 1;
+            const catSlug = hasItems ? uCats[0] ?? null : r.category;
+            const ccId = hasItems ? uCcs[0] ?? null : r.cost_center_id;
+            const cc = ccId ? ccById.get(ccId) : null;
             return (
               <TableRow
                 key={r.id}
@@ -103,18 +132,33 @@ export function ReceiptsTable({
                 <TableCell className="py-3 text-sm font-normal text-slate-600 whitespace-nowrap">
                   {formatDateBR(r.transaction_date)}
                 </TableCell>
+                <TableCell className={cn("py-3 text-sm font-normal whitespace-nowrap", r.due_date ? "text-slate-600" : "text-slate-400")}>
+                  {r.due_date ? formatDateBR(r.due_date) : "—"}
+                </TableCell>
                 <TableCell className="py-3">
-                  <span className="text-sm font-normal text-slate-700 truncate block">
-                    {r.vendor ?? r.description ?? "(sem fornecedor)"}
+                  <span
+                    className={cn(
+                      "text-sm font-normal truncate block",
+                      (r.vendor ?? r.description) ? "text-slate-700" : "text-slate-400",
+                    )}
+                  >
+                    {r.vendor ? r.vendor.toUpperCase() : (r.description ?? "—")}
                   </span>
-                  {r.vendor && r.description ? (
-                    <span className="text-xs text-slate-500 truncate block mt-0.5">
-                      {r.description}
-                    </span>
-                  ) : null}
                 </TableCell>
                 <TableCell className="py-3 text-sm font-normal text-slate-600">
-                  {getCategoryLabel(r.category, categories)}
+                  {catMulti ? "Vários" : getCategoryLabel(catSlug, categories)}
+                </TableCell>
+                <TableCell className="py-3">
+                  {ccMulti ? (
+                    <span className="text-sm text-slate-500">Vários</span>
+                  ) : cc ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CostCenterChip icon={cc.icon} color={cc.color} className="size-5 shrink-0" />
+                      <span className="text-sm text-slate-600 truncate">{cc.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-slate-400">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="py-3">
                   <Badge colorScheme={STATUS_COLOR_SCHEME[r.status]}>
@@ -135,36 +179,39 @@ export function ReceiptsTable({
                 </TableCell>
                 <TableCell className="py-3 text-right pr-2">
                   <div className="flex gap-2 justify-end items-center">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-9 h-9 px-0 font-normal shadow-none rounded text-slate-600"
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ActionIconButton
+                          icon={Notes}
+                          label="Descrição"
+                          title=""
+                          className={
+                            r.description?.trim()
+                              ? undefined
+                              : "text-slate-300 hover:text-slate-400"
+                          }
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        {r.description?.trim() || "Sem descrição"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <ActionIconButton
+                      icon={Eye}
+                      label="Ver detalhes"
                       onClick={() => onView(r)}
-                      aria-label="Ver detalhes"
-                      title="Ver detalhes"
-                    >
-                      <Eye className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-9 h-9 px-0 font-normal shadow-none rounded text-slate-600"
+                    />
+                    <ActionIconButton
+                      icon={Pencil}
+                      label="Editar"
                       onClick={() => onEdit(r)}
-                      aria-label="Editar"
-                      title="Editar"
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-9 h-9 px-0 font-normal shadow-none rounded text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                    />
+                    <ActionIconButton
+                      icon={Trash2}
+                      label="Excluir"
+                      tone="danger"
                       onClick={() => onDelete(r)}
-                      aria-label="Excluir"
-                      title="Excluir"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    />
                   </div>
                 </TableCell>
               </TableRow>

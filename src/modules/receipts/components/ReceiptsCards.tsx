@@ -1,4 +1,6 @@
-import { ArrowDownLeft, ArrowUpRight, MoreVertical } from "lucide-react";
+import ArrowDownLeft from "~icons/material-symbols-light/call-received";
+import ArrowUpRight from "~icons/material-symbols-light/call-made";
+import MoreVertical from "~icons/material-symbols-light/more-vert";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -60,7 +62,20 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
             </div>
             <p className="text-sm text-slate-500 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
-              {r.category ? ` - ${getCategoryLabel(r.category, categories)}` : ""}
+              {(() => {
+                const its = r.items ?? [];
+                const hasItems = r.item_count > 0 && its.length > 0;
+                if (hasItems) {
+                  const uCats = [...new Set(its.map((i) => i.category))];
+                  if (uCats.length > 1) return " - Vários";
+                  return uCats[0]
+                    ? ` - ${getCategoryLabel(uCats[0], categories)}`
+                    : "";
+                }
+                return r.category
+                  ? ` - ${getCategoryLabel(r.category, categories)}`
+                  : "";
+              })()}
             </p>
             <div className="mt-2">
               <Badge colorScheme={STATUS_COLOR_SCHEME[r.status]}>

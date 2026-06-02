@@ -10,11 +10,32 @@
    ========================================================== */
 
 @theme {
-  --color-farm-primary: #475569; /* slate-600 - brand/header */
-  --color-farm-primary-dark: #334155; /* slate-700 */
-  --color-farm-primary-darker: #1e293b; /* slate-800 */
-  --color-farm-primary-darkest: #0f172a; /* slate-900 */
-  --color-farm-primary-light: #64748b; /* slate-500 - sub-header/secundario */
+  --color-farm-primary: #52525b; /* zinc-600 - brand/header */
+  --color-farm-primary-dark: #3f3f46; /* zinc-700 */
+  --color-farm-primary-darker: #27272a; /* zinc-800 */
+  --color-farm-primary-darkest: #18181b; /* zinc-900 */
+  --color-farm-primary-light: #71717a; /* zinc-500 - sub-header/secundario */
+
+  /* ============================================================
+     PALETA NEUTRA = ZINC (single source of truth)
+     ------------------------------------------------------------
+     O app usa classes slate-* (centenas de lugares). Em vez de
+     renomear tudo, REDEFINIMOS o que "slate" significa -> as
+     utilities slate-* passam a renderizar ZINC. Trocar a paleta
+     neutra do app inteiro = editar SO estes 11 valores aqui.
+     (Tema escuro, no futuro: estes viram var(--n-*) + override .dark.)
+     ============================================================ */
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #71717a;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-900: #18181b;
+  --color-slate-950: #09090b;
 
   /* shadcn-compat tokens - mapeados pra HSL vars em :root */
   --color-background: hsl(var(--background));
@@ -58,38 +79,39 @@
 
 /* ==========================================================
    CSS VARIABLES - shadcn/ui design tokens (HSL)
-   Primary = farm-primary slate-600 #475569 ~= hsl(215, 19%, 35%)
+   Primary = farm-primary zinc-600 #52525b ~= hsl(240, 5%, 34%)
    Radius 4px (padrao CDM).
    ========================================================== */
 
 :root {
   --font-ui: "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
+  /* Tokens shadcn em HSL - agora na familia ZINC (hue ~240, satur. baixa). */
   --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
+  --foreground: 240 6% 10%; /* zinc-900 */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 240 6% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 240 6% 10%;
 
-  --primary: 215 19% 35%;
+  --primary: 240 5% 34%; /* zinc-600 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 20% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 240 5% 96%; /* zinc-100 */
+  --secondary-foreground: 240 6% 10%;
 
-  --muted: 210 20% 96%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 240 5% 96%; /* zinc-100 */
+  --muted-foreground: 240 4% 46%; /* zinc-500 */
 
-  --accent: 210 20% 96%;
-  --accent-foreground: 222 47% 11%;
+  --accent: 240 5% 96%;
+  --accent-foreground: 240 6% 10%;
 
   --destructive: 0 75% 50%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 214 15% 91%;
-  --input: 214 15% 91%;
-  --ring: 215 19% 35%;
+  --border: 240 5% 90%; /* zinc-200 */
+  --input: 240 5% 90%;
+  --ring: 240 5% 34%; /* zinc-600 */
 
   --radius: 4px;
 }
@@ -239,3 +261,179 @@ select,
 .uppercase {
   text-transform: none !important;
 }
+
+/* Leve aumento dos icones do unplugin-icons (material-symbols/line-md/svg-spinners).
+   material-symbols-light tem mais padding interno que o lucide antigo, entao no
+   mesmo box (size-4 etc.) o glifo parecia menor. Seletor: todo icone do unplugin
+   sai com width="1.2em" (scale fixo no vite.config), o que NAO bate com lucide
+   (width="24") nem recharts (px). transform-origin centro = sem deslocamento.
+   Ajustar o fator aqui (1.1 = +10%). */
+svg[width="1.2em"] {
+  transform: scale(1.1);
+}
+
+/* Autofill do Chrome: por padrao pinta o input de azul (#e8f0fe) e nao
+   respeita bg-white. O truque e' um box-shadow inset gigante na cor de fundo
+   (mantendo a sombrinha sutil do Input) + text-fill-color pra cor do texto.
+   A transition longa evita o flash azul no preenchimento. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 1000px #ffffff inset;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 1000px #ffffff inset;
+  -webkit-text-fill-color: #18181b;
+  caret-color: #18181b;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* ==========================================================
+   LOGO WORDMARK ANIMADO (sidebar) - "DIRETOR" + balao em volta do "IA"
+   --------------------------------------------------------------
+   Reproduz o logo (logo-farm-name.svg) em texto vivo: "DIRETOR" em
+   JetBrains Mono + "IA" dentro de um balaozinho de chat (contorno +
+   rabinho no canto inferior esquerdo). Monospace -> os steps() do
+   typewriter ficam exatos (cada glyph = 1ch). "DIRETOR" = 7 chars ->
+   width 7ch / steps(7). CAIXA ALTA e' excecao de marca (texto literal,
+   nao a utility .uppercase). Cor mono #111827.
+
+   Animacao (so com a className .logo-wordmark-anim): "DIRETOR" digita e,
+   no fim, o balao com "IA" entra com pop. O JS decide quando animar:
+   1x por page-load (= a cada refresh); re-mounts na mesma sessao
+   renderizam o estado final. prefers-reduced-motion: sem animacao.
+   ========================================================== */
+.logo-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 500;
+  font-size: var(--logo-size, 17px); /* 17px na sidebar; login usa maior */
+  letter-spacing: 0.5px;
+  line-height: 1;
+  color: #111827;
+}
+
+/* ENTRADA (1o beat): o conjunto sobe + faz fade; logo em seguida a digitacao
+   corre por cima (delay no typewriter) e o "ia.app" revela junto. */
+.logo-wordmark-anim {
+  animation: logo-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes logo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icone de IA "pensando": pulsa de escala + da um bob pra cima, em loop. So
+   enquanto processa (AiSuggestButton). Em repouso o icone fica estatico. */
+.ai-spark-anim {
+  animation: ai-spark 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes ai-spark {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.15) translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-spark-anim {
+    animation: none;
+  }
+}
+
+/* "gerentia.app" - wordmark unico, Mozilla Headline lowercase, digitado */
+.logo-wordmark-text {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: "Mozilla Headline Variable", "Mozilla Headline", sans-serif;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+
+/* "ia" + ".app" no mesmo cinza claro (opacity): "gerent" fica como a parte
+   cheia e "ia.app" como sufixo mais leve. Tudo no mesmo span digitado. */
+.logo-ia-accent,
+.logo-tld {
+  opacity: 0.5;
+}
+
+/* 3o beat: "ia.app" (ultimos 6 chars) acende de 0 -> 0.5 conforme o
+   typewriter chega na cauda. 'both' segura o 0.5 final (= estado estatico). */
+.logo-wordmark-anim .logo-ia-accent,
+.logo-wordmark-anim .logo-tld {
+  animation: logo-tail-in 0.5s ease 0.55s both;
+}
+
+@keyframes logo-tail-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* 2o beat: digitacao com delay (0.18s) pra começar depois do "sobe+fade".
+   Cursor pisca durante e um pouco depois, sumindo no fim (forwards). */
+.logo-wordmark-anim .logo-wordmark-text {
+  max-width: 0;
+  border-right: 1.5px solid currentColor;
+  animation:
+    logo-type 0.7s steps(12, end) 0.18s forwards,
+    logo-caret 0.3s step-end 0.18s 3 forwards;
+}
+
+/* Anima max-width (nao width fixa): a largura real do span segue o conteudo.
+   Alvo generoso (>largura da palavra) garante que nada e' cortado. */
+@keyframes logo-type {
+  to {
+    max-width: 8em;
+  }
+}
+
+@keyframes logo-caret {
+  0%,
+  100% {
+    border-right-color: transparent;
+  }
+  50% {
+    border-right-color: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-wordmark-anim {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .logo-wordmark-anim .logo-wordmark-text {
+    max-width: none;
+    border-right-color: transparent;
+    animation: none;
+  }
+  .logo-wordmark-anim .logo-ia-accent,
+  .logo-wordmark-anim .logo-tld {
+    animation: none;
+  }
+}
+

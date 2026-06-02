@@ -1,290 +1,319 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  LogOut,
-  Wifi,
-  WifiOff,
-  Building2,
-  HelpCircle,
-  User,
-} from "lucide-react";
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import LayoutDashboard from "~icons/material-symbols-light/space-dashboard-outline";
+import ArrowLeftRight from "~icons/material-symbols-light/swap-horiz";
+import SlidersHorizontal from "~icons/material-symbols-light/tune";
+import Repeat from "~icons/material-symbols-light/autorenew";
+import Users from "~icons/material-symbols-light/group-outline";
+import UserCircle from "~icons/material-symbols-light/account-circle-outline";
+import LogOut from "~icons/material-symbols-light/logout";
+import HelpCircle from "~icons/material-symbols-light/help-outline";
+import UnfoldMore from "~icons/material-symbols-light/unfold-more";
+import PanelLeftClose from "~icons/material-symbols-light/left-panel-close-outline";
+import PanelLeftOpen from "~icons/material-symbols-light/left-panel-open-outline";
+import Menu from "~icons/material-symbols-light/menu";
+import X from "~icons/material-symbols-light/close";
 import { useAuth } from "@/contexts/AuthContext";
-import { Logo, LogoName } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
+import { LogoWordmark } from "@/components/LogoWordmark";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/components/ui/utils";
 
 interface NavItem {
   to: string;
   label: string;
+  icon: ComponentType<{ className?: string }>;
   end?: boolean;
 }
 
 const BASE_NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/lancamentos", label: "Lançamentos" },
-  // "Fazendas" escondido do menu em 2026-05-30 - hoje e' um CRUD orfao
-  // (farm_id nao e' usado em form de lancamento nem filtro). Rota
-  // /fazendas continua valida pra acesso direto via URL. Voltar quando
-  // tiver justificativa (usuario com 2+ fazendas pedindo segmentacao).
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
+  // "Fazendas" escondido do menu (CRUD orfao). Rota /fazendas continua
+  // valida pra acesso direto via URL.
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { to: "/configuracoes", label: "Configurações" },
-  { to: "/recorrencias", label: "Recorrências" },
-  { to: "/equipe", label: "Equipe" },
+  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
+  { to: "/recorrencias", label: "Recorrências", icon: Repeat },
+  { to: "/equipe", label: "Equipe", icon: Users },
 ];
 
-const ACCOUNT_NAV_ITEM: NavItem = { to: "/conta", label: "Conta" };
+// Conta NAO entra no nav principal - fica no menu do usuario (rodape).
+// A constante e' mantida pro breadcrumb resolver /conta -> "Conta".
+const ACCOUNT_NAV_ITEM: NavItem = {
+  to: "/conta",
+  label: "Conta",
+  icon: UserCircle,
+};
 
-/**
- * Botao de acao do header (branco). Outline slate: borda slate-200,
- * texto slate-700, hover slate-50. Combina com header claro.
- */
-function GlassButton({
-  icon: Icon,
-  label,
-  onClick,
-  iconOnly = false,
-  title,
+const COLLAPSED_KEY = "farm:sidebar:collapsed";
+
+/** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
+function NavRow({
+  item,
+  collapsed,
+  onNavigate,
 }: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  onClick?: () => void;
-  iconOnly?: boolean;
-  title?: string;
+  item: NavItem;
+  collapsed: boolean;
+  onNavigate?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title ?? label}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded h-8 text-[14px] font-normal text-slate-700 bg-white border border-slate-200 transition-colors active:scale-95 hover:bg-slate-50",
-        iconOnly ? "w-8" : "px-3",
-      )}
+    <NavLink
+      to={item.to}
+      end={item.end}
+      onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-2.5 h-9 rounded-md text-sm transition-colors",
+          collapsed ? "justify-center px-0 w-9 mx-auto" : "px-2.5",
+          isActive
+            ? "bg-white text-slate-900 font-medium shadow-sm"
+            : "text-slate-600 hover:bg-slate-200 hover:text-slate-900",
+        )
+      }
     >
-      <Icon className="size-3.5" />
-      {iconOnly ? null : <span>{label}</span>}
-    </button>
+      <item.icon className="size-4 shrink-0" />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+    </NavLink>
   );
-}
-
-function useOnline() {
-  const [online, setOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
-  return online;
 }
 
 export function AppShell() {
   const { user, signOut, isAdmin } = useAuth();
-  const online = useOnline();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Colapso (desktop) persistido. Drawer (mobile) e' estado efemero.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem(COLLAPSED_KEY) === "1";
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed]);
+
+  // Fecha o drawer ao trocar de rota (mobile).
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   const navItems: NavItem[] = [
     ...BASE_NAV_ITEMS,
     ...(isAdmin ? ADMIN_NAV_ITEMS : []),
-    ACCOUNT_NAV_ITEM,
   ];
 
-  // Breadcrumb auto baseado na rota atual. NAV_ITEMS define o label; pra
-  // rotas escondidas (ex: /fazendas) ou desconhecidas usa um fallback do
-  // primeiro segmento do path.
   const breadcrumbSegments = useMemo(() => {
     const path = location.pathname;
-    if (path === "/" || path === "") return ["Cropware Farm", "Dashboard"];
-    const lookup = [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS, ACCOUNT_NAV_ITEM]
-      .find((it) => path === it.to || path.startsWith(it.to + "/"));
-    if (lookup) return ["Cropware Farm", lookup.label];
+    if (path === "/" || path === "") return ["Dashboard"];
+    const lookup = [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS, ACCOUNT_NAV_ITEM].find(
+      (it) => path === it.to || path.startsWith(it.to + "/"),
+    );
+    if (lookup) return [lookup.label];
     const first = path.split("/").filter(Boolean)[0] ?? "";
     const fallback = first.charAt(0).toUpperCase() + first.slice(1);
-    return fallback ? ["Cropware Farm", fallback] : ["Cropware Farm"];
+    return fallback ? [fallback] : [];
   }, [location.pathname]);
+
+  // Conteudo da sidebar (reusado no desktop fixo + drawer mobile).
+  // `inDrawer` força full (nao colapsado) no mobile.
+  const renderSidebar = (inDrawer: boolean) => {
+    const isCollapsed = inDrawer ? false : collapsed;
+    return (
+      <div className="flex flex-col h-full bg-slate-100">
+        {/* Topo: logo */}
+        <div
+          className={cn(
+            "flex items-center h-13 shrink-0 border-b border-slate-100",
+            isCollapsed ? "justify-center px-2" : "px-3 gap-2",
+          )}
+        >
+          {isCollapsed ? (
+            <Logo className="h-7 w-auto opacity-80" />
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <Logo className="h-7 w-auto shrink-0 opacity-80" />
+              <LogoWordmark className="text-slate-500/80 ml-1" />
+            </div>
+          )}
+          {inDrawer && (
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="ml-auto inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-200"
+              aria-label="Fechar menu"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Navegacao */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+          {navItems.map((item) => (
+            <NavRow
+              key={item.to}
+              item={item}
+              collapsed={isCollapsed}
+              onNavigate={inDrawer ? () => setMobileOpen(false) : undefined}
+            />
+          ))}
+        </nav>
+
+        {/* Rodape: nome do usuario -> menu (Conta / Ajuda / Sair) */}
+        <div className="shrink-0 border-t border-slate-100 p-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title={user?.fullName || user?.email || "Conta"}
+                className={cn(
+                  "flex items-center h-9 w-full rounded-md text-sm text-slate-700 hover:bg-slate-200 transition-colors outline-none",
+                  isCollapsed ? "justify-center" : "gap-2 px-2.5",
+                )}
+              >
+                {isCollapsed ? (
+                  <UserCircle className="size-5 shrink-0 text-slate-500" />
+                ) : (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-left font-medium">
+                      {user?.fullName || user?.email}
+                    </span>
+                    <UnfoldMore className="size-4 shrink-0 text-slate-400" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              sideOffset={6}
+              className="w-56"
+            >
+              {user?.organizationName ? (
+                <>
+                  <DropdownMenuLabel className="font-normal text-slate-400 truncate">
+                    {user.organizationName}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
+              <DropdownMenuItem onSelect={() => navigate("/conta")}>
+                <UserCircle className="size-4" />
+                Conta
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => {}}>
+                <HelpCircle className="size-4" />
+                Ajuda
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void signOut()}>
+                <LogOut className="size-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
-      className="flex flex-col overflow-hidden bg-white"
+      className="flex overflow-hidden bg-white"
       style={{ height: "100dvh" }}
     >
-      {/* HEADER (branco) */}
-      <header className="shadow-none bg-white">
-        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          {/* Mobile - simbolo + wordmark CROPWARE FARM */}
-          <div className="flex md:hidden items-center justify-between min-h-10">
-            <div className="flex items-center gap-2">
-              <Logo className="h-7 w-auto shrink-0" />
-              <LogoName className="h-5 w-auto shrink-0" />
-            </div>
-            <div className="flex items-center gap-2">
-              <GlassButton
-                icon={HelpCircle}
-                label="Ajuda"
-                iconOnly
-                onClick={() => {}}
-              />
-              <GlassButton
-                icon={LogOut}
-                label="Sair"
-                iconOnly
-                onClick={() => void signOut()}
-              />
-            </div>
-          </div>
-
-          {/* Desktop - lockup simbolo + wordmark CROPWARE FARM (sem tagline) */}
-          <div className="hidden md:flex items-center justify-between min-h-12">
-            <div className="flex items-center gap-2.5">
-              <Logo className="h-9 w-auto shrink-0" />
-              <LogoName className="h-6 w-auto shrink-0" />
-            </div>
-
-            {/* Lado direito - so glass buttons. Nome do usuario foi
-                pro sub-header como Badge (espelho do CDM, 2026-05-30).
-                Configuracoes saiu daqui pro tab Conta. */}
-            <div className="flex items-center gap-3">
-              <GlassButton
-                icon={HelpCircle}
-                label="Ajuda"
-                onClick={() => {}}
-              />
-              <GlassButton
-                icon={LogOut}
-                label="Sair"
-                onClick={() => void signOut()}
-              />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* SUB-HEADER status bar (branco, separado do header por borda fina) */}
-      <div className="bg-white border-t border-slate-100">
-        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-2">
-          <div className="flex flex-col md:flex-row md:justify-end items-stretch md:items-center gap-2">
-            {/* Badge do usuario logado - empurrado pra esquerda no desktop
-                via md:mr-auto (padrao CDM). Stack em cima no mobile. */}
-            {user ? (
-              <Badge
-                className="gap-1.5 px-2.5 py-1 justify-center md:justify-start md:mr-auto"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "#475569",
-                  borderColor: "transparent",
-                }}
-              >
-                <User className="size-3.5 shrink-0" />
-                <span className="truncate max-w-[160px]">
-                  {user.fullName || user.email}
-                </span>
-              </Badge>
-            ) : null}
-            {user?.organizationName ? (
-              <Badge
-                className="gap-1.5 px-2.5 py-1 justify-center md:justify-start"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "#475569",
-                  borderColor: "transparent",
-                }}
-              >
-                <Building2 className="size-3.5" />
-                <span className="truncate max-w-[150px]">
-                  {user.organizationName}
-                </span>
-              </Badge>
-            ) : null}
-            <Badge
-              className="gap-1.5 px-2.5 py-1 justify-center md:justify-start"
-              style={{
-                // online: discreto (slate). offline: vermelho pra alertar.
-                backgroundColor: online ? "transparent" : "#fef2f2",
-                color: online ? "#475569" : "#b91c1c",
-                borderColor: online ? "transparent" : "#fecaca",
-              }}
-            >
-              {online ? (
-                <Wifi className="size-3.5" />
-              ) : (
-                <WifiOff className="size-3.5" />
-              )}
-              <span>{online ? "Online" : "Offline"}</span>
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* TAB BAR - tabs dividem a largura igualmente (flex-1), sem icone.
-          border-t separa do sub-header branco (antes era contraste de cor). */}
-      <div className="bg-white border-t border-b border-slate-200">
-        <div className="max-w-[1600px] w-full mx-auto flex h-12 items-stretch">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                cn(
-                  "relative flex-1 flex items-center justify-center px-3 h-12 whitespace-nowrap text-sm transition-colors",
-                  isActive
-                    ? "text-white"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
-                )
-              }
-              style={({ isActive }) =>
-                isActive ? { backgroundColor: "#475569" } : undefined
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span>{item.label}</span>
-                  {isActive ? (
-                    <span
-                      className="absolute bottom-0 left-0 right-0 h-0.5"
-                      style={{ backgroundColor: "#334155" }}
-                    />
-                  ) : null}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </div>
-
-      {/* BREADCRUMB - "Cropware Farm > <label da rota>". Espelho do CDM. */}
-      <PageBreadcrumb segments={breadcrumbSegments} />
-
-      {/* MAIN - flex-1 + min-h-0 garante que o overflow-y-auto ativa
-          (sem min-h-0, flex item tem min-height: auto = content size,
-          main expande junto com conteudo e scroll interno nunca aciona).
-          Padrao CDM (App.tsx data-app-scroll-container). */}
-      <main
-        className="flex-1 w-full min-h-0 overflow-y-auto"
-        data-app-scroll-container
-        style={{
-          WebkitOverflowScrolling: "touch",
-          overscrollBehaviorY: "contain",
-          // Reserva o espaco do scrollbar permanentemente. Sem isso, o
-          // scroll aparece/some conforme a quantidade de conteudo e
-          // a pagina "espreme/desespreme" 15px. Com stable, o scroll
-          // continua aparecendo so quando ha overflow, mas a largura
-          // util do conteudo nunca muda.
-          scrollbarGutter: "stable",
-        }}
+      {/* SIDEBAR DESKTOP (fixa, colapsavel) */}
+      <aside
+        className={cn(
+          "hidden md:flex flex-col shrink-0 border-r border-slate-200 transition-[width] duration-200",
+          collapsed ? "w-16" : "w-60",
+        )}
       >
-        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <Outlet />
+        {renderSidebar(false)}
+      </aside>
+
+      {/* DRAWER MOBILE */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-[1500]">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+            {renderSidebar(true)}
+          </div>
         </div>
-      </main>
+      )}
+
+      {/* COLUNA DE CONTEUDO */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Topbar fina: toggle (desktop) / menu (mobile) + breadcrumb */}
+        <div className="flex items-center h-13 shrink-0 border-b border-slate-200 px-2 sm:px-3 gap-1">
+          {/* Desktop: colapsar/expandir */}
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            className="hidden md:inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-5" />
+            ) : (
+              <PanelLeftClose className="size-5" />
+            )}
+          </button>
+          {/* Mobile: abrir drawer */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="md:hidden inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100"
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-4" />
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <PageBreadcrumb segments={breadcrumbSegments} embedded />
+          </div>
+        </div>
+
+        {/* MAIN - scroll vive aqui (min-h-0 + overflow-y-auto). */}
+        <main
+          className="flex-1 w-full min-h-0 overflow-y-auto"
+          data-app-scroll-container
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehaviorY: "contain",
+            scrollbarGutter: "stable",
+          }}
+        >
+          <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  ArrowDownNarrowWide,
-  ArrowUpNarrowWide,
-  Camera,
-  ChevronDown,
-  ClockArrowDown,
-  ClockArrowUp,
-  FileText,
-  Loader2,
-  Plus,
-  Receipt as ReceiptIcon,
-} from "lucide-react";
+import ArrowDownNarrowWide from "~icons/material-symbols-light/arrow-downward";
+import ArrowUpNarrowWide from "~icons/material-symbols-light/arrow-upward";
+import Camera from "~icons/material-symbols-light/photo-camera-outline";
+import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import ClockArrowDown from "~icons/material-symbols-light/vertical-align-bottom";
+import ClockArrowUp from "~icons/material-symbols-light/vertical-align-top";
+import FileText from "~icons/material-symbols-light/description-outline";
+import Loader2 from "~icons/svg-spinners/ring-resize";
+import Plus from "~icons/material-symbols-light/add";
+import ReceiptIcon from "~icons/material-symbols-light/receipt-long-outline";
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { ReceiptFiltersBar } from "../components/ReceiptFiltersBar";
 import { ReceiptsTable } from "../components/ReceiptsTable";
 import { ReceiptsCards } from "../components/ReceiptsCards";
@@ -51,6 +50,7 @@ import type {
 import { formatBRL, todayISO } from "../utils/receiptFormatters";
 import { STATUSES_BY_DIRECTION } from "../constants";
 import { downloadCsv, rowsToCsv } from "@/utils/csv";
+import { receiptLines } from "../utils/receiptLines";
 
 interface PrefillFromScan {
   values: {
@@ -150,13 +150,6 @@ export default function ReceiptsPage() {
     }
   }, [receipts, sortBy]);
 
-  const totalExpenses = receipts
-    .filter((r) => r.direction === "expense")
-    .reduce((sum, r) => sum + Number(r.total_value), 0);
-  const totalIncome = receipts
-    .filter((r) => r.direction === "income")
-    .reduce((sum, r) => sum + Number(r.total_value), 0);
-
   const openCreate = () => {
     setEditing(null);
     setPrefill(null);
@@ -214,30 +207,37 @@ export default function ReceiptsPage() {
     const ccName = (id: string | null) =>
       id ? (userCCs.find((c) => c.id === id)?.name || "") : "";
     const headers = [
-      "data", "tipo", "valor", "categoria", "fornecedor",
-      "documento", "pagamento", "status", "vencimento", "pago em",
-      "centro de custo", "descricao", "observacoes",
+      "data", "tipo", "valor", "categoria", "centro de custo", "item",
+      "fornecedor", "documento", "pagamento", "status", "vencimento",
+      "pago em", "descricao", "observacoes",
     ];
-    const rows = receipts.map((r) => [
-      r.transaction_date || "",
-      r.direction === "income" ? "receita" : "despesa",
-      Number(r.total_value).toFixed(2).replace(".", ","),
-      r.category || "",
-      r.vendor || "",
-      r.invoice_number || "",
-      r.payment_method || "",
-      r.status,
-      r.due_date || "",
-      r.paid_date || "",
-      ccName(r.cost_center_id),
-      r.description || "",
-      r.notes || "",
-    ]);
+    // Uma linha por item (lançamento sem itens = 1 linha = ele mesmo).
+    const rows: string[][] = [];
+    for (const r of receipts) {
+      for (const ln of receiptLines(r)) {
+        rows.push([
+          r.transaction_date || "",
+          r.direction === "income" ? "receita" : "despesa",
+          ln.value.toFixed(2).replace(".", ","),
+          ln.category || "",
+          ccName(ln.cost_center_id),
+          ln.item_description || "",
+          r.vendor || "",
+          r.invoice_number || "",
+          r.payment_method || "",
+          r.status,
+          r.due_date || "",
+          r.paid_date || "",
+          r.description || "",
+          r.notes || "",
+        ]);
+      }
+    }
     const csv = rowsToCsv(headers, rows);
     const today = todayISO();
     const tag = activeCCId !== "all" ? `_${(userCCs.find((c) => c.id === activeCCId)?.name || "cc").replace(/\s+/g, "-").toLowerCase()}` : "";
     downloadCsv(`lancamentos${tag}_${today}.csv`, csv);
-    toast.success(`${receipts.length} lançamento(s) exportado(s)`);
+    toast.success(`${rows.length} linha(s) exportada(s)`);
   };
 
   const confirmDelete = async () => {
@@ -264,152 +264,13 @@ export default function ReceiptsPage() {
         <ReceiptFiltersBar
           value={filters}
           onChange={setFilters}
-          trailing={
-            <>
-              {showTabs && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-                    >
-                      {activeCCId !== "all" && (
-                        <span
-                          className="size-2 rounded-full inline-block shrink-0"
-                          style={{
-                            backgroundColor:
-                              userCCs.find((c) => c.id === activeCCId)
-                                ?.color || "#64748b",
-                          }}
-                        />
-                      )}
-                      <span className="flex-1 text-left truncate">
-                        {activeCCId === "all"
-                          ? "Todos os Centros"
-                          : userCCs.find((c) => c.id === activeCCId)?.name ||
-                            "Centro"}
-                      </span>
-                      <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-[180px]">
-                    <DropdownMenuItem
-                      onClick={() => setActiveCCId("all")}
-                      className={
-                        activeCCId === "all"
-                          ? "bg-slate-100 font-medium gap-2"
-                          : "gap-2"
-                      }
-                    >
-                      Todos os Centros
-                    </DropdownMenuItem>
-                    {userCCs.map((cc) => (
-                      <DropdownMenuItem
-                        key={cc.id}
-                        onClick={() => setActiveCCId(cc.id)}
-                        className={
-                          activeCCId === cc.id
-                            ? "bg-slate-100 font-medium gap-2"
-                            : "gap-2"
-                        }
-                      >
-                        <span
-                          className="size-2 rounded-full inline-block shrink-0"
-                          style={{
-                            backgroundColor: cc.color || "#64748b",
-                          }}
-                        />
-                        {cc.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              {/* Botao de ordenacao - padrao CDM PlotManagement */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="h-9 w-[160px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-                  >
-                    {sortBy === "recent" && (
-                      <ClockArrowDown className="size-4 shrink-0" />
-                    )}
-                    {sortBy === "old" && (
-                      <ClockArrowUp className="size-4 shrink-0" />
-                    )}
-                    {sortBy === "value_desc" && (
-                      <ArrowDownNarrowWide className="size-4 shrink-0" />
-                    )}
-                    {sortBy === "value_asc" && (
-                      <ArrowUpNarrowWide className="size-4 shrink-0" />
-                    )}
-                    <span className="flex-1 text-left truncate">
-                      {sortBy === "recent" && "Recentes"}
-                      {sortBy === "old" && "Antigos"}
-                      {sortBy === "value_desc" && "Maior valor"}
-                      {sortBy === "value_asc" && "Menor valor"}
-                    </span>
-                    <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[180px]">
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("recent")}
-                    className={
-                      sortBy === "recent"
-                        ? "bg-slate-100 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <ClockArrowDown className="size-4" />
-                    Mais recentes
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("old")}
-                    className={
-                      sortBy === "old"
-                        ? "bg-slate-100 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <ClockArrowUp className="size-4" />
-                    Mais antigos
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("value_desc")}
-                    className={
-                      sortBy === "value_desc"
-                        ? "bg-slate-100 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <ArrowDownNarrowWide className="size-4" />
-                    Maior valor
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("value_asc")}
-                    className={
-                      sortBy === "value_asc"
-                        ? "bg-slate-100 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <ArrowUpNarrowWide className="size-4" />
-                    Menor valor
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          }
         />
       </div>
 
       {/* Action row - estilo CDM PlotManagement: outline + icone leading.
           Novo Lancamento + Capturar Recibo sao botoes; Exportar e' dropdown
           (preparado pra varios formatos: CSV agora, Excel/PDF depois). */}
-      <div className="flex flex-wrap gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <Button variant="outline" onClick={openCreate} className="gap-1">
           <Plus className="size-4" />
           Novo Lançamento
@@ -444,6 +305,107 @@ export default function ReceiptsPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* CC + ordenacao: mesma linha das acoes, empurrados pra direita. */}
+        <div className="ml-auto flex items-center gap-2">
+          {showTabs && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                >
+                  {activeCCId !== "all" && (
+                    <CostCenterChip
+                      icon={userCCs.find((c) => c.id === activeCCId)?.icon}
+                      color={userCCs.find((c) => c.id === activeCCId)?.color}
+                      className="size-6"
+                    />
+                  )}
+                  <span
+                    className="flex-1 text-left truncate"
+                    style={activeCCId !== "all" ? { color: ccTextColor(userCCs.find((c) => c.id === activeCCId)?.color) } : undefined}
+                  >
+                    {activeCCId === "all"
+                      ? "Todos os Centros"
+                      : userCCs.find((c) => c.id === activeCCId)?.name || "Centro"}
+                  </span>
+                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuItem
+                  onClick={() => setActiveCCId("all")}
+                  className={activeCCId === "all" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                >
+                  Todos os Centros
+                </DropdownMenuItem>
+                {userCCs.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setActiveCCId(cc.id)}
+                    className={activeCCId === cc.id ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                  >
+                    <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
+                    <span style={{ color: ccTextColor(cc.color) }}>{cc.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Botao de ordenacao - padrao CDM PlotManagement */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="h-9 w-[160px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              >
+                {sortBy === "recent" && <ClockArrowDown className="size-4 shrink-0" />}
+                {sortBy === "old" && <ClockArrowUp className="size-4 shrink-0" />}
+                {sortBy === "value_desc" && <ArrowDownNarrowWide className="size-4 shrink-0" />}
+                {sortBy === "value_asc" && <ArrowUpNarrowWide className="size-4 shrink-0" />}
+                <span className="flex-1 text-left truncate">
+                  {sortBy === "recent" && "Recentes"}
+                  {sortBy === "old" && "Antigos"}
+                  {sortBy === "value_desc" && "Maior valor"}
+                  {sortBy === "value_asc" && "Menor valor"}
+                </span>
+                <ChevronDown className="size-4 text-slate-500 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuItem
+                onClick={() => setSortBy("recent")}
+                className={sortBy === "recent" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              >
+                <ClockArrowDown className="size-4" />
+                Mais recentes
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortBy("old")}
+                className={sortBy === "old" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              >
+                <ClockArrowUp className="size-4" />
+                Mais antigos
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortBy("value_desc")}
+                className={sortBy === "value_desc" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              >
+                <ArrowDownNarrowWide className="size-4" />
+                Maior valor
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortBy("value_asc")}
+                className={sortBy === "value_asc" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              >
+                <ArrowUpNarrowWide className="size-4" />
+                Menor valor
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Estados:
@@ -460,7 +422,7 @@ export default function ReceiptsPage() {
         </div>
       ) : isInitialLoad ? (
         <div className="bg-white border border-slate-200 rounded-lg p-12 flex items-center justify-center gap-2 text-sm text-slate-500">
-          <Loader2 className="size-4 animate-spin" />
+          <Loader2 className="size-4" />
           Carregando...
         </div>
       ) : (
@@ -470,38 +432,12 @@ export default function ReceiptsPage() {
             isRefetching && "opacity-50 pointer-events-none",
           )}
         >
-          {/* KPIs do resultado filtrado */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-            <div className="bg-white border border-slate-200 rounded-lg p-3">
-              <p className="text-sm text-slate-500">Entradas</p>
-              <p className="text-base font-medium text-emerald-700 tabular-nums">
-                {formatBRL(totalIncome)}
-              </p>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-lg p-3">
-              <p className="text-sm text-slate-500">Saídas</p>
-              <p className="text-base font-medium text-slate-900 tabular-nums">
-                {formatBRL(totalExpenses)}
-              </p>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-lg p-3 col-span-2 sm:col-span-1">
-              <p className="text-sm text-slate-500">Saldo</p>
-              <p className="text-base font-medium text-farm-primary tabular-nums">
-                {formatBRL(totalIncome - totalExpenses)}
-              </p>
-            </div>
-          </div>
-
           {receipts.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-lg p-12 flex flex-col items-center text-center gap-3">
               <ReceiptIcon className="size-10 text-slate-300" />
               <div>
                 <p className="text-sm font-medium text-slate-900">
-                  Nenhum lançamento ainda
-                </p>
-                <p className="text-sm text-slate-500 mt-1 max-w-xs">
-                  Adiciona seu primeiro pelo botão "Novo Lançamento" ou
-                  tira foto de um recibo em "Capturar Recibo".
+                  Nenhum Lançamento Ainda
                 </p>
               </div>
             </div>
@@ -512,7 +448,7 @@ export default function ReceiptsPage() {
                   Mostrando {receipts.length}{" "}
                   {receipts.length === 1 ? "lançamento" : "lançamentos"}
                   {isRefetching ? (
-                    <Loader2 className="size-3 animate-spin text-slate-400" />
+                    <Loader2 className="size-3 text-slate-400" />
                   ) : null}
                 </p>
                 {selectedIds.size > 0 ? (
@@ -584,6 +520,7 @@ export default function ReceiptsPage() {
           if (!o) setViewing(null);
         }}
         onEdit={openEdit}
+        onChanged={() => void refetch()}
       />
 
       <AlertDialog

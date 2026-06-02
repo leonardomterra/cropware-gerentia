@@ -31,6 +31,7 @@ export interface FarmUser {
   id: string;
   email: string;
   fullName: string;
+  phone: string;
   role: FarmRole;
   organizationId: string;
   organizationName: string;
@@ -82,6 +83,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  updateProfile: (fields: { fullName?: string; phone?: string | null }) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
   completePasswordReset: () => void;
 }
 
@@ -98,6 +101,7 @@ async function fetchUserProfile(): Promise<FarmUser | null> {
       id: me.user.id,
       email: me.user.email,
       fullName: me.user.full_name ?? "",
+      phone: me.user.phone ?? "",
       role: me.role,
       organizationId: me.organization.id,
       organizationName: me.organization.name,
@@ -296,6 +300,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Atualiza nome/telefone direto na users_meta (RLS "user updates own meta"
+  // permite o proprio row). Depois re-hidrata o FarmUser.
+  const updateProfile = useCallback(
+    async (fields: { fullName?: string; phone?: string | null }) => {
+      if (!user) return;
+      const updates: Record<string, unknown> = {};
+      if (fields.fullName !== undefined) updates.full_name = fields.fullName.trim();
+      if (fields.phone !== undefined)
+        updates.phone = fields.phone ? fields.phone.replace(/\D/g, "") : null;
+      if (Object.keys(updates).length === 0) return;
+
+      const { error } = await supabase
+        .from("users_meta")
+        .update(updates)
+        .eq("user_id", user.id);
+      if (error) throw new Error(error.message);
+      await refreshUser();
+    },
+    [user, refreshUser],
+  );
+
+  // Troca de e-mail via Supabase Auth. Dispara confirmacao por e-mail; o
+  // endereco so muda de fato apos o usuario confirmar pelo link.
+  const updateEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.updateUser({ email });
+    if (error) {
+      throw new Error(translateAuthError(error.message));
+    }
+  }, []);
+
   const completePasswordReset = useCallback(() => {
     setIsResettingPassword(false);
     setResetError(null);
@@ -328,6 +362,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         requestPasswordReset,
         updatePassword,
+        updateProfile,
+        updateEmail,
         completePasswordReset,
       }}
     >

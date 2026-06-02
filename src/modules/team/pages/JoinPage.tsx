@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Building2, AlertTriangle } from "lucide-react";
+import Building2 from "~icons/material-symbols-light/apartment";
+import AlertTriangle from "~icons/material-symbols-light/warning-outline";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ export default function JoinPage() {
         <div className="flex flex-col items-center text-center">
           <Logo className="h-14 w-auto" />
           <LogoName className="h-8 w-auto mt-2.5" />
-          <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na equipe</h1>
+          <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na Equipe</h1>
         </div>
 
         {!lookup && (
@@ -124,7 +125,7 @@ export default function JoinPage() {
               onClick={() => doLookup(code)}
               disabled={code.length !== 6 || checking}
             >
-              {checking ? "Validando..." : "Validar codigo"}
+              {checking ? "Validando..." : "Validar Código"}
             </Button>
             {lookupError && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3 flex items-center gap-2">
@@ -171,14 +172,14 @@ export default function JoinPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Criando conta..." : "Criar conta e entrar"}
+              {submitting ? "Criando conta..." : "Criar Conta e Entrar"}
             </Button>
             <button
               type="button"
               onClick={() => { setLookup(null); setCode(""); }}
               className="text-xs text-slate-500 hover:text-slate-700 mx-auto block"
             >
-              usar outro codigo
+              Usar Outro Código
             </button>
           </form>
         )}

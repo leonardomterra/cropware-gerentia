@@ -5,7 +5,7 @@ import type {
 } from "./types";
 
 export const STATUS_LABEL: Record<ReceiptStatus, string> = {
-  a_pagar: "A pagar",
+  a_pagar: "Pagar",
   pago: "Pago",
   a_receber: "A receber",
   recebido: "Recebido",

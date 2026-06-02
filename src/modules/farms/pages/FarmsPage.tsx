@@ -1,4 +1,4 @@
-import { Sprout } from "lucide-react";
+import Sprout from "~icons/material-symbols-light/eco-outline";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function FarmsPage() {

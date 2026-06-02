@@ -129,6 +129,90 @@ export async function extractReceiptFromImage(
  * Limite pratico ~9.5MB por inline_data. Para audios maiores usaria Files API,
  * mas mensagem WhatsApp tem teto de 16MB e voz costuma ficar bem abaixo disso.
  */
+/**
+ * Sugere UMA categoria (slug) pra um lançamento, a partir de fornecedor +
+ * descrição, escolhendo dentre as categorias que o cliente manda (as que o
+ * usuario ve). Valida que o slug retornado existe na lista. Usado pelo botao
+ * "Sugerir com IA" do form (geral e por item).
+ */
+export async function suggestCategory(
+  input: {
+    vendor: string | null;
+    description: string | null;
+    direction: "expense" | "income";
+  },
+  categories: { slug: string; name: string }[],
+): Promise<{ ok: true; category: string | null } | { ok: false; error: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return { ok: false, error: "missing_supabase_env" };
+  if (categories.length === 0) return { ok: true, category: null };
+
+  const list = categories.map((c) => `- ${c.slug}: ${c.name}`).join("\n");
+  const tipo = input.direction === "income" ? "receita" : "despesa";
+  const prompt =
+    `Voce classifica um lançamento financeiro de fazenda (${tipo}) em UMA categoria.\n` +
+    `Fornecedor: ${input.vendor || "(nao informado)"}\n` +
+    `Descricao: ${input.description || "(nao informado)"}\n\n` +
+    `Categorias disponiveis (slug: nome):\n${list}\n\n` +
+    `Escolha o slug MAIS adequado ao fornecedor/descricao. Se nada se encaixar ` +
+    `com confianca, use null. Responda APENAS um JSON: {"category":"<slug ou null>"}.`;
+
+  const payload = {
+    model: DEFAULT_MODEL,
+    body: {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        response_mime_type: "application/json",
+        temperature: 0.1,
+      },
+    },
+  };
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${supabaseUrl}/functions/v1/gemini`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("[gemini suggest] network error:", err);
+    return { ok: false, error: "gemini_network_error" };
+  }
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    console.error(`[gemini suggest] non-2xx ${resp.status}:`, body);
+    return { ok: false, error: `gemini_http_${resp.status}` };
+  }
+
+  let json: unknown;
+  try {
+    json = await resp.json();
+  } catch {
+    return { ok: false, error: "gemini_invalid_json" };
+  }
+  const text = (json as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  })?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text || typeof text !== "string") {
+    return { ok: false, error: "gemini_no_text" };
+  }
+
+  let parsed: { category?: unknown };
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, error: "gemini_invalid_inner_json" };
+  }
+  const slug = typeof parsed.category === "string" ? parsed.category : null;
+  const valid = slug && categories.some((c) => c.slug === slug) ? slug : null;
+  return { ok: true, category: valid };
+}
+
 export async function transcribeAudio(
   audioBase64: string,
   mimeType: string,

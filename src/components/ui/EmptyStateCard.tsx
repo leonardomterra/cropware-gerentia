@@ -16,15 +16,15 @@ export function EmptyStateCard({
         <div
             className="w-full rounded-lg border py-4 px-5 flex items-center justify-center gap-2"
             style={{
-                backgroundColor: '#f8fafc',
-                borderColor: '#e2e8f0',
+                backgroundColor: '#fafafa',
+                borderColor: '#e4e4e7',
             }}
         >
-            {IconComponent && <IconComponent size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />}
-            <p className="font-normal" style={{ fontSize: '14px', color: '#94a3b8' }}>
+            {IconComponent && <IconComponent size={16} style={{ color: '#a1a1aa', flexShrink: 0 }} />}
+            <p className="font-normal" style={{ fontSize: '14px', color: '#a1a1aa' }}>
                 {title}
                 {description && (
-                    <span style={{ color: '#cbd5e1' }}> — {description}</span>
+                    <span style={{ color: '#d4d4d8' }}> — {description}</span>
                 )}
             </p>
         </div>

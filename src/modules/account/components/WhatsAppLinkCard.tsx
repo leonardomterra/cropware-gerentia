@@ -1,5 +1,7 @@
 import { useState } from "react";
+import Chat from "~icons/material-symbols-light/chat-outline";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/components/ui/utils";
 import { api } from "@/utils/api";
 
 interface GenerateCodeResponse {
@@ -12,7 +14,7 @@ interface GenerateCodeResponse {
  * pro bot pra associar o telefone a esta conta. O backend
  * (POST /integrations/generate-code) grava em farm_whatsapp_link_codes.
  */
-export function WhatsAppLinkCard() {
+export function WhatsAppLinkCard({ className }: { className?: string }) {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +36,18 @@ export function WhatsAppLinkCard() {
   }
 
   return (
-    <section className="bg-white rounded-lg border border-slate-200 p-4">
-      <h2 className="text-sm font-medium text-slate-900 mb-1">WhatsApp</h2>
-      <p className="text-sm text-slate-500 mb-3">
-        Vincule seu WhatsApp para lancar recibos por foto direto no chat.
-      </p>
+    <section className={cn("bg-white rounded-lg border border-slate-200 p-5", className)}>
+      <div className="flex items-start gap-3 mb-4">
+        <div className="mt-0.5 flex size-8 items-center justify-center rounded-md bg-slate-100 text-slate-600 shrink-0">
+          <Chat className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-medium text-slate-900">WhatsApp</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Vincule seu WhatsApp para lançar recibos por foto direto no chat.
+          </p>
+        </div>
+      </div>
 
       {code ? (
         <div className="space-y-3">
@@ -48,15 +57,15 @@ export function WhatsAppLinkCard() {
             </span>
           </div>
           <p className="text-sm text-slate-500">
-            Envie este código para o WhatsApp da Cropware Farm. Válido por 10 minutos.
+            Envie este código para o WhatsApp do Diretor IA. Válido por 10 minutos.
           </p>
           <Button variant="outline" onClick={generate} disabled={loading}>
-            {loading ? "Gerando..." : "Gerar outro codigo"}
+            {loading ? "Gerando..." : "Gerar Outro Código"}
           </Button>
         </div>
       ) : (
         <Button onClick={generate} disabled={loading}>
-          {loading ? "Gerando..." : "Gerar codigo de vinculo"}
+          {loading ? "Gerando..." : "Gerar Código de Vínculo"}
         </Button>
       )}
 

@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Plus, Star, Archive, Pencil } from "lucide-react";
+import Plus from "~icons/material-symbols-light/add";
+import Star from "~icons/material-symbols-light/star-outline";
+import StarFilled from "~icons/material-symbols-light/star";
+import Archive from "~icons/material-symbols-light/archive-outline";
+import Pencil from "~icons/material-symbols-light/edit-outline";
+import Eye from "~icons/material-symbols-light/visibility-outline";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +22,12 @@ import {
   MAX_COST_CENTERS,
   type CostCenter,
 } from "@/modules/cost-centers/types";
+import { CC_ICONS, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 
 interface FormState {
   name: string;
   color: string;
+  icon: string;
 }
 
 /**
@@ -33,21 +40,33 @@ export function CostCentersManager() {
     useCostCenters();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CostCenter | null>(null);
-  const [form, setForm] = useState<FormState>({ name: "", color: CC_COLORS[0] });
+  const [form, setForm] = useState<FormState>({ name: "", color: CC_COLORS[0], icon: CC_ICONS[0].slug });
   const [saving, setSaving] = useState(false);
+  const [pendingDefault, setPendingDefault] = useState<CostCenter | null>(null);
+  const [settingDefault, setSettingDefault] = useState(false);
+
+  // CC padrão sempre primeiro na lista (resto preserva a ordem do hook).
+  const ordered = [...costCenters].sort(
+    (a, b) => Number(b.is_default) - Number(a.is_default),
+  );
+
+  // Componente do icone atualmente selecionado no form (pra mostrar dentro
+  // da cor ativa no seletor de cor).
+  const SelectedIcon =
+    CC_ICONS.find((i) => i.slug === form.icon)?.Icon ?? CC_ICONS[0].Icon;
 
   const activeCount = costCenters.length;
   const canCreate = activeCount < MAX_COST_CENTERS;
 
   function openNew() {
     setEditing(null);
-    setForm({ name: "", color: CC_COLORS[0] });
+    setForm({ name: "", color: CC_COLORS[0], icon: CC_ICONS[0].slug });
     setDialogOpen(true);
   }
 
   function openEdit(cc: CostCenter) {
     setEditing(cc);
-    setForm({ name: cc.name, color: cc.color || CC_COLORS[0] });
+    setForm({ name: cc.name, color: cc.color || CC_COLORS[0], icon: cc.icon || CC_ICONS[0].slug });
     setDialogOpen(true);
   }
 
@@ -59,9 +78,9 @@ export function CostCentersManager() {
     setSaving(true);
     let ok = false;
     if (editing) {
-      ok = await update(editing.id, { name: form.name.trim(), color: form.color });
+      ok = await update(editing.id, { name: form.name.trim(), color: form.color, icon: form.icon });
     } else {
-      const created = await create({ name: form.name.trim(), color: form.color });
+      const created = await create({ name: form.name.trim(), color: form.color, icon: form.icon });
       ok = !!created;
     }
     setSaving(false);
@@ -71,9 +90,13 @@ export function CostCentersManager() {
     }
   }
 
-  async function handleSetDefault(cc: CostCenter) {
-    const ok = await update(cc.id, { is_default: true });
-    if (ok) toast.success(`${cc.name} agora é o centro padrão`);
+  async function confirmSetDefault() {
+    if (!pendingDefault) return;
+    setSettingDefault(true);
+    const ok = await update(pendingDefault.id, { is_default: true });
+    setSettingDefault(false);
+    if (ok) toast.success(`${pendingDefault.name} agora é o centro padrão`);
+    setPendingDefault(null);
   }
 
   async function handleArchive(cc: CostCenter) {
@@ -95,14 +118,15 @@ export function CostCentersManager() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-2">
-        <p className="text-sm text-slate-500">
-          Separe seus lançamentos por frente (Pessoal, Fazenda, Escritório...).
-          Limite atual: {activeCount}/{MAX_COST_CENTERS}.
-        </p>
-        <Button onClick={openNew} disabled={!canCreate} className="shrink-0">
-          <Plus className="size-4 mr-1" />
-          Novo Centro
+      <header className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={openNew}
+          disabled={!canCreate}
+          className="gap-1 shrink-0"
+        >
+          <Plus className="size-4" />
+          Novo Centro de Custo
         </Button>
       </header>
 
@@ -118,54 +142,73 @@ export function CostCentersManager() {
         <p className="text-sm text-slate-500">Nenhum centro de custo ainda.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {costCenters.map((cc) => (
+          {ordered.map((cc) => (
             <div
               key={cc.id}
-              className="bg-white rounded-lg border border-slate-200 p-4 flex items-start gap-3"
+              className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col gap-3"
             >
-              <div
-                className="w-2 self-stretch rounded-sm shrink-0"
-                style={{ backgroundColor: cc.color || "#64748b" }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <CostCenterChip
+                  icon={cc.icon}
+                  color={cc.color}
+                  className="size-8"
+                />
+                <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-slate-900 truncate">
                     {cc.name}
                   </h3>
-                  {cc.is_default && (
-                    <Badge size="compact" colorScheme="amber">
-                      padrao
-                    </Badge>
-                  )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">slug: {cc.slug}</p>
-                <div className="flex items-center gap-2 mt-3">
+              </div>
+              <div className="flex items-center gap-1.5 border-t border-slate-100 -mx-4 px-4 pt-3">
+                  {/* Estrela primeiro: indicador (padrao, inerte) ou acao (tornar padrao) */}
+                  {cc.is_default ? (
+                    <span
+                      title="Centro padrão"
+                      aria-label="Centro padrão"
+                      className="size-9 inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-500"
+                    >
+                      <StarFilled className="size-5" />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPendingDefault(cc)}
+                      title="Tornar padrão"
+                      aria-label="Tornar padrão"
+                      className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                    >
+                      <Star className="size-5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    title="Ver"
+                    aria-label="Ver"
+                    className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  >
+                    <Eye className="size-5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEdit(cc)}
-                    className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                    title="Editar"
+                    aria-label="Editar"
+                    className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                   >
-                    <Pencil className="size-3" /> Editar
+                    <Pencil className="size-5" />
                   </button>
                   {!cc.is_default && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleSetDefault(cc)}
-                        className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
-                      >
-                        <Star className="size-3" /> Marcar como Padrão
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleArchive(cc)}
-                        className="text-xs text-slate-600 hover:text-red-600 inline-flex items-center gap-1 ml-auto"
-                      >
-                        <Archive className="size-3" /> Arquivar
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => handleArchive(cc)}
+                      title="Arquivar"
+                      aria-label="Arquivar"
+                      className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                    >
+                      <Archive className="size-5" />
+                    </button>
                   )}
-                </div>
               </div>
             </div>
           ))}
@@ -176,7 +219,7 @@ export function CostCentersManager() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editing ? "Editar Centro" : "Novo Centro de Custo"}
+              {editing ? "Editar Centro de Custo" : "Novo Centro de Custo"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -196,20 +239,58 @@ export function CostCentersManager() {
                 Cor
               </label>
               <div className="flex gap-2 flex-wrap">
-                {CC_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setForm((s) => ({ ...s, color: c }))}
-                    className={`size-8 rounded-full border-2 transition-all ${
-                      form.color === c
-                        ? "border-slate-900 scale-110"
-                        : "border-transparent"
-                    }`}
-                    style={{ backgroundColor: c }}
-                    aria-label={`Cor ${c}`}
-                  />
-                ))}
+                {CC_COLORS.map((c) => {
+                  const selected = form.color === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setForm((s) => ({ ...s, color: c }))}
+                      aria-label={`Cor ${c}`}
+                      className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
+                        selected ? "border-transparent" : "border-slate-200"
+                      }`}
+                      style={{ backgroundColor: c }}
+                    >
+                      {selected && (
+                        <SelectedIcon
+                          className="size-5"
+                          style={{ color: ccTextColor(c) }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-2">
+                Ícone
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {CC_ICONS.map(({ slug, label, Icon }) => {
+                  const selected = form.icon === slug;
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => setForm((s) => ({ ...s, icon: slug }))}
+                      title={label}
+                      aria-label={label}
+                      className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
+                        selected
+                          ? "border-transparent"
+                          : "border-slate-200 hover:bg-slate-50"
+                      }`}
+                      style={selected ? { backgroundColor: form.color } : undefined}
+                    >
+                      <Icon
+                        className="size-5"
+                        style={{ color: selected ? ccTextColor(form.color) : "#71717a" }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -223,6 +304,24 @@ export function CostCentersManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={pendingDefault !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingDefault(null);
+        }}
+        title="Tornar Padrão"
+        description={
+          pendingDefault
+            ? `Tornar "${pendingDefault.name}" o centro de custo padrão? Ele passa a ser o pré-selecionado em novos lançamentos.`
+            : ""
+        }
+        confirmLabel="Tornar Padrão"
+        cancelLabel="Cancelar"
+        loading={settingDefault}
+        loadingLabel="Salvando..."
+        onConfirm={confirmSetDefault}
+      />
     </div>
   );
 }

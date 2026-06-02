@@ -10,7 +10,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       position={isMobile ? 'bottom-center' : 'top-right'}
       expand={true}
-      richColors
       toastOptions={{
         style: {
           fontWeight: 400,

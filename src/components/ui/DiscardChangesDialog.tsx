@@ -30,20 +30,20 @@ export function DiscardChangesDialog({
 }: DiscardChangesDialogProps) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="rounded-lg max-w-4xl">
+            <AlertDialogContent className="rounded-lg max-w-md">
                 <AlertDialogHeader className="space-y-3">
-                    <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#0f172a' }}>
+                    <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#18181b' }}>
                         {title}
                     </AlertDialogTitle>
                     <AlertDialogDescription asChild>
                         <div className="space-y-3">
                             <p
                                 className="font-normal leading-relaxed"
-                                style={{ fontSize: '14px', color: '#64748b' }}
+                                style={{ fontSize: '14px', color: '#71717a' }}
                             >
                                 {description}
                             </p>
-                            <p className="font-normal" style={{ fontSize: '14px', color: '#94a3b8' }}>
+                            <p className="font-normal" style={{ fontSize: '14px', color: '#a1a1aa' }}>
                                 As alterações não salvas serão perdidas permanentemente.
                             </p>
                         </div>

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
-import type { Receipt, ReceiptFilters, ReceiptInput } from "../types";
+import type {
+  Receipt,
+  ReceiptDirection,
+  ReceiptFilters,
+  ReceiptInput,
+} from "../types";
 
 interface UseReceiptsResult {
   receipts: Receipt[];
@@ -81,4 +86,36 @@ export async function updateReceipt(
 
 export async function deleteReceipt(id: string): Promise<void> {
   await api<{ ok: true }>(`/receipts/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Sugere a melhor categoria (slug) via IA, a partir de fornecedor + descrição,
+ * escolhendo dentre as categorias passadas. Retorna o slug ou null.
+ */
+export async function suggestCategory(input: {
+  vendor: string | null;
+  description: string | null;
+  direction: ReceiptDirection;
+  categories: { slug: string; name: string }[];
+}): Promise<string | null> {
+  const data = await api<{ category: string | null }>(
+    "/receipts/suggest-category",
+    { method: "POST", body: input },
+  );
+  return data.category;
+}
+
+/**
+ * Converte um item em lançamento principal (mover/extrair): cria um recibo
+ * novo a partir do item + cabeçalho, remove o item do recibo-pai e recalcula
+ * o total do pai. Retorna o recibo criado e o pai atualizado.
+ */
+export async function promoteReceiptItem(
+  receiptId: string,
+  itemId: string,
+): Promise<{ created: Receipt; parent: Receipt }> {
+  return await api<{ created: Receipt; parent: Receipt }>(
+    `/receipts/${receiptId}/items/${itemId}/promote`,
+    { method: "POST", body: {} },
+  );
 }

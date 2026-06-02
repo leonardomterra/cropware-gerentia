@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Play, Repeat } from "lucide-react";
+import Plus from "~icons/material-symbols-light/add";
+import Pencil from "~icons/material-symbols-light/edit-outline";
+import Trash2 from "~icons/material-symbols-light/delete-outline";
+import Play from "~icons/material-symbols-light/play-arrow";
+import Pause from "~icons/material-symbols-light/pause";
+import Repeat from "~icons/material-symbols/autorenew";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,16 +19,18 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecurring } from "../hooks/useRecurring";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import type { Recurring, RecurringInput } from "../types";
+import { getCategoryLabel, parseBRLInput, formatBRLInput } from "@/modules/receipts/utils/receiptFormatters";
+import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
+import type { CostCenter } from "@/modules/cost-centers/types";
 
 interface FormState {
   name: string;
@@ -57,12 +64,11 @@ function fmtDate(yyyymmdd: string): string {
 export default function RecurringPage() {
   const { user } = useAuth();
   const ccs = user?.costCenters || [];
-  const { items, loading, error, create, update, remove, runNow } = useRecurring();
+  const { items, loading, error, create, update, remove } = useRecurring();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Recurring | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [running, setRunning] = useState(false);
 
   const { categories: allCategories } = useCategories();
   const showCC = ccs.length > 1;
@@ -81,6 +87,10 @@ export default function RecurringPage() {
     return groups;
   })();
 
+  const categoryOptions = groupedCategories.flatMap((g) =>
+    g.items.map((c) => ({ value: c.slug, label: c.name, group: g.name })),
+  );
+
   function openNew() {
     setEditing(null);
     setForm({
@@ -95,7 +105,7 @@ export default function RecurringPage() {
     setForm({
       name: r.name,
       direction: r.direction,
-      total_value: String(r.total_value),
+      total_value: r.total_value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       day_of_month: String(r.day_of_month),
       category: r.category || (r.direction === "income" ? "outros_receita" : "outros_despesa"),
       vendor: r.vendor || "",
@@ -106,7 +116,7 @@ export default function RecurringPage() {
 
   async function handleSubmit() {
     if (!form.name.trim()) { toast.error("Nome obrigatorio"); return; }
-    const total = Number(form.total_value.replace(",", "."));
+    const total = parseBRLInput(form.total_value);
     if (!Number.isFinite(total) || total <= 0) { toast.error("Valor invalido"); return; }
     const day = Number(form.day_of_month);
     if (!Number.isFinite(day) || day < 1 || day > 28) {
@@ -148,35 +158,16 @@ export default function RecurringPage() {
     if (ok) toast.success("Removida");
   }
 
-  async function handleRunNow() {
-    setRunning(true);
-    const n = await runNow();
-    setRunning(false);
-    if (n !== null) toast.success(`${n} lançamento(s) gerado(s)`);
-  }
-
   const active = items.filter((i) => i.active);
   const inactive = items.filter((i) => !i.active);
 
   return (
-    <div className="max-w-3xl space-y-4">
-      <header className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-base font-medium text-slate-900">Recorrências</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Contas mensais (energia, internet, salário) que viram lançamento automaticamente.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleRunNow} disabled={running}>
-            <Play className="size-4 mr-1" />
-            {running ? "Processando..." : "Rodar agora"}
-          </Button>
-          <Button onClick={openNew}>
-            <Plus className="size-4 mr-1" />
-            Nova
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <header className="flex items-center justify-end gap-2">
+        <Button variant="outline" onClick={openNew}>
+          <Plus className="size-4 mr-1" />
+          Nova Recorrência
+        </Button>
       </header>
 
       {error && (
@@ -197,17 +188,17 @@ export default function RecurringPage() {
         </div>
       ) : (
         <>
-          <Section title="Ativas" items={active} {...{ openEdit, handleToggleActive, handleRemove, showCC, ccs }} />
+          <Section title="Ativas" items={active} {...{ openEdit, handleToggleActive, handleRemove, showCC, ccs, categories: allCategories }} />
           {inactive.length > 0 && (
-            <Section title="Pausadas" items={inactive} faded {...{ openEdit, handleToggleActive, handleRemove, showCC, ccs }} />
+            <Section title="Pausadas" items={inactive} faded {...{ openEdit, handleToggleActive, handleRemove, showCC, ccs, categories: allCategories }} />
           )}
         </>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar recorrencia" : "Nova recorrencia"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
@@ -244,13 +235,13 @@ export default function RecurringPage() {
                   inputMode="decimal"
                   placeholder="850,00"
                   value={form.total_value}
-                  onChange={(e) => setForm((s) => ({ ...s, total_value: e.target.value }))}
+                  onChange={(e) => setForm((s) => ({ ...s, total_value: formatBRLInput(e.target.value) }))}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Dia do mes</label>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Dia do Mês</label>
                 <Input
                   type="number"
                   min={1}
@@ -261,30 +252,18 @@ export default function RecurringPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Categoria</label>
-                <Select
+                <SearchableSelect
+                  options={categoryOptions}
                   value={form.category}
                   onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {groupedCategories.map((group) => (
-                      <SelectGroup key={group.name}>
-                        <SelectLabel className="text-xs uppercase tracking-wide text-slate-400">
-                          {group.name}
-                        </SelectLabel>
-                        {group.items.map((c) => (
-                          <SelectItem key={c.slug} value={c.slug}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Selecione..."
+                  searchPlaceholder="Buscar categoria..."
+                  emptyMessage="Nenhuma categoria."
+                />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Fornecedor (opcional)</label>
+              <label className="text-sm font-medium text-slate-700 block mb-1">Fornecedor (Opcional)</label>
               <Input
                 placeholder="Cemig, Vivo, Joao Silva..."
                 value={form.vendor}
@@ -294,7 +273,7 @@ export default function RecurringPage() {
             </div>
             {showCC && (
               <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Centro de custo</label>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Centro de Custo</label>
                 <Select
                   value={form.cost_center_id || ""}
                   onValueChange={(v) => setForm((s) => ({ ...s, cost_center_id: v }))}
@@ -303,7 +282,7 @@ export default function RecurringPage() {
                   <SelectContent>
                     {ccs.map((cc) => (
                       <SelectItem key={cc.id} value={cc.id}>
-                        {cc.name}{cc.is_default ? " (padrao)" : ""}
+                        {cc.name}{cc.is_default ? " (Padrão)" : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -331,49 +310,79 @@ interface SectionProps {
   handleToggleActive: (r: Recurring) => void;
   handleRemove: (r: Recurring) => void;
   showCC: boolean;
-  ccs: Array<{ id: string; name: string }>;
+  ccs: CostCenter[];
+  categories: Parameters<typeof getCategoryLabel>[1];
 }
 
-function Section({ title, items, faded, openEdit, handleToggleActive, handleRemove, showCC, ccs }: SectionProps) {
+function Section({ title, items, faded, openEdit, handleToggleActive, handleRemove, showCC, ccs, categories }: SectionProps) {
   if (items.length === 0) return null;
-  const ccName = (id: string | null) => id ? (ccs.find((c) => c.id === id)?.name || "?") : "";
   return (
     <div className="space-y-2">
-      <h2 className="text-xs font-medium text-slate-500 tracking-wide">{title}</h2>
-      <div className={`space-y-2 ${faded ? "opacity-60" : ""}`}>
-        {items.map((r) => (
-          <div key={r.id} className="bg-white rounded-lg border border-slate-200 p-4 flex items-start gap-3">
-            <div className={`w-2 self-stretch rounded-sm shrink-0 ${r.direction === "income" ? "bg-emerald-500" : "bg-slate-400"}`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-slate-900 truncate">{r.name}</h3>
-                <Badge size="compact" colorScheme={r.direction === "income" ? "emerald" : "slate"}>
-                  {r.direction === "income" ? "receita" : "despesa"}
-                </Badge>
-              </div>
-              <div className="text-sm text-slate-700 mt-1">{fmtBRL(r.total_value)} - dia {r.day_of_month}</div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                {r.vendor && <span>{r.vendor} - </span>}
-                {r.category}
-                {showCC && r.cost_center_id && <span> - {ccName(r.cost_center_id)}</span>}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Proximo lancamento: <span className="font-medium text-slate-700">{fmtDate(r.next_run_date)}</span>
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                <button type="button" onClick={() => openEdit(r)} className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1">
-                  <Pencil className="size-3" /> Editar
-                </button>
-                <button type="button" onClick={() => handleToggleActive(r)} className="text-xs text-slate-600 hover:text-slate-900">
-                  {r.active ? "Pausar" : "Reativar"}
-                </button>
-                <button type="button" onClick={() => handleRemove(r)} className="text-xs text-slate-600 hover:text-red-600 inline-flex items-center gap-1 ml-auto">
-                  <Trash2 className="size-3" /> Remover
-                </button>
+      <h2 className="text-sm font-medium text-slate-500">{title}</h2>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${faded ? "opacity-60" : ""}`}>
+        {items.map((r) => {
+          const cc = r.cost_center_id ? ccs.find((c) => c.id === r.cost_center_id) ?? null : null;
+          return (
+          <div key={r.id} className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <span className={`inline-flex items-center justify-center rounded-md shrink-0 size-8 ${r.direction === "income" ? "bg-emerald-100" : "bg-slate-100"}`}>
+                <Repeat className={`size-[62%] ${r.direction === "income" ? "text-emerald-700" : "text-slate-600"}`} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-slate-900 truncate flex-1 min-w-0">{r.name}</h3>
+                  <Badge size="compact" colorScheme={r.direction === "income" ? "emerald" : "slate"}>
+                    {r.direction === "income" ? "receita" : "despesa"}
+                  </Badge>
+                </div>
+                <div className="text-sm text-slate-700 mt-1">{fmtBRL(r.total_value)} - dia {r.day_of_month}</div>
+                <div className="text-sm text-slate-500 mt-0.5">
+                  {r.vendor && <span>{r.vendor} - </span>}
+                  {getCategoryLabel(r.category, categories)}
+                </div>
+                <div className="text-sm text-slate-500 mt-1">
+                  Próximo Lançamento: <span className="font-medium text-slate-700">{fmtDate(r.next_run_date)}</span>
+                </div>
               </div>
             </div>
+            {showCC && cc && (
+              <div className="border-t border-slate-100 -mx-4 px-4 pt-3 flex items-center gap-2.5">
+                <CostCenterChip icon={cc.icon} color={cc.color} className="size-8" />
+                <span className="font-medium text-slate-900 truncate">{cc.name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 border-t border-slate-100 -mx-4 px-4 pt-3">
+              <button
+                type="button"
+                onClick={() => openEdit(r)}
+                title="Editar"
+                aria-label="Editar"
+                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              >
+                <Pencil className="size-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleActive(r)}
+                title={r.active ? "Pausar" : "Reativar"}
+                aria-label={r.active ? "Pausar" : "Reativar"}
+                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              >
+                {r.active ? <Pause className="size-5" /> : <Play className="size-5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemove(r)}
+                title="Remover"
+                aria-label="Remover"
+                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+              >
+                <Trash2 className="size-5" />
+              </button>
+            </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

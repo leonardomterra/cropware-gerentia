@@ -83,3 +83,18 @@ export function parseBRLInput(raw: string): number {
   }
   return Number(cleaned);
 }
+
+/**
+ * Mascara de moeda "se formata sozinho" pro input de valor: trata os digitos
+ * digitados como centavos e devolve "1.234,56". Vazio -> "". Usar no onChange
+ * do input; no submit passar por parseBRLInput.
+ */
+export function formatBRLInput(raw: string): string {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = parseInt(digits, 10);
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}

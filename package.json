@@ -16,7 +16,11 @@
     "@capacitor/core": "^8.3.0",
     "@capacitor/preferences": "^8.0.1",
     "@fontsource-variable/inter-tight": "^5.2.7",
+    "@fontsource-variable/mozilla-headline": "^5.2.2",
     "@fontsource/alumni-sans": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/space-mono": "^5.2.9",
+    "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -53,8 +57,8 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.55.0",
-    "react-router-dom": "^7.0.0",
     "react-resizable-panels": "^2.1.7",
+    "react-router-dom": "^7.0.0",
     "recharts": "^2.15.2",
     "sonner": "^2.0.3",
     "tailwind-merge": "^2.5.5",
@@ -62,6 +66,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@iconify-json/line-md": "^1.2.16",
+    "@iconify-json/material-symbols": "^1.2.75",
+    "@iconify-json/material-symbols-light": "^1.2.75",
+    "@iconify-json/svg-spinners": "^1.2.4",
+    "@svgr/core": "^8.1.0",
+    "@svgr/plugin-jsx": "^8.1.0",
     "@tailwindcss/vite": "^4.1.8",
     "@types/node": "^20.19.30",
     "@types/react": "^18.2.0",
@@ -75,6 +85,7 @@
     "tailwindcss": "^4.1.8",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.20.0",
+    "unplugin-icons": "^23.0.1",
     "vite": "^6.4.2"
   }
 }

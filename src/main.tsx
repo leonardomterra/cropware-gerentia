@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import "@fontsource-variable/inter-tight";
 import "@fontsource/alumni-sans/600.css";
 import "@fontsource/alumni-sans/800.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource-variable/mozilla-headline";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
 import "./app.css";
 import App from "./App";
 
