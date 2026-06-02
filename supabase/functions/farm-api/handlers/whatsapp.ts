@@ -154,22 +154,60 @@ function fmtBRL(v: number | null): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
+/** Itens validos da OCR (total finito >= 0). 2+ => recibo itemizado. */
+// deno-lint-ignore no-explicit-any
+function ocrItems(e: any): any[] {
+  const raw = Array.isArray(e?.line_items) ? e.line_items : [];
+  return raw.filter(
+    // deno-lint-ignore no-explicit-any
+    (li: any) => li && Number.isFinite(Number(li.total_value)) && Number(li.total_value) >= 0,
+  );
+}
+
+/** Soma dos itens, arredondada uma vez. */
+// deno-lint-ignore no-explicit-any
+function ocrItemsTotal(items: any[]): number {
+  return Number(items.reduce((s, li) => s + Number(li.total_value), 0).toFixed(2));
+}
+
 // deno-lint-ignore no-explicit-any
 function receiptSummary(e: any, ccName: string | null, showCC: boolean): string {
+  const items = ocrItems(e);
+  const itemized = items.length >= 2;
+  const total = itemized ? ocrItemsTotal(items) : e.total_value;
+
   const lines = [
-    "*" + (e.direction === "income" ? "Receita" : "Despesa") + "* - " + fmtBRL(e.total_value),
+    "*" + (e.direction === "income" ? "Receita" : "Despesa") + "* - " + fmtBRL(total),
     e.vendor ? "Fornecedor: " + e.vendor : null,
-    e.category ? "Categoria: " + e.category : null,
+    // Com itens, a categoria vem por item (mostrada no bloco abaixo).
+    !itemized && e.category ? "Categoria: " + e.category : null,
     e.transaction_date ? "Data: " + e.transaction_date : null,
     e.payment_method ? "Pagamento: " + e.payment_method : null,
     e.invoice_number ? "Documento: " + e.invoice_number : null,
     e.description ? "Descricao: " + e.description : null,
     showCC && ccName ? "Centro: " + ccName : null,
   ].filter(Boolean);
+
+  let itemsBlock = "";
+  if (itemized) {
+    // Limite o numero de itens mostrados (body interativo do WhatsApp ~1024).
+    const MAX_SHOWN = 8;
+    const rows = items.slice(0, MAX_SHOWN).map((li) => {
+      const name = li.description || li.category || "item";
+      const cat = li.category ? " (" + li.category + ")" : "";
+      return "• " + name + cat + " - " + fmtBRL(Number(li.total_value));
+    });
+    if (items.length > MAX_SHOWN) {
+      rows.push("• … +" + (items.length - MAX_SHOWN) + " item(ns)");
+    }
+    itemsBlock = "\n\n*Itens (" + items.length + "):*\n" + rows.join("\n");
+  }
+
   const conf = typeof e.confidence === "number"
     ? " _(confianca " + Math.round(e.confidence * 100) + "%)_"
     : "";
-  return "📄 *Recibo lido*" + conf + "\n\n" + lines.join("\n") + "\n\nConfirma o lancamento?";
+  return "📄 *Recibo lido*" + conf + "\n\n" + lines.join("\n") + itemsBlock +
+    "\n\nConfirma o lancamento?";
 }
 
 function confirmButtons(showChangeCC: boolean) {
@@ -195,38 +233,74 @@ const PHOTO_DATE_BUTTONS = [
 async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null, linked: LinkedUser | null): Promise<string | null> {
   const e = p.extracted;
   const direction = e.direction === "income" ? "income" : "expense";
-  const { error } = await admin.from("farm_receipts").insert({
+
+  // Itens da OCR: 2+ => recibo itemizado (total = soma, header cat/cc nulos,
+  // cada item com sua categoria; o CC escolhido vale pra todos os itens).
+  const items = ocrItems(e);
+  const itemized = items.length >= 2;
+  const total = itemized
+    ? ocrItemsTotal(items)
+    : (Number.isFinite(e.total_value) ? e.total_value : 0);
+
+  const { data: inserted, error } = await admin.from("farm_receipts").insert({
     organization_id: p.organization_id,
     created_by: p.user_id,
     doc_type: e.doc_type || "outro",
     direction,
     status: direction === "income" ? "a_receber" : "a_pagar",
-    total_value: Number.isFinite(e.total_value) ? e.total_value : 0,
+    total_value: total,
     currency: "BRL",
     transaction_date: dateOverride ?? e.transaction_date ?? null,
     vendor: e.vendor ?? null,
     vendor_cnpj: e.vendor_cnpj ?? null,
     payment_method: e.payment_method ?? null,
     description: e.description ?? null,
-    category: e.category ?? null,
+    category: itemized ? null : (e.category ?? null),
     invoice_number: e.invoice_number ?? null,
-    cost_center_id: p.cost_center_id ?? null,
+    cost_center_id: itemized ? null : (p.cost_center_id ?? null),
+    item_count: itemized ? items.length : 0,
     attachment_key: p.attachment_key ?? null,
     attachment_mime: p.attachment_mime ?? null,
     source: "whatsapp",
     ai_confidence: typeof e.confidence === "number" ? e.confidence : null,
     ai_raw: e,
-  });
-  if (error) {
+  }).select("id").single();
+  if (error || !inserted) {
     console.error("[wa] insert photo receipt failed:", error);
     return null;
   }
+
+  if (itemized) {
+    const rows = items.map((li, i) => ({
+      receipt_id: inserted.id,
+      organization_id: p.organization_id,
+      position: i,
+      description: typeof li.description === "string" ? li.description : null,
+      category: typeof li.category === "string" ? li.category : null,
+      // CC escolhido pro recibo inteiro vale pra cada item.
+      cost_center_id: p.cost_center_id ?? null,
+      quantity: Number.isFinite(Number(li.quantity)) ? Number(li.quantity) : null,
+      unit_value: Number.isFinite(Number(li.unit_value)) ? Number(li.unit_value) : null,
+      total_value: Number(li.total_value),
+    }));
+    const { error: itErr } = await admin.from("farm_receipt_items").insert(rows);
+    if (itErr) {
+      // Sem transacao multi-statement: compensa apagando o cabecalho.
+      console.error("[wa] insert items failed, rolling back:", itErr);
+      await admin.from("farm_receipts").delete().eq("id", inserted.id);
+      return null;
+    }
+  }
+
   const ccTail = p.cost_center_name && (linked?.cost_centers.length ?? 0) > 1
     ? "\nCentro: " + p.cost_center_name : "";
   const finalDate = dateOverride ?? e.transaction_date ?? null;
   const dateTail = finalDate ? "\nData: " + fmtDateBR(finalDate) : "";
-  return "✅ Lancamento salvo!\n" + fmtBRL(e.total_value) + " - " +
-    (e.category || e.doc_type) + ccTail + dateTail + "\n\nVer no app: " + APP_URL;
+  const head = itemized
+    ? items.length + " itens"
+    : (e.category || e.doc_type);
+  return "✅ Lancamento salvo!\n" + fmtBRL(total) + " - " +
+    head + ccTail + dateTail + "\n\nVer no app: " + APP_URL;
 }
 
 // ---------- mensagem -> ação ----------
