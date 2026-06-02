@@ -186,23 +186,25 @@ export function CategoriesManager({
             const isOpen = searching || expanded.has(group.name);
             return (
             <section key={group.name}>
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.name)}
-                className="group/sec flex items-center gap-2 w-full text-left py-1"
-              >
-                <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 group-hover/sec:bg-slate-100 group-hover/sec:text-slate-700 transition-colors shrink-0">
-                  <ChevronRight
-                    className={cn(
-                      "size-5 transition-transform",
-                      isOpen && "rotate-90",
-                    )}
-                  />
-                </span>
-                <span className="text-sm font-medium text-slate-500">
-                  {group.name} ({group.items.length})
-                </span>
-              </button>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.name)}
+                  className="group/sec flex items-center gap-2 flex-1 min-w-0 text-left py-1"
+                >
+                  <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 group-hover/sec:bg-slate-100 group-hover/sec:text-slate-700 transition-colors shrink-0">
+                    <ChevronRight
+                      className={cn(
+                        "size-5 transition-transform",
+                        isOpen && "rotate-90",
+                      )}
+                    />
+                  </span>
+                  <span className="text-sm font-medium text-slate-500">
+                    {group.name} ({group.items.length})
+                  </span>
+                </button>
+              </div>
               {isOpen && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 pb-1">
                 {group.items.map((cat) => {
@@ -211,14 +213,9 @@ export function CategoriesManager({
                   return (
                     <div
                       key={cat.id}
-                      title={isCustom ? "Categoria personalizada" : undefined}
                       className={cn(
                         "group flex items-center gap-2.5 h-full rounded-lg border px-3 py-2 transition-colors",
-                        isCustom
-                          ? direction === "income"
-                            ? "bg-blue-50/70 border-blue-200 hover:bg-blue-100/70"
-                            : "bg-red-50/60 border-red-200 hover:bg-red-100/70"
-                          : "bg-white border-slate-200 hover:bg-slate-50",
+                        "bg-white border-slate-200 hover:bg-slate-50",
                         cat.hidden && "opacity-50",
                       )}
                     >
@@ -226,7 +223,17 @@ export function CategoriesManager({
                         {cat.name}
                       </span>
                       {hasActions && (
-                        <div className="flex items-center gap-1.5 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <div
+                          className={cn(
+                            "flex items-center gap-1.5 shrink-0 transition-opacity",
+                            // Custom: botoes sempre visiveis porem esmaecidos
+                            // (mais claros) ate o hover. Presets: acoes so no
+                            // hover (desktop).
+                            isCustom
+                              ? "opacity-40 group-hover:opacity-100"
+                              : "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                          )}
+                        >
                           {isCustom ? (
                             <>
                               <button

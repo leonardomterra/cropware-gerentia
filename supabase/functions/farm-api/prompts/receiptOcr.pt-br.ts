@@ -22,7 +22,16 @@ Analise a imagem e retorne APENAS um objeto JSON valido com os campos:
   "category": string,                 // slug de UMA das categorias abaixo
   "description": string | null,       // descricao curta (max 100 chars) do que foi comprado/recebido
   "direction": "expense" | "income",  // expense pra despesas, income pra receitas
-  "confidence": number                // 0.0 a 1.0, sua confianca geral na extracao
+  "confidence": number,               // 0.0 a 1.0, sua confianca geral na extracao
+  "line_items": [                     // SO quando a nota detalhar 2+ itens; senao []
+    {
+      "description": string | null,   // nome do produto/item
+      "quantity": number | null,      // quantidade (ex: 2, 10.5)
+      "unit_value": number | null,    // valor unitario em reais
+      "total_value": number,          // valor total do item em reais (obrigatorio)
+      "category": string              // slug de UMA categoria (mesma lista abaixo)
+    }
+  ]
 }
 
 Categorias validas para "category":
@@ -55,4 +64,10 @@ REGRAS RIGIDAS:
    venda_graos, venda_gado ou outros_receita
 5. "confidence" deve refletir honestamente sua certeza. Se a imagem esta
    borrada, em angulo ruim, ou faltando dados, abaixe a confianca
-6. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;
+6. "line_items": preencha SOMENTE quando a nota detalhar 2 ou mais itens/produtos
+   distintos (ex: nota fiscal com varias linhas de produto). Cada item recebe
+   sua propria "category" (um item pode ser fertilizante e outro combustivel) e
+   seu "total_value" obrigatorio. A soma dos "total_value" dos itens deve bater
+   com o "total_value" do topo. Se a nota tiver um unico item ou nao detalhar os
+   itens, retorne [] (lista vazia) - NAO invente itens.
+7. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;

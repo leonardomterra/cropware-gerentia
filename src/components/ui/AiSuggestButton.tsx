@@ -4,6 +4,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
+import { GlassesIcon } from "@/components/ui/GlassesIcon";
 
 interface AiSuggestButtonProps {
   onClick: () => void;
@@ -58,6 +59,13 @@ export function AiSuggestButton({
                 : "bg-[#caff33] text-[#1a2e05] shadow-[0_0_12px_-2px_rgba(190,242,100,0.9)] hover:brightness-105",
             )}
           >
+            <GlassesIcon
+              className={cn(
+                "h-2.5 w-auto shrink-0",
+                loading && "ai-think-fade",
+                blocked && "opacity-40",
+              )}
+            />
             <span
               key={loading ? "thinking" : "idle"}
               className="inline-block min-w-[8.5ch] text-center animate-in fade-in duration-300"

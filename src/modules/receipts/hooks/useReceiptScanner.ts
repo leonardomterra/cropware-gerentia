@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { api } from "@/utils/api";
 
+export interface ReceiptLineItem {
+  description: string | null;
+  quantity: number | null;
+  unit_value: number | null;
+  total_value: number;
+  category: string;
+}
+
 export interface ReceiptExtraction {
   vendor: string | null;
   vendor_cnpj: string | null;
@@ -25,6 +33,7 @@ export interface ReceiptExtraction {
   description: string | null;
   direction: "expense" | "income";
   confidence: number;
+  line_items?: ReceiptLineItem[];
 }
 
 export interface ScanResult {

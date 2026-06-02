@@ -70,7 +70,7 @@ interface ReceiptFormDialogProps {
 }
 
 /** Linha do repetidor de itens (strings p/ inputs + key estavel). */
-interface ItemRow {
+export interface ItemRow {
   key: string;
   description: string;
   quantity: string;
@@ -496,7 +496,7 @@ export function ReceiptFormDialog({
           <div className="grid grid-cols-2 gap-3">
             {!hasItems && (
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between min-h-[1.125rem]">
                   <Label>Categoria</Label>
                   <AiSuggestButton
                     onClick={() => runSuggest("header", form.description)}
@@ -523,7 +523,9 @@ export function ReceiptFormDialog({
               </div>
             )}
             <div>
-              <Label>Tipo de Documento</Label>
+              <div className="flex items-center min-h-[1.125rem]">
+                <Label>Tipo de Documento</Label>
+              </div>
               <Select
                 value={form.doc_type}
                 onValueChange={(v) => set("doc_type", v as ReceiptDocType)}
@@ -738,7 +740,7 @@ export function ReceiptFormDialog({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between min-h-[1.125rem]">
                           <Label className="text-xs text-slate-500">
                             Categoria
                           </Label>
@@ -771,9 +773,11 @@ export function ReceiptFormDialog({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs text-slate-500">
-                          Centro de Custo
-                        </Label>
+                        <div className="flex items-center min-h-[1.125rem]">
+                          <Label className="text-xs text-slate-500">
+                            Centro de Custo
+                          </Label>
+                        </div>
                         <Select
                           value={it.cost_center_id || "none"}
                           onValueChange={(v) =>

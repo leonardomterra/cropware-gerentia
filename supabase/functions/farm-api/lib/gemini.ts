@@ -23,6 +23,15 @@ interface GeminiError {
   error: string;
 }
 
+/** Item de uma nota itemizada (Fase 2 do plano de itens). */
+export interface ReceiptLineItem {
+  description: string | null;
+  quantity: number | null;
+  unit_value: number | null;
+  total_value: number;
+  category: string;
+}
+
 export interface ReceiptExtraction {
   vendor: string | null;
   vendor_cnpj: string | null;
@@ -41,6 +50,8 @@ export interface ReceiptExtraction {
   description: string | null;
   direction: "expense" | "income";
   confidence: number;
+  // Itens da nota quando houver 2+ produtos distintos; [] caso contrario.
+  line_items?: ReceiptLineItem[];
 }
 
 export async function extractReceiptFromImage(

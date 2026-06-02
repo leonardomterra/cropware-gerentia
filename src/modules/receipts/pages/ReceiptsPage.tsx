@@ -34,7 +34,10 @@ import { CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { ReceiptFiltersBar } from "../components/ReceiptFiltersBar";
 import { ReceiptsTable } from "../components/ReceiptsTable";
 import { ReceiptsCards } from "../components/ReceiptsCards";
-import { ReceiptFormDialog } from "../components/ReceiptFormDialog";
+import {
+  ReceiptFormDialog,
+  type ItemRow,
+} from "../components/ReceiptFormDialog";
 import { ReceiptCaptureDialog } from "../components/ReceiptCaptureDialog";
 import { ReceiptViewDialog } from "../components/ReceiptViewDialog";
 import { deleteReceipt, useReceipts } from "../hooks/useReceipts";
@@ -64,6 +67,7 @@ interface PrefillFromScan {
     payment_method?: ReceiptPaymentMethod | "";
     transaction_date?: string;
     invoice_number?: string;
+    items?: ItemRow[];
   };
   attachment_key: string;
   attachment_mime: string;
@@ -71,10 +75,30 @@ interface PrefillFromScan {
   ai_raw?: unknown;
 }
 
+// Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
+function numToInput(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "";
+  return String(n).replace(".", ",");
+}
+
 function scanToPrefill(scan: ScanResult): PrefillFromScan {
   const e = scan.extracted;
   const direction: ReceiptDirection = e?.direction ?? "expense";
   const defaultStatus = STATUSES_BY_DIRECTION[direction][0];
+
+  // Itens da IA: só itemiza com 2+ itens válidos (1 item = header-only).
+  const mappedItems: ItemRow[] = (e?.line_items ?? [])
+    .filter((li) => li && Number.isFinite(li.total_value))
+    .map((li) => ({
+      key: crypto.randomUUID(),
+      description: li.description ?? "",
+      quantity: numToInput(li.quantity),
+      unit_value: numToInput(li.unit_value),
+      total_value: numToInput(li.total_value),
+      category: li.category ?? "",
+      cost_center_id: "",
+    }));
+  const items: ItemRow[] = mappedItems.length >= 2 ? mappedItems : [];
 
   return {
     attachment_key: scan.attachment_key,
@@ -95,6 +119,7 @@ function scanToPrefill(scan: ScanResult): PrefillFromScan {
       payment_method: e?.payment_method ?? "",
       transaction_date: e?.transaction_date ?? todayISO(),
       invoice_number: e?.invoice_number ?? "",
+      items,
     },
   };
 }

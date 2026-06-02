@@ -335,25 +335,24 @@ input:-webkit-autofill:active {
   }
 }
 
-/* Icone de IA "pensando": pulsa de escala + da um bob pra cima, em loop. So
-   enquanto processa (AiSuggestButton). Em repouso o icone fica estatico. */
-.ai-spark-anim {
-  animation: ai-spark 1s ease-in-out infinite;
-  transform-origin: center;
+/* Icone de IA "pensando": oscila a opacidade (sem movimento, sem mudar cor),
+   em loop. So enquanto processa (AiSuggestButton). Em repouso fica estatico. */
+.ai-think-fade {
+  animation: ai-think-fade 1.2s ease-in-out infinite;
 }
 
-@keyframes ai-spark {
+@keyframes ai-think-fade {
   0%,
   100% {
-    transform: scale(1) translateY(0);
+    opacity: 1;
   }
   50% {
-    transform: scale(1.15) translateY(-1px);
+    opacity: 0.25;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-spark-anim {
+  .ai-think-fade {
     animation: none;
   }
 }
