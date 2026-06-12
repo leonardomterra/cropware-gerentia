@@ -20,6 +20,7 @@ import IconApartment from "~icons/material-symbols/apartment";
 import IconPets from "~icons/material-symbols/pets";
 import IconBolt from "~icons/material-symbols/bolt";
 import IconCategory from "~icons/material-symbols/category";
+import IconApps from "~icons/material-symbols/apps";
 import { cn } from "@/components/ui/utils";
 
 export type CCIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -107,6 +108,23 @@ export function CostCenterChip({
       style={{ backgroundColor: color || "#a1a1aa" }}
     >
       <Icon className="size-[62%]" style={{ color: ccTextColor(color) }} />
+    </span>
+  );
+}
+
+/**
+ * Chip pra "Todos os Centros" (todos). Tom claro/neutro (fundo slate-100, icone
+ * slate-400) pra se distinguir dos CCs coloridos sem competir com eles.
+ */
+export function AllCentersChip({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center rounded-md shrink-0 size-6 bg-slate-100",
+        className,
+      )}
+    >
+      <IconApps className="size-[62%] text-slate-400" />
     </span>
   );
 }

@@ -74,8 +74,8 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex-1 min-w-[200px] max-w-sm">
+    <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
+      <div className="flex-[3] min-w-0 lg:min-w-[180px]">
         <div className="relative">
           <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <Input
@@ -89,7 +89,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         </div>
       </div>
 
-      <div className="min-w-[160px]">
+      <div className="flex-1 min-w-0 lg:min-w-[140px]">
         <Select
           value={value.direction ?? "all"}
           onValueChange={(v) =>
@@ -107,7 +107,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         </Select>
       </div>
 
-      <div className="w-[180px]">
+      <div className="flex-1 min-w-0 lg:min-w-[140px]">
         <MultiSearchableSelect
           options={statusOptions}
           value={value.status ?? []}
@@ -117,10 +117,11 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           placeholder="Todos os status"
           searchPlaceholder="Buscar status..."
           multiLabel={(n) => `${n} status`}
+          triggerClassName="text-base md:text-sm"
         />
       </div>
 
-      <div className="w-[200px]">
+      <div className="flex-1 min-w-0 lg:min-w-[140px]">
         <MultiSearchableSelect
           options={categoryOptions}
           value={value.category ?? []}
@@ -130,6 +131,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           placeholder="Todas as categorias"
           searchPlaceholder="Buscar categoria..."
           multiLabel={(n) => `${n} categorias`}
+          triggerClassName="text-base md:text-sm"
         />
       </div>
 

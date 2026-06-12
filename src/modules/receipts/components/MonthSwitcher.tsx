@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ChevronLeft from "~icons/material-symbols-light/chevron-left";
 import ChevronRight from "~icons/material-symbols-light/chevron-right";
+import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import Calendar from "~icons/material-symbols-light/calendar-month-outline";
 import { cn } from "@/components/ui/utils";
 import { useIsMobile } from "@/components/ui/use-mobile";
@@ -63,33 +64,53 @@ export function MonthSwitcher({
   value,
   onChange,
   className,
+  compact = false,
+  variant = "full",
 }: {
   value: YearMonth;
   onChange: (next: YearMonth) => void;
   className?: string;
+  /** Modo enxuto (pra barras lotadas): 3 chips e seletor só com ícone. */
+  compact?: boolean;
+  /** "full" = chips + seletor; "chips" = só ◀ meses ▶; "picker" = só o 📅. */
+  variant?: "full" | "chips" | "picker";
 }) {
   const isMobile = useIsMobile();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(value.year);
 
-  // Janela de chips centrada no selecionado.
-  const half = isMobile ? 1 : 2;
+  // Janela de chips centrada no selecionado (3 no compact/mobile, 5 no desktop).
+  const half = compact || isMobile ? 1 : 2;
   const windowMonths: YearMonth[] = [];
   for (let i = -half; i <= half; i++) windowMonths.push(addMonths(value, i));
 
+  const showChips = variant !== "picker";
+  const showPicker = variant !== "chips";
+  // Na variante "chips": os 12 meses do ano, esticados (tipo abas), sem setas e
+  // sem recentralizar (posicao fixa). A troca de ANO fica no seletor 📅.
+  // Nas outras variantes: janela centrada no mes selecionado, com setas.
+  const stretch = variant === "chips";
+  const chipMonths: YearMonth[] = stretch
+    ? Array.from({ length: 12 }, (_, i) => ({ year: value.year, month: i + 1 }))
+    : windowMonths;
+
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      <button
-        type="button"
-        aria-label="Mês anterior"
-        onClick={() => onChange(addMonths(value, -1))}
-        className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
-      >
-        <ChevronLeft className="size-5" />
-      </button>
+      {showChips && (
+      <>
+      {!stretch && (
+        <button
+          type="button"
+          aria-label="Mês anterior"
+          onClick={() => onChange(addMonths(value, -1))}
+          className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+      )}
 
-      <div className="flex items-center gap-1">
-        {windowMonths.map((m) => {
+      <div className={cn("flex items-center gap-1", stretch && "flex-1")}>
+        {chipMonths.map((m) => {
           const selected = sameMonth(m, value);
           return (
             <button
@@ -97,7 +118,8 @@ export function MonthSwitcher({
               type="button"
               onClick={() => onChange(m)}
               className={cn(
-                "h-9 px-3 rounded-md text-sm capitalize whitespace-nowrap transition-colors",
+                "h-9 rounded-md text-sm capitalize transition-colors",
+                stretch ? "flex-1 min-w-0 px-1" : "px-3 whitespace-nowrap",
                 selected
                   ? "bg-zinc-800 text-white font-medium"
                   : "text-slate-600 hover:bg-slate-100",
@@ -114,15 +136,20 @@ export function MonthSwitcher({
         })}
       </div>
 
-      <button
-        type="button"
-        aria-label="Próximo mês"
-        onClick={() => onChange(addMonths(value, 1))}
-        className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
-      >
-        <ChevronRight className="size-5" />
-      </button>
+      {!stretch && (
+        <button
+          type="button"
+          aria-label="Próximo mês"
+          onClick={() => onChange(addMonths(value, 1))}
+          className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
+        >
+          <ChevronRight className="size-5" />
+        </button>
+      )}
+      </>
+      )}
 
+      {showPicker && (
       <Popover
         open={pickerOpen}
         onOpenChange={(open) => {
@@ -134,12 +161,28 @@ export function MonthSwitcher({
           <button
             type="button"
             title="Escolher mês"
-            className="ml-1 h-9 inline-flex items-center gap-1.5 px-3 rounded-md text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
+            className={cn(
+              "h-9 inline-flex items-center gap-1.5 px-3 rounded-md text-sm bg-slate-100 hover:bg-slate-200 transition-colors",
+              variant === "picker"
+                ? "w-full text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                : "ml-1 shrink-0 text-slate-600",
+            )}
           >
-            <Calendar className="size-4 text-slate-500" />
-            <span className="hidden sm:inline whitespace-nowrap">
-              {MONTHS_FULL[value.month - 1]} {value.year}
-            </span>
+            <Calendar className="size-4 text-slate-500 shrink-0" />
+            {variant === "picker" ? (
+              <>
+                <span className="flex-1 text-left truncate">
+                  {MONTHS_FULL[value.month - 1]} {value.year}
+                </span>
+                <ChevronDown className="size-4 text-slate-500 shrink-0" />
+              </>
+            ) : (
+              !compact && (
+                <span className="hidden sm:inline whitespace-nowrap">
+                  {MONTHS_FULL[value.month - 1]} {value.year}
+                </span>
+              )
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 p-3">
@@ -187,6 +230,7 @@ export function MonthSwitcher({
           </div>
         </PopoverContent>
       </Popover>
+      )}
     </div>
   );
 }

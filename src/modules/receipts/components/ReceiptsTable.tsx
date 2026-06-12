@@ -101,6 +101,19 @@ export function ReceiptsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {receipts.length === 0 ? (
+            <TableRow className="hover:bg-transparent border-b-0 text-slate-300">
+              <TableCell className="py-3 pl-4" />
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm">—</TableCell>
+              <TableCell className="py-3 text-sm text-right">—</TableCell>
+              <TableCell className="py-3 text-sm text-right pr-4">—</TableCell>
+            </TableRow>
+          ) : null}
           {receipts.map((r) => {
             const isSelected = selectedIds.has(r.id);
             // Com itens: se TODOS partilham a mesma categoria/CC, mostra ela;

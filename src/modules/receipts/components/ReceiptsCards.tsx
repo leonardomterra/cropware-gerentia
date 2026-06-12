@@ -30,6 +30,11 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
   const { categories } = useCategories();
   return (
     <div className="flex flex-col gap-2">
+      {receipts.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-400">
+          Nenhum lançamento neste mês.
+        </div>
+      ) : null}
       {receipts.map((r) => (
         <div
           key={r.id}
