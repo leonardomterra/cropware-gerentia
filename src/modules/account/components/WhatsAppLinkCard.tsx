@@ -57,7 +57,7 @@ export function WhatsAppLinkCard({ className }: { className?: string }) {
             </span>
           </div>
           <p className="text-sm text-slate-500">
-            Envie este código para o WhatsApp do Diretor IA. Válido por 10 minutos.
+            Envie este código para o WhatsApp do gerentia.app. Válido por 10 minutos.
           </p>
           <Button variant="outline" onClick={generate} disabled={loading}>
             {loading ? "Gerando..." : "Gerar Outro Código"}

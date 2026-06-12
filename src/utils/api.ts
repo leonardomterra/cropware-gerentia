@@ -2,7 +2,7 @@ import { projectId } from "./supabase/info";
 import { ensureSession } from "./supabase/client";
 import { getSessionTokens } from "./sessionStorage";
 
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/farm-api`;
+const BASE_URL = `https://${projectId}.supabase.co/functions/v1/gerentia-api`;
 
 export class ApiError extends Error {
   constructor(
@@ -10,7 +10,7 @@ export class ApiError extends Error {
     public body: string,
     public path: string,
   ) {
-    super(`farm-api ${status} ${path}: ${body}`);
+    super(`gerentia-api ${status} ${path}: ${body}`);
     this.name = "ApiError";
   }
 }
@@ -20,7 +20,7 @@ export interface ApiOptions extends Omit<RequestInit, "body"> {
 }
 
 /**
- * Wrapper sobre fetch pra chamadas ao farm-api.
+ * Wrapper sobre fetch pra chamadas ao gerentia-api.
  *
  * - Anexa Authorization Bearer com o access_token da sessao salva
  * - Em 401, tenta refresh da sessao via ensureSession() e UMA segunda tentativa

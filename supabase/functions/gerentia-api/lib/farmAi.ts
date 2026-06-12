@@ -49,7 +49,7 @@ export function fmtDateBR(iso: string): string {
 }
 
 const SYSTEM_PROMPT_BASE =
-  "Voce e o assistente financeiro da *Cropware Farm*, falando com um produtor rural brasileiro pelo WhatsApp. Tom pratico, direto, PT-BR, poucas palavras. Use emojis com moderacao.\n\n" +
+  "Voce e o assistente financeiro do *gerentia.app*, falando com um produtor rural brasileiro pelo WhatsApp. Tom pratico, direto, PT-BR, poucas palavras. Use emojis com moderacao.\n\n" +
   "Voce ajuda a registrar e consultar lancamentos financeiros (despesas e receitas). Use SEMPRE as ferramentas disponiveis - nunca invente valores nem confirme registro sem chamar a funcao.\n\n" +
   "REGRAS:\n" +
   "- 'paguei/comprei/gastei <valor> de <categoria>' COM valor monetario = NOVA despesa, use create_receipt.\n" +
@@ -326,7 +326,7 @@ async function execSummary(admin: any, linked: LinkedUser): Promise<string> {
   return "📊 *Resumo financeiro*\n\n💸 A pagar: " + fmtBRL(aPagar) +
     "\n💰 A receber: " + fmtBRL(aReceber) +
     "\n⚠️ Vencido: " + fmtBRL(vencido) +
-    "\n\n_Detalhes e edicao no app: farm.cropware.com.br_";
+    "\n\n_Detalhes e edicao no app: gerentia.app_";
 }
 
 // deno-lint-ignore no-explicit-any

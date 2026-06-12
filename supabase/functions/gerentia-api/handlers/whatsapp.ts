@@ -3,6 +3,7 @@ import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
+import { secret } from "../lib/env.ts";
 import { applyCreateReceipt, applyMarkPaid, askDateButtons, fmtDateBR, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser } from "../lib/farmAi.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
 import {
@@ -14,7 +15,7 @@ import {
 } from "../lib/whatsapp.ts";
 
 /**
- * Webhook WhatsApp Business (Meta) do Farm.
+ * Webhook WhatsApp Business (Meta) do gerentia.app.
  *
  * Fluxo da joia: foto/PDF -> OCR -> bot mostra dados + CC -> usuario confirma
  * (ou troca o CC) -> cria farm_receipts (source=whatsapp).
@@ -25,7 +26,7 @@ import {
  * PNID filter, dedup, background processing, safety net por mensagem.
  */
 
-const APP_URL = "https://farm.cropware.com.br";
+const APP_URL = "https://gerentia.app";
 const OCR_MIMES = new Set([
   "image/jpeg",
   "image/png",
@@ -455,8 +456,8 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       await sendText(
         from,
         linked
-          ? "👋 Sou o assistente financeiro da *Cropware Farm*.\n\n- Manda uma *foto* ou *PDF* de recibo/nota/boleto que eu leio e lanco.\n- Ou me fala por texto: paguei 850 de diesel / quanto tenho a pagar / meus ultimos lancamentos."
-          : "👋 Ola! Pra usar o assistente da *Cropware Farm*, primeiro vincule sua conta.\n\nNo app: *Conta -> WhatsApp*, gere um codigo de 6 digitos e me envie aqui.",
+          ? "👋 Sou o assistente financeiro do *gerentia.app*.\n\n- Manda uma *foto* ou *PDF* de recibo/nota/boleto que eu leio e lanco.\n- Ou me fala por texto: paguei 850 de diesel / quanto tenho a pagar / meus ultimos lancamentos."
+          : "👋 Ola! Pra usar o assistente do *gerentia.app*, primeiro vincule sua conta.\n\nNo app: *Conta -> WhatsApp*, gere um codigo de 6 digitos e me envie aqui.",
       );
       return;
     }
@@ -719,7 +720,7 @@ export function mountWhatsappRoutes(app: Hono) {
   app.post("/webhook/whatsapp", async (c) => {
     const body = await c.req.json().catch(() => null);
     if (!body?.entry) return c.json({ ok: true });
-    const myPnid = Deno.env.get("WHATSAPP_FARM_BOT_PNID");
+    const myPnid = secret("WHATSAPP_GERENTIA_BOT_PNID");
     const incomingPnid = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
     if (myPnid && incomingPnid && incomingPnid !== myPnid) {
       return c.json({ ok: true, ignored: true, reason: "foreign_pnid" });

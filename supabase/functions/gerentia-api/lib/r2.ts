@@ -1,5 +1,5 @@
 /**
- * Cloudflare R2 storage helper (privado) pro Cropware Farm.
+ * Cloudflare R2 storage helper (privado) pro gerentia.app.
  *
  * Difere do CDM (`cropware/.../r2_storage.tsx`): la o bucket e PUBLICO via
  * dominio (storage.cropware.com.br) porque sao fotos de campo. Aqui guardamos
@@ -9,26 +9,27 @@
  * Usa aws4fetch (SigV4 leve) pra evitar o cold-start timeout do
  * @aws-sdk/client-s3 no edge Deno.
  *
- * Secrets esperados na edge farm-api (prefixo FARM_ pra NAO colidir com os
- * secrets R2_* do Studio, que divide o mesmo projeto Supabase):
- * - FARM_R2_ACCOUNT_ID
- * - FARM_R2_ACCESS_KEY_ID
- * - FARM_R2_SECRET_ACCESS_KEY
- * - FARM_R2_BUCKET_NAME (ex: "cropware-farm")
+ * Secrets esperados na edge gerentia-api (prefixo GERENTIA_; ainda aceita os
+ * legados FARM_* via lib/env.ts durante a migracao):
+ * - GERENTIA_R2_ACCOUNT_ID
+ * - GERENTIA_R2_ACCESS_KEY_ID
+ * - GERENTIA_R2_SECRET_ACCESS_KEY
+ * - GERENTIA_R2_BUCKET_NAME (ex: "gerentia-receipts")
  */
 
 import { AwsClient } from "npm:aws4fetch@1.0.20";
+import { secret } from "./env.ts";
 
 let _client: AwsClient | null = null;
 
 function getR2Client(): AwsClient {
   if (_client) return _client;
 
-  const accessKeyId = Deno.env.get("FARM_R2_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("FARM_R2_SECRET_ACCESS_KEY");
+  const accessKeyId = secret("GERENTIA_R2_ACCESS_KEY_ID");
+  const secretAccessKey = secret("GERENTIA_R2_SECRET_ACCESS_KEY");
   if (!accessKeyId || !secretAccessKey) {
     throw new Error(
-      "R2 nao configurado. Defina FARM_R2_ACCESS_KEY_ID e FARM_R2_SECRET_ACCESS_KEY.",
+      "R2 nao configurado. Defina GERENTIA_R2_ACCESS_KEY_ID e GERENTIA_R2_SECRET_ACCESS_KEY.",
     );
   }
 
@@ -42,9 +43,9 @@ function getR2Client(): AwsClient {
 }
 
 function getEndpoint(): string {
-  const accountId = Deno.env.get("FARM_R2_ACCOUNT_ID");
-  if (!accountId) throw new Error("FARM_R2_ACCOUNT_ID nao configurado.");
-  const bucket = Deno.env.get("FARM_R2_BUCKET_NAME") || "cropware-farm";
+  const accountId = secret("GERENTIA_R2_ACCOUNT_ID");
+  if (!accountId) throw new Error("GERENTIA_R2_ACCOUNT_ID nao configurado.");
+  const bucket = secret("GERENTIA_R2_BUCKET_NAME") || "gerentia-receipts";
   return `https://${accountId}.r2.cloudflarestorage.com/${bucket}`;
 }
 

@@ -2,6 +2,7 @@ import type { Hono } from "npm:hono";
 import { requireCronSecret } from "../lib/cronGuard.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { sendTemplate, submitTemplate } from "../lib/whatsapp.ts";
+import { secret } from "../lib/env.ts";
 
 const TEMPLATE_DUE = "farm_alerta_vencimento";
 const TEMPLATE_SUMMARY = "farm_resumo_semanal";
@@ -196,8 +197,8 @@ export function mountCronRoutes(app: Hono) {
     if (key !== Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
       return c.json({ error: "forbidden" }, 403);
     }
-    const waba = Deno.env.get("WHATSAPP_FARM_BOT_WABA_ID");
-    const token = Deno.env.get("WHATSAPP_FARM_BOT_TOKEN");
+    const waba = secret("WHATSAPP_GERENTIA_BOT_WABA_ID");
+    const token = secret("WHATSAPP_GERENTIA_BOT_TOKEN");
     if (!waba || !token) return c.json({ error: "config_missing" }, 500);
     const res = await fetch(
       `https://graph.facebook.com/v25.0/${waba}/message_templates?fields=name,status,category,language,rejected_reason,quality_score&limit=50`,
@@ -221,7 +222,7 @@ export function mountCronRoutes(app: Hono) {
       category: "UTILITY",
       components: [{
         type: "BODY",
-        text: "🔔 Cropware Farm\n\nConta com {{1}} (R$ {{2}}) vence {{3}}.\n\nDetalhes no app.",
+        text: "🔔 gerentia.app\n\nConta com {{1}} (R$ {{2}}) vence {{3}}.\n\nDetalhes no app.",
         example: { body_text: [["Cemig", "850,00", "amanha"]] },
       }],
     };
@@ -238,7 +239,7 @@ export function mountCronRoutes(app: Hono) {
       category: "UTILITY",
       components: [{
         type: "BODY",
-        text: "📊 Resumo semanal Cropware Farm\n\nOla, {{1}}!\n\nEntradas: R$ {{2}}\nSaidas: R$ {{3}}\nPendente: R$ {{4}}\n\nVeja detalhes no app.",
+        text: "📊 Resumo semanal gerentia.app\n\nOla, {{1}}!\n\nEntradas: R$ {{2}}\nSaidas: R$ {{3}}\nPendente: R$ {{4}}\n\nVeja detalhes no app.",
         example: { body_text: [["Leonardo", "12.500,00", "8.300,00", "2.150,00"]] },
       }],
     };

@@ -14,6 +14,7 @@ import {
   persistSessionTokens,
 } from "@/utils/sessionStorage";
 import { api } from "@/utils/api";
+import { isMasterUser } from "@/utils/masterUsers";
 
 export type FarmRole = "owner" | "admin" | "member";
 
@@ -76,6 +77,7 @@ interface AuthContextType {
   isResettingPassword: boolean;
   resetError: string | null;
   isAdmin: boolean;
+  isMaster: boolean;
   canAccessCC: (ccId: string) => boolean;
   refreshUser: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -338,6 +340,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const isMaster = isMasterUser(user?.email);
   const canAccessCC = useCallback(
     (ccId: string): boolean => {
       if (!user) return false;
@@ -355,6 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isResettingPassword,
         resetError,
         isAdmin,
+        isMaster,
         canAccessCC,
         refreshUser,
         signIn,

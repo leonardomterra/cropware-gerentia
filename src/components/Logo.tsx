@@ -2,7 +2,7 @@ import type { ImgHTMLAttributes } from "react";
 import { cn } from "@/components/ui/utils";
 
 /**
- * Simbolo do Cropware Farm - PNG (logo-farm-01.png, 136x144 @3x pra
+ * Simbolo do gerentia.app - PNG (logo-farm-01.png, 136x144 @3x pra
  * exibicao a 48px). Exportado do Affinity em sRGB + Lanczos transparente.
  *
  * Por que PNG e nao SVG inline: o desenho e' detalhado demais e serrilhava
@@ -13,7 +13,7 @@ import { cn } from "@/components/ui/utils";
 export function Logo({
   className,
   white = false,
-  alt = "Cropware Farm",
+  alt = "gerentia.app",
   ...props
 }: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
   return (
@@ -35,7 +35,7 @@ export function Logo({
  */
 export function LogoName({
   className,
-  alt = "Cropware Farm",
+  alt = "gerentia.app",
   ...props
 }: ImgHTMLAttributes<HTMLImageElement>) {
   return (

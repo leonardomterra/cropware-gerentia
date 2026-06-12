@@ -1,9 +1,9 @@
 {
-  "name": "cropware-farm",
+  "name": "gerentia-app",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Gestao financeira e administrativa para fazendas - parte do ecossistema Cropware.",
+  "description": "gerentia.app - gestao financeira e administrativa para fazendas, com lancamentos por centro de custo e assistente no WhatsApp.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -82,6 +82,7 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "prettier": "^3.4.2",
+    "supabase": "^2.104.0",
     "tailwindcss": "^4.1.8",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.20.0",

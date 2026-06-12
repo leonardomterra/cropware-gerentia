@@ -1,25 +1,27 @@
 /**
- * Cliente WhatsApp Cloud API (Meta) pro bot do Farm.
+ * Cliente WhatsApp Cloud API (Meta) pro bot do gerentia.app.
  *
- * Secrets:
- * - WHATSAPP_FARM_BOT_TOKEN  (system user token, never-expire)
- * - WHATSAPP_FARM_BOT_PNID   (phone number id do numero — teste ou Salvy)
+ * Secrets (prefixo GERENTIA; aceita legado WHATSAPP_FARM_BOT_* via lib/env.ts):
+ * - WHATSAPP_GERENTIA_BOT_TOKEN  (system user token, never-expire)
+ * - WHATSAPP_GERENTIA_BOT_PNID   (phone number id do numero — teste ou Salvy)
  *
  * Envio e download passam 100% pela Graph API da Meta — a Salvy so fornece o
  * numero (nao entra no caminho da mensagem).
  */
 
+import { secret } from "./env.ts";
+
 const GRAPH = "https://graph.facebook.com/v25.0";
 
 function token(): string {
-  const t = Deno.env.get("WHATSAPP_FARM_BOT_TOKEN");
-  if (!t) throw new Error("WHATSAPP_FARM_BOT_TOKEN nao configurado.");
+  const t = secret("WHATSAPP_GERENTIA_BOT_TOKEN");
+  if (!t) throw new Error("WHATSAPP_GERENTIA_BOT_TOKEN nao configurado.");
   return t;
 }
 
 function pnid(): string {
-  const p = Deno.env.get("WHATSAPP_FARM_BOT_PNID");
-  if (!p) throw new Error("WHATSAPP_FARM_BOT_PNID nao configurado.");
+  const p = secret("WHATSAPP_GERENTIA_BOT_PNID");
+  if (!p) throw new Error("WHATSAPP_GERENTIA_BOT_PNID nao configurado.");
   return p;
 }
 
@@ -152,8 +154,8 @@ export function sendTemplate(
 export async function submitTemplate(
   body: Record<string, unknown>,
 ): Promise<{ id: string; status: string }> {
-  const waba = Deno.env.get("WHATSAPP_FARM_BOT_WABA_ID");
-  if (!waba) throw new Error("WHATSAPP_FARM_BOT_WABA_ID nao configurado.");
+  const waba = secret("WHATSAPP_GERENTIA_BOT_WABA_ID");
+  if (!waba) throw new Error("WHATSAPP_GERENTIA_BOT_WABA_ID nao configurado.");
   const res = await fetch(`${GRAPH}/${waba}/message_templates`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },

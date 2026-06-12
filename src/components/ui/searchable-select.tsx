@@ -42,7 +42,7 @@ interface SearchableSelectProps {
 /**
  * Select com busca interna (cmdk) - padrão CDM ComboBox. Single-select
  * por ora; multiselect virá numa próxima iteração quando o filter
- * receiver aceitar array (precisa mudar farm-api edge function).
+ * receiver aceitar array (precisa mudar gerentia-api edge function).
  *
  * Layout do dropdown:
  * - Input de busca no topo (CommandInput)

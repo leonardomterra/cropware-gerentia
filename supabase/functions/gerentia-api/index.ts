@@ -1,4 +1,4 @@
-// Cropware Farm - edge function principal.
+// gerentia.app - edge function principal.
 // Deploy: verify_jwt=false porque temos webhooks publicos (MP, RC, WhatsApp, cron).
 // Auth e validado dentro de cada handler quando necessario.
 
@@ -16,8 +16,9 @@ import { mountCostCenterRoutes } from "./handlers/costCenters.ts";
 import { mountMemberRoutes } from "./handlers/members.ts";
 import { mountInviteRoutes } from "./handlers/invites.ts";
 import { mountRecurringRoutes } from "./handlers/recurring.ts";
+import { mountAdminRoutes } from "./handlers/admin.ts";
 
-const app = new Hono().basePath("/farm-api");
+const app = new Hono().basePath("/gerentia-api");
 
 app.use("*", corsMiddleware());
 app.use("*", logger());
@@ -25,7 +26,7 @@ app.use("*", logger());
 app.get("/health", (c) =>
   c.json({
     ok: true,
-    service: "farm-api",
+    service: "gerentia-api",
     version: "0.7.2",
     ts: new Date().toISOString(),
   }),
@@ -41,9 +42,10 @@ mountCostCenterRoutes(app);
 mountMemberRoutes(app);
 mountInviteRoutes(app);
 mountRecurringRoutes(app);
+mountAdminRoutes(app);
 
 app.onError((err, c) => {
-  console.error("[farm-api] unhandled error:", err);
+  console.error("[gerentia-api] unhandled error:", err);
   return c.json({ error: "internal_error", message: err.message }, 500);
 });
 

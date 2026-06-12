@@ -2,7 +2,7 @@ import { cors } from "npm:hono/cors";
 
 /**
  * CORS aberto pra todas as origens. Em producao com dominio custom,
- * podemos restringir via env FARM_ALLOWED_ORIGINS.
+ * podemos restringir via env GERENTIA_ALLOWED_ORIGINS.
  */
 export function corsMiddleware() {
   return cors({

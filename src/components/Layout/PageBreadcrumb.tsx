@@ -1,6 +1,6 @@
 /**
  * Breadcrumb da rota atual (ex: "Dashboard", ou "Dashboard › Geral" quando
- * houver sub-nivel). Sem prefixo "Cropware Farm".
+ * houver sub-nivel). Sem prefixo "gerentia.app".
  *
  * Dois modos:
  * - default (standalone): barra branca propria com border-b, container

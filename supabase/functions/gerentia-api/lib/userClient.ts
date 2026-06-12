@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { isMasterUser } from "./masterUsers.ts";
 
 /**
  * Cria um Supabase client autenticado como o usuario que enviou a request.
@@ -97,4 +98,35 @@ export async function requireFarmAdmin(client: SupabaseClient) {
     };
   }
   return auth;
+}
+
+/**
+ * Gating do painel MASTER (gestão de plataforma): autentica o usuário e exige
+ * que o email esteja em MASTER_EMAILS. Diferente de requireFarmAdmin, NÃO
+ * depende de organização — master opera sobre todas as orgs. Endpoints master
+ * usam getSupabaseAdmin() (service role) pra operar bypassa RLS.
+ */
+export async function requireMaster(client: SupabaseClient) {
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+  if (!user) {
+    return {
+      user: null,
+      error: new Response(
+        JSON.stringify({ error: "unauthenticated" }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      ),
+    };
+  }
+  if (!isMasterUser(user.email)) {
+    return {
+      user,
+      error: new Response(
+        JSON.stringify({ error: "forbidden_master_only" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      ),
+    };
+  }
+  return { user, error: null };
 }

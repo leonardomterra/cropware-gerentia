@@ -1,4 +1,4 @@
--- Cropware Farm R3.1 - Alertas proativos de vencimento.
+-- gerentia.app R3.1 - Alertas proativos de vencimento.
 -- pg_cron dispara via pg_net.http_post o endpoint /cron/process-alerts da farm-api,
 -- que varre farm_receipts pendentes nos proximos 3 dias e envia template WhatsApp
 -- pro owner/creator linkado. farm_alert_log evita reenvio.
@@ -40,7 +40,7 @@ select cron.schedule(
   '0 9 * * *',
   $$
   select extensions.net.http_post(
-    url := 'https://tzsmxhwvtobwkqffgsxo.supabase.co/functions/v1/farm-api/cron/process-alerts',
+    url := 'https://ttnsywnwjybrrtykoqxr.supabase.co/functions/v1/farm-api/cron/process-alerts',
     headers := jsonb_build_object(
       'x-cron-secret', 'farm_alerts_2026_x9k2p3m7',
       'content-type', 'application/json'

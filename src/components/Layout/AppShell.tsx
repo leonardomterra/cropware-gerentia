@@ -10,6 +10,7 @@ import ArrowLeftRight from "~icons/material-symbols-light/swap-horiz";
 import SlidersHorizontal from "~icons/material-symbols-light/tune";
 import Repeat from "~icons/material-symbols-light/autorenew";
 import Users from "~icons/material-symbols-light/group-outline";
+import ManageAccounts from "~icons/material-symbols-light/manage-accounts-outline";
 import UserCircle from "~icons/material-symbols-light/account-circle-outline";
 import LogOut from "~icons/material-symbols-light/logout";
 import HelpCircle from "~icons/material-symbols-light/help-outline";
@@ -22,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { LogoWordmark } from "@/components/LogoWordmark";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
+import { ImpersonationBanner } from "@/modules/admin/components/ImpersonationBanner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +52,11 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
   { to: "/recorrencias", label: "Recorrências", icon: Repeat },
   { to: "/equipe", label: "Equipe", icon: Users },
+];
+
+// Só-master (allowlist MASTER_EMAILS): gestão de plataforma de todos os usuários.
+const MASTER_NAV_ITEMS: NavItem[] = [
+  { to: "/admin", label: "Usuários", icon: ManageAccounts },
 ];
 
 // Conta NAO entra no nav principal - fica no menu do usuario (rodape).
@@ -95,7 +102,7 @@ function NavRow({
 }
 
 export function AppShell() {
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, isMaster } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -122,12 +129,13 @@ export function AppShell() {
   const navItems: NavItem[] = [
     ...BASE_NAV_ITEMS,
     ...(isAdmin ? ADMIN_NAV_ITEMS : []),
+    ...(isMaster ? MASTER_NAV_ITEMS : []),
   ];
 
   const breadcrumbSegments = useMemo(() => {
     const path = location.pathname;
     if (path === "/" || path === "") return ["Dashboard"];
-    const lookup = [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS, ACCOUNT_NAV_ITEM].find(
+    const lookup = [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS, ...MASTER_NAV_ITEMS, ACCOUNT_NAV_ITEM].find(
       (it) => path === it.to || path.startsWith(it.to + "/"),
     );
     if (lookup) return [lookup.label];
@@ -269,6 +277,7 @@ export function AppShell() {
 
       {/* COLUNA DE CONTEUDO */}
       <div className="flex flex-col flex-1 min-w-0">
+        <ImpersonationBanner />
         {/* Topbar fina: toggle (desktop) / menu (mobile) + breadcrumb */}
         <div className="flex items-center h-13 shrink-0 border-b border-slate-200 px-2 sm:px-3 gap-1">
           {/* Desktop: colapsar/expandir */}

@@ -42,6 +42,9 @@ const RecurringPage = lazyWithRetry(
 const IconLabPage = lazyWithRetry(
   () => import("@/modules/dev/pages/IconLabPage"),
 );
+const AdminUsersPage = lazyWithRetry(
+  () => import("@/modules/admin/pages/AdminUsersPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -68,7 +71,8 @@ function LoadingScreen() {
 }
 
 function RootRoutes() {
-  const { user, loading, isResettingPassword, resetError, isAdmin } = useAuth();
+  const { user, loading, isResettingPassword, resetError, isAdmin, isMaster } =
+    useAuth();
 
   if (loading) return <LoadingScreen />;
   if (isResettingPassword || resetError) return <ResetPasswordScreen />;
@@ -160,6 +164,16 @@ function RootRoutes() {
               }
             />
           </>
+        )}
+        {isMaster && (
+          <Route
+            path="admin"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <AdminUsersPage />
+              </Suspense>
+            }
+          />
         )}
         {/* DEV-only: laboratorio de icones (Iconify). So existe em dev, por URL
             /icones. Em producao a rota nao e registrada (cai no catch-all). */}
