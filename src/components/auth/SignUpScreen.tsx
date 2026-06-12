@@ -14,7 +14,6 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [farmName, setFarmName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +37,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         email: email.trim(),
         password,
         fullName: fullName.trim(),
-        farmName: farmName.trim(),
+        // App individual: org nomeada com o proprio nome do usuario (sem
+        // pedir "nome da conta" no cadastro). Reintroduzir um campo proprio
+        // quando existir o app multi-usuario (fazendas/empresas).
+        farmName: fullName.trim(),
         phone: phone.trim() || undefined,
       });
       setSuccess(result);
@@ -84,18 +86,6 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             autoComplete="name"
-            required
-            disabled={submitting}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="farmName">Nome da conta</Label>
-          <Input
-            id="farmName"
-            value={farmName}
-            onChange={(e) => setFarmName(e.target.value)}
-            placeholder="Sua empresa, fazenda ou nome pessoal"
             required
             disabled={submitting}
           />
@@ -154,7 +144,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         <Button
           type="submit"
           variant="default"
-          disabled={submitting || !email || !password || !fullName || !farmName}
+          disabled={submitting || !email || !password || !fullName}
           className="mt-2"
         >
           {submitting ? "Criando..." : "Criar Conta"}

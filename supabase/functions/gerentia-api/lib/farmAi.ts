@@ -61,7 +61,8 @@ const SYSTEM_PROMPT_BASE =
   "- Se faltar o VALOR numa criacao, pergunte so o valor. Nao invente.\n" +
   "- DATA: se o usuario mencionar uma data ou tempo relativo no texto ('ontem', 'anteontem', 'dia 25', '25/03', 'na terca passada', 'amanha'), RESOLVA pra YYYY-MM-DD e preencha 'transaction_date'. Use 'Hoje e <data>' acima como referencia. Se NAO mencionar, NAO preencha 'transaction_date' - o backend vai perguntar.\n" +
   "- Categorias de despesa: combustivel, defensivos, sementes, fertilizantes, manutencao, pecas, frete, servicos, alimentacao, arrendamento, folha, outros_despesa. Receita: venda_graos, venda_gado, outros_receita.\n" +
-  "- Para consultas (quanto gastei, o que tenho a pagar, resumo, quanto devo) use get_financial_summary ou list_receipts.\n" +
+  "- Para TOTAIS (quanto gastei/entrou no mes, saldo do mes, o que tenho a pagar/receber, vencido, resumo, quanto devo) use get_financial_summary - ele ja traz o realizado do mes atual + pendencias.\n" +
+  "- Para LISTAR lancamentos recentes (ex: 'meus ultimos lancamentos', 'o que lancei essa semana') use list_receipts.\n" +
   "- EDICAO e EXCLUSAO de lancamentos NAO sao possiveis pelo WhatsApp - oriente a usar o app web.\n" +
   "- Para registrar com FOTO/PDF, o usuario pode mandar a imagem do recibo direto.";
 
@@ -107,7 +108,7 @@ function toolDeclarations() {
       },
       {
         name: "get_financial_summary",
-        description: "Resumo: totais a pagar/a receber/vencidos (limitado aos centros do usuario).",
+        description: "Resumo financeiro: entradas/saidas/saldo do MES ATUAL + pendencias em aberto (a pagar/receber/vencido). Limitado aos centros do usuario.",
         parameters: { type: "object", properties: {} },
       },
       {
@@ -303,11 +304,16 @@ async function execCreateReceipt(admin: any, linked: LinkedUser, args: any, from
   return "";
 }
 
+const MESES_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
 // deno-lint-ignore no-explicit-any
 async function execSummary(admin: any, linked: LinkedUser): Promise<string> {
   let q = admin
     .from("farm_receipts")
-    .select("direction, status, total_value")
+    .select("direction, status, total_value, transaction_date")
     .eq("organization_id", linked.organization_id);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
@@ -316,17 +322,31 @@ async function execSummary(admin: any, linked: LinkedUser): Promise<string> {
     console.error("[farmAi] summary error:", error);
     return "Nao consegui buscar o resumo agora.";
   }
-  let aPagar = 0, aReceber = 0, vencido = 0;
+  // Mes corrente (BR) pro realizado; pendencias somam em aberto (todo o periodo).
+  const today = todayBR(); // YYYY-MM-DD em horario BR
+  const ym = today.slice(0, 7);
+  const mesNome = MESES_PT[Number(today.slice(5, 7)) - 1];
+  let aPagar = 0, aReceber = 0, vencido = 0, mesEntradas = 0, mesSaidas = 0;
   for (const r of data || []) {
     const v = Number(r.total_value) || 0;
     if (r.status === "a_pagar") aPagar += v;
     else if (r.status === "a_receber") aReceber += v;
     else if (r.status === "vencido") vencido += v;
+    if (r.transaction_date && String(r.transaction_date).slice(0, 7) === ym) {
+      if (r.direction === "income") mesEntradas += v;
+      else mesSaidas += v;
+    }
   }
-  return "📊 *Resumo financeiro*\n\n💸 A pagar: " + fmtBRL(aPagar) +
-    "\n💰 A receber: " + fmtBRL(aReceber) +
-    "\n⚠️ Vencido: " + fmtBRL(vencido) +
-    "\n\n_Detalhes e edicao no app: gerentia.app_";
+  const saldo = mesEntradas - mesSaidas;
+  return `📊 *Resumo de ${mesNome}*\n\n` +
+    `💰 Entradas no mês: ${fmtBRL(mesEntradas)}\n` +
+    `💸 Saídas no mês: ${fmtBRL(mesSaidas)}\n` +
+    `📈 Saldo do mês: ${fmtBRL(saldo)}\n\n` +
+    `*Pendências em aberto*\n` +
+    `🔸 A pagar: ${fmtBRL(aPagar)}\n` +
+    `🔹 A receber: ${fmtBRL(aReceber)}\n` +
+    `⚠️ Vencido: ${fmtBRL(vencido)}\n\n` +
+    `_Detalhes e edição no app: gerentia.app_`;
 }
 
 // deno-lint-ignore no-explicit-any

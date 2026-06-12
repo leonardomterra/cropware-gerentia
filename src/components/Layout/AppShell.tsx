@@ -9,7 +9,7 @@ import LayoutDashboard from "~icons/material-symbols-light/space-dashboard-outli
 import ArrowLeftRight from "~icons/material-symbols-light/swap-horiz";
 import SlidersHorizontal from "~icons/material-symbols-light/tune";
 import Repeat from "~icons/material-symbols-light/autorenew";
-import Users from "~icons/material-symbols-light/group-outline";
+// import Users from "~icons/material-symbols-light/group-outline"; // Equipe desativada (app individual)
 import ManageAccounts from "~icons/material-symbols-light/manage-accounts-outline";
 import UserCircle from "~icons/material-symbols-light/account-circle-outline";
 import LogOut from "~icons/material-symbols-light/logout";
@@ -28,7 +28,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -51,7 +50,10 @@ const BASE_NAV_ITEMS: NavItem[] = [
 const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
   { to: "/recorrencias", label: "Recorrências", icon: Repeat },
-  { to: "/equipe", label: "Equipe", icon: Users },
+  // "Equipe" desativada temporariamente: por ora o app e individual. A infra
+  // de organizacao/RBAC/convites continua intacta (dormente) no backend pro
+  // app futuro (fazendas/empresas). Rota /equipe segue valida via URL direta.
+  // { to: "/equipe", label: "Equipe", icon: Users },
 ];
 
 // Só-master (allowlist MASTER_EMAILS): gestão de plataforma de todos os usuários.
@@ -219,14 +221,8 @@ export function AppShell() {
               sideOffset={6}
               className="w-56"
             >
-              {user?.organizationName ? (
-                <>
-                  <DropdownMenuLabel className="font-normal text-slate-400 truncate">
-                    {user.organizationName}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                </>
-              ) : null}
+              {/* Rotulo da org escondido (app individual): o nome da org = nome
+                  do usuario, redundante com o botao. Reativar com app multi-user. */}
               <DropdownMenuItem onSelect={() => navigate("/conta")}>
                 <UserCircle className="size-4" />
                 Conta

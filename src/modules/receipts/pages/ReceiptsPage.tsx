@@ -40,6 +40,13 @@ import {
 } from "../components/ReceiptFormDialog";
 import { ReceiptCaptureDialog } from "../components/ReceiptCaptureDialog";
 import { ReceiptViewDialog } from "../components/ReceiptViewDialog";
+import {
+  MonthSwitcher,
+  currentYearMonth,
+  monthLabel,
+  monthRangeISO,
+  type YearMonth,
+} from "../components/MonthSwitcher";
 import { deleteReceipt, useReceipts } from "../hooks/useReceipts";
 import type { ScanResult } from "../hooks/useReceiptScanner";
 import type {
@@ -130,6 +137,7 @@ export default function ReceiptsPage() {
   const showTabs = userCCs.length > 1;
 
   const [filters, setFilters] = useState<ReceiptFilters>({});
+  const [month, setMonth] = useState<YearMonth>(currentYearMonth);
   const [activeCCId, setActiveCCId] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
     "recent" | "old" | "value_desc" | "value_asc"
@@ -143,9 +151,14 @@ export default function ReceiptsPage() {
   const [pendingDelete, setPendingDelete] = useState<Receipt | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const effectiveFilters: ReceiptFilters = activeCCId !== "all"
-    ? { ...filters, cost_center_id: activeCCId }
-    : filters;
+  // Mês é o escopo primário de data: define from/to (transaction_date).
+  const monthRange = useMemo(() => monthRangeISO(month), [month]);
+  const effectiveFilters: ReceiptFilters = {
+    ...filters,
+    ...(activeCCId !== "all" ? { cost_center_id: activeCCId } : {}),
+    from: monthRange.from,
+    to: monthRange.to,
+  };
 
   const { receipts, loading, error, refetch } = useReceipts(effectiveFilters);
   const isMobile = useIsMobile();
@@ -433,6 +446,9 @@ export default function ReceiptsPage() {
         </div>
       </div>
 
+      {/* Navegacao de mes - escopo primario dos lancamentos (transaction_date). */}
+      <MonthSwitcher value={month} onChange={setMonth} className="mb-3" />
+
       {/* Estados:
           - error: error card (sempre)
           - isInitialLoad (loading + sem dados): big "Carregando..."
@@ -462,7 +478,10 @@ export default function ReceiptsPage() {
               <ReceiptIcon className="size-10 text-slate-300" />
               <div>
                 <p className="text-sm font-medium text-slate-900">
-                  Nenhum Lançamento Ainda
+                  Nenhum lançamento em {monthLabel(month)}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Troque de mês acima ou registre um novo lançamento.
                 </p>
               </div>
             </div>

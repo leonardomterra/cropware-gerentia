@@ -133,21 +133,9 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         />
       </div>
 
-      <Input
-        type="date"
-        value={value.from ?? ""}
-        onChange={(e) => set("from", e.target.value || undefined)}
-        className={cn("h-9 w-[150px] bg-white", fieldText)}
-        title="Data inicial"
-      />
-
-      <Input
-        type="date"
-        value={value.to ?? ""}
-        onChange={(e) => set("to", e.target.value || undefined)}
-        className={cn("h-9 w-[150px] bg-white", fieldText)}
-        title="Data final"
-      />
+      {/* Intervalo de data agora e controlado pelo MonthSwitcher (mes) acima
+          da tabela, que define from/to. Os inputs de data brutos sairam daqui
+          pra nao competir com a navegacao de mes. */}
 
       {hasAny ? (
         <Button

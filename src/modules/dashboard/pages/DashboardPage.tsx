@@ -21,6 +21,13 @@ import { api } from "@/utils/api";
 import { CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
+import {
+  MonthSwitcher,
+  currentYearMonth,
+  monthLabel,
+  monthRangeISO,
+  type YearMonth,
+} from "@/modules/receipts/components/MonthSwitcher";
 
 interface ReceiptItemLite {
   category: string | null;
@@ -97,11 +104,11 @@ function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function lastSixMonths(): { key: string; label: string }[] {
+/** 6 meses terminando no mês selecionado (inclusive). */
+function sixMonthsEnding({ year, month }: YearMonth): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
-  const now = new Date();
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(year, month - 1 - i, 1);
     out.push({ key: monthKey(d), label: MONTH_LABELS[d.getMonth()] });
   }
   return out;
@@ -115,9 +122,12 @@ export default function DashboardPage() {
   const showCCFilter = ccs.length > 1;
 
   const [activeCC, setActiveCC] = useState<string>("all");
+  const [month, setMonth] = useState<YearMonth>(currentYearMonth);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedKey = `${month.year}-${String(month.month).padStart(2, "0")}`;
 
   useEffect(() => {
     let cancel = false;
@@ -125,12 +135,12 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-        sixMonthsAgo.setDate(1);
-        const from = sixMonthsAgo.toISOString().slice(0, 10);
+        // Janela de 6 meses terminando no mês selecionado (KPIs + gráfico + top).
+        const start = new Date(month.year, month.month - 1 - 5, 1);
+        const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+        const to = monthRangeISO(month).to;
         const r = await api<ReceiptsResponse>(
-          `/receipts?from=${from}&limit=500`,
+          `/receipts?from=${from}&to=${to}&limit=500`,
           { method: "GET" },
         );
         if (!cancel) setReceipts(r.receipts || []);
@@ -141,7 +151,7 @@ export default function DashboardPage() {
       }
     })();
     return () => { cancel = true; };
-  }, []);
+  }, [month]);
 
   // Expande em linhas (split por item) e filtra por CC na LINHA - assim uma
   // nota dividida contribui so a porção do CC ativo.
@@ -152,18 +162,16 @@ export default function DashboardPage() {
       : all.filter((l) => l.cost_center_id === activeCC);
   }, [receipts, activeCC]);
 
-  // KPIs do mes corrente.
-  const now = new Date();
-  const currentMonth = monthKey(now);
+  // KPIs do mês selecionado.
   const monthKpis = useMemo(() => {
     let income = 0, expense = 0;
     for (const l of lines) {
-      if (!l.date || l.date.slice(0, 7) !== currentMonth) continue;
+      if (!l.date || l.date.slice(0, 7) !== selectedKey) continue;
       if (l.direction === "income") income += l.value;
       else expense += l.value;
     }
     return { income, expense, balance: income - expense };
-  }, [lines, currentMonth]);
+  }, [lines, selectedKey]);
 
   // Pendentes (a_pagar / a_receber / vencido), agregado em todo o range.
   const pending = useMemo(() => {
@@ -178,7 +186,7 @@ export default function DashboardPage() {
 
   // Serie de 6 meses.
   const chartData = useMemo(() => {
-    const months = lastSixMonths();
+    const months = sixMonthsEnding(month);
     const acc: Record<string, { mes: string; entradas: number; saidas: number }> = {};
     for (const m of months) acc[m.key] = { mes: m.label, entradas: 0, saidas: 0 };
     for (const l of lines) {
@@ -189,13 +197,14 @@ export default function DashboardPage() {
       else acc[k].saidas += l.value;
     }
     return months.map((m) => acc[m.key]);
-  }, [lines]);
+  }, [lines, month]);
 
-  // Top 5 categorias de despesa (cada item soma na SUA categoria).
+  // Top 5 categorias de despesa do mês selecionado (cada item na SUA categoria).
   const topCategories = useMemo(() => {
     const byCat: Record<string, number> = {};
     for (const l of lines) {
       if (l.direction !== "expense") continue;
+      if (!l.date || l.date.slice(0, 7) !== selectedKey) continue;
       const cat = l.category || "outros_despesa";
       byCat[cat] = (byCat[cat] || 0) + l.value;
     }
@@ -203,14 +212,14 @@ export default function DashboardPage() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([cat, total]) => ({ cat, total }));
-  }, [lines]);
+  }, [lines, selectedKey]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-base font-medium text-slate-900">Olá, {firstName}.</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Resumo dos últimos 6 meses.</p>
+          <p className="text-sm text-slate-500 mt-0.5">{monthLabel(month)}</p>
         </div>
         {showCCFilter && (
           <DropdownMenu>
@@ -259,11 +268,13 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <MonthSwitcher value={month} onChange={setMonth} />
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">{error}</div>
       )}
 
-      {/* KPIs mes corrente */}
+      {/* KPIs do mês selecionado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KpiCard label="Entradas (mês)" value={monthKpis.income} tone="positive" loading={loading} />
         <KpiCard label="Saídas (mês)" value={monthKpis.expense} tone="negative" loading={loading} />
@@ -309,10 +320,10 @@ export default function DashboardPage() {
       {/* Top categorias de despesa */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <h2 className="text-xs font-medium text-slate-500 mb-3">
-          Onde Mais Saiu (6 meses)
+          Onde Mais Saiu em {monthLabel(month)}
         </h2>
         {topCategories.length === 0 ? (
-          <p className="text-sm text-slate-500">Sem despesas no periodo.</p>
+          <p className="text-sm text-slate-500">Sem despesas neste mês.</p>
         ) : (
           <ul className="space-y-2">
             {topCategories.map((c) => {

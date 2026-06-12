@@ -5,7 +5,7 @@ import Lock from "~icons/material-symbols-light/lock-outline";
 import Premium from "~icons/material-symbols-light/workspace-premium-outline";
 import Shield from "~icons/material-symbols-light/verified-user-outline";
 import Warning from "~icons/material-symbols-light/warning-outline";
-import { useAuth, type FarmRole } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,13 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { cn } from "@/components/ui/utils";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
 
-const ROLE_LABEL: Record<FarmRole, string> = {
-  owner: "Proprietário",
-  admin: "Administrador",
-  member: "Membro",
-};
+// "Função"/"Organização" ocultas no app individual (sem conceito de equipe).
+// Reativar junto com a aba Equipe quando existir o app multi-usuario.
+// const ROLE_LABEL: Record<FarmRole, string> = {
+//   owner: "Proprietário",
+//   admin: "Administrador",
+//   member: "Membro",
+// };
 
 function formatPhoneBR(value: string): string {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -180,15 +182,10 @@ export default function AccountPage() {
     <div className="space-y-4">
       <header>
         <h1 className="text-base font-medium text-slate-900">Conta</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Gerencie seu perfil, acesso, assinatura e integrações.
-        </p>
       </header>
 
-      {/* 2x2: Perfil | Assinatura (linha 1), Acesso e seguranca | WhatsApp
-          (linha 2). O grid estica cada LINHA, entao os dois cards da mesma
-          linha ficam com a mesma altura (align-items: stretch default). */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Cada card em uma linha (coluna unica), largura cheia. */}
+      <div className="grid grid-cols-1 gap-4">
           <Section
             icon={Person}
             title="Perfil"
@@ -227,12 +224,13 @@ export default function AccountPage() {
                   inputMode="tel"
                 />
               </div>
+              {/* Funcao/Organizacao ocultas: app individual (sem equipe).
               <ReadOnlyField label="Função">
                 <Badge>{ROLE_LABEL[user.role]}</Badge>
               </ReadOnlyField>
               <ReadOnlyField label="Organização">
                 <span className="truncate block">{user.organizationName}</span>
-              </ReadOnlyField>
+              </ReadOnlyField> */}
             </div>
           </Section>
 
