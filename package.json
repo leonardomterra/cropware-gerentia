@@ -17,6 +17,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@fontsource-variable/inter-tight": "^5.2.7",
     "@fontsource-variable/mozilla-headline": "^5.2.2",
+    "@fontsource-variable/mozilla-text": "^5.2.2",
     "@fontsource/alumni-sans": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/space-mono": "^5.2.9",

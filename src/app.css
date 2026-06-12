@@ -65,6 +65,9 @@
 
   --font-sans: var(--font-ui, "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
 
+  /* Mozilla Text - utility `font-mozilla` (teste na tela de login). */
+  --font-mozilla: "Mozilla Text Variable", "Mozilla Text", ui-sans-serif, system-ui, sans-serif;
+
   /* ESCALA TIPOGRAFICA FIXA - "sempre" estes 4 tamanhos (ver bloco
      BASE TYPOGRAPHY abaixo). Tailwind v4 gera as font-size utilities a
      partir destes tokens, entao redefinir aqui muda .text-xs/.text-sm/etc.
@@ -84,7 +87,7 @@
    ========================================================== */
 
 :root {
-  --font-ui: "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-ui: "Mozilla Text Variable", "Mozilla Text", "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Tokens shadcn em HSL - agora na familia ZINC (hue ~240, satur. baixa). */
   --background: 0 0% 100%;
@@ -117,14 +120,17 @@
 }
 
 .native-ios {
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  /* Marca consistente: iOS nativo tambem usa Mozilla Text (igual web), nao
+     mais a system font da Apple. Bundled via @fontsource -> funciona offline
+     no WebView. -apple-system fica so de fallback. */
+  --font-ui: "Mozilla Text Variable", "Mozilla Text", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ==========================================================
    BASE TYPOGRAPHY - gerentia.app (espelho exato do CDM)
    --------------------------------------------------------------
-   * Inter Tight Variable como fonte principal (self-hosted via
-     @fontsource-variable/inter-tight) - mesma do Cropware Field.
+   * Mozilla Text Variable como fonte principal (self-hosted via
+     @fontsource-variable/mozilla-text). Inter Tight fica so de fallback.
    * ESCALA FIXA (4 tamanhos, "sempre" - nao usar outros):
        - 14px   texto padrao  -> body default / text-sm
        - 13px   complementar  -> text-xs (remapeado no @theme acima)
@@ -155,9 +161,10 @@ body {
   background-color: hsl(var(--background));
   min-height: 100%;
   color: hsl(var(--foreground));
-  font-family: var(--font-ui), "Inter Tight Variable", "Inter Tight",
-    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+  font-family: var(--font-ui), "Mozilla Text Variable", "Mozilla Text",
+    "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji" !important;
   font-style: normal;
   font-weight: 400;
   font-optical-sizing: auto;
@@ -315,7 +322,8 @@ input:-webkit-autofill:active {
   font-size: var(--logo-size, 17px); /* 17px na sidebar; login usa maior */
   letter-spacing: 0.5px;
   line-height: 1;
-  color: #111827;
+  /* default escuro (sidebar/telas claras); telas escuras passam --logo-color */
+  color: var(--logo-color, #111827);
 }
 
 /* ENTRADA (1o beat): o conjunto sobe + faz fade; logo em seguida a digitacao
