@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
-  CartesianGrid,
-  Legend,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -18,16 +16,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import { api } from "@/utils/api";
-import { CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
+import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
+import { monthRangeISO, type YearMonth } from "@/modules/receipts/components/MonthSwitcher";
 import {
-  MonthSwitcher,
-  currentYearMonth,
-  monthLabel,
-  monthRangeISO,
-  type YearMonth,
-} from "@/modules/receipts/components/MonthSwitcher";
+  PeriodSwitcher,
+  defaultPeriod,
+  periodLabel,
+  periodRange,
+  type DashPeriod,
+} from "../components/PeriodSwitcher";
 
 interface ReceiptItemLite {
   category: string | null;
@@ -92,10 +91,6 @@ function linesOf(r: Receipt): DashLine[] {
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-function fmtBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
-}
-
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
@@ -114,6 +109,27 @@ function sixMonthsEnding({ year, month }: YearMonth): { key: string; label: stri
   return out;
 }
 
+/** Meses de from..to (inclusive). Cruzando ano, label ganha o ano ("Dez 25"). */
+function monthsBetween(from: YearMonth, to: YearMonth): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  const crossYear = from.year !== to.year;
+  let y = from.year;
+  let m = from.month;
+  while (y < to.year || (y === to.year && m <= to.month)) {
+    const d = new Date(y, m - 1, 1);
+    out.push({
+      key: monthKey(d),
+      label: crossYear ? `${MONTH_LABELS[m - 1]} ${String(y).slice(2)}` : MONTH_LABELS[m - 1],
+    });
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+  }
+  return out;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { categories } = useCategories();
@@ -122,12 +138,15 @@ export default function DashboardPage() {
   const showCCFilter = ccs.length > 1;
 
   const [activeCC, setActiveCC] = useState<string>("all");
-  const [month, setMonth] = useState<YearMonth>(currentYearMonth);
+  const [period, setPeriod] = useState<DashPeriod>(defaultPeriod);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedKey = `${month.year}-${String(month.month).padStart(2, "0")}`;
+  const range = periodRange(period);
+  const ymKey = (m: YearMonth) => `${m.year}-${String(m.month).padStart(2, "0")}`;
+  const fromKey = ymKey(range.from);
+  const toKey = ymKey(range.to);
 
   useEffect(() => {
     let cancel = false;
@@ -135,15 +154,20 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        // Janela de 6 meses terminando no mês selecionado (KPIs + gráfico + top).
-        const start = new Date(month.year, month.month - 1 - 5, 1);
-        const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
-        const to = monthRangeISO(month).to;
-        const r = await api<ReceiptsResponse>(
-          `/receipts?from=${from}&to=${to}&limit=500`,
+        // Modo mensal busca 6 meses terminando no mês (contexto do gráfico);
+        // os demais modos buscam exatamente o intervalo do período.
+        const r = periodRange(period);
+        const chartStart =
+          period.mode === "month"
+            ? new Date(r.from.year, r.from.month - 1 - 5, 1)
+            : new Date(r.from.year, r.from.month - 1, 1);
+        const from = `${chartStart.getFullYear()}-${String(chartStart.getMonth() + 1).padStart(2, "0")}-01`;
+        const to = monthRangeISO(r.to).to;
+        const resp = await api<ReceiptsResponse>(
+          `/receipts?from=${from}&to=${to}&limit=1000`,
           { method: "GET" },
         );
-        if (!cancel) setReceipts(r.receipts || []);
+        if (!cancel) setReceipts(resp.receipts || []);
       } catch (e) {
         if (!cancel) setError(e instanceof Error ? e.message : "Erro ao carregar dados");
       } finally {
@@ -151,7 +175,7 @@ export default function DashboardPage() {
       }
     })();
     return () => { cancel = true; };
-  }, [month]);
+  }, [period]);
 
   // Expande em linhas (split por item) e filtra por CC na LINHA - assim uma
   // nota dividida contribui so a porção do CC ativo.
@@ -162,16 +186,22 @@ export default function DashboardPage() {
       : all.filter((l) => l.cost_center_id === activeCC);
   }, [receipts, activeCC]);
 
-  // KPIs do mês selecionado.
+  // KPIs do período selecionado (mês/semestre/ano/custom = intervalo de meses).
+  const inRange = (date: string | null) => {
+    if (!date) return false;
+    const k = date.slice(0, 7);
+    return k >= fromKey && k <= toKey;
+  };
   const monthKpis = useMemo(() => {
     let income = 0, expense = 0;
     for (const l of lines) {
-      if (!l.date || l.date.slice(0, 7) !== selectedKey) continue;
+      if (!inRange(l.date)) continue;
       if (l.direction === "income") income += l.value;
       else expense += l.value;
     }
     return { income, expense, balance: income - expense };
-  }, [lines, selectedKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, fromKey, toKey]);
 
   // Pendentes (a_pagar / a_receber / vencido), agregado em todo o range.
   const pending = useMemo(() => {
@@ -186,7 +216,10 @@ export default function DashboardPage() {
 
   // Serie de 6 meses.
   const chartData = useMemo(() => {
-    const months = sixMonthsEnding(month);
+    const months =
+      period.mode === "month"
+        ? sixMonthsEnding(period.month)
+        : monthsBetween(range.from, range.to);
     const acc: Record<string, { mes: string; entradas: number; saidas: number }> = {};
     for (const m of months) acc[m.key] = { mes: m.label, entradas: 0, saidas: 0 };
     for (const l of lines) {
@@ -197,14 +230,15 @@ export default function DashboardPage() {
       else acc[k].saidas += l.value;
     }
     return months.map((m) => acc[m.key]);
-  }, [lines, month]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, period, fromKey, toKey]);
 
-  // Top 5 categorias de despesa do mês selecionado (cada item na SUA categoria).
+  // Top 5 categorias de despesa do período (cada item na SUA categoria).
   const topCategories = useMemo(() => {
     const byCat: Record<string, number> = {};
     for (const l of lines) {
       if (l.direction !== "expense") continue;
-      if (!l.date || l.date.slice(0, 7) !== selectedKey) continue;
+      if (!inRange(l.date)) continue;
       const cat = l.category || "outros_despesa";
       byCat[cat] = (byCat[cat] || 0) + l.value;
     }
@@ -212,106 +246,152 @@ export default function DashboardPage() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([cat, total]) => ({ cat, total }));
-  }, [lines, selectedKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, fromKey, toKey]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-base font-medium text-slate-900">Olá, {firstName}.</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{monthLabel(month)}</p>
+          <p className="text-sm text-slate-500 mt-0.5">{periodLabel(period)}</p>
         </div>
-        {showCCFilter && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-              >
-                {activeCC !== "all" && (
-                  <CostCenterChip
-                    icon={ccs.find((c) => c.id === activeCC)?.icon}
-                    color={ccs.find((c) => c.id === activeCC)?.color}
-                    className="size-6"
-                  />
-                )}
-                <span
-                  className="flex-1 text-left truncate"
-                  style={activeCC !== "all" ? { color: ccTextColor(ccs.find((c) => c.id === activeCC)?.color) } : undefined}
+        <div className="flex items-center gap-2">
+          {showCCFilter && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 >
-                  {activeCC === "all"
-                    ? "Todos os Centros"
-                    : ccs.find((c) => c.id === activeCC)?.name || "Centro"}
-                </span>
-                <ChevronDown className="size-4 text-slate-500 shrink-0" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem
-                onClick={() => setActiveCC("all")}
-                className={activeCC === "all" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
-              >
-                Todos os Centros
-              </DropdownMenuItem>
-              {ccs.map((cc) => (
+                  {activeCC !== "all" ? (
+                    <CostCenterChip
+                      icon={ccs.find((c) => c.id === activeCC)?.icon}
+                      color={ccs.find((c) => c.id === activeCC)?.color}
+                      className="size-6"
+                    />
+                  ) : (
+                    <AllCentersChip className="size-6" />
+                  )}
+                  <span
+                    className="flex-1 text-left truncate"
+                    style={activeCC !== "all" ? { color: ccTextColor(ccs.find((c) => c.id === activeCC)?.color) } : undefined}
+                  >
+                    {activeCC === "all"
+                      ? "Todos os Centros"
+                      : ccs.find((c) => c.id === activeCC)?.name || "Centro"}
+                  </span>
+                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
                 <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setActiveCC(cc.id)}
-                  className={activeCC === cc.id ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                  onClick={() => setActiveCC("all")}
+                  className={activeCC === "all" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
                 >
-                  <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span style={{ color: ccTextColor(cc.color) }}>{cc.name}</span>
+                  <AllCentersChip className="size-6" />
+                  <span>Todos os Centros</span>
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                {ccs.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setActiveCC(cc.id)}
+                    className={activeCC === cc.id ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                  >
+                    <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
+                    <span style={{ color: ccTextColor(cc.color) }}>{cc.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+        </div>
       </div>
 
-      <MonthSwitcher value={month} onChange={setMonth} />
+      {/* Período: Mês | Semestre | Ano | Personalizado, com controles por modo. */}
+      <PeriodSwitcher value={period} onChange={setPeriod} />
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">{error}</div>
       )}
 
-      {/* KPIs do mês selecionado */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard label="Entradas (mês)" value={monthKpis.income} tone="positive" loading={loading} />
-        <KpiCard label="Saídas (mês)" value={monthKpis.expense} tone="negative" loading={loading} />
-        <KpiCard label="Saldo (mês)" value={monthKpis.balance} tone={monthKpis.balance >= 0 ? "positive" : "negative"} loading={loading} />
+      {/* KPIs do mês + pendências: uma linha só, mesmo padrão de card. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        {/* Regra de cor: verde = entra (Entradas, A receber, Saldo+);
+            vermelho = sai/alerta (Saídas, Vencido, Saldo-);
+            neutro escuro = compromisso futuro (A pagar). */}
+        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-600" loading={loading} />
+        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-rose-600" loading={loading} />
+        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-600" : "text-rose-600"} loading={loading} />
+        <KpiCard label="A pagar" value={pending.aPagar} color="text-slate-800" loading={loading} />
+        <KpiCard label="A receber" value={pending.aReceber} color="text-emerald-600" loading={loading} />
+        <KpiCard label="Vencido" value={pending.vencido} color="text-rose-600" loading={loading} />
       </div>
 
-      {/* Pendentes */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <PendingCard label="A pagar" value={pending.aPagar} color="text-slate-700" />
-        <PendingCard label="A receber" value={pending.aReceber} color="text-emerald-700" />
-        <PendingCard label="Vencido" value={pending.vencido} color="text-red-700" />
-      </div>
-
-      {/* Grafico 6 meses */}
+      {/* Gráfico minimalista: 6 meses terminando no selecionado. O mês
+          selecionado (último) fica com barras cheias; os anteriores esmaecem
+          como contexto. Sem grade/eixo Y/legenda do recharts — valores no
+          tooltip, legenda em dots discretos no título. */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <h2 className="text-xs font-medium text-slate-500 mb-3">
-          Entradas x Saídas (6 meses)
-        </h2>
-        <div className="h-72">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-medium text-slate-500">
+            Entradas × Saídas
+          </h2>
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-emerald-600" />
+              Entradas
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-rose-600" />
+              Saídas
+            </span>
+          </div>
+        </div>
+        <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-              <CartesianGrid stroke="#e4e4e7" vertical={false} />
-              <XAxis dataKey="mes" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis
-                stroke="#71717a"
+            <BarChart
+              data={chartData}
+              margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
+              barGap={4}
+            >
+              <XAxis
+                dataKey="mes"
+                stroke="#a1a1aa"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v) => fmtBRL(Number(v))}
               />
               <Tooltip
-                contentStyle={{ background: "white", border: "1px solid #e4e4e7", borderRadius: 4, fontSize: 12 }}
+                cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                contentStyle={{
+                  background: "white",
+                  border: "1px solid #e4e4e7",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                }}
                 formatter={(value: number) => fmtBRLfull(value)}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="entradas" fill="#10b981" name="Entradas" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="saidas" fill="#71717a" name="Saídas" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="entradas" name="Entradas" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                {chartData.map((_, i) => (
+                  <Cell
+                    key={i}
+                    fill="#059669"
+                    fillOpacity={period.mode !== "month" || i === chartData.length - 1 ? 1 : 0.25}
+                  />
+                ))}
+              </Bar>
+              <Bar dataKey="saidas" name="Saídas" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                {chartData.map((_, i) => (
+                  <Cell
+                    key={i}
+                    fill="#e11d48"
+                    fillOpacity={period.mode !== "month" || i === chartData.length - 1 ? 1 : 0.25}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -320,10 +400,10 @@ export default function DashboardPage() {
       {/* Top categorias de despesa */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <h2 className="text-xs font-medium text-slate-500 mb-3">
-          Onde Mais Saiu em {monthLabel(month)}
+          Onde Mais Saiu — {periodLabel(period)}
         </h2>
         {topCategories.length === 0 ? (
-          <p className="text-sm text-slate-500">Sem despesas neste mês.</p>
+          <p className="text-sm text-slate-500">Sem despesas neste período.</p>
         ) : (
           <ul className="space-y-2">
             {topCategories.map((c) => {
@@ -348,23 +428,13 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, tone, loading }: { label: string; value: number; tone: "positive" | "negative"; loading: boolean }) {
-  const color = tone === "positive" ? "text-emerald-700" : "text-slate-900";
+function KpiCard({ label, value, color, loading }: { label: string; value: number; color: string; loading: boolean }) {
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`text-base font-medium mt-1 ${color}`}>
+      <p className="text-sm text-slate-500 truncate">{label}</p>
+      <p className={`text-base font-medium mt-1 tabular-nums ${color}`}>
         {loading ? "..." : fmtBRLfull(value)}
       </p>
-    </div>
-  );
-}
-
-function PendingCard({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`text-sm font-medium mt-1 ${color}`}>{fmtBRLfull(value)}</p>
     </div>
   );
 }

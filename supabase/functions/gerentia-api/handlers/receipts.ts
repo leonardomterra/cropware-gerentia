@@ -156,7 +156,8 @@ export function mountReceiptRoutes(app: Hono) {
       const search = q.get("search")?.trim();
       const from = q.get("from");
       const to = q.get("to");
-      const limit = Math.min(Number(q.get("limit") ?? 100), 500);
+      // 1000 cobre o Dashboard com período de até 12 meses sem truncar.
+      const limit = Math.min(Number(q.get("limit") ?? 100), 1000);
 
       let query = client
         .from("farm_receipts")

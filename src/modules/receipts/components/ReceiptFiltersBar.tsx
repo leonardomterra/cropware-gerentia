@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Search from "~icons/material-symbols-light/search";
+import FilterList from "~icons/material-symbols-light/filter-list";
 import X from "~icons/material-symbols-light/close";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { type SearchableOption } from "@/components/ui/searchable-select";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { cn } from "@/components/ui/utils";
@@ -38,8 +44,14 @@ const STATUS_OPTIONS: ReceiptStatus[] = [
   "cancelado",
 ];
 
+/**
+ * Barra de filtros minimalista: so a BUSCA fica visivel; tipos/status/
+ * categorias moram num popover atras do botao "Filtrar" (com badge de
+ * contagem quando ha filtro ativo). Menos caixas na tela.
+ */
 export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersBarProps) {
   const { categories } = useCategories();
+  const [open, setOpen] = useState(false);
 
   const set = <K extends keyof ReceiptFilters>(
     key: K,
@@ -48,16 +60,18 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
     onChange({ ...value, [key]: v });
   };
 
-  const clearAll = () => onChange({});
-  const hasAny = Object.values(value).some((v) => v !== undefined && v !== "");
+  const clearFilters = () =>
+    onChange({ ...(value.search ? { search: value.search } : {}) });
 
-  // Cor de fonte mais sutil em todos os campos - bate com o CDM (texto
-  // do SelectValue + placeholder do Input em cinza medio em vez do
-  // slate-900 default). Aplica via className no Trigger/Input.
+  // Conta CAMPOS de filtro ativos (busca nao conta - ela e visivel).
+  const activeCount =
+    (value.direction ? 1 : 0) +
+    (value.status && value.status.length > 0 ? 1 : 0) +
+    (value.category && value.category.length > 0 ? 1 : 0);
+
+  // Cor de fonte mais sutil em todos os campos - bate com o CDM.
   const fieldText = "text-slate-500";
 
-  // Sem "Todos os status / Todas as categorias" no inicio - no multi,
-  // array vazio = sem filtro (label trigger ja mostra placeholder).
   const statusOptions: SearchableOption[] = useMemo(
     () => STATUS_OPTIONS.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
     [],
@@ -74,8 +88,8 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   );
 
   return (
-    <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
-      <div className="flex-[3] min-w-0 lg:min-w-[180px]">
+    <div className="flex items-center gap-2">
+      <div className="flex-1 min-w-0">
         <div className="relative">
           <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <Input
@@ -89,70 +103,84 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 lg:min-w-[140px]">
-        <Select
-          value={value.direction ?? "all"}
-          onValueChange={(v) =>
-            set("direction", v === "all" ? undefined : (v as ReceiptDirection))
-          }
-        >
-          <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="expense">Despesas</SelectItem>
-            <SelectItem value="income">Receitas</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="h-9 shrink-0 inline-flex items-center gap-1.5 px-3 rounded border border-slate-100 bg-white text-base md:text-sm text-slate-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          >
+            <FilterList className="size-4 text-slate-400 shrink-0" />
+            Filtrar
+            {activeCount > 0 && (
+              <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-zinc-800 text-white text-xs tabular-nums">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-3 space-y-3">
+          <div className="space-y-1.5">
+            <p className="text-xs text-slate-500">Tipo</p>
+            <Select
+              value={value.direction ?? "all"}
+              onValueChange={(v) =>
+                set("direction", v === "all" ? undefined : (v as ReceiptDirection))
+              }
+            >
+              <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="expense">Despesas</SelectItem>
+                <SelectItem value="income">Receitas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="flex-1 min-w-0 lg:min-w-[140px]">
-        <MultiSearchableSelect
-          options={statusOptions}
-          value={value.status ?? []}
-          onValueChange={(arr) =>
-            set("status", arr.length > 0 ? (arr as ReceiptStatus[]) : undefined)
-          }
-          placeholder="Todos os status"
-          searchPlaceholder="Buscar status..."
-          multiLabel={(n) => `${n} status`}
-          triggerClassName="text-base md:text-sm"
-        />
-      </div>
+          <div className="space-y-1.5">
+            <p className="text-xs text-slate-500">Status</p>
+            <MultiSearchableSelect
+              options={statusOptions}
+              value={value.status ?? []}
+              onValueChange={(arr) =>
+                set("status", arr.length > 0 ? (arr as ReceiptStatus[]) : undefined)
+              }
+              placeholder="Todos os status"
+              searchPlaceholder="Buscar status..."
+              multiLabel={(n) => `${n} status`}
+            />
+          </div>
 
-      <div className="flex-1 min-w-0 lg:min-w-[140px]">
-        <MultiSearchableSelect
-          options={categoryOptions}
-          value={value.category ?? []}
-          onValueChange={(arr) =>
-            set("category", arr.length > 0 ? arr : undefined)
-          }
-          placeholder="Todas as categorias"
-          searchPlaceholder="Buscar categoria..."
-          multiLabel={(n) => `${n} categorias`}
-          triggerClassName="text-base md:text-sm"
-        />
-      </div>
+          <div className="space-y-1.5">
+            <p className="text-xs text-slate-500">Categoria</p>
+            <MultiSearchableSelect
+              options={categoryOptions}
+              value={value.category ?? []}
+              onValueChange={(arr) =>
+                set("category", arr.length > 0 ? arr : undefined)
+              }
+              placeholder="Todas as categorias"
+              searchPlaceholder="Buscar categoria..."
+              multiLabel={(n) => `${n} categorias`}
+            />
+          </div>
 
-      {/* Intervalo de data agora e controlado pelo MonthSwitcher (mes) acima
-          da tabela, que define from/to. Os inputs de data brutos sairam daqui
-          pra nao competir com a navegacao de mes. */}
+          {activeCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="w-full text-slate-500 h-8"
+            >
+              <X className="size-4 mr-1" />
+              Limpar filtros
+            </Button>
+          )}
+        </PopoverContent>
+      </Popover>
 
-      {hasAny ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAll}
-          className="text-slate-500 h-9"
-        >
-          <X className="size-4 mr-1" />
-          Limpar
-        </Button>
-      ) : null}
-
-      {/* Slot trailing - empurrado pra direita via ml-auto. Flex group
-          pra aceitar varios botoes (ex: CC dropdown + sort dropdown). */}
+      {/* Slot trailing (ex: CC dropdown). */}
       {trailing ? (
         <div className="ml-auto flex items-center gap-2">{trailing}</div>
       ) : null}

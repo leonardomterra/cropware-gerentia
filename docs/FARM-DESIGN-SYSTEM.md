@@ -324,3 +324,43 @@ marketing.
 `../cropware-design-system.md` (na raiz, 1131 linhas) — guia completo do CDM
 (Field). Consultar antes de criar padrão novo. Este FARM-DESIGN-SYSTEM.md é o
 recorte/adaptação para o Farm.
+
+---
+
+## 14. Toolbar e listas — padrão "Lançamentos" (2026-06-12)
+
+Convenções de minimalismo fechadas na aba Lançamentos. **Adotar em toda tela
+de listagem/dashboard, no que couber.**
+
+**Estrutura (3 camadas + tabela):**
+1. Linha 1: **busca** (flex-1) + botão **"Filtrar"** — os selects de filtro
+   moram num Popover atrás do Filtrar, empilhados com rótulos (Tipo/Status/
+   Categoria). Badge de contagem (`size-5 rounded-full bg-zinc-800`) quando há
+   filtro ativo. "Limpar filtros" dentro do popover (preserva a busca).
+2. Linha 2: ações (Novo/Capturar/Exportar) + organização (Centros/Ordenação/
+   Seletor de mês 📅), todos `flex-1` + `min-w` no desktop; **grid 2-col no
+   mobile** (`grid grid-cols-2 gap-2 lg:flex`).
+3. Contagem ("Mostrando N" / "Sem lançamentos" / "Carregando…") com altura
+   reservada (`min-h-[28px]`) + **régua de 12 meses** (MonthSwitcher
+   variant="chips": meses do ano esticados, sem setas, posição fixa).
+
+**Anatomia de botão/controle:** ícone leading (`size-4` slate-500) + texto
+`flex-1 text-left` + chevron à direita. Dropdowns cinza: `h-9 bg-slate-100
+hover:bg-slate-200 rounded-md text-sm`. "Todos os Centros" usa `AllCentersChip`
+(fundo slate-100, ícone apps slate-400) — tom claro pra não competir com os
+CCs coloridos.
+
+**Estados de loading (anti "desmonta/monta"):** conteúdo SEMPRE montado —
+nunca trocar a tabela por um card de loading. Loading = dim sutil
+(`opacity-50 pointer-events-none`) + spinner pequeno na linha de contagem.
+Mês/lista vazia = a MESMA tabela com uma linha placeholder de "—" por coluna
+(`text-slate-300`), não um empty-state grande.
+
+**Fontes:** campos de entrada `text-base md:text-sm` (16px no mobile — evita
+zoom do iOS; 14px desktop). Botões/chips sempre `text-sm`.
+
+**Mês (conceito):** escopo primário por `transaction_date`; MonthSwitcher é a
+fonte do `from`/`to` — não usar inputs de data brutos nos filtros.
+
+(Obs: a seção 12 acima descreve o Auth antigo; o atual é split-screen com
+painel claro — ver AuthLayout.tsx.)
