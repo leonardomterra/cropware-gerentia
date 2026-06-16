@@ -10,6 +10,7 @@ import ClockArrowUp from "~icons/material-symbols-light/vertical-align-top";
 import FileText from "~icons/material-symbols-light/description-outline";
 import Loader2 from "~icons/svg-spinners/ring-resize";
 import Plus from "~icons/material-symbols-light/add";
+import Trash2 from "~icons/material-symbols-light/delete-outline";
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -149,6 +150,8 @@ export default function ReceiptsPage() {
   const [prefill, setPrefill] = useState<PrefillFromScan | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Receipt | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Mês é o escopo primário de data: define from/to (transaction_date).
   const monthRange = useMemo(() => monthRangeISO(month), [month]);
@@ -289,6 +292,29 @@ export default function ReceiptsPage() {
       toast.error("Erro ao excluir. Tente de novo.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const results = await Promise.allSettled(ids.map((id) => deleteReceipt(id)));
+      const failed = results.filter((r) => r.status === "rejected").length;
+      setBulkOpen(false);
+      clearSelection();
+      await refetch();
+      if (failed === 0) {
+        toast.success(`${ids.length} ${ids.length === 1 ? "lançamento excluído" : "lançamentos excluídos"}`);
+      } else {
+        toast.error(`${failed} de ${ids.length} não foram excluídos. Tente de novo.`);
+      }
+    } catch (err) {
+      console.error("[ReceiptsPage] bulk delete failed:", err);
+      toast.error("Erro ao excluir. Tente de novo.");
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -474,6 +500,15 @@ export default function ReceiptsPage() {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => setBulkOpen(true)}
+                className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <Trash2 className="size-4 mr-1" />
+                Excluir
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={clearSelection}
                 className="h-7 text-slate-600"
               >
@@ -584,6 +619,32 @@ export default function ReceiptsPage() {
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
               {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkOpen}
+        onOpenChange={(o) => {
+          if (!bulkDeleting) setBulkOpen(o);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {selectedIds.size} {selectedIds.size === 1 ? "lançamento" : "lançamentos"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Os lançamentos selecionados serão removidos permanentemente.
+              <br />
+              Essa acao nao pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? "Excluindo..." : `Excluir ${selectedIds.size}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
