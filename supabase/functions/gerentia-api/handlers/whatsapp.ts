@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
 import { secret } from "../lib/env.ts";
+import { verifyMetaSignature } from "../lib/security.ts";
 import { applyMarkPaid, fmtDateBR, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser, type WizardDraft } from "../lib/farmAi.ts";
 import { listVisibleCategories, snapCategory } from "../lib/categories.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
@@ -47,6 +48,35 @@ function alreadyHandled(id: string): boolean {
   if (seenMessageIds.has(id)) return true;
   seenMessageIds.set(id, now);
   return false;
+}
+
+// Rate limit por telefone: cada mensagem dispara Gemini (custo real), então um
+// flood (spam ou abuso) precisa de teto. Janela deslizante em memória.
+const rateHits = new Map<string, number[]>();
+const rateNotified = new Map<string, number>(); // pra avisar o flood só 1x/janela
+const RATE_MAX = 15;
+const RATE_WINDOW_MS = 60_000;
+function checkRate(phone: string): { ok: boolean; notify: boolean } {
+  const now = Date.now();
+  // Poda buckets antigos pra não vazar memória.
+  for (const [k, arr] of rateHits) {
+    const kept = arr.filter((t) => now - t < RATE_WINDOW_MS);
+    if (kept.length === 0) rateHits.delete(k);
+    else rateHits.set(k, kept);
+  }
+  for (const [k, ts] of rateNotified) {
+    if (now - ts > RATE_WINDOW_MS) rateNotified.delete(k);
+  }
+  const arr = rateHits.get(phone) ?? [];
+  if (arr.length >= RATE_MAX) {
+    const last = rateNotified.get(phone) ?? 0;
+    const notify = now - last > RATE_WINDOW_MS;
+    if (notify) rateNotified.set(phone, now);
+    return { ok: false, notify };
+  }
+  arr.push(now);
+  rateHits.set(phone, arr);
+  return { ok: true, notify: false };
 }
 
 function runBackground(work: Promise<unknown>): Promise<void> | void {
@@ -947,7 +977,23 @@ export function mountWhatsappRoutes(app: Hono) {
   });
 
   app.post("/webhook/whatsapp", async (c) => {
-    const body = await c.req.json().catch(() => null);
+    // Lê o corpo CRU antes de parsear (HMAC precisa dos bytes exatos).
+    const raw = await c.req.text();
+    // Verifica a assinatura da Meta. Fail-open ATÉ o App Secret ser configurado
+    // (pra não derrubar o bot no deploy); quando o secret existir, enforce.
+    const appSecret = secret("WHATSAPP_GERENTIA_APP_SECRET");
+    if (appSecret) {
+      const ok = await verifyMetaSignature(raw, c.req.header("x-hub-signature-256"), appSecret);
+      if (!ok) {
+        console.warn("[wa webhook] assinatura X-Hub-Signature-256 inválida — rejeitado");
+        return c.json({ error: "bad_signature" }, 401);
+      }
+    } else {
+      console.warn("[wa webhook] WHATSAPP_GERENTIA_APP_SECRET ausente — assinatura NÃO verificada (configure pra ativar)");
+    }
+    // deno-lint-ignore no-explicit-any
+    let body: any = null;
+    try { body = raw ? JSON.parse(raw) : null; } catch { body = null; }
     if (!body?.entry) return c.json({ ok: true });
     const myPnid = secret("WHATSAPP_GERENTIA_BOT_PNID");
     const incomingPnid = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
@@ -969,6 +1015,16 @@ export function mountWhatsappRoutes(app: Hono) {
     const admin = getSupabaseAdmin();
     const work = (async () => {
       for (const m of messages) {
+        const rl = checkRate(m.from);
+        if (!rl.ok) {
+          console.warn("[wa] rate limit atingido:", m.from);
+          if (rl.notify) {
+            try {
+              await sendText(m.from, "Opa, recebi muitas mensagens de uma vez. Aguarda um instante e me manda de novo.");
+            } catch { /* nunca trava */ }
+          }
+          continue;
+        }
         try {
           await handleMessage(admin, m);
         } catch (e) {

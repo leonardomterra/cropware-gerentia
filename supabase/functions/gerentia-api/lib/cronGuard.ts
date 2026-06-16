@@ -1,5 +1,6 @@
 import type { Context } from "npm:hono";
 import { secret } from "./env.ts";
+import { timingSafeEqual } from "./security.ts";
 
 /**
  * Valida header x-cron-secret contra env GERENTIA_CRON_SECRET (aceita o legado
@@ -16,8 +17,8 @@ export function requireCronSecret(c: Context): Response | null {
     console.error("[cronGuard] GERENTIA_CRON_SECRET not configured in edge env");
     return c.json({ error: "cron_not_configured" }, 503);
   }
-  const provided = c.req.header("x-cron-secret");
-  if (provided !== expected) {
+  const provided = c.req.header("x-cron-secret") ?? "";
+  if (!timingSafeEqual(provided, expected)) {
     return c.json({ error: "forbidden" }, 403);
   }
   return null;

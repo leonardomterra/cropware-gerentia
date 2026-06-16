@@ -89,6 +89,7 @@ export async function extractReceiptFromImage(
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${anonKey}`,
+        "x-internal-secret": Deno.env.get("GERENTIA_INTERNAL_SECRET") ?? "",
       },
       body: JSON.stringify(geminiPayload),
     });
@@ -187,6 +188,7 @@ export async function suggestCategory(
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${anonKey}`,
+        "x-internal-secret": Deno.env.get("GERENTIA_INTERNAL_SECRET") ?? "",
       },
       body: JSON.stringify(payload),
     });
@@ -265,6 +267,7 @@ export async function transcribeAudio(
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${anonKey}`,
+        "x-internal-secret": Deno.env.get("GERENTIA_INTERNAL_SECRET") ?? "",
       },
       body: JSON.stringify(payload),
     });

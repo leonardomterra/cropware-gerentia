@@ -732,7 +732,7 @@ export async function parseDateBR(text: string): Promise<{ ok: true; date: strin
   const prompt = `Voce e um parser de data em portugues brasileiro. Hoje e ${today}.\n\nTexto do usuario: "${text}"\n\nRegras:\n- "hoje" -> hoje\n- "ontem" -> hoje-1\n- "anteontem" -> hoje-2\n- "amanha" -> hoje+1\n- nomes de dia da semana ('segunda', 'terça', 'qua', etc): se texto diz 'proxima' ou 'que vem' = proxima ocorrencia DEPOIS de hoje; senao = ultima ocorrencia ANTES ou IGUAL a hoje\n- "dia N" ou apenas "N" (1-31): default = mais recente N <= hoje (este mes se N <= dia atual, senao mes anterior); se texto diz 'proximo' = proxima ocorrencia futura\n- "DD/MM" sem ano: ano atual\n- "DD/MM/YY" (YY 00-69 = 2000+, 70-99 = 1900+) ou "DD/MM/YYYY": literal\n- ISO YYYY-MM-DD: literal\n- AMBIGUO (sem dia: 'semana passada', 'mes passado'): retorna null + razao pedindo o dia\n\nResponda APENAS JSON valido: {"date":"YYYY-MM-DD","reason":"interpretacao curta"} ou {"date":null,"reason":"o que falta"}`;
   const payload = { model: MODEL, body: { contents: [{ parts: [{ text: prompt }] }], generationConfig: { response_mime_type: "application/json", temperature: 0.0 } } };
   try {
-    const resp = await fetch(url + "/functions/v1/gemini", { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + anon }, body: JSON.stringify(payload) });
+    const resp = await fetch(url + "/functions/v1/gemini", { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + anon, "x-internal-secret": Deno.env.get("GERENTIA_INTERNAL_SECRET") ?? "" }, body: JSON.stringify(payload) });
     if (!resp.ok) return { ok: false, reason: "ia falhou" };
     const j = await resp.json();
     const t = j?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -760,7 +760,7 @@ async function callGemini(url: string, anon: string, payload: unknown): Promise<
   try {
     const resp = await fetch(url + "/functions/v1/gemini", {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + anon },
+      headers: { "content-type": "application/json", authorization: "Bearer " + anon, "x-internal-secret": Deno.env.get("GERENTIA_INTERNAL_SECRET") ?? "" },
       body: JSON.stringify(payload),
       signal: ctrl.signal,
     });

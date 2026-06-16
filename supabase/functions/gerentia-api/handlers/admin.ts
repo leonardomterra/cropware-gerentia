@@ -1,7 +1,37 @@
-import type { Hono } from "npm:hono";
+import type { Context, Hono } from "npm:hono";
 import { getUserClient, requireMaster } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { isMasterUser } from "../lib/masterUsers.ts";
+
+/**
+ * Registra uma ação sensível do painel MASTER em farm_admin_audit. Nunca lança:
+ * auditoria não pode derrubar a ação em si (best-effort), só loga falha.
+ */
+async function logAdminAction(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  c: Context,
+  actor: { id?: string; email?: string | null },
+  action: string,
+  target: { id?: string | null; email?: string | null },
+  detail?: Record<string, unknown>,
+) {
+  try {
+    const fwd = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+    await admin.from("farm_admin_audit").insert({
+      actor_user_id: actor.id ?? null,
+      actor_email: actor.email ?? null,
+      action,
+      target_user_id: target.id ?? null,
+      target_email: target.email ?? null,
+      detail: detail ?? null,
+      ip: fwd || c.req.header("cf-connecting-ip") || null,
+      user_agent: c.req.header("user-agent") ?? null,
+    });
+  } catch (e) {
+    console.error("[admin audit] falha ao registrar:", e);
+  }
+}
 
 /**
  * Painel MASTER de gestão de usuários (gerentia.app).
@@ -192,6 +222,7 @@ export function mountAdminRoutes(app: Hono) {
         password: newPassword,
       });
       if (error) return c.json({ error: error.message }, 400);
+      await logAdminAction(admin, c, auth.user, "reset_password", { id });
       return c.json({ ok: true, password: newPassword });
     } catch (resp) {
       if (resp instanceof Response) return resp;
@@ -220,6 +251,7 @@ export function mountAdminRoutes(app: Hono) {
         ban_duration: suspended ? "876000h" : "none",
       });
       if (error) return c.json({ error: error.message }, 400);
+      await logAdminAction(admin, c, auth.user, suspended ? "suspend" : "unsuspend", { id, email: u?.user?.email });
       return c.json({ ok: true, suspended });
     } catch (resp) {
       if (resp instanceof Response) return resp;
@@ -260,6 +292,9 @@ export function mountAdminRoutes(app: Hono) {
         .eq("user_id", id)
         .maybeSingle();
 
+      // Ação mais crítica do painel — sempre auditada.
+      await logAdminAction(admin, c, auth.user, "impersonate", { id, email });
+
       return c.json({
         hashed_token: hashed,
         target_email: email,
@@ -291,6 +326,7 @@ export function mountAdminRoutes(app: Hono) {
 
       const { error } = await admin.auth.admin.deleteUser(id);
       if (error) return c.json({ error: error.message }, 400);
+      await logAdminAction(admin, c, auth.user, "delete_user", { id, email: u?.user?.email });
       return c.json({ ok: true });
     } catch (resp) {
       if (resp instanceof Response) return resp;

@@ -19,9 +19,29 @@ interface ProxyRequest {
   body: unknown;
 }
 
+// Comparação constant-time (a anon key é pública; sem isso, qualquer um chama
+// este proxy e queima a GOOGLE_AI_KEY). Só a gerentia-api conhece o segredo.
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return Response.json({ error: "method_not_allowed" }, { status: 405 });
+  }
+
+  // Segredo interno: só a gerentia-api pode chamar. Fail-open ATÉ configurar
+  // GERENTIA_INTERNAL_SECRET (pra não derrubar a IA no deploy); depois enforce.
+  const internal = Deno.env.get("GERENTIA_INTERNAL_SECRET");
+  if (internal) {
+    if (!safeEqual(req.headers.get("x-internal-secret") ?? "", internal)) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+  } else {
+    console.warn("[gemini] GERENTIA_INTERNAL_SECRET ausente — proxy SEM proteção (configure)");
   }
 
   const apiKey = Deno.env.get("GOOGLE_AI_KEY");
