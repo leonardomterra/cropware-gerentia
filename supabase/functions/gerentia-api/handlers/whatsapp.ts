@@ -257,7 +257,7 @@ const PHOTO_DATE_BUTTONS = [
   { id: "cr_date:custom", title: "Outra data" },
 ];
 
-// ---------- Wizard de criação guiado (status -> centro -> data -> confirmar) ----------
+// ---------- Wizard de criação guiado (categoria -> status -> centro -> data -> confirmar) ----------
 
 const STATUS_LABEL: Record<string, string> = {
   a_pagar: "A pagar", pago: "Pago", a_receber: "A receber",
@@ -275,7 +275,9 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
     draft.cost_center_id = linked.cost_centers[0].id;
   }
   const steps: string[] = [];
-  if (!draft.category) steps.push("describe");
+  // Categoria sempre confirma: mostra a sugestão da IA (com opção de trocar) ou,
+  // se não inferiu nada, pergunta do que se trata.
+  steps.push("category");
   if (!draft.status) steps.push("status");
   if (!draft.cost_center_id && linked.cost_centers.length > 1) steps.push("cost_center");
   // Data de LANÇAMENTO = hoje (automática), nunca perguntada. Já o VENCIMENTO
@@ -300,8 +302,16 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
 async function sendWizardStep(_admin: any, linked: LinkedUser, from: string, wiz: WizState) {
   const d = wiz.draft;
   const step = wiz.steps[wiz.step];
-  if (step === "describe") {
-    await sendText(from, "Do que se trata essa " + (d.direction === "income" ? "receita" : "despesa") + "? Ex: diesel, energia, ração, peças, salário...");
+  if (step === "category") {
+    if (d.category) {
+      // IA inferiu: mostra a sugestão pra confirmar ou trocar (como [Hoje]/[Outra data]).
+      await sendButtons(from, "Categoria: *" + (d.category_name || "Outros") + "* — é essa?", [
+        { id: "cw_cat:ok", title: "É essa" },
+        { id: "cw_cat:other", title: "Outra" },
+      ]);
+    } else {
+      await sendText(from, "Do que se trata essa " + (d.direction === "income" ? "receita" : "despesa") + "? Ex: diesel, energia, ração, peças, salário...");
+    }
     return;
   }
   if (step === "status") {
@@ -619,7 +629,7 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       return;
     }
 
-    // ----- Wizard de criação: status -> centro -> data -> confirmar -----
+    // ----- Wizard de criação: categoria -> status -> centro -> data -> confirmar -----
     if (actionId.startsWith("cw_")) {
       if (!linked) return;
       const pending = await getPending(admin, from);
@@ -632,6 +642,15 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       if (actionId === "cw_cancel") { await clearPending(admin, from); await sendText(from, "Cancelado."); return; }
       if (actionId === "cw_confirm") { await finalizeWizard(admin, linked, from, wiz); return; }
 
+      if (actionId.startsWith("cw_cat:")) {
+        const v = actionId.slice("cw_cat:".length);
+        if (v === "other") {
+          await sendText(from, "Me diz a categoria certa. Ex: diesel, energia, ração, peças, salário...");
+          return; // segue na etapa; o texto digitado vira a categoria (snap)
+        }
+        await advanceWizard(admin, linked, from, wiz); // "É essa": mantém a sugerida
+        return;
+      }
       if (actionId.startsWith("cw_status:")) {
         const v = actionId.slice("cw_status:".length);
         wiz.draft.status = v === "pago" ? "pago" : v === "recebido" ? "recebido" : v === "areceber" ? "a_receber" : "a_pagar";
@@ -748,12 +767,12 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       if (pending && pending.kind === "create_wizard" && linked) {
         const wiz = pending.data as WizState;
         const cur = wiz.steps[wiz.step];
-        if (cur === "describe") {
+        if (cur === "category") {
           const cats = await listVisibleCategories(admin, linked.organization_id, linked.user_id);
           const slug = snapCategory(text, cats, wiz.draft.direction);
           wiz.draft.category = slug;
           wiz.draft.category_name = cats.find((c) => c.slug === slug)?.name ?? slug;
-          wiz.draft.description = text.trim().slice(0, 120);
+          if (!wiz.draft.description) wiz.draft.description = text.trim().slice(0, 120);
           await advanceWizard(admin, linked, from, wiz);
           return;
         }
