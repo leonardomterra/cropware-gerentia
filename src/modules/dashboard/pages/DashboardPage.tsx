@@ -15,13 +15,15 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import History from "~icons/material-symbols-light/history";
 import { api } from "@/utils/api";
 import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
-import { monthRangeISO, type YearMonth } from "@/modules/receipts/components/MonthSwitcher";
+import { MonthSwitcher, monthRangeISO, currentYearMonth, type YearMonth } from "@/modules/receipts/components/MonthSwitcher";
 import {
   PeriodSwitcher,
+  PeriodModeSelect,
   defaultPeriod,
   periodLabel,
   periodRange,
@@ -144,6 +146,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const range = periodRange(period);
+  // Atalho "voltar ao atual": só no modo Mês, quando não está no mês corrente.
+  const curMonth = currentYearMonth();
+  const showBackToCurrent =
+    period.mode === "month" &&
+    !(period.month.year === curMonth.year && period.month.month === curMonth.month);
   const ymKey = (m: YearMonth) => `${m.year}-${String(m.month).padStart(2, "0")}`;
   const fromKey = ymKey(range.from);
   const toKey = ymKey(range.to);
@@ -254,15 +261,37 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-base font-medium text-slate-900">Olá, {firstName}.</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{periodLabel(period)}</p>
+          <p className="text-sm text-slate-500 mt-0.5 inline-flex items-center gap-1.5">
+            <span>{periodLabel(period)}</span>
+            {showBackToCurrent && (
+              <button
+                type="button"
+                onClick={() => setPeriod({ ...period, month: curMonth })}
+                title="Voltar ao mês atual"
+                aria-label="Voltar ao mês atual"
+                className="text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <History className="size-[18px]" />
+              </button>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+          <PeriodModeSelect value={period} onChange={setPeriod} />
+          {period.mode === "month" && (
+            <MonthSwitcher
+              value={period.month}
+              onChange={(month) => setPeriod({ ...period, month })}
+              variant="picker"
+              className="w-[185px]"
+            />
+          )}
           {showCCFilter && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                  className="h-9 w-[210px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 >
                   {activeCC !== "all" ? (
                     <CostCenterChip
@@ -309,7 +338,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Período: Mês | Semestre | Ano | Personalizado, com controles por modo. */}
+      {/* Controles do modo selecionado (régua de meses / semestre / ano / datas).
+          O seletor de modo em si fica na barra de topo, ao lado dos centros. */}
       <PeriodSwitcher value={period} onChange={setPeriod} />
 
       {error && (

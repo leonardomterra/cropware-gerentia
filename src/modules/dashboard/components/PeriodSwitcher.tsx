@@ -1,6 +1,14 @@
 import ChevronLeft from "~icons/material-symbols-light/chevron-left";
 import ChevronRight from "~icons/material-symbols-light/chevron-right";
+import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import Calendar from "~icons/material-symbols-light/calendar-month-outline";
 import { cn } from "@/components/ui/utils";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   MonthSwitcher,
   currentYearMonth,
@@ -140,6 +148,52 @@ const MODES: Array<[DashMode, string]> = [
   ["custom", "Personalizado"],
 ];
 
+/**
+ * Seletor de MODO isolado (Mês/Semestre/Ano/Personalizado) — dropdown no mesmo
+ * estilo do chip "Todos os Centros". Fica na barra de topo, ao lado dos centros;
+ * os controles de cada modo ficam no <PeriodSwitcher> logo abaixo.
+ */
+export function PeriodModeSelect({
+  value,
+  onChange,
+  className,
+}: {
+  value: DashPeriod;
+  onChange: (p: DashPeriod) => void;
+  className?: string;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
+            className,
+          )}
+        >
+          <Calendar className="size-5 text-slate-500 shrink-0" />
+          <span className="flex-1 text-left truncate">
+            {MODES.find(([m]) => m === value.mode)?.[1]}
+          </span>
+          <ChevronDown className="size-4 text-slate-500 shrink-0" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[180px]">
+        {MODES.map(([mode, label]) => (
+          <DropdownMenuItem
+            key={mode}
+            onClick={() => onChange({ ...value, mode })}
+            className={value.mode === mode ? "bg-slate-100 font-medium" : ""}
+          >
+            {label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function PeriodSwitcher({
   value,
   onChange,
@@ -151,41 +205,16 @@ export function PeriodSwitcher({
 }) {
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Segmented de modo */}
-      <div className="flex flex-wrap items-center gap-1">
-        {MODES.map(([mode, label]) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => onChange({ ...value, mode })}
-            className={cn(
-              "h-9 px-3 rounded-md text-sm transition-colors",
-              value.mode === mode
-                ? "bg-zinc-800 text-white font-medium"
-                : "text-slate-600 hover:bg-slate-100",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {/* Controles do modo ativo */}
       {value.mode === "month" && (
-        <div className="flex items-center gap-2">
-          <MonthSwitcher
-            value={value.month}
-            onChange={(month) => onChange({ ...value, month })}
-            variant="chips"
-            className="flex-1 min-w-0"
-          />
-          <MonthSwitcher
-            value={value.month}
-            onChange={(month) => onChange({ ...value, month })}
-            variant="picker"
-            className="w-[170px] shrink-0 hidden sm:flex"
-          />
-        </div>
+        // Régua de 12 meses (scrubber). O picker "Junho 2026" foi pra barra de
+        // topo, ao lado dos chips de modo e de centros.
+        <MonthSwitcher
+          value={value.month}
+          onChange={(month) => onChange({ ...value, month })}
+          variant="chips"
+          className="w-full"
+        />
       )}
 
       {value.mode === "semester" && (

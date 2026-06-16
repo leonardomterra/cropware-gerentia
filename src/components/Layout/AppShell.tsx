@@ -41,15 +41,15 @@ interface NavItem {
 }
 
 const BASE_NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   // "Fazendas" escondido do menu (CRUD orfao). Rota /fazendas continua
   // valida pra acesso direto via URL.
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
   { to: "/recorrencias", label: "Recorrências", icon: Repeat },
+  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
   // "Equipe" desativada temporariamente: por ora o app e individual. A infra
   // de organizacao/RBAC/convites continua intacta (dormente) no backend pro
   // app futuro (fazendas/empresas). Rota /equipe segue valida via URL direta.
