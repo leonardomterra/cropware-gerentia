@@ -1,8 +1,15 @@
 import { type CostCenterRow } from "./cc.ts";
-import { sendButtons, sendList } from "./whatsapp.ts";
+import {
+  type CategoryRow,
+  listVisibleCategories,
+  snapCategory,
+} from "./categories.ts";
+import { buildFinanceAgentPrompt } from "../prompts/financeAgent.pt-br.ts";
 
 const MODEL = "gemini-3.5-flash";
-const HISTORY_MAX = 12;
+const HISTORY_MAX = 16;
+const MAX_ITERS = 5;
+const PAYMENT_METHODS = ["pix", "cartao", "boleto", "dinheiro", "transferencia"];
 
 /** LinkedUser estendido com role + CCs permitidos (V2 — Centros de Custo). */
 export interface LinkedUser {
@@ -20,7 +27,6 @@ interface HistTurn {
 }
 
 // TZ-safe: usa Intl com timezone explicito. A prova de DST (se BR voltar a adotar).
-// Formato en-CA = YYYY-MM-DD (espelha ISO date).
 export function todayBR(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 }
@@ -48,114 +54,10 @@ export function fmtDateBR(iso: string): string {
   return y === curY ? `${d}/${m}` : `${d}/${m}/${y.slice(2)}`;
 }
 
-const SYSTEM_PROMPT_BASE =
-  "Voce e o assistente financeiro do *gerentia.app*, falando com um produtor rural brasileiro pelo WhatsApp. Tom pratico, direto, PT-BR, poucas palavras. Use emojis com moderacao.\n\n" +
-  "Voce ajuda a registrar e consultar lancamentos financeiros (despesas e receitas). Use SEMPRE as ferramentas disponiveis - nunca invente valores nem confirme registro sem chamar a funcao.\n\n" +
-  "REGRAS:\n" +
-  "- 'paguei/comprei/gastei <valor> de <categoria>' COM valor monetario = NOVA despesa, use create_receipt.\n" +
-  "- 'recebi/vendi <valor> de <categoria>' COM valor monetario = NOVA receita, use create_receipt.\n" +
-  "- 'paguei/quitei/dei baixa <fornecedor/descricao>' SEM valor (ou referindo a conta existente) = marcar conta pendente como paga, use mark_receipt_paid.\n" +
-  "  Ex: 'paguei o boleto da Cemig', 'quitei a conta da agua', 'paguei aquele do diesel' -> mark_receipt_paid.\n" +
-  "- 'recebi <quem/descricao>' SEM valor = marcar receita pendente como recebida, use mark_receipt_paid (a tool cobre ambos).\n" +
-  "- Valores em reais (number). Se o usuario falar '1,2 mil' entenda 1200.\n" +
-  "- Se faltar o VALOR numa criacao, pergunte so o valor. Nao invente.\n" +
-  "- DATA: se o usuario mencionar uma data ou tempo relativo no texto ('ontem', 'anteontem', 'dia 25', '25/03', 'na terca passada', 'amanha'), RESOLVA pra YYYY-MM-DD e preencha 'transaction_date'. Use 'Hoje e <data>' acima como referencia. Se NAO mencionar, NAO preencha 'transaction_date' - o backend vai perguntar.\n" +
-  "- Categorias de despesa: combustivel, defensivos, sementes, fertilizantes, manutencao, pecas, frete, servicos, alimentacao, arrendamento, folha, outros_despesa. Receita: venda_graos, venda_gado, outros_receita.\n" +
-  "- Para TOTAIS (quanto gastei/entrou no mes, saldo do mes, o que tenho a pagar/receber, vencido, resumo, quanto devo) use get_financial_summary - ele ja traz o realizado do mes atual + pendencias.\n" +
-  "- Para LISTAR lancamentos recentes (ex: 'meus ultimos lancamentos', 'o que lancei essa semana') use list_receipts.\n" +
-  "- EDICAO e EXCLUSAO de lancamentos NAO sao possiveis pelo WhatsApp - oriente a usar o app web.\n" +
-  "- Para registrar com FOTO/PDF, o usuario pode mandar a imagem do recibo direto.";
-
-function buildSystemPrompt(linked: LinkedUser): string {
-  const ccs = linked.cost_centers;
-  let ccBlock: string;
-  if (ccs.length <= 1) {
-    const only = ccs[0];
-    ccBlock = only
-      ? `\n\nCentro de custo unico do usuario: ${only.name} (slug: ${only.slug}). Todo lancamento vai pra ele automaticamente — NAO pergunte qual centro.`
-      : "\n\nO usuario nao tem nenhum centro de custo liberado. Nao registre nada e oriente a falar com o admin.";
-  } else {
-    const lines = ccs.map((c) => `- ${c.slug} (${c.name})`).join("\n");
-    ccBlock =
-      `\n\nCentros de custo disponiveis pra este usuario:\n${lines}\n\n` +
-      `Ao chamar create_receipt:\n` +
-      `- Se o usuario mencionar nome/slug do centro ('no escritorio', 'fazenda', 'pessoal'), passe esse slug no argumento 'cost_center'.\n` +
-      `- Se o usuario NAO mencionar centro, NAO preencha 'cost_center'. O backend vai perguntar via botoes. NAO pergunte voce.`;
-  }
-  return SYSTEM_PROMPT_BASE + ccBlock + `\n\nHoje e ${todayBR()}.`;
-}
-
-function toolDeclarations() {
-  return [{
-    functionDeclarations: [
-      {
-        name: "create_receipt",
-        description: "Registra um lancamento financeiro (despesa ou receita).",
-        parameters: {
-          type: "object",
-          properties: {
-            total_value: { type: "number" },
-            direction: { type: "string", enum: ["expense", "income"] },
-            category: { type: "string", description: "Slug. Ex: combustivel, defensivos, venda_graos" },
-            cost_center: { type: "string", description: "Centro de custo (slug ou nome). Se omitido, usa o default." },
-            vendor: { type: "string" },
-            description: { type: "string" },
-            payment_method: { type: "string", enum: ["pix", "cartao", "boleto", "dinheiro", "transferencia"] },
-            transaction_date: { type: "string", description: "YYYY-MM-DD. Se omitido, usa hoje." },
-          },
-          required: ["total_value", "direction"],
-        },
-      },
-      {
-        name: "get_financial_summary",
-        description: "Resumo financeiro: entradas/saidas/saldo do MES ATUAL + pendencias em aberto (a pagar/receber/vencido). Limitado aos centros do usuario.",
-        parameters: { type: "object", properties: {} },
-      },
-      {
-        name: "list_receipts",
-        description: "Lista lancamentos recentes (limitado aos centros do usuario).",
-        parameters: {
-          type: "object",
-          properties: {
-            direction: { type: "string", enum: ["expense", "income"] },
-            category: { type: "string" },
-            status: { type: "string", enum: ["a_pagar", "pago", "a_receber", "recebido", "vencido", "cancelado"] },
-            cost_center: { type: "string", description: "Slug ou nome do centro pra filtrar." },
-            days: { type: "number", description: "Ultimos N dias (default 30)" },
-          },
-        },
-      },
-      {
-        name: "list_my_cost_centers",
-        description: "Lista os centros de custo a que o usuario tem acesso.",
-        parameters: { type: "object", properties: {} },
-      },
-      {
-        name: "mark_receipt_paid",
-        description:
-          "Marca uma conta pendente como paga (despesa) ou recebida (receita). " +
-          "Use quando o usuario fala 'paguei/quitei/dei baixa em <X>' OU 'recebi <X>' " +
-          "referindo-se a uma conta JA EXISTENTE, sem informar valor novo.",
-        parameters: {
-          type: "object",
-          properties: {
-            query: {
-              type: "string",
-              description:
-                "Texto que descreve a conta: fornecedor, categoria ou descricao. Ex: 'Cemig', 'boleto da agua', 'diesel'.",
-            },
-            amount: {
-              type: "number",
-              description:
-                "Valor aproximado, se o usuario citar. Usado pra desambiguar quando houver multiplas contas do mesmo fornecedor.",
-            },
-          },
-          required: ["query"],
-        },
-      },
-    ],
-  }];
-}
+const MESES_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
 
 function resolveCCFromList(input: string | undefined, ccs: CostCenterRow[]): CostCenterRow | null {
   if (!input) return null;
@@ -174,73 +76,651 @@ function ccFilterIds(linked: LinkedUser): string[] | null {
   return linked.allowed_cost_center_ids === "all" ? null : linked.allowed_cost_center_ids;
 }
 
-/**
- * Cria o farm_receipts dado args ja resolvidos + cc.id explicito.
- * Reuso pelo handler interativo (cr_cc:<id>) apos seleção de CC.
- */
-// deno-lint-ignore no-explicit-any
-export async function applyCreateReceipt(admin: any, linked: LinkedUser, args: any, cc: CostCenterRow): Promise<string> {
-  const total = Number(args.total_value);
-  if (!Number.isFinite(total)) return "Valor invalido.";
-  const direction = args.direction === "income" ? "income" : "expense";
-  const category = args.category || (direction === "income" ? "outros_receita" : "outros_despesa");
-
-  const { error } = await admin.from("farm_receipts").insert({
-    organization_id: linked.organization_id,
-    created_by: linked.user_id,
-    doc_type: "outro",
-    direction,
-    status: direction === "income" ? "a_receber" : "a_pagar",
-    total_value: total,
-    currency: "BRL",
-    transaction_date: args.transaction_date || todayBR(),
-    vendor: args.vendor ?? null,
-    payment_method: args.payment_method ?? null,
-    description: args.description ?? null,
-    category,
-    cost_center_id: cc.id,
-    source: "whatsapp",
-  });
-  if (error) {
-    console.error("[farmAi] applyCreate insert error:", error);
-    return "Nao consegui salvar o lancamento. Tenta de novo em instantes.";
-  }
-  const verb = direction === "income" ? "Receita" : "Despesa";
-  const showCC = linked.cost_centers.length > 1 ? ` em ${cc.name}` : "";
-  const dt = fmtDateBR(args.transaction_date || todayBR());
-  return "✅ " + verb + " registrada: " + fmtBRL(total) +
-    (args.vendor ? " - " + args.vendor : "") +
-    " (" + category + ")" + showCC + ", dia " + dt + ".";
+function catName(slug: string | null, cats: CategoryRow[]): string {
+  if (!slug) return "-";
+  return cats.find((c) => c.slug === slug)?.name ?? slug;
 }
 
+/** Limites do mes (1-12). */
+function monthBounds(year: number, month: number): { from: string; to: string } {
+  const p = (n: number) => String(n).padStart(2, "0");
+  const last = new Date(year, month, 0).getDate();
+  return { from: `${year}-${p(month)}-01`, to: `${year}-${p(month)}-${p(last)}` };
+}
+
+/** Resolve period dos args: this_month (default) | last_month | custom. */
+// deno-lint-ignore no-explicit-any
+function resolvePeriod(args: any): { from: string; to: string; label: string } {
+  const t = todayBR();
+  const y = Number(t.slice(0, 4));
+  const m = Number(t.slice(5, 7));
+  const period = args?.period || "this_month";
+  if (period === "custom" && typeof args?.from === "string" && typeof args?.to === "string") {
+    return { from: args.from, to: args.to, label: `${fmtDateBR(args.from)}–${fmtDateBR(args.to)}` };
+  }
+  if (period === "last_month") {
+    const py = m === 1 ? y - 1 : y;
+    const pm = m === 1 ? 12 : m - 1;
+    return { ...monthBounds(py, pm), label: `${MESES_PT[pm - 1]} de ${py}` };
+  }
+  return { ...monthBounds(y, m), label: `${MESES_PT[m - 1]} de ${y}` };
+}
+
+// ---------- contexto de execução ----------
+
+/** Rascunho de criação. Campos null em status/cost_center/transaction_date =
+ *  "perguntar no wizard". O fluxo guiado (handlers/whatsapp.ts) preenche e salva. */
+export interface WizardDraft {
+  total_value: number;
+  direction: "expense" | "income";
+  category: string | null; // null = perguntar "do que se trata?"
+  category_name: string;
+  vendor: string | null;
+  description: string | null;
+  payment_method: string | null;
+  cost_center_id: string | null;
+  transaction_date: string | null;
+  status: string | null;
+  due_date: string | null;
+}
+
+export interface ToolCtx {
+  // deno-lint-ignore no-explicit-any
+  admin: any;
+  linked: LinkedUser;
+  from: string;
+  categories: CategoryRow[];
+  lastReceiptId: string | null;
+  wizardDrafts: WizardDraft[]; // criações a guiar por etapas
+}
+
+export interface AgentResult {
+  text: string;
+  wizard: WizardDraft[] | null; // != null => inicia o wizard de criação
+}
+
+type ToolResult = Record<string, unknown>;
+
+// ---------- ferramentas (retornam JSON; o modelo compõe a resposta) ----------
+
 /**
- * Pede a data via 3 botoes (Hoje / Ontem / Outra data). Persiste pending
- * com kind='create_select_date' carregando args + cc_id pra retomar depois.
+ * NÃO insere: monta um RASCUNHO e enfileira pro wizard guiado (status → centro
+ * → data → confirmar) em handlers/whatsapp.ts. Campos que o usuário deixou
+ * claros já vêm preenchidos (e o wizard pula a etapa); o resto fica null.
  */
 // deno-lint-ignore no-explicit-any
-export async function askDateButtons(admin: any, from: string, args: any, ccId: string): Promise<void> {
+async function execCreateReceipt(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { linked } = ctx;
+  const total = Number(args.total_value);
+  if (!Number.isFinite(total) || total <= 0) return { error: "missing_value" };
+  const direction = args.direction === "income" ? "income" : "expense";
+  // Sem NENHUMA pista do que é (categoria, fornecedor ou descrição) => null,
+  // pra o wizard perguntar "do que se trata?" em vez de cair em "Outros".
+  const gaveInfo = !!args.category ||
+    (typeof args.vendor === "string" && !!args.vendor.trim()) ||
+    (typeof args.description === "string" && !!args.description.trim());
+  const category = gaveInfo ? snapCategory(args.category, ctx.categories, direction) : null;
+
+  // Centro: resolve se citado; auto se único; senão null (perguntar).
+  let ccId: string | null = null;
+  if (args.cost_center) {
+    const cc = resolveCCFromList(args.cost_center, linked.cost_centers);
+    if (!cc) return { error: "unknown_cost_center", options: linked.cost_centers.map((c) => c.name) };
+    ccId = cc.id;
+  } else if (linked.cost_centers.length === 1) {
+    ccId = linked.cost_centers[0].id;
+  } else if (linked.cost_centers.length === 0) {
+    return { error: "no_cost_center" };
+  }
+
+  // Status só se veio claro; senão null (perguntar).
+  let status: string | null = null;
+  if (typeof args.status === "string" && ["a_pagar", "pago", "a_receber", "recebido"].includes(args.status)) {
+    const paid = args.status === "pago" || args.status === "recebido";
+    status = paid ? (direction === "income" ? "recebido" : "pago") : (direction === "income" ? "a_receber" : "a_pagar");
+  }
+
+  const payment_method = typeof args.payment_method === "string" && PAYMENT_METHODS.includes(args.payment_method)
+    ? args.payment_method : null;
+
+  ctx.wizardDrafts.push({
+    total_value: total,
+    direction,
+    category,
+    category_name: category ? catName(category, ctx.categories) : "",
+    vendor: typeof args.vendor === "string" ? args.vendor : null,
+    description: typeof args.description === "string" ? args.description : null,
+    payment_method,
+    cost_center_id: ccId,
+    transaction_date: (typeof args.transaction_date === "string" && args.transaction_date) ? args.transaction_date : null,
+    status,
+    due_date: (typeof args.due_date === "string" && args.due_date) ? args.due_date : null,
+  });
+  return { drafted: true };
+}
+
+/** Carrega um receipt do escopo (org + CCs permitidos). */
+async function loadScopedReceipt(ctx: ToolCtx, id: string): Promise<
+  // deno-lint-ignore no-explicit-any
+  any | null
+> {
+  const { admin, linked } = ctx;
+  const { data: row } = await admin
+    .from("farm_receipts")
+    .select("id, direction, status, total_value, category, cost_center_id, vendor, description, payment_method, transaction_date, due_date, paid_date")
+    .eq("id", id)
+    .eq("organization_id", linked.organization_id)
+    .maybeSingle();
+  if (!row) return null;
+  const allowed = ccFilterIds(linked);
+  if (allowed && row.cost_center_id && !allowed.includes(row.cost_center_id)) return null;
+  return row;
+}
+
+// deno-lint-ignore no-explicit-any
+async function execUpdateReceipt(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin } = ctx;
+  const id = (typeof args.receipt_id === "string" && args.receipt_id) || ctx.lastReceiptId;
+  if (!id) return { error: "no_reference" };
+  const row = await loadScopedReceipt(ctx, id);
+  if (!row) return { error: "not_found" };
+
+  // deno-lint-ignore no-explicit-any
+  const patch: Record<string, any> = {};
+  const changed: string[] = [];
+
+  if (args.total_value !== undefined) {
+    const v = Number(args.total_value);
+    if (Number.isFinite(v) && v > 0) {
+      patch.total_value = v;
+      patch.is_estimated = false; // editar valor confirma um previsto
+      changed.push("valor");
+    }
+  }
+  if (typeof args.category === "string") {
+    patch.category = snapCategory(args.category, ctx.categories, row.direction);
+    changed.push("categoria");
+  }
+  if (typeof args.cost_center === "string") {
+    const cc = resolveCCFromList(args.cost_center, ctx.linked.cost_centers);
+    if (!cc) return { error: "unknown_cost_center", options: ctx.linked.cost_centers.map((c) => c.name) };
+    patch.cost_center_id = cc.id;
+    changed.push("centro");
+  }
+  if (typeof args.vendor === "string") { patch.vendor = args.vendor; changed.push("fornecedor"); }
+  if (typeof args.description === "string") { patch.description = args.description; changed.push("descrição"); }
+  if (typeof args.payment_method === "string" && PAYMENT_METHODS.includes(args.payment_method)) {
+    patch.payment_method = args.payment_method; changed.push("pagamento");
+  }
+  if (typeof args.transaction_date === "string" && args.transaction_date) {
+    patch.transaction_date = args.transaction_date; changed.push("data");
+  }
+  if (typeof args.due_date === "string" && args.due_date) {
+    patch.due_date = args.due_date; changed.push("vencimento");
+  }
+  if (typeof args.status === "string") {
+    if (args.status === "cancelado") {
+      patch.status = "cancelado"; patch.paid_date = null; changed.push("status");
+    } else if (["a_pagar", "pago", "a_receber", "recebido"].includes(args.status)) {
+      const paid = args.status === "pago" || args.status === "recebido";
+      patch.status = paid
+        ? (row.direction === "income" ? "recebido" : "pago")
+        : (row.direction === "income" ? "a_receber" : "a_pagar");
+      patch.paid_date = paid ? (row.transaction_date || todayBR()) : null;
+      changed.push("status");
+    }
+  }
+
+  if (Object.keys(patch).length === 0) return { error: "nothing_to_change" };
+
+  const { data: upd, error } = await admin
+    .from("farm_receipts").update(patch).eq("id", id).select("id, total_value, category, status, payment_method, transaction_date, due_date").single();
+  if (error || !upd) { console.error("[farmAi] update error:", error); return { error: "update_failed" }; }
+  ctx.lastReceiptId = id;
+  return {
+    updated: true,
+    id,
+    changed,
+    total_value: upd.total_value,
+    category: upd.category,
+    category_name: catName(upd.category, ctx.categories),
+    status: upd.status,
+    payment_method: upd.payment_method,
+    date: upd.transaction_date,
+    due_date: upd.due_date,
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+async function execCancelReceipt(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin } = ctx;
+  const id = (typeof args.receipt_id === "string" && args.receipt_id) || ctx.lastReceiptId;
+  if (!id) return { error: "no_reference" };
+  const row = await loadScopedReceipt(ctx, id);
+  if (!row) return { error: "not_found" };
+  const { error } = await admin
+    .from("farm_receipts").update({ status: "cancelado", paid_date: null }).eq("id", id);
+  if (error) { console.error("[farmAi] cancel error:", error); return { error: "cancel_failed" }; }
+  ctx.lastReceiptId = null;
+  return {
+    canceled: true,
+    id,
+    total_value: row.total_value,
+    vendor: row.vendor,
+    category: row.category,
+  };
+}
+
+/** Update efetivo do mark-paid. Reusado pelo handler numerico (pay_select). */
+// deno-lint-ignore no-explicit-any
+async function doMarkPaid(admin: any, row: any): Promise<{ ok: boolean; newStatus: string }> {
+  const newStatus = row.direction === "income" ? "recebido" : "pago";
+  const { error } = await admin
+    .from("farm_receipts").update({ status: newStatus, paid_date: todayBR() }).eq("id", row.id);
+  if (error) { console.error("[farmAi] mark_paid update error:", error); return { ok: false, newStatus }; }
+  return { ok: true, newStatus };
+}
+
+/** Versão string (usada pelo handler numérico em whatsapp.ts). */
+// deno-lint-ignore no-explicit-any
+export async function applyMarkPaid(admin: any, row: any): Promise<string> {
+  const r = await doMarkPaid(admin, row);
+  if (!r.ok) return "Nao consegui atualizar a conta. Tenta de novo em instantes.";
+  const verb = row.direction === "income" ? "Recebido" : "Pago";
+  const who = row.vendor || row.description || row.category || "lancamento";
+  return `✅ ${verb}: ${fmtBRL(Number(row.total_value))} - ${who}.`;
+}
+
+// deno-lint-ignore no-explicit-any
+async function execMarkPaid(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked, from } = ctx;
+  const query = String(args.query || "").trim();
+  if (!query) return { error: "missing_query" };
+
+  let q = admin
+    .from("farm_receipts")
+    .select("id, direction, vendor, description, category, total_value, transaction_date, due_date, status, cost_center_id")
+    .eq("organization_id", linked.organization_id)
+    .in("status", ["a_pagar", "a_receber", "vencido"])
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("transaction_date", { ascending: false })
+    .limit(50);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] mark_paid query:", error); return { error: "query_failed" }; }
+  if (!data || data.length === 0) return { matched: 0, none_open: true };
+
+  const needle = query.toLowerCase();
+  // deno-lint-ignore no-explicit-any
+  let matches = (data as any[]).filter((r) =>
+    (r.vendor || "").toLowerCase().includes(needle) ||
+    (r.description || "").toLowerCase().includes(needle) ||
+    (r.category || "").toLowerCase().includes(needle)
+  );
+  const amount = Number(args.amount);
+  if (Number.isFinite(amount) && amount > 0 && matches.length > 1) {
+    const tol = amount * 0.05;
+    const tight = matches.filter((r) => Math.abs(Number(r.total_value) - amount) <= tol);
+    if (tight.length > 0) matches = tight;
+  }
+
+  if (matches.length === 0) return { matched: 0, query };
+  if (matches.length === 1) {
+    const m = matches[0];
+    const r = await doMarkPaid(admin, m);
+    if (!r.ok) return { error: "update_failed" };
+    ctx.lastReceiptId = m.id;
+    return {
+      marked: true,
+      id: m.id,
+      vendor: m.vendor || m.description || m.category,
+      total_value: m.total_value,
+      status: r.newStatus,
+    };
+  }
+
+  // Múltiplas: grava pay_select (handler numérico em whatsapp.ts resolve "1","2"…).
+  const top = matches.slice(0, 9);
   await admin.from("farm_wa_pending").upsert({
     phone_number: from,
-    kind: "create_select_date",
-    data: { args, cc_id: ccId },
+    kind: "pay_select",
+    data: { ids: top.map((r) => r.id) },
     expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
   });
-  const total = Number(args.total_value);
-  const direction = args.direction === "income" ? "Receita" : "Despesa";
-  const cat = args.category ? ` (${args.category})` : "";
-  const body = `${direction} de ${fmtBRL(total)}${cat}.\n\nQual a data?`;
-  await sendButtons(from, body, [
-    { id: "cr_date:hoje", title: "Hoje" },
-    { id: "cr_date:ontem", title: "Ontem" },
-    { id: "cr_date:custom", title: "Outra data" },
-  ]);
+  return {
+    ambiguous: true,
+    options: top.map((r, i) => ({
+      n: i + 1,
+      vendor: r.vendor || r.description || r.category,
+      total_value: r.total_value,
+      date: r.due_date || r.transaction_date,
+    })),
+  };
 }
 
+// deno-lint-ignore no-explicit-any
+async function execSummary(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  const { from, to, label } = resolvePeriod(args);
+  const includeProj = !!args.include_projected;
+
+  let q = admin
+    .from("farm_receipts")
+    .select("direction, status, total_value, transaction_date, is_estimated")
+    .eq("organization_id", linked.organization_id)
+    .limit(3000);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] summary:", error); return { error: "query_failed" }; }
+
+  let entradas = 0, saidas = 0, aPagar = 0, aReceber = 0, vencido = 0, prevEnt = 0, prevSai = 0;
+  for (const r of data || []) {
+    const v = Number(r.total_value) || 0;
+    const td = r.transaction_date ? String(r.transaction_date) : "";
+    const inRange = td >= from && td <= to;
+    if (r.is_estimated) {
+      if (inRange) { if (r.direction === "income") prevEnt += v; else prevSai += v; }
+      continue;
+    }
+    if (r.status === "cancelado") continue;
+    if (inRange) { if (r.direction === "income") entradas += v; else saidas += v; }
+    if (r.status === "a_pagar") aPagar += v;
+    else if (r.status === "a_receber") aReceber += v;
+    else if (r.status === "vencido") vencido += v;
+  }
+  const result: ToolResult = {
+    period: { from, to, label },
+    realizado: { entradas, saidas, saldo: entradas - saidas },
+    pendencias: { a_pagar: aPagar, a_receber: aReceber, vencido },
+  };
+  if (includeProj) {
+    result.previsto = {
+      saidas: prevSai,
+      entradas: prevEnt,
+      total_saidas_esperado: saidas + prevSai,
+    };
+  }
+  return result;
+}
+
+// deno-lint-ignore no-explicit-any
+async function execSpendByCategory(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  const { from, to, label } = resolvePeriod(args);
+  const direction = args.direction === "income" ? "income" : "expense";
+  const includeProj = !!args.include_projected;
+
+  let q = admin
+    .from("farm_receipts")
+    .select("category, total_value, status, is_estimated")
+    .eq("organization_id", linked.organization_id)
+    .eq("direction", direction)
+    .gte("transaction_date", from)
+    .lte("transaction_date", to)
+    .limit(3000);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] spend_by_cat:", error); return { error: "query_failed" }; }
+
+  const fallback = direction === "income" ? "outros_receita" : "outros_despesa";
+  const filterSlug = typeof args.category === "string"
+    ? snapCategory(args.category, ctx.categories, direction)
+    : null;
+  const byCat: Record<string, number> = {};
+  let total = 0;
+  for (const r of data || []) {
+    if (r.status === "cancelado") continue;
+    if (r.is_estimated && !includeProj) continue;
+    const slug = r.category || fallback;
+    if (filterSlug && slug !== filterSlug) continue;
+    const v = Number(r.total_value) || 0;
+    byCat[slug] = (byCat[slug] || 0) + v;
+    total += v;
+  }
+  const by_category = Object.entries(byCat)
+    .sort((a, b) => b[1] - a[1])
+    .map(([slug, t]) => ({ slug, name: catName(slug, ctx.categories), total: t }));
+  return { period: { from, to, label }, direction, total, by_category };
+}
+
+// deno-lint-ignore no-explicit-any
+async function execComparePeriods(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  const t = todayBR();
+  const y = Number(t.slice(0, 4));
+  const m = Number(t.slice(5, 7));
+  const thisB = monthBounds(y, m);
+  const py = m === 1 ? y - 1 : y;
+  const pm = m === 1 ? 12 : m - 1;
+  const lastB = monthBounds(py, pm);
+  const dirFilter = args.direction === "income" || args.direction === "expense" ? args.direction : null;
+
+  let q = admin
+    .from("farm_receipts")
+    .select("direction, status, total_value, transaction_date, is_estimated")
+    .eq("organization_id", linked.organization_id)
+    .gte("transaction_date", lastB.from)
+    .lte("transaction_date", thisB.to)
+    .limit(4000);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] compare:", error); return { error: "query_failed" }; }
+
+  const agg = (from: string, to: string) => {
+    let entradas = 0, saidas = 0;
+    for (const r of data || []) {
+      if (r.is_estimated || r.status === "cancelado") continue;
+      if (dirFilter && r.direction !== dirFilter) continue;
+      const td = String(r.transaction_date || "");
+      if (td < from || td > to) continue;
+      const v = Number(r.total_value) || 0;
+      if (r.direction === "income") entradas += v; else saidas += v;
+    }
+    return { entradas, saidas, saldo: entradas - saidas };
+  };
+  const cur = agg(thisB.from, thisB.to);
+  const prev = agg(lastB.from, lastB.to);
+  const pct = prev.saldo !== 0
+    ? Math.round(((cur.saldo - prev.saldo) / Math.abs(prev.saldo)) * 100)
+    : null;
+  return {
+    this: { label: `${MESES_PT[m - 1]}`, ...cur },
+    last: { label: `${MESES_PT[pm - 1]}`, ...prev },
+    delta: { entradas: cur.entradas - prev.entradas, saidas: cur.saidas - prev.saidas, saldo: cur.saldo - prev.saldo, pct },
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+async function execListReceipts(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  const days = Number.isFinite(Number(args.days)) ? Number(args.days) : 30;
+  const since = shiftDateBR(-Math.abs(days));
+  let q = admin
+    .from("farm_receipts")
+    .select("direction, total_value, category, vendor, transaction_date, status, cost_center_id")
+    .eq("organization_id", linked.organization_id)
+    .gte("transaction_date", since)
+    .order("transaction_date", { ascending: false })
+    .limit(10);
+  if (args.direction) q = q.eq("direction", args.direction);
+  if (typeof args.category === "string") q = q.eq("category", snapCategory(args.category, ctx.categories, args.direction === "income" ? "income" : "expense"));
+  if (args.status) q = q.eq("status", args.status);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  if (typeof args.cost_center === "string") {
+    const cc = resolveCCFromList(args.cost_center, linked.cost_centers);
+    if (!cc) return { error: "unknown_cost_center", options: linked.cost_centers.map((c) => c.name) };
+    q = q.eq("cost_center_id", cc.id);
+  }
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] list:", error); return { error: "query_failed" }; }
+  const showCC = linked.cost_centers.length > 1;
+  const ccMap = new Map(linked.cost_centers.map((c) => [c.id, c.name]));
+  // deno-lint-ignore no-explicit-any
+  const receipts = (data || []).map((r: any) => ({
+    date: r.transaction_date,
+    direction: r.direction,
+    total_value: Number(r.total_value),
+    category: r.category,
+    category_name: catName(r.category, ctx.categories),
+    vendor: r.vendor,
+    status: r.status,
+    cost_center: showCC && r.cost_center_id ? ccMap.get(r.cost_center_id) ?? null : null,
+  }));
+  return { count: receipts.length, receipts };
+}
+
+function execListMyCostCenters(ctx: ToolCtx): ToolResult {
+  return {
+    cost_centers: ctx.linked.cost_centers.map((c) => ({ name: c.name, is_default: !!c.is_default })),
+  };
+}
+
+// ---------- declarações + dispatch ----------
+
+function toolDeclarations() {
+  const statusEnum = ["a_pagar", "pago", "a_receber", "recebido"];
+  return [{
+    functionDeclarations: [
+      {
+        name: "create_receipt",
+        description: "Registra um lançamento (despesa/receita). Salva na hora; infira defaults e depois revele o que foi assumido.",
+        parameters: {
+          type: "object",
+          properties: {
+            total_value: { type: "number" },
+            direction: { type: "string", enum: ["expense", "income"] },
+            category: { type: "string", description: "slug da categoria (ex: combustivel, venda_graos)" },
+            cost_center: { type: "string", description: "slug ou nome do centro; omita pra usar o padrão" },
+            vendor: { type: "string" },
+            description: { type: "string" },
+            payment_method: { type: "string", enum: PAYMENT_METHODS },
+            transaction_date: { type: "string", description: "YYYY-MM-DD; omita = hoje" },
+            status: { type: "string", enum: statusEnum, description: "pago/recebido se já quitado; a_pagar/a_receber se em aberto" },
+            due_date: { type: "string", description: "YYYY-MM-DD do vencimento, quando a prazo" },
+          },
+          required: ["total_value", "direction"],
+        },
+      },
+      {
+        name: "update_receipt",
+        description: "Corrige um lançamento existente. Sem receipt_id, age sobre o ÚLTIMO. Use pra 'era 550 não 500', 'foi no cartão', 'na verdade é defensivo', 'já paguei esse'.",
+        parameters: {
+          type: "object",
+          properties: {
+            receipt_id: { type: "string" },
+            total_value: { type: "number" },
+            category: { type: "string" },
+            cost_center: { type: "string" },
+            vendor: { type: "string" },
+            description: { type: "string" },
+            payment_method: { type: "string", enum: PAYMENT_METHODS },
+            transaction_date: { type: "string" },
+            due_date: { type: "string" },
+            status: { type: "string", enum: [...statusEnum, "cancelado"] },
+          },
+        },
+      },
+      {
+        name: "cancel_receipt",
+        description: "Cancela um lançamento (vira 'cancelado'). Sem receipt_id, cancela o ÚLTIMO. Use pra 'apaga isso', 'cancela', 'tira esse'.",
+        parameters: { type: "object", properties: { receipt_id: { type: "string" } } },
+      },
+      {
+        name: "mark_receipt_paid",
+        description: "Marca uma conta JÁ EXISTENTE como paga/recebida (sem valor novo). Ex: 'paguei o boleto da Cemig', 'recebi do fulano'.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "fornecedor/categoria/descrição da conta" },
+            amount: { type: "number", description: "valor aprox., pra desambiguar" },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "get_financial_summary",
+        description: "Resumo do período: entradas/saídas/saldo + pendências (a pagar/receber/vencido). include_projected soma os lançamentos PREVISTOS das recorrências (pra 'quanto vou gastar esse mês').",
+        parameters: {
+          type: "object",
+          properties: {
+            period: { type: "string", enum: ["this_month", "last_month", "custom"] },
+            from: { type: "string", description: "YYYY-MM-DD (period=custom)" },
+            to: { type: "string", description: "YYYY-MM-DD (period=custom)" },
+            include_projected: { type: "boolean" },
+          },
+        },
+      },
+      {
+        name: "spend_by_category",
+        description: "Total por categoria num período. Use pra 'quanto gastei com combustível', 'onde mais gastei'.",
+        parameters: {
+          type: "object",
+          properties: {
+            period: { type: "string", enum: ["this_month", "last_month", "custom"] },
+            from: { type: "string" },
+            to: { type: "string" },
+            direction: { type: "string", enum: ["expense", "income"] },
+            category: { type: "string", description: "filtra uma categoria específica" },
+            include_projected: { type: "boolean" },
+          },
+        },
+      },
+      {
+        name: "compare_periods",
+        description: "Compara o mês atual com o anterior (entradas/saídas/saldo). Use pra 'gastei mais que mês passado?'.",
+        parameters: {
+          type: "object",
+          properties: { direction: { type: "string", enum: ["expense", "income"] } },
+        },
+      },
+      {
+        name: "list_receipts",
+        description: "Lista lançamentos recentes (até 10).",
+        parameters: {
+          type: "object",
+          properties: {
+            direction: { type: "string", enum: ["expense", "income"] },
+            category: { type: "string" },
+            status: { type: "string", enum: ["a_pagar", "pago", "a_receber", "recebido", "vencido", "cancelado"] },
+            cost_center: { type: "string" },
+            days: { type: "number", description: "últimos N dias (default 30)" },
+          },
+        },
+      },
+      {
+        name: "list_my_cost_centers",
+        description: "Lista os centros de custo do usuário.",
+        parameters: { type: "object", properties: {} },
+      },
+    ],
+  }];
+}
+
+// deno-lint-ignore no-explicit-any
+async function execTool(name: string, args: any, ctx: ToolCtx): Promise<ToolResult> {
+  switch (name) {
+    case "create_receipt": return await execCreateReceipt(args, ctx);
+    case "update_receipt": return await execUpdateReceipt(args, ctx);
+    case "cancel_receipt": return await execCancelReceipt(args, ctx);
+    case "mark_receipt_paid": return await execMarkPaid(args, ctx);
+    case "get_financial_summary": return await execSummary(args, ctx);
+    case "spend_by_category": return await execSpendByCategory(args, ctx);
+    case "compare_periods": return await execComparePeriods(args, ctx);
+    case "list_receipts": return await execListReceipts(args, ctx);
+    case "list_my_cost_centers": return execListMyCostCenters(ctx);
+    default: return { error: "unknown_tool" };
+  }
+}
+
+// ---------- parser de data (usado pelo fluxo de FOTO em whatsapp.ts) ----------
+
 /**
- * Parser de data em linguagem natural PT-BR via Gemini. Usa "hoje" como
- * referencia. Resolve "ontem", "anteontem", "amanha", dia da semana,
- * "dia N", "25/03", "25/03/26", "DD/MM/YYYY", ISO YYYY-MM-DD. Retorna
- * data: null + reason quando ambiguo (ex: "semana passada" sem dia).
+ * Parser de data em linguagem natural PT-BR via Gemini. "hoje" como referencia.
  */
 export async function parseDateBR(text: string): Promise<{ ok: true; date: string } | { ok: false; reason: string }> {
   const url = Deno.env.get("SUPABASE_URL");
@@ -264,241 +744,7 @@ export async function parseDateBR(text: string): Promise<{ ok: true; date: strin
   }
 }
 
-// deno-lint-ignore no-explicit-any
-async function execCreateReceipt(admin: any, linked: LinkedUser, args: any, from: string): Promise<string> {
-  const total = Number(args.total_value);
-  if (!Number.isFinite(total)) return "Nao entendi o valor. Pode repetir? Ex: paguei 850 de diesel.";
-
-  // 1) Resolve CC
-  let cc: CostCenterRow | null = null;
-  if (args.cost_center) {
-    cc = resolveCCFromList(args.cost_center, linked.cost_centers);
-    if (!cc) return `Nao achei o centro '${args.cost_center}'. Seus centros: ${linked.cost_centers.map((c) => c.name).join(", ")}.`;
-  } else if (linked.cost_centers.length === 1) {
-    cc = linked.cost_centers[0];
-  } else if (linked.cost_centers.length === 0) {
-    return "Voce ainda nao tem nenhum centro de custo. Pede pro admin liberar um pra voce.";
-  } else {
-    // Pergunta CC via botoes/lista
-    await admin.from("farm_wa_pending").upsert({
-      phone_number: from,
-      kind: "create_select_cc",
-      data: { args },
-      expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-    });
-    const direction = args.direction === "income" ? "Receita" : "Despesa";
-    const cat = args.category ? ` (${args.category})` : "";
-    const vend = args.vendor ? ` - ${args.vendor}` : "";
-    const body = `${direction} de ${fmtBRL(total)}${vend}${cat}.\n\nEm qual centro lançar?`;
-    if (linked.cost_centers.length <= 3) {
-      await sendButtons(from, body, linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })));
-    } else {
-      await sendList(from, body, "Escolher centro", [{ rows: linked.cost_centers.map((c) => ({ id: "cr_cc:" + c.id, title: c.name })) }]);
-    }
-    return "";
-  }
-
-  // 2) CC resolvido. Se data ja veio do Gemini -> salva. Senao -> pergunta.
-  if (args.transaction_date) return await applyCreateReceipt(admin, linked, args, cc);
-  await askDateButtons(admin, from, args, cc.id);
-  return "";
-}
-
-const MESES_PT = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-];
-
-// deno-lint-ignore no-explicit-any
-async function execSummary(admin: any, linked: LinkedUser): Promise<string> {
-  let q = admin
-    .from("farm_receipts")
-    .select("direction, status, total_value, transaction_date")
-    .eq("organization_id", linked.organization_id);
-  const allowed = ccFilterIds(linked);
-  if (allowed) q = q.in("cost_center_id", allowed);
-  const { data, error } = await q;
-  if (error) {
-    console.error("[farmAi] summary error:", error);
-    return "Nao consegui buscar o resumo agora.";
-  }
-  // Mes corrente (BR) pro realizado; pendencias somam em aberto (todo o periodo).
-  const today = todayBR(); // YYYY-MM-DD em horario BR
-  const ym = today.slice(0, 7);
-  const mesNome = MESES_PT[Number(today.slice(5, 7)) - 1];
-  let aPagar = 0, aReceber = 0, vencido = 0, mesEntradas = 0, mesSaidas = 0;
-  for (const r of data || []) {
-    const v = Number(r.total_value) || 0;
-    if (r.status === "a_pagar") aPagar += v;
-    else if (r.status === "a_receber") aReceber += v;
-    else if (r.status === "vencido") vencido += v;
-    if (r.transaction_date && String(r.transaction_date).slice(0, 7) === ym) {
-      if (r.direction === "income") mesEntradas += v;
-      else mesSaidas += v;
-    }
-  }
-  const saldo = mesEntradas - mesSaidas;
-  return `📊 *Resumo de ${mesNome}*\n\n` +
-    `💰 Entradas no mês: ${fmtBRL(mesEntradas)}\n` +
-    `💸 Saídas no mês: ${fmtBRL(mesSaidas)}\n` +
-    `📈 Saldo do mês: ${fmtBRL(saldo)}\n\n` +
-    `*Pendências em aberto*\n` +
-    `🔸 A pagar: ${fmtBRL(aPagar)}\n` +
-    `🔹 A receber: ${fmtBRL(aReceber)}\n` +
-    `⚠️ Vencido: ${fmtBRL(vencido)}\n\n` +
-    `_Detalhes e edição no app: gerentia.app_`;
-}
-
-// deno-lint-ignore no-explicit-any
-async function execListReceipts(admin: any, linked: LinkedUser, args: any): Promise<string> {
-  const days = Number.isFinite(Number(args.days)) ? Number(args.days) : 30;
-  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-  let q = admin
-    .from("farm_receipts")
-    .select("direction, total_value, category, vendor, transaction_date, status, cost_center_id")
-    .eq("organization_id", linked.organization_id)
-    .gte("transaction_date", since)
-    .order("transaction_date", { ascending: false })
-    .limit(10);
-  if (args.direction) q = q.eq("direction", args.direction);
-  if (args.category) q = q.eq("category", args.category);
-  if (args.status) q = q.eq("status", args.status);
-  const allowed = ccFilterIds(linked);
-  if (allowed) q = q.in("cost_center_id", allowed);
-  if (args.cost_center) {
-    const cc = resolveCCFromList(args.cost_center, linked.cost_centers);
-    if (!cc) return `Centro '${args.cost_center}' nao encontrado.`;
-    q = q.eq("cost_center_id", cc.id);
-  }
-  const { data, error } = await q;
-  if (error) {
-    console.error("[farmAi] list error:", error);
-    return "Nao consegui listar os lancamentos agora.";
-  }
-  if (!data || data.length === 0) return "Nenhum lancamento encontrado nesse filtro. 🤷";
-  const showCC = linked.cost_centers.length > 1;
-  const ccMap = new Map(linked.cost_centers.map((c) => [c.id, c.name]));
-  // deno-lint-ignore no-explicit-any
-  const lines = data.map((r: any) => {
-    const arrow = r.direction === "income" ? "💰" : "💸";
-    const d = r.transaction_date ? r.transaction_date.split("-").reverse().slice(0, 2).join("/") : "--";
-    const ccName = showCC && r.cost_center_id ? ` [${ccMap.get(r.cost_center_id) || "?"}]` : "";
-    return arrow + " " + d + " " + fmtBRL(Number(r.total_value)) + " - " +
-      r.category + (r.vendor ? " (" + r.vendor + ")" : "") + ccName;
-  });
-  return "📋 *Ultimos lancamentos*\n\n" + lines.join("\n");
-}
-
-/**
- * Tenta marcar uma conta pendente como paga/recebida.
- *
- * 0 matches  -> texto explicando que nao achou (sugere criar nova).
- * 1 match    -> marca como pago/recebido na hora.
- * >1 matches -> escreve farm_wa_pending kind='pay_select' com array de ids,
- *               retorna lista numerada pro user responder "1", "2", etc.
- *               A logica de "user respondeu numero" fica em handlers/whatsapp.ts
- *               (precisa de from + interrompe o flow antes de runFarmAi).
- */
-// deno-lint-ignore no-explicit-any
-async function execMarkPaid(
-  admin: any,
-  linked: LinkedUser,
-  // deno-lint-ignore no-explicit-any
-  args: any,
-  from: string,
-): Promise<string> {
-  const query = String(args.query || "").trim();
-  if (!query) return "Pra qual conta? Me diz o fornecedor ou descricao. Ex: 'paguei o boleto da Cemig'.";
-
-  // Busca todas as pendentes do escopo CCs do user.
-  let q = admin
-    .from("farm_receipts")
-    .select("id, direction, vendor, description, category, total_value, transaction_date, due_date, status, cost_center_id")
-    .eq("organization_id", linked.organization_id)
-    .in("status", ["a_pagar", "a_receber", "vencido"])
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("transaction_date", { ascending: false })
-    .limit(50);
-  const allowed = ccFilterIds(linked);
-  if (allowed) q = q.in("cost_center_id", allowed);
-  const { data, error } = await q;
-  if (error) {
-    console.error("[farmAi] mark_paid query error:", error);
-    return "Nao consegui buscar suas contas pendentes agora.";
-  }
-  if (!data || data.length === 0) return "Voce nao tem nenhuma conta pendente. 🤷";
-
-  // Fuzzy match: vendor / description / category ilike.
-  const needle = query.toLowerCase();
-  // deno-lint-ignore no-explicit-any
-  let matches = (data as any[]).filter((r) =>
-    (r.vendor || "").toLowerCase().includes(needle)
-    || (r.description || "").toLowerCase().includes(needle)
-    || (r.category || "").toLowerCase().includes(needle)
-  );
-
-  // Se amount foi citado, filtra por +/-5%.
-  const amount = Number(args.amount);
-  if (Number.isFinite(amount) && amount > 0 && matches.length > 1) {
-    const tol = amount * 0.05;
-    const tight = matches.filter((r) => Math.abs(Number(r.total_value) - amount) <= tol);
-    if (tight.length > 0) matches = tight;
-  }
-
-  if (matches.length === 0) {
-    return `Nao achei conta pendente com '${query}'. Manda 'a pagar' pra eu listar tudo que esta em aberto.`;
-  }
-
-  if (matches.length === 1) {
-    return await applyMarkPaid(admin, matches[0]);
-  }
-
-  // Multiplas: lista + pending.
-  const top = matches.slice(0, 9);
-  const ids = top.map((r) => r.id as string);
-  await admin.from("farm_wa_pending").upsert({
-    phone_number: from,
-    kind: "pay_select",
-    data: { ids },
-    expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
-  });
-  const lines = top.map((r, i) => {
-    const d = r.due_date || r.transaction_date || "--";
-    const ds = typeof d === "string" ? d.split("-").reverse().slice(0, 2).join("/") : "--";
-    const arrow = r.direction === "income" ? "💰" : "💸";
-    const vendor = r.vendor || r.description || r.category || "(sem fornecedor)";
-    return `*${i + 1}*. ${arrow} ${ds} - ${fmtBRL(Number(r.total_value))} - ${vendor}`;
-  });
-  return "Achei mais de uma conta. Responde com o numero da que voce pagou:\n\n" + lines.join("\n");
-}
-
-// deno-lint-ignore no-explicit-any
-export async function applyMarkPaid(admin: any, row: any): Promise<string> {
-  const newStatus = row.direction === "income" ? "recebido" : "pago";
-  const today = todayBR();
-  const { error: updErr } = await admin
-    .from("farm_receipts")
-    .update({ status: newStatus, paid_date: today })
-    .eq("id", row.id);
-  if (updErr) {
-    console.error("[farmAi] mark_paid update error:", updErr);
-    return "Nao consegui atualizar a conta. Tenta de novo em instantes.";
-  }
-  const verb = row.direction === "income" ? "Recebido" : "Pago";
-  const who = row.vendor || row.description || row.category || "lancamento";
-  return `✅ ${verb}: ${fmtBRL(Number(row.total_value))} - ${who}.`;
-}
-
-function execListMyCostCenters(linked: LinkedUser): string {
-  if (linked.cost_centers.length === 0) {
-    return "Voce ainda nao tem nenhum centro de custo liberado. Pede pro admin.";
-  }
-  const def = linked.cost_centers.find((c) => c.is_default);
-  const lines = linked.cost_centers.map((c) =>
-    `• ${c.name}${c.id === def?.id ? " (default)" : ""}`
-  ).join("\n");
-  return "🏷️ *Seus centros de custo*\n\n" + lines;
-}
+// ---------- loop agêntico ----------
 
 interface GeminiPart {
   text?: string;
@@ -506,75 +752,140 @@ interface GeminiPart {
 }
 
 // deno-lint-ignore no-explicit-any
-export async function runFarmAi(admin: any, linked: LinkedUser, userText: string, from: string): Promise<string> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !anonKey) return "IA nao configurada no momento.";
+async function callGemini(url: string, anon: string, payload: unknown): Promise<any> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 25_000);
+  try {
+    const resp = await fetch(url + "/functions/v1/gemini", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + anon },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      throw new Error("proxy " + resp.status + " " + t.slice(0, 200));
+    }
+    return await resp.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
+// deno-lint-ignore no-explicit-any
+function summarizeReceipt(lr: any): string {
+  const v = fmtBRL(Number(lr.total_value));
+  const d = lr.transaction_date ? fmtDateBR(lr.transaction_date) : "";
+  const who = lr.vendor ? ` ${lr.vendor}` : "";
+  return `${lr.category || lr.direction} ${v}${who} (${lr.status}${d ? ", " + d : ""}) id=${lr.id}`;
+}
+
+// deno-lint-ignore no-explicit-any
+export async function runFarmAi(admin: any, linked: LinkedUser, userText: string, from: string): Promise<AgentResult> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const anon = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !anon) return { text: "IA nao configurada no momento.", wizard: null };
+
+  try {
   const { data: linkRow } = await admin
     .from("farm_whatsapp_links")
-    .select("history")
+    .select("history, last_receipt_id")
     .eq("user_id", linked.user_id)
     .limit(1)
     .maybeSingle();
   const history: HistTurn[] = Array.isArray(linkRow?.history) ? linkRow.history : [];
+  let lastReceiptId: string | null = linkRow?.last_receipt_id ?? null;
 
-  const contents = [
+  const categories = await listVisibleCategories(admin, linked.organization_id, linked.user_id);
+
+  let lastReceiptLabel: string | null = null;
+  if (lastReceiptId) {
+    const { data: lr } = await admin
+      .from("farm_receipts")
+      .select("id, direction, total_value, category, vendor, status, transaction_date")
+      .eq("id", lastReceiptId)
+      .maybeSingle();
+    if (lr) lastReceiptLabel = summarizeReceipt(lr);
+    else lastReceiptId = null;
+  }
+
+  const ctx: ToolCtx = { admin, linked, from, categories, lastReceiptId, wizardDrafts: [] };
+
+  const system = buildFinanceAgentPrompt({
+    today: todayBR(),
+    userName: linked.user_name,
+    costCenters: linked.cost_centers.map((c) => ({ name: c.name, slug: c.slug, is_default: !!c.is_default })),
+    categories,
+    lastReceipt: lastReceiptLabel,
+  });
+
+  // deno-lint-ignore no-explicit-any
+  const contents: any[] = [
     ...history.map((h) => ({ role: h.role, parts: [{ text: h.text }] })),
     { role: "user", parts: [{ text: userText }] },
   ];
 
-  const payload = {
-    model: MODEL,
-    body: {
-      systemInstruction: { parts: [{ text: buildSystemPrompt(linked) }] },
-      contents,
-      tools: toolDeclarations(),
-      toolConfig: { functionCallingConfig: { mode: "AUTO" } },
-      generationConfig: { temperature: 0.3 },
-    },
-  };
+  let finalText: string | null = null;
+    for (let i = 0; i < MAX_ITERS; i++) {
+      const payload = {
+        model: MODEL,
+        body: {
+          systemInstruction: { parts: [{ text: system }] },
+          contents,
+          tools: toolDeclarations(),
+          toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+          generationConfig: { temperature: 0.3 },
+        },
+      };
+      const json = await callGemini(url, anon, payload);
+      const parts: GeminiPart[] = json?.candidates?.[0]?.content?.parts ?? [];
+      const fnCalls = parts.filter((p) => p.functionCall).map((p) => p.functionCall!);
 
-  let reply: string;
-  try {
-    const resp = await fetch(supabaseUrl + "/functions/v1/gemini", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + anonKey },
-      body: JSON.stringify(payload),
-    });
-    if (!resp.ok) {
-      console.error("[farmAi] proxy non-2xx:", resp.status, await resp.text().catch(() => ""));
-      return "🔧 A IA esta instavel agora. Tenta de novo em 1 minuto.";
-    }
-    const json = await resp.json();
-    const parts: GeminiPart[] = json?.candidates?.[0]?.content?.parts || [];
-    const fnPart = parts.find((p) => p.functionCall);
+      if (fnCalls.length === 0) {
+        finalText = parts.map((p) => p.text).filter(Boolean).join("\n").trim();
+        break;
+      }
 
-    if (fnPart?.functionCall) {
-      const { name, args } = fnPart.functionCall;
-      console.log("[farmAi] tool=" + name, JSON.stringify(args));
-      if (name === "create_receipt") reply = await execCreateReceipt(admin, linked, args, from);
-      else if (name === "get_financial_summary") reply = await execSummary(admin, linked);
-      else if (name === "list_receipts") reply = await execListReceipts(admin, linked, args);
-      else if (name === "list_my_cost_centers") reply = execListMyCostCenters(linked);
-      else if (name === "mark_receipt_paid") reply = await execMarkPaid(admin, linked, args, from);
-      else reply = "Nao entendi bem. Pode reformular?";
-    } else {
-      const text = parts.map((p) => p.text).filter(Boolean).join("\n").trim();
-      reply = text || "Nao entendi. Manda de novo, ou envie uma foto de recibo.";
+      contents.push({ role: "model", parts });
+      const respParts: unknown[] = [];
+      for (const fc of fnCalls) {
+        console.log("[farmAi] tool=" + fc.name, JSON.stringify(fc.args ?? {}));
+        let result: ToolResult;
+        try {
+          result = await execTool(fc.name, fc.args ?? {}, ctx);
+        } catch (e) {
+          console.error("[farmAi] tool exception", fc.name, e);
+          result = { error: "tool_failed" };
+        }
+        respParts.push({ functionResponse: { name: fc.name, response: result } });
+      }
+      contents.push({ role: "user", parts: respParts });
+      if (ctx.wizardDrafts.length > 0) break; // criação -> wizard guiado
     }
-  } catch (e) {
-    console.error("[farmAi] exception:", e);
-    return "📡 Sem conexao com a IA agora. Tenta de novo em 1 minuto.";
+
+  // Criação dispara o wizard guiado (handlers/whatsapp.ts); não persiste aqui.
+  if (ctx.wizardDrafts.length > 0) {
+    return { text: "", wizard: ctx.wizardDrafts };
   }
 
-  const newHist = [
-    ...history,
-    { role: "user" as const, text: userText },
-    { role: "model" as const, text: reply },
-  ].slice(-HISTORY_MAX);
-  await admin.from("farm_whatsapp_links").update({ history: newHist }).eq("user_id", linked.user_id)
-    .then(() => {}, (e: unknown) => console.warn("[farmAi] save history failed:", e));
+  if (!finalText) {
+    finalText = "Me confirma em 1 frase o que voce quer? (ex: 'paguei 500 de diesel' ou 'quanto tenho a pagar').";
+  }
 
-  return reply;
+  const newHist: HistTurn[] = [
+    ...history,
+    { role: "user", text: userText },
+    { role: "model", text: finalText },
+  ].slice(-HISTORY_MAX);
+  await admin
+    .from("farm_whatsapp_links")
+    .update({ history: newHist, last_receipt_id: ctx.lastReceiptId })
+    .eq("user_id", linked.user_id)
+    .then(() => {}, (e: unknown) => console.warn("[farmAi] save state failed:", e));
+
+  return { text: finalText, wizard: null };
+  } catch (e) {
+    console.error("[farmAi] runFarmAi failed:", e);
+    return { text: "A IA tropecou agora (erro interno). Tenta de novo em instantes.", wizard: null };
+  }
 }

@@ -4,7 +4,8 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
 import { secret } from "../lib/env.ts";
-import { applyCreateReceipt, applyMarkPaid, askDateButtons, fmtDateBR, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser } from "../lib/farmAi.ts";
+import { applyMarkPaid, fmtDateBR, parseDateBR, runFarmAi, shiftDateBR, todayBR, yesterdayBR, type LinkedUser, type WizardDraft } from "../lib/farmAi.ts";
+import { listVisibleCategories, snapCategory } from "../lib/categories.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
 import {
   bytesToBase64,
@@ -207,16 +208,16 @@ function receiptSummary(e: any, ccName: string | null, showCC: boolean): string 
   const conf = typeof e.confidence === "number"
     ? " _(confianca " + Math.round(e.confidence * 100) + "%)_"
     : "";
-  return "📄 *Recibo lido*" + conf + "\n\n" + lines.join("\n") + itemsBlock +
-    "\n\nConfirma o lancamento?";
+  return "Recibo lido" + conf + "\n\n" + lines.join("\n") + itemsBlock +
+    "\n\nConfirma o lançamento?";
 }
 
 function confirmButtons(showChangeCC: boolean) {
   const buttons: Array<{ id: string; title: string }> = [
-    { id: "rcpt_ok", title: "✅ Confirmar" },
+    { id: "rcpt_ok", title: "Confirmar" },
   ];
-  if (showChangeCC) buttons.push({ id: "rcpt_change_cc", title: "🏷️ Mudar centro" });
-  buttons.push({ id: "rcpt_edit", title: "✏️ Editar no app" });
+  if (showChangeCC) buttons.push({ id: "rcpt_change_cc", title: "Mudar centro" });
+  buttons.push({ id: "rcpt_edit", title: "Editar no app" });
   return buttons;
 }
 
@@ -225,6 +226,156 @@ const PHOTO_DATE_BUTTONS = [
   { id: "cr_date:ontem", title: "Ontem" },
   { id: "cr_date:custom", title: "Outra data" },
 ];
+
+// ---------- Wizard de criação guiado (status -> centro -> data -> confirmar) ----------
+
+const STATUS_LABEL: Record<string, string> = {
+  a_pagar: "A pagar", pago: "Pago", a_receber: "A receber",
+  recebido: "Recebido", vencido: "Vencido", cancelado: "Cancelado",
+};
+
+interface WizState { draft: WizardDraft; steps: string[]; step: number; queue: WizardDraft[]; seq: number; total: number }
+
+/** Decide as etapas faltantes (só o que o usuário não deixou claro) e inicia.
+ *  Quando há vários lançamentos numa mensagem, anuncia "Lançamento N de M". */
+// deno-lint-ignore no-explicit-any
+async function startCreateWizard(admin: any, linked: LinkedUser, from: string, drafts: WizardDraft[], seq: number, total: number) {
+  const [draft, ...queue] = drafts;
+  if (!draft.cost_center_id && linked.cost_centers.length === 1) {
+    draft.cost_center_id = linked.cost_centers[0].id;
+  }
+  const steps: string[] = [];
+  if (!draft.category) steps.push("describe");
+  if (!draft.status) steps.push("status");
+  if (!draft.cost_center_id && linked.cost_centers.length > 1) steps.push("cost_center");
+  if (!draft.transaction_date) steps.push("date");
+  steps.push("confirm");
+  const wiz: WizState = { draft, steps, step: 0, queue, seq, total };
+  await setPending(admin, from, "create_wizard", wiz);
+  if (total > 1) {
+    const label = draft.category_name || (draft.direction === "income" ? "Receita" : "Despesa");
+    await sendText(from, "Lançamento " + seq + " de " + total + ": *" + label + " - " + fmtBRL(draft.total_value) + "*");
+  }
+  await sendWizardStep(admin, linked, from, wiz);
+}
+
+/** Pergunta da etapa atual. */
+// deno-lint-ignore no-explicit-any
+async function sendWizardStep(_admin: any, linked: LinkedUser, from: string, wiz: WizState) {
+  const d = wiz.draft;
+  const step = wiz.steps[wiz.step];
+  if (step === "describe") {
+    await sendText(from, "Do que se trata essa " + (d.direction === "income" ? "receita" : "despesa") + "? Ex: diesel, energia, ração, peças, salário...");
+    return;
+  }
+  if (step === "status") {
+    if (d.direction === "income") {
+      await sendButtons(from, "Esse valor já foi recebido ou está a receber?", [
+        { id: "cw_status:recebido", title: "Já recebi" },
+        { id: "cw_status:areceber", title: "A receber" },
+      ]);
+    } else {
+      await sendButtons(from, "Esse lançamento já foi pago ou está a pagar?", [
+        { id: "cw_status:pago", title: "Já paguei" },
+        { id: "cw_status:apagar", title: "A pagar" },
+      ]);
+    }
+    return;
+  }
+  if (step === "cost_center") {
+    const ccs = linked.cost_centers;
+    const body = "Em qual centro de custo?";
+    if (ccs.length <= 3) {
+      await sendButtons(from, body, ccs.map((c) => ({ id: "cw_cc:" + c.id, title: c.name })));
+    } else {
+      await sendList(from, body, "Centros", [{ rows: ccs.map((c) => ({ id: "cw_cc:" + c.id, title: c.name })) }]);
+    }
+    return;
+  }
+  if (step === "date") {
+    await sendButtons(from, "Qual a data?", [
+      { id: "cw_date:hoje", title: "Hoje" },
+      { id: "cw_date:custom", title: "Outra data" },
+    ]);
+    return;
+  }
+  await sendButtons(from, wizardSummary(d, linked), [
+    { id: "cw_confirm", title: "Confirmar" },
+    { id: "cw_cancel", title: "Cancelar" },
+  ]);
+}
+
+/** Formata o lançamento em negrito + citação (blockquote), 1 campo por linha. */
+function formatLaunch(title: string, d: WizardDraft, linked: LinkedUser, status: string, date: string): string {
+  const ccName = d.cost_center_id ? (linked.cost_centers.find((c) => c.id === d.cost_center_id)?.name ?? null) : null;
+  const open = status === "a_pagar" || status === "a_receber";
+  const lines = [
+    "*" + title + "*",
+    "*Tipo:* " + (d.direction === "income" ? "Receita" : "Despesa"),
+    "*Valor:* " + fmtBRL(d.total_value),
+    "*Categoria:* " + (d.category_name || "Outros"),
+    "*Status:* " + (STATUS_LABEL[status] ?? status),
+    "*Data:* " + fmtDateBR(date),
+    (d.due_date && open) ? "*Vence:* " + fmtDateBR(d.due_date) : null,
+    (ccName && linked.cost_centers.length > 1) ? "*Centro:* " + ccName : null,
+    d.vendor ? "*Fornecedor:* " + d.vendor : null,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function wizardSummary(d: WizardDraft, linked: LinkedUser): string {
+  const status = d.status ?? (d.direction === "income" ? "a_receber" : "a_pagar");
+  const date = d.transaction_date ?? todayBR();
+  return formatLaunch("Confirmar lançamento:", d, linked, status, date);
+}
+
+/** Aplica a resposta e vai pra próxima etapa (ou finaliza). */
+// deno-lint-ignore no-explicit-any
+async function advanceWizard(admin: any, linked: LinkedUser, from: string, wiz: WizState) {
+  wiz.step++;
+  if (wiz.step < wiz.steps.length) {
+    await setPending(admin, from, "create_wizard", wiz);
+    await sendWizardStep(admin, linked, from, wiz);
+  } else {
+    await finalizeWizard(admin, linked, from, wiz);
+  }
+}
+
+/** Insere o lançamento e, se houver fila (vários numa mensagem), segue pro próximo. */
+// deno-lint-ignore no-explicit-any
+async function finalizeWizard(admin: any, linked: LinkedUser, from: string, wiz: WizState) {
+  const d = wiz.draft;
+  const status = d.status ?? (d.direction === "income" ? "a_receber" : "a_pagar");
+  const paid = status === "pago" || status === "recebido";
+  const date = d.transaction_date ?? todayBR();
+  const { data: inserted, error } = await admin.from("farm_receipts").insert({
+    organization_id: linked.organization_id,
+    created_by: linked.user_id,
+    doc_type: "outro",
+    direction: d.direction,
+    status,
+    total_value: d.total_value,
+    currency: "BRL",
+    transaction_date: date,
+    due_date: !paid ? d.due_date : null,
+    paid_date: paid ? date : null,
+    vendor: d.vendor,
+    payment_method: d.payment_method,
+    description: d.description,
+    category: d.category ?? (d.direction === "income" ? "outros_receita" : "outros_despesa"),
+    cost_center_id: d.cost_center_id,
+    source: "whatsapp",
+  }).select("id").single();
+  await clearPending(admin, from);
+  if (error || !inserted) {
+    console.error("[wizard] insert failed:", error);
+    await sendText(from, "Não consegui salvar. Tenta de novo ou usa o app.");
+    return;
+  }
+  await admin.from("farm_whatsapp_links").update({ last_receipt_id: inserted.id }).eq("user_id", linked.user_id);
+  await sendText(from, formatLaunch("Lançado:", d, linked, status, date));
+  if (wiz.queue.length > 0) await startCreateWizard(admin, linked, from, wiz.queue, wiz.seq + 1, wiz.total);
+}
 
 /**
  * Insere farm_receipts a partir do pending receipt_confirm (foto/PDF).
@@ -300,7 +451,7 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
   const head = itemized
     ? items.length + " itens"
     : (e.category || e.doc_type);
-  return "✅ Lancamento salvo!\n" + fmtBRL(total) + " - " +
+  return "Lançamento salvo.\n" + fmtBRL(total) + " - " +
     head + ccTail + dateTail + "\n\nVer no app: " + APP_URL;
 }
 
@@ -342,57 +493,24 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       return;
     }
 
-    // Seleção de CC vinda do execCreateReceipt (texto/audio com >1 CCs)
-    if (actionId.startsWith("cr_cc:")) {
-      const ccId = actionId.slice("cr_cc:".length);
-      const pending = await getPending(admin, from);
-      if (!pending || pending.kind !== "create_select_cc" || !linked) {
-        await sendText(from, "⏳ Esse pedido expirou. Manda de novo.");
-        return;
-      }
-      const cc = linked.cost_centers.find((c) => c.id === ccId);
-      if (!cc) { await sendText(from, "Esse centro nao ta na sua lista."); return; }
-      // Se data ja veio do Gemini, salva direto; senao pergunta data.
-      if (pending.data.args.transaction_date) {
-        await clearPending(admin, from);
-        const reply = await applyCreateReceipt(admin, linked, pending.data.args, cc);
-        await sendText(from, reply);
-      } else {
-        await askDateButtons(admin, from, pending.data.args, cc.id);
-      }
-      return;
-    }
-
-    // Seleção de data: cr_date:hoje | ontem | custom (cobre create + photo)
+    // Seleção de data do fluxo de FOTO: cr_date:hoje | ontem | custom
     if (actionId.startsWith("cr_date:")) {
       const which = actionId.slice("cr_date:".length);
       const pending = await getPending(admin, from);
-      if (!pending || (pending.kind !== "create_select_date" && pending.kind !== "photo_select_date")) {
+      if (!pending || pending.kind !== "photo_select_date") {
         await sendText(from, "⏳ Esse pedido expirou.");
         return;
       }
       if (which === "custom") {
-        // Muda pra modo input de texto (mesmo data shape)
-        const nextKind = pending.kind === "create_select_date" ? "create_input_date" : "photo_input_date";
-        await setPending(admin, from, nextKind, pending.data);
+        await setPending(admin, from, "photo_input_date", pending.data);
         await sendText(from, "Beleza, me diz a data.\n\nEx: *25/03/26*, *25/03*, *ontem*, *anteontem*, *dia 25*, *terça*, *amanhã*, *próxima sexta*...\n\n_Ou manda 'cancelar' pra abortar._");
         return;
       }
       const date = which === "hoje" ? todayBR() : yesterdayBR();
-      if (pending.kind === "create_select_date" && linked) {
-        const cc = linked.cost_centers.find((c) => c.id === pending.data.cc_id);
-        if (!cc) { await sendText(from, "Centro saiu da lista. Tenta de novo."); await clearPending(admin, from); return; }
-        await clearPending(admin, from);
-        const args = { ...pending.data.args, transaction_date: date };
-        const reply = await applyCreateReceipt(admin, linked, args, cc);
-        await sendText(from, reply);
-      } else {
-        // photo_select_date
-        const ok = await savePhotoReceipt(admin, pending.data, date, linked);
-        await clearPending(admin, from);
-        if (!ok) { await sendText(from, "❌ Nao consegui salvar."); return; }
-        await sendText(from, ok);
-      }
+      const ok = await savePhotoReceipt(admin, pending.data, date, linked);
+      await clearPending(admin, from);
+      if (!ok) { await sendText(from, "❌ Nao consegui salvar."); return; }
+      await sendText(from, ok);
       return;
     }
 
@@ -444,6 +562,45 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       return;
     }
 
+    // ----- Wizard de criação: status -> centro -> data -> confirmar -----
+    if (actionId.startsWith("cw_")) {
+      if (!linked) return;
+      const pending = await getPending(admin, from);
+      if (!pending || pending.kind !== "create_wizard") {
+        await sendText(from, "Esse cadastro expirou. Manda de novo.");
+        return;
+      }
+      const wiz = pending.data as WizState;
+
+      if (actionId === "cw_cancel") { await clearPending(admin, from); await sendText(from, "Cancelado."); return; }
+      if (actionId === "cw_confirm") { await finalizeWizard(admin, linked, from, wiz); return; }
+
+      if (actionId.startsWith("cw_status:")) {
+        const v = actionId.slice("cw_status:".length);
+        wiz.draft.status = v === "pago" ? "pago" : v === "recebido" ? "recebido" : v === "areceber" ? "a_receber" : "a_pagar";
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      if (actionId.startsWith("cw_cc:")) {
+        const ccId = actionId.slice("cw_cc:".length);
+        if (!linked.cost_centers.find((c) => c.id === ccId)) { await sendText(from, "Esse centro não tá na sua lista."); return; }
+        wiz.draft.cost_center_id = ccId;
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      if (actionId.startsWith("cw_date:")) {
+        const which = actionId.slice("cw_date:".length);
+        if (which === "custom") {
+          await sendText(from, "Me diz a data. Ex: ontem, amanhã, 10/06, dia 20, terça...");
+          return; // segue na etapa de data; o que você digitar vira a data
+        }
+        wiz.draft.transaction_date = which === "amanha" ? shiftDateBR(1) : which === "ontem" ? yesterdayBR() : todayBR();
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      return;
+    }
+
     return;
   }
 
@@ -456,8 +613,8 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       await sendText(
         from,
         linked
-          ? "👋 Sou o assistente financeiro do *gerentia.app*.\n\n- Manda uma *foto* ou *PDF* de recibo/nota/boleto que eu leio e lanco.\n- Ou me fala por texto: paguei 850 de diesel / quanto tenho a pagar / meus ultimos lancamentos."
-          : "👋 Ola! Pra usar o assistente do *gerentia.app*, primeiro vincule sua conta.\n\nNo app: *Conta -> WhatsApp*, gere um codigo de 6 digitos e me envie aqui.",
+          ? "Sou o assistente financeiro do gerentia.app.\n\n- Manda uma foto ou PDF de recibo/nota/boleto que eu leio e lanço.\n- Ou me fala por texto. Ex: paguei 850 de diesel, quanto tenho a pagar, meus últimos lançamentos."
+          : "Olá. Pra usar o assistente do gerentia.app, primeiro vincule sua conta.\n\nNo app: Conta -> WhatsApp, gere um código de 6 dígitos e me envie aqui.",
       );
       return;
     }
@@ -502,25 +659,43 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
     }
     {
       const pending = await getPending(admin, from);
-      if (pending && (pending.kind === "create_input_date" || pending.kind === "photo_input_date")) {
+      if (pending && pending.kind === "photo_input_date") {
         const parsed = await parseDateBR(text);
         if (!parsed.ok) {
-          await sendText(from, `🤔 ${parsed.reason}. Tenta outra vez (ex: *25/03/26*, *ontem*, *dia 25*) ou manda *cancelar*.`);
+          await sendText(from, `${parsed.reason}. Tenta de novo (ex: 25/03/26, ontem, dia 25) ou manda cancelar.`);
           return;
         }
-        if (pending.kind === "create_input_date") {
-          const cc = linked?.cost_centers.find((c) => c.id === pending.data.cc_id);
-          if (!cc) { await clearPending(admin, from); await sendText(from, "Centro saiu da sua lista. Tenta de novo."); return; }
-          await clearPending(admin, from);
-          const args = { ...pending.data.args, transaction_date: parsed.date };
-          const reply = await applyCreateReceipt(admin, linked!, args, cc);
-          await sendText(from, reply);
-        } else {
-          const ok = await savePhotoReceipt(admin, pending.data, parsed.date, linked);
-          await clearPending(admin, from);
-          if (!ok) { await sendText(from, "❌ Nao consegui salvar."); return; }
-          await sendText(from, ok);
+        const ok = await savePhotoReceipt(admin, pending.data, parsed.date, linked);
+        await clearPending(admin, from);
+        if (!ok) { await sendText(from, "Nao consegui salvar."); return; }
+        await sendText(from, ok);
+        return;
+      }
+      // No meio de um wizard: na etapa de data, o texto digitado vira a data;
+      // nas outras etapas, lembra de tocar nos botões.
+      if (pending && pending.kind === "create_wizard" && linked) {
+        const wiz = pending.data as WizState;
+        const cur = wiz.steps[wiz.step];
+        if (cur === "describe") {
+          const cats = await listVisibleCategories(admin, linked.organization_id, linked.user_id);
+          const slug = snapCategory(text, cats, wiz.draft.direction);
+          wiz.draft.category = slug;
+          wiz.draft.category_name = cats.find((c) => c.slug === slug)?.name ?? slug;
+          wiz.draft.description = text.trim().slice(0, 120);
+          await advanceWizard(admin, linked, from, wiz);
+          return;
         }
+        if (cur === "date") {
+          const parsed = await parseDateBR(text);
+          if (!parsed.ok) {
+            await sendText(from, `${parsed.reason}. Tenta de novo (ex: 25/03, ontem, dia 20) ou toca num botão.`);
+            return;
+          }
+          wiz.draft.transaction_date = parsed.date;
+          await advanceWizard(admin, linked, from, wiz);
+          return;
+        }
+        await sendText(from, "Toca numa das opções acima pra continuar (ou manda 'cancelar').");
         return;
       }
     }
@@ -559,7 +734,8 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
     }
 
     const reply = await runFarmAi(admin, linked, text, from);
-    if (reply) await sendText(from, reply); // "" = execCreate ja despachou botoes
+    if (reply.wizard) await startCreateWizard(admin, linked, from, reply.wizard, 1, reply.wizard.length);
+    else if (reply.text) await sendText(from, reply.text);
     return;
   }
 
@@ -583,7 +759,7 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       return;
     }
 
-    await sendText(from, "📄 Lendo o documento...");
+    await sendText(from, "Lendo o documento...");
     let buf: ArrayBuffer;
     try {
       buf = await downloadMedia(media.id);
@@ -647,7 +823,7 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
     }
     const audio = msg.audio;
     const mime: string = audio?.mime_type?.split(";")[0]?.trim() || "audio/ogg";
-    await sendText(from, "🎙️ Ouvindo seu audio...");
+    await sendText(from, "Ouvindo seu áudio...");
     let buf: ArrayBuffer;
     try {
       buf = await downloadMedia(audio.id);
@@ -670,9 +846,10 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       await sendText(from, "🤔 Nao deu pra entender o audio. Tenta falar mais perto do microfone, ou manda por texto.");
       return;
     }
-    await sendText(from, "🎙️ Entendi: _" + tr.transcript + "_");
+    await sendText(from, "Entendi: " + tr.transcript);
     const reply = await runFarmAi(admin, linked, tr.transcript, from);
-    if (reply) await sendText(from, reply);
+    if (reply.wizard) await startCreateWizard(admin, linked, from, reply.wizard, 1, reply.wizard.length);
+    else if (reply.text) await sendText(from, reply.text);
     return;
   }
 
