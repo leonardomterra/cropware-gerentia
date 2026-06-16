@@ -260,7 +260,7 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
   await setPending(admin, from, "create_wizard", wiz);
   if (total > 1) {
     const label = draft.category_name || (draft.direction === "income" ? "Receita" : "Despesa");
-    await sendText(from, "Lançamento " + seq + " de " + total + ": *" + label + " - " + fmtBRL(draft.total_value) + "*");
+    await sendText(from, "Lançamento " + seq + " de " + total + ": *" + label + " — " + fmtBRL(draft.total_value) + "*");
   }
   await sendWizardStep(admin, linked, from, wiz);
 }
