@@ -56,12 +56,14 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
               <p
                 className={cn(
                   "font-medium tabular-nums whitespace-nowrap text-sm",
-                  r.direction === "income"
-                    ? "text-emerald-700"
-                    : "text-slate-900",
+                  r.is_estimated
+                    ? "text-slate-400"
+                    : r.direction === "income"
+                      ? "text-emerald-700"
+                      : "text-slate-900",
                 )}
               >
-                {r.direction === "income" ? "+" : ""}
+                {r.is_estimated ? "~" : r.direction === "income" ? "+" : ""}
                 {formatBRL(r.total_value)}
               </p>
             </div>
@@ -83,8 +85,8 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
               })()}
             </p>
             <div className="mt-2">
-              <Badge colorScheme={STATUS_COLOR_SCHEME[r.status]}>
-                {STATUS_LABEL[r.status]}
+              <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
+                {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
               </Badge>
             </div>
           </div>

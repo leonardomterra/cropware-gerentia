@@ -40,6 +40,10 @@ interface FormState {
   category: string;
   vendor: string;
   cost_center_id: string;
+  /** "" = indeterminado | "12"/"24"/"36"/"48" = preset | "custom" */
+  duration: string;
+  /** nº de meses quando duration === "custom" */
+  durationCustom: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -50,7 +54,23 @@ const EMPTY_FORM: FormState = {
   category: "outros_despesa",
   vendor: "",
   cost_center_id: "",
+  duration: "indef",
+  durationCustom: "",
 };
+
+const DURATION_PRESETS = ["12", "24", "36", "48"];
+
+/** Deriva a duração (meses restantes, a partir do mês corrente) de um end_date.
+ *  "indef" = indeterminado. Recompor na gravação preserva o mesmo fim. */
+function durationFromEndDate(endDate: string | null): { duration: string; custom: string } {
+  if (!endDate) return { duration: "indef", custom: "" };
+  const [y, m] = endDate.split("-").map(Number);
+  const now = new Date();
+  const months = (y * 12 + (m - 1)) - (now.getFullYear() * 12 + now.getMonth()) + 1;
+  if (months <= 0) return { duration: "indef", custom: "" };
+  if (DURATION_PRESETS.includes(String(months))) return { duration: String(months), custom: "" };
+  return { duration: "custom", custom: String(months) };
+}
 
 function fmtBRL(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -102,6 +122,7 @@ export default function RecurringPage() {
 
   function openEdit(r: Recurring) {
     setEditing(r);
+    const dur = durationFromEndDate(r.end_date);
     setForm({
       name: r.name,
       direction: r.direction,
@@ -110,6 +131,8 @@ export default function RecurringPage() {
       category: r.category || (r.direction === "income" ? "outros_receita" : "outros_despesa"),
       vendor: r.vendor || "",
       cost_center_id: r.cost_center_id || "",
+      duration: dur.duration,
+      durationCustom: dur.custom,
     });
     setDialogOpen(true);
   }
@@ -123,6 +146,17 @@ export default function RecurringPage() {
       toast.error("Dia do mes deve estar entre 1 e 28");
       return;
     }
+    let durationMonths: number | null = null;
+    if (form.duration === "custom") {
+      const n = Number(form.durationCustom);
+      if (!Number.isFinite(n) || n < 1 || n > 120) {
+        toast.error("Duração personalizada deve ser entre 1 e 120 meses");
+        return;
+      }
+      durationMonths = Math.floor(n);
+    } else if (form.duration !== "indef") {
+      durationMonths = Number(form.duration);
+    }
     setSaving(true);
     const payload: RecurringInput = {
       name: form.name.trim(),
@@ -132,6 +166,7 @@ export default function RecurringPage() {
       category: form.category || null,
       vendor: form.vendor.trim() || null,
       cost_center_id: form.cost_center_id || null,
+      duration_months: durationMonths,
     };
     let ok = false;
     if (editing) {
@@ -153,7 +188,7 @@ export default function RecurringPage() {
   }
 
   async function handleRemove(r: Recurring) {
-    if (!confirm(`Remover "${r.name}"? Os lançamentos já gerados continuam.`)) return;
+    if (!confirm(`Remover "${r.name}"? Os lançamentos previstos futuros serão apagados; os já confirmados ou passados continuam.`)) return;
     const ok = await remove(r.id);
     if (ok) toast.success("Removida");
   }
@@ -229,7 +264,7 @@ export default function RecurringPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Valor (R$)</label>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Valor médio (R$)</label>
                 <Input
                   type="text"
                   inputMode="decimal"
@@ -237,6 +272,9 @@ export default function RecurringPage() {
                   value={form.total_value}
                   onChange={(e) => setForm((s) => ({ ...s, total_value: formatBRLInput(e.target.value) }))}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Estimativa por mês. Você ajusta o valor real em cada lançamento.
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -261,6 +299,38 @@ export default function RecurringPage() {
                   emptyMessage="Nenhuma categoria."
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Duração</label>
+                <Select
+                  value={form.duration}
+                  onValueChange={(v) => setForm((s) => ({ ...s, duration: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indef">Indeterminado</SelectItem>
+                    <SelectItem value="12">12 meses</SelectItem>
+                    <SelectItem value="24">24 meses</SelectItem>
+                    <SelectItem value="36">36 meses</SelectItem>
+                    <SelectItem value="48">48 meses</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.duration === "custom" && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700 block mb-1">Meses (1–120)</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={120}
+                    placeholder="Ex.: 18"
+                    value={form.durationCustom}
+                    onChange={(e) => setForm((s) => ({ ...s, durationCustom: e.target.value }))}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">Fornecedor (Opcional)</label>
@@ -341,7 +411,10 @@ function Section({ title, items, faded, openEdit, handleToggleActive, handleRemo
                   {getCategoryLabel(r.category, categories)}
                 </div>
                 <div className="text-sm text-slate-500 mt-1">
-                  Próximo Lançamento: <span className="font-medium text-slate-700">{fmtDate(r.next_run_date)}</span>
+                  Projetado até: <span className="font-medium text-slate-700">{fmtDate(r.next_run_date)}</span>
+                  {r.end_date && (
+                    <span className="text-slate-400"> · termina {fmtDate(r.end_date)}</span>
+                  )}
                 </div>
               </div>
             </div>

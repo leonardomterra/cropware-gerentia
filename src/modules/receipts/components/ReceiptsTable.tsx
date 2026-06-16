@@ -174,19 +174,23 @@ export function ReceiptsTable({
                   )}
                 </TableCell>
                 <TableCell className="py-3">
-                  <Badge colorScheme={STATUS_COLOR_SCHEME[r.status]}>
-                    {STATUS_LABEL[r.status]}
+                  {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
+                      que é projeção, não conta firmada. */}
+                  <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
+                    {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                   </Badge>
                 </TableCell>
                 <TableCell className="py-3 text-right text-sm font-medium tabular-nums">
                   <span
-                    className={
-                      r.direction === "income"
-                        ? "text-emerald-700"
-                        : "text-slate-900"
-                    }
+                    className={cn(
+                      r.is_estimated
+                        ? "text-slate-400"
+                        : r.direction === "income"
+                          ? "text-emerald-700"
+                          : "text-slate-900",
+                    )}
                   >
-                    {r.direction === "income" ? "+" : ""}
+                    {r.is_estimated ? "~" : r.direction === "income" ? "+" : ""}
                     {formatBRL(r.total_value)}
                   </span>
                 </TableCell>

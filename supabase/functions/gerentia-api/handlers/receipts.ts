@@ -401,6 +401,13 @@ export function mountReceiptRoutes(app: Hono) {
         if (!ok) return c.json({ error: "no_access_to_cost_center" }, 403);
       }
 
+      // Editar o valor (ou os itens) confirma um lançamento PREVISTO: deixa de
+      // ser estimativa e passa a ser "do usuário" (some o ~, e o re-sync da
+      // recorrência nao o sobrescreve mais).
+      if ("total_value" in body || itemsProvided) {
+        patch.is_estimated = false;
+      }
+
       if (Object.keys(patch).length === 0) {
         return c.json({ error: "no_fields_to_update" }, 400);
       }

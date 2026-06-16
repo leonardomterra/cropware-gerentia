@@ -60,6 +60,7 @@ export function mountCronRoutes(app: Hono) {
       .from("farm_receipts")
       .select("id, organization_id, created_by, direction, vendor, description, category, total_value, due_date, status")
       .in("status", ["a_pagar", "a_receber", "vencido"])
+      .eq("is_estimated", false)
       .not("due_date", "is", null)
       .lte("due_date", horizonDate)
       .gte("due_date", new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10))

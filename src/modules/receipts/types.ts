@@ -89,6 +89,9 @@ export interface Receipt {
   ai_raw: unknown;
   /** Qtd de itens (0 = lançamento simples, sem itens). */
   item_count: number;
+  /** Lançamento PREVISTO: projetado por uma recorrência com o valor médio,
+   *  ainda não confirmado. Editar o valor o transforma em confirmado (false). */
+  is_estimated: boolean;
   /** Itens embutidos no GET (presente quando item_count > 0). */
   items?: ReceiptItem[];
   created_at: string;
