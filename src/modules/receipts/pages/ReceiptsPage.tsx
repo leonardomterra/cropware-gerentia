@@ -244,7 +244,7 @@ export default function ReceiptsPage() {
       id ? (userCCs.find((c) => c.id === id)?.name || "") : "";
     const headers = [
       "data", "tipo", "valor", "categoria", "centro de custo", "item",
-      "fornecedor", "documento", "pagamento", "status", "vencimento",
+      "origem", "documento", "pagamento", "status", "vencimento",
       "pago em", "descricao", "observacoes",
     ];
     // Uma linha por item (lançamento sem itens = 1 linha = ele mesmo).

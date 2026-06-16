@@ -97,7 +97,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             onChange={(e) =>
               set("search", e.target.value || undefined)
             }
-            placeholder="Buscar por fornecedor ou descrição..."
+            placeholder="Buscar por origem ou descrição..."
             className={cn("pl-8 h-9 bg-white", fieldText)}
           />
         </div>

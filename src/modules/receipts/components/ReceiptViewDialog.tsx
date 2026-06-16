@@ -122,7 +122,7 @@ export function ReceiptViewDialog({
                 {formatBRL(receipt.total_value)}
               </span>
             </Field>
-            <Field label="Fornecedor">{receipt.vendor || "—"}</Field>
+            <Field label="Origem">{receipt.vendor || "—"}</Field>
             <Field label="CNPJ">{receipt.vendor_cnpj || "—"}</Field>
             {!hasItems && (
               <Field label="Categoria">

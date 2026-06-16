@@ -31,7 +31,7 @@ export function AiSuggestButton({
   onClick,
   loading,
   disabled = false,
-  disabledHint = "Preencha fornecedor e descrição para sugerir",
+  disabledHint = "Preencha origem e descrição para sugerir",
   hint = "Sugerir categoria com IA",
   label = "Sugerir",
 }: AiSuggestButtonProps) {

@@ -81,7 +81,7 @@ export function ReceiptsTable({
               Vencimento
             </TableHead>
             <TableHead className="font-medium text-sm py-3">
-              Fornecedor
+              Origem
             </TableHead>
             <TableHead className="font-medium text-sm py-3 w-[150px]">
               Categoria
@@ -139,7 +139,7 @@ export function ReceiptsTable({
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onToggleOne(r.id)}
-                    aria-label={`Selecionar lançamento de ${r.vendor ?? "fornecedor"}`}
+                    aria-label={`Selecionar lançamento de ${r.vendor ?? "origem"}`}
                   />
                 </TableCell>
                 <TableCell className="py-3 text-sm font-normal text-slate-600 whitespace-nowrap">

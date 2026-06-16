@@ -333,7 +333,7 @@ export default function RecurringPage() {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Fornecedor (Opcional)</label>
+              <label className="text-sm font-medium text-slate-700 block mb-1">Origem (Opcional)</label>
               <Input
                 placeholder="Cemig, Vivo, Joao Silva..."
                 value={form.vendor}

@@ -51,7 +51,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="font-medium text-slate-900 truncate">
-                {r.vendor ?? r.description ?? "(sem fornecedor)"}
+                {r.vendor ?? r.description ?? "(sem origem)"}
               </p>
               <p
                 className={cn(

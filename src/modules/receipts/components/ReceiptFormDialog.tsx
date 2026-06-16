@@ -467,7 +467,7 @@ export function ReceiptFormDialog({
 
           <div>
             <Label htmlFor="vendor">
-              {form.direction === "expense" ? "Fornecedor" : "Pagador"}
+              Origem
             </Label>
             <Input
               id="vendor"
@@ -752,7 +752,7 @@ export function ReceiptFormDialog({
                               !form.vendor.trim() ||
                               !it.description.trim()
                             }
-                            disabledHint="Preencha fornecedor e a descrição do item para sugerir"
+                            disabledHint="Preencha origem e a descrição do item para sugerir"
                           />
                         </div>
                         <SearchableSelect
