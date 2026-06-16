@@ -3,6 +3,8 @@ import {
   Bar,
   BarChart,
   Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -47,6 +49,7 @@ interface Receipt {
   category: string | null;
   vendor: string | null;
   cost_center_id: string | null;
+  is_estimated?: boolean;
   item_count?: number;
   items?: ReceiptItemLite[];
 }
@@ -93,6 +96,11 @@ function linesOf(r: Receipt): DashLine[] {
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+// Cores de entrada/saída alinhadas à paleta dos centros de custo (CC_COLORS):
+// preenchimentos (barras/legenda) nos tons 400; texto num tom legível da mesma família.
+const COLOR_IN = "#34d399";  // emerald-400
+const COLOR_OUT = "#f87171"; // red-400
+
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
@@ -132,6 +140,35 @@ function monthsBetween(from: YearMonth, to: YearMonth): { key: string; label: st
   return out;
 }
 
+/** N meses APÓS o selecionado (pra projeção/previsto). */
+function futureMonths({ year, month }: YearMonth, n: number): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  for (let i = 1; i <= n; i++) {
+    const d = new Date(year, month - 1 + i, 1);
+    out.push({ key: monthKey(d), label: MONTH_LABELS[d.getMonth()] });
+  }
+  return out;
+}
+
+function todayISO(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+/** Dias entre hoje e uma data ISO (positivo = futuro). */
+function daysUntil(iso: string): number {
+  const t = todayISO();
+  const a = new Date(t + "T00:00:00");
+  const b = new Date(iso.slice(0, 10) + "T00:00:00");
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function dueLabel(days: number): string {
+  if (days < 0) return `${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"} atrás`;
+  if (days === 0) return "hoje";
+  if (days === 1) return "amanhã";
+  return `em ${days} dias`;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { categories } = useCategories();
@@ -142,6 +179,7 @@ export default function DashboardPage() {
   const [activeCC, setActiveCC] = useState<string>("all");
   const [period, setPeriod] = useState<DashPeriod>(defaultPeriod);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [openItems, setOpenItems] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -184,6 +222,24 @@ export default function DashboardPage() {
     return () => { cancel = true; };
   }, [period]);
 
+  // Itens em aberto (a pagar/receber), independente do período — alimentam a
+  // projeção (meses futuros) e os "próximos vencimentos".
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const resp = await api<ReceiptsResponse>(
+          `/receipts?status=a_pagar,a_receber&limit=500`,
+          { method: "GET" },
+        );
+        if (!cancel) setOpenItems(resp.receipts || []);
+      } catch {
+        /* silencioso: os widgets de projeção/vencimento só não aparecem */
+      }
+    })();
+    return () => { cancel = true; };
+  }, []);
+
   // Expande em linhas (split por item) e filtra por CC na LINHA - assim uma
   // nota dividida contribui so a porção do CC ativo.
   const lines = useMemo(() => {
@@ -221,24 +277,89 @@ export default function DashboardPage() {
     return { aPagar, aReceber, vencido };
   }, [lines]);
 
-  // Serie de 6 meses.
+  // Série do gráfico: realizado (passado + atual) + PREVISTO (meses futuros, só
+  // no modo Mês), alimentado pelos itens em aberto (recorrências projetadas etc.).
   const chartData = useMemo(() => {
-    const months =
-      period.mode === "month"
-        ? sixMonthsEnding(period.month)
-        : monthsBetween(range.from, range.to);
-    const acc: Record<string, { mes: string; entradas: number; saidas: number }> = {};
-    for (const m of months) acc[m.key] = { mes: m.label, entradas: 0, saidas: 0 };
+    const isMonth = period.mode === "month";
+    const selKey = isMonth ? monthKey(new Date(period.month.year, period.month.month - 1, 1)) : "";
+    const realMonths = isMonth ? sixMonthsEnding(period.month) : monthsBetween(range.from, range.to);
+    const futMonths = isMonth ? futureMonths(period.month, 3) : [];
+    type Row = { mes: string; entradas: number; saidas: number; previsto: boolean; sel: boolean };
+    const acc: Record<string, Row> = {};
+    const order: string[] = [];
+    for (const m of realMonths) {
+      acc[m.key] = { mes: m.label, entradas: 0, saidas: 0, previsto: false, sel: m.key === selKey };
+      order.push(m.key);
+    }
+    for (const m of futMonths) {
+      acc[m.key] = { mes: m.label, entradas: 0, saidas: 0, previsto: true, sel: false };
+      order.push(m.key);
+    }
     for (const l of lines) {
       if (!l.date) continue;
       const k = l.date.slice(0, 7);
-      if (!acc[k]) continue;
+      if (!acc[k] || acc[k].previsto) continue;
       if (l.direction === "income") acc[k].entradas += l.value;
       else acc[k].saidas += l.value;
     }
-    return months.map((m) => acc[m.key]);
+    if (isMonth) {
+      for (const r of openItems) {
+        if (activeCC !== "all" && r.cost_center_id !== activeCC) continue;
+        const d = r.transaction_date || r.due_date;
+        if (!d) continue;
+        const k = d.slice(0, 7);
+        if (!acc[k] || !acc[k].previsto) continue;
+        const v = Number(r.total_value) || 0;
+        if (r.direction === "income") acc[k].entradas += v;
+        else acc[k].saidas += v;
+      }
+    }
+    return order.map((k) => acc[k]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, period, fromKey, toKey]);
+  }, [lines, openItems, period, activeCC, fromKey, toKey]);
+
+  // (D) Comparativo com o mês anterior — só no modo Mês (passado está no fetch).
+  const lastMonthKpis = useMemo(() => {
+    if (period.mode !== "month") return null;
+    const prevKey = monthKey(new Date(period.month.year, period.month.month - 2, 1));
+    let income = 0, expense = 0;
+    for (const l of lines) {
+      if (!l.date || l.date.slice(0, 7) !== prevKey) continue;
+      if (l.direction === "income") income += l.value;
+      else expense += l.value;
+    }
+    return { income, expense, balance: income - expense };
+  }, [lines, period]);
+
+  // (C) Gastos por Centro de Custo no período (todas as despesas, sem filtro de CC).
+  const ccSpend = useMemo(() => {
+    const all = receipts.flatMap(linesOf);
+    const byCC: Record<string, number> = {};
+    for (const l of all) {
+      if (l.direction !== "expense" || !inRange(l.date)) continue;
+      const id = l.cost_center_id || "none";
+      byCC[id] = (byCC[id] || 0) + l.value;
+    }
+    return Object.entries(byCC)
+      .map(([id, total]) => {
+        const cc = ccs.find((c) => c.id === id);
+        return { id, name: cc?.name || "Sem centro", color: cc?.color || "#94a3b8", total };
+      })
+      .sort((a, b) => b.total - a.total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receipts, fromKey, toKey, ccs]);
+
+  // (B) Próximos vencimentos — itens em aberto com vencimento de hoje em diante.
+  const dueSoon = useMemo(() => {
+    const today = todayISO();
+    return openItems
+      .filter((r) => {
+        if (activeCC !== "all" && r.cost_center_id !== activeCC) return false;
+        return r.due_date && r.due_date.slice(0, 10) >= today;
+      })
+      .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
+      .slice(0, 6);
+  }, [openItems, activeCC]);
 
   // Top 5 categorias de despesa do período (cada item na SUA categoria).
   const topCategories = useMemo(() => {
@@ -348,15 +469,15 @@ export default function DashboardPage() {
 
       {/* KPIs do mês + pendências: uma linha só, mesmo padrão de card. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {/* Regra de cor: verde = entra (Entradas, A receber, Saldo+);
-            vermelho = sai/alerta (Saídas, Vencido, Saldo-);
-            neutro escuro = compromisso futuro (A pagar). */}
-        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-600" loading={loading} />
-        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-rose-600" loading={loading} />
-        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-600" : "text-rose-600"} loading={loading} />
-        <KpiCard label="A pagar" value={pending.aPagar} color="text-slate-800" loading={loading} />
+        {/* Paleta (alinhada aos centros de custo): verde/emerald = entra/bom
+            (Entradas, A receber, Saldo+); amber = compromisso a pagar (A pagar);
+            vermelho/red = sai/alerta (Saídas, Vencido, Saldo-). */}
+        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-600" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.income, lastMonthKpis.income, true) : null} />
+        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-red-600" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false) : null} />
+        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-600" : "text-red-600"} loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true) : null} />
+        <KpiCard label="A pagar" value={pending.aPagar} color="text-amber-600" loading={loading} />
         <KpiCard label="A receber" value={pending.aReceber} color="text-emerald-600" loading={loading} />
-        <KpiCard label="Vencido" value={pending.vencido} color="text-rose-600" loading={loading} />
+        <KpiCard label="Vencido" value={pending.vencido} color="text-red-600" loading={loading} />
       </div>
 
       {/* Gráfico minimalista: 6 meses terminando no selecionado. O mês
@@ -370,13 +491,19 @@ export default function DashboardPage() {
           </h2>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-600" />
+              <span className="size-2 rounded-full bg-emerald-400" />
               Entradas
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-rose-600" />
+              <span className="size-2 rounded-full bg-red-400" />
               Saídas
             </span>
+            {period.mode === "month" && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-slate-300" />
+                Previsto
+              </span>
+            )}
           </div>
         </div>
         <div className="h-56">
@@ -405,20 +532,20 @@ export default function DashboardPage() {
                 formatter={(value: number) => fmtBRLfull(value)}
               />
               <Bar dataKey="entradas" name="Entradas" radius={[4, 4, 0, 0]} maxBarSize={28}>
-                {chartData.map((_, i) => (
+                {chartData.map((d, i) => (
                   <Cell
                     key={i}
-                    fill="#059669"
-                    fillOpacity={period.mode !== "month" || i === chartData.length - 1 ? 1 : 0.25}
+                    fill={COLOR_IN}
+                    fillOpacity={d.previsto ? 0.4 : period.mode !== "month" ? 1 : d.sel ? 1 : 0.3}
                   />
                 ))}
               </Bar>
               <Bar dataKey="saidas" name="Saídas" radius={[4, 4, 0, 0]} maxBarSize={28}>
-                {chartData.map((_, i) => (
+                {chartData.map((d, i) => (
                   <Cell
                     key={i}
-                    fill="#e11d48"
-                    fillOpacity={period.mode !== "month" || i === chartData.length - 1 ? 1 : 0.25}
+                    fill={COLOR_OUT}
+                    fillOpacity={d.previsto ? 0.4 : period.mode !== "month" ? 1 : d.sel ? 1 : 0.3}
                   />
                 ))}
               </Bar>
@@ -427,44 +554,133 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top categorias de despesa */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <h2 className="text-xs font-medium text-slate-500 mb-3">
-          Onde Mais Saiu — {periodLabel(period)}
-        </h2>
-        {topCategories.length === 0 ? (
-          <p className="text-sm text-slate-500">Sem despesas neste período.</p>
-        ) : (
-          <ul className="space-y-2">
-            {topCategories.map((c) => {
-              const max = topCategories[0].total;
-              const pct = max ? Math.max(4, Math.round((c.total / max) * 100)) : 0;
+      {/* Breakdowns: por categoria (esq) + por centro de custo (dir) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Onde mais saiu — por categoria */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <h2 className="text-xs font-medium text-slate-500 mb-3">
+            Onde Mais Saiu — {periodLabel(period)}
+          </h2>
+          {topCategories.length === 0 ? (
+            <p className="text-sm text-slate-500">Sem despesas neste período.</p>
+          ) : (
+            <ul className="space-y-2">
+              {topCategories.map((c) => {
+                const max = topCategories[0].total;
+                const pct = max ? Math.max(4, Math.round((c.total / max) * 100)) : 0;
+                return (
+                  <li key={c.cat} className="flex items-center gap-3">
+                    <span className="text-sm text-slate-700 w-32 shrink-0 truncate">{getCategoryLabel(c.cat, categories)}</span>
+                    <div className="flex-1 h-3 bg-slate-100 rounded">
+                      <div className="h-3 rounded bg-slate-400" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
+                      {fmtBRLfull(c.total)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Gastos por Centro de Custo — donut (só com mais de um centro) */}
+        {showCCFilter && (
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <h2 className="text-xs font-medium text-slate-500 mb-3">
+              Gastos por Centro — {periodLabel(period)}
+            </h2>
+            {ccSpend.length === 0 ? (
+              <p className="text-sm text-slate-500">Sem despesas neste período.</p>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="h-40 w-40 shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={ccSpend} dataKey="total" nameKey="name" innerRadius={42} outerRadius={66} paddingAngle={2} stroke="none">
+                        {ccSpend.map((c) => <Cell key={c.id} fill={c.color} />)}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v: number) => fmtBRLfull(v)}
+                        contentStyle={{ background: "white", border: "1px solid #e4e4e7", borderRadius: 6, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="flex-1 space-y-1.5 min-w-0">
+                  {(() => {
+                    const total = ccSpend.reduce((s, x) => s + x.total, 0);
+                    return ccSpend.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2 text-sm">
+                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                        <span className="text-slate-700 truncate flex-1 min-w-0">{c.name}</span>
+                        <span className="text-slate-400 tabular-nums">{total ? Math.round((c.total / total) * 100) : 0}%</span>
+                        <span className="text-slate-700 tabular-nums w-20 text-right">{fmtBRLfull(c.total)}</span>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* (B) Próximos vencimentos — contas a pagar/receber de hoje em diante */}
+      {dueSoon.length > 0 && (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <h2 className="text-xs font-medium text-slate-500 mb-3">Próximos vencimentos</h2>
+          <ul className="divide-y divide-slate-100">
+            {dueSoon.map((r) => {
+              const days = daysUntil(r.due_date!);
+              const cc = ccs.find((c) => c.id === r.cost_center_id);
+              const income = r.direction === "income";
               return (
-                <li key={c.cat} className="flex items-center gap-3">
-                  <span className="text-sm text-slate-700 w-32 shrink-0">{getCategoryLabel(c.cat, categories)}</span>
-                  <div className="flex-1 h-3 bg-slate-100 rounded">
-                    <div className="h-3 rounded bg-slate-400" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
-                    {fmtBRLfull(c.total)}
+                <li key={r.id} className="flex items-center gap-3 py-2 text-sm">
+                  <span className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}>{dueLabel(days)}</span>
+                  <span className="flex-1 min-w-0 truncate text-slate-700">
+                    {r.vendor || (r.category ? getCategoryLabel(r.category, categories) : (income ? "A receber" : "A pagar"))}
+                    {cc && showCCFilter ? <span className="text-slate-400"> — {cc.name}</span> : null}
+                    {r.is_estimated ? <span className="text-slate-400"> — Previsto</span> : null}
+                  </span>
+                  <span className={`tabular-nums shrink-0 ${income ? "text-emerald-600" : "text-slate-800"}`}>
+                    {income ? "+" : ""}{fmtBRLfull(Number(r.total_value))}
                   </span>
                 </li>
               );
             })}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function KpiCard({ label, value, color, loading }: { label: string; value: number; color: string; loading: boolean }) {
+interface Delta { pct: number | null; up: boolean; good: boolean }
+
+/** Variação vs mês anterior. higherIsGood: entradas/saldo=true, saídas=false. */
+function mkDelta(cur: number, last: number, higherIsGood: boolean): Delta | null {
+  if (last === 0 && cur === 0) return null;
+  const up = cur > last;
+  const good = higherIsGood ? cur >= last : cur <= last;
+  const pct = last !== 0 ? Math.round(Math.abs((cur - last) / last) * 100) : null;
+  return { pct, up, good };
+}
+
+function KpiCard({ label, value, color, loading, delta }: {
+  label: string; value: number; color: string; loading: boolean; delta?: Delta | null;
+}) {
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <p className="text-sm text-slate-500 truncate">{label}</p>
       <p className={`text-base font-medium mt-1 tabular-nums ${color}`}>
         {loading ? "..." : fmtBRLfull(value)}
       </p>
+      {!loading && delta && delta.pct !== null ? (
+        <p className={`text-xs mt-1 tabular-nums ${delta.good ? "text-emerald-600" : "text-red-600"}`}>
+          {delta.up ? "▲" : "▼"} {delta.pct}% <span className="text-slate-400">vs mês passado</span>
+        </p>
+      ) : null}
     </div>
   );
 }
