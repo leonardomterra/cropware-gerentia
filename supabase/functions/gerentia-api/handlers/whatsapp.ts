@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
 import { secret } from "../lib/env.ts";
-import { applyMarkPaid, fmtDateBR, parseDateBR, runFarmAi, shiftDateBR, todayBR, yesterdayBR, type LinkedUser, type WizardDraft } from "../lib/farmAi.ts";
+import { applyMarkPaid, fmtDateBR, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser, type WizardDraft } from "../lib/farmAi.ts";
 import { listVisibleCategories, snapCategory } from "../lib/categories.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
 import {
@@ -180,7 +180,7 @@ function receiptSummary(e: any, ccName: string | null, showCC: boolean): string 
 
   const lines = [
     "*" + (e.direction === "income" ? "Receita" : "Despesa") + "* - " + fmtBRL(total),
-    e.vendor ? "Fornecedor: " + e.vendor : null,
+    e.vendor ? "Origem: " + e.vendor : null,
     // Com itens, a categoria vem por item (mostrada no bloco abaixo).
     !itemized && e.category ? "Categoria: " + e.category : null,
     e.transaction_date ? "Data: " + e.transaction_date : null,
@@ -248,7 +248,13 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
   if (!draft.category) steps.push("describe");
   if (!draft.status) steps.push("status");
   if (!draft.cost_center_id && linked.cost_centers.length > 1) steps.push("cost_center");
-  if (!draft.transaction_date) steps.push("date");
+  // Data de LANÇAMENTO = hoje (automática), nunca perguntada. Já o VENCIMENTO
+  // (due_date) só faz sentido em conta a pagar/receber: pergunta se não veio no
+  // texto. Quando o status ainda é desconhecido, incluímos e pulamos depois se
+  // virar "pago".
+  if (!draft.due_date && draft.status !== "pago" && draft.status !== "recebido") steps.push("vencimento");
+  if (!draft.vendor) steps.push("origem");
+  steps.push("notes");
   steps.push("confirm");
   const wiz: WizState = { draft, steps, step: 0, queue, seq, total };
   await setPending(admin, from, "create_wizard", wiz);
@@ -292,10 +298,22 @@ async function sendWizardStep(_admin: any, linked: LinkedUser, from: string, wiz
     }
     return;
   }
-  if (step === "date") {
-    await sendButtons(from, "Qual a data?", [
-      { id: "cw_date:hoje", title: "Hoje" },
-      { id: "cw_date:custom", title: "Outra data" },
+  if (step === "vencimento") {
+    await sendButtons(from, "Quando?", [
+      { id: "cw_venc:hoje", title: "Hoje" },
+      { id: "cw_venc:custom", title: "Outra data" },
+    ]);
+    return;
+  }
+  if (step === "origem") {
+    const q = d.direction === "income" ? "De quem veio? (nome, ou toque Pular)" : "Pra quem foi? (nome, ou toque Pular)";
+    await sendButtons(from, q, [{ id: "cw_origem:skip", title: "Pular" }]);
+    return;
+  }
+  if (step === "notes") {
+    await sendButtons(from, "Quer adicionar uma observação?", [
+      { id: "cw_notes:no", title: "Não" },
+      { id: "cw_notes:yes", title: "Sim" },
     ]);
     return;
   }
@@ -318,7 +336,8 @@ function formatLaunch(title: string, d: WizardDraft, linked: LinkedUser, status:
     "*Data:* " + fmtDateBR(date),
     (d.due_date && open) ? "*Vence:* " + fmtDateBR(d.due_date) : null,
     (ccName && linked.cost_centers.length > 1) ? "*Centro:* " + ccName : null,
-    d.vendor ? "*Fornecedor:* " + d.vendor : null,
+    d.vendor ? "*Origem:* " + d.vendor : null,
+    d.notes ? "*Obs:* " + d.notes : null,
   ].filter(Boolean);
   return lines.join("\n");
 }
@@ -333,6 +352,13 @@ function wizardSummary(d: WizardDraft, linked: LinkedUser): string {
 // deno-lint-ignore no-explicit-any
 async function advanceWizard(admin: any, linked: LinkedUser, from: string, wiz: WizState) {
   wiz.step++;
+  // Conta já paga/recebida não tem vencimento: pula a etapa se sobrou.
+  while (
+    wiz.step < wiz.steps.length && wiz.steps[wiz.step] === "vencimento" &&
+    (wiz.draft.status === "pago" || wiz.draft.status === "recebido")
+  ) {
+    wiz.step++;
+  }
   if (wiz.step < wiz.steps.length) {
     await setPending(admin, from, "create_wizard", wiz);
     await sendWizardStep(admin, linked, from, wiz);
@@ -364,6 +390,7 @@ async function finalizeWizard(admin: any, linked: LinkedUser, from: string, wiz:
     description: d.description,
     category: d.category ?? (d.direction === "income" ? "outros_receita" : "outros_despesa"),
     cost_center_id: d.cost_center_id,
+    notes: d.notes,
     source: "whatsapp",
   }).select("id").single();
   await clearPending(admin, from);
@@ -588,13 +615,28 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         await advanceWizard(admin, linked, from, wiz);
         return;
       }
-      if (actionId.startsWith("cw_date:")) {
-        const which = actionId.slice("cw_date:".length);
+      if (actionId.startsWith("cw_venc:")) {
+        const which = actionId.slice("cw_venc:".length);
         if (which === "custom") {
-          await sendText(from, "Me diz a data. Ex: ontem, amanhã, 10/06, dia 20, terça...");
-          return; // segue na etapa de data; o que você digitar vira a data
+          await sendText(from, "Me diz a data. Ex: amanhã, dia 30, 10/06, próxima sexta...");
+          return; // segue na etapa; o que digitar vira o vencimento
         }
-        wiz.draft.transaction_date = which === "amanha" ? shiftDateBR(1) : which === "ontem" ? yesterdayBR() : todayBR();
+        wiz.draft.due_date = todayBR();
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      if (actionId === "cw_origem:skip") {
+        wiz.draft.vendor = null;
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      if (actionId.startsWith("cw_notes:")) {
+        const v = actionId.slice("cw_notes:".length);
+        if (v === "yes") {
+          await sendText(from, "Escreve a observação:");
+          return; // segue na etapa notes; o que você digitar vira a observação
+        }
+        wiz.draft.notes = null;
         await advanceWizard(admin, linked, from, wiz);
         return;
       }
@@ -685,13 +727,23 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
           await advanceWizard(admin, linked, from, wiz);
           return;
         }
-        if (cur === "date") {
+        if (cur === "vencimento") {
           const parsed = await parseDateBR(text);
           if (!parsed.ok) {
-            await sendText(from, `${parsed.reason}. Tenta de novo (ex: 25/03, ontem, dia 20) ou toca num botão.`);
+            await sendText(from, `${parsed.reason}. Tenta de novo (ex: amanhã, dia 30, 10/06) ou toque Sem vencimento.`);
             return;
           }
-          wiz.draft.transaction_date = parsed.date;
+          wiz.draft.due_date = parsed.date;
+          await advanceWizard(admin, linked, from, wiz);
+          return;
+        }
+        if (cur === "origem") {
+          wiz.draft.vendor = text.trim().slice(0, 80);
+          await advanceWizard(admin, linked, from, wiz);
+          return;
+        }
+        if (cur === "notes") {
+          wiz.draft.notes = text.trim().slice(0, 500);
           await advanceWizard(admin, linked, from, wiz);
           return;
         }

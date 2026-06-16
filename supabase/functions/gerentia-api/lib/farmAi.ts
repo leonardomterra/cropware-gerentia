@@ -122,6 +122,7 @@ export interface WizardDraft {
   transaction_date: string | null;
   status: string | null;
   due_date: string | null;
+  notes: string | null;
 }
 
 export interface ToolCtx {
@@ -195,6 +196,7 @@ async function execCreateReceipt(args: any, ctx: ToolCtx): Promise<ToolResult> {
     transaction_date: (typeof args.transaction_date === "string" && args.transaction_date) ? args.transaction_date : null,
     status,
     due_date: (typeof args.due_date === "string" && args.due_date) ? args.due_date : null,
+    notes: null,
   });
   return { drafted: true };
 }
@@ -247,7 +249,7 @@ async function execUpdateReceipt(args: any, ctx: ToolCtx): Promise<ToolResult> {
     patch.cost_center_id = cc.id;
     changed.push("centro");
   }
-  if (typeof args.vendor === "string") { patch.vendor = args.vendor; changed.push("fornecedor"); }
+  if (typeof args.vendor === "string") { patch.vendor = args.vendor; changed.push("origem"); }
   if (typeof args.description === "string") { patch.description = args.description; changed.push("descrição"); }
   if (typeof args.payment_method === "string" && PAYMENT_METHODS.includes(args.payment_method)) {
     patch.payment_method = args.payment_method; changed.push("pagamento");
@@ -596,7 +598,7 @@ function toolDeclarations() {
             direction: { type: "string", enum: ["expense", "income"] },
             category: { type: "string", description: "slug da categoria (ex: combustivel, venda_graos)" },
             cost_center: { type: "string", description: "slug ou nome do centro; omita pra usar o padrão" },
-            vendor: { type: "string" },
+            vendor: { type: "string", description: "Origem: de quem/pra quem (nome do pagador ou recebedor), se citado" },
             description: { type: "string" },
             payment_method: { type: "string", enum: PAYMENT_METHODS },
             transaction_date: { type: "string", description: "YYYY-MM-DD; omita = hoje" },
@@ -636,7 +638,7 @@ function toolDeclarations() {
         parameters: {
           type: "object",
           properties: {
-            query: { type: "string", description: "fornecedor/categoria/descrição da conta" },
+            query: { type: "string", description: "origem/categoria/descrição da conta" },
             amount: { type: "number", description: "valor aprox., pra desambiguar" },
           },
           required: ["query"],
