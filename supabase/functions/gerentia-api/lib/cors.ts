@@ -22,10 +22,16 @@ export function corsMiddleware() {
 
   const allowed = raw.split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
   return cors({
-    // Reflete a origin só se estiver na allowlist; senão retorna null (bloqueia).
+    // Reflete a origin se estiver na allowlist OU for localhost/127.0.0.1 (dev).
     origin: (origin) => {
       if (!origin) return null;
-      return allowed.includes(origin.replace(/\/$/, "")) ? origin : null;
+      const o = origin.replace(/\/$/, "");
+      if (allowed.includes(o)) return origin;
+      // Dev local: libera qualquer porta de localhost/127.0.0.1. Sem risco de
+      // CSRF aqui porque a API usa Bearer token (não cookie) — uma página
+      // localhost não consegue ler o token do app em gerentia.app.
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return origin;
+      return null;
     },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["authorization", "content-type", "x-cron-secret"],
