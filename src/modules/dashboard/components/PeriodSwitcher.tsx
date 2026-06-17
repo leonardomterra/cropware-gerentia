@@ -254,31 +254,35 @@ export function PeriodSwitcher({
       )}
 
       {value.mode === "custom" && (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <span>De</span>
-          <MonthSwitcher
-            value={value.custom.from}
-            onChange={(from) =>
-              onChange({
-                ...value,
-                custom: clampCustom(from, value.custom.to, "from"),
-              })
-            }
-            variant="picker"
-            className="w-[170px]"
-          />
-          <span>até</span>
-          <MonthSwitcher
-            value={value.custom.to}
-            onChange={(to) =>
-              onChange({
-                ...value,
-                custom: clampCustom(value.custom.from, to, "to"),
-              })
-            }
-            variant="picker"
-            className="w-[170px]"
-          />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center text-sm text-slate-500">
+          <div className="flex items-center gap-2">
+            <span className="w-10 shrink-0 sm:w-auto">De</span>
+            <MonthSwitcher
+              value={value.custom.from}
+              onChange={(from) =>
+                onChange({
+                  ...value,
+                  custom: clampCustom(from, value.custom.to, "from"),
+                })
+              }
+              variant="picker"
+              className="flex-1 sm:w-[170px] sm:flex-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-10 shrink-0 sm:w-auto">até</span>
+            <MonthSwitcher
+              value={value.custom.to}
+              onChange={(to) =>
+                onChange({
+                  ...value,
+                  custom: clampCustom(value.custom.from, to, "to"),
+                })
+              }
+              variant="picker"
+              className="flex-1 sm:w-[170px] sm:flex-none"
+            />
+          </div>
           <span className="text-xs text-slate-400">máx. 12 meses</span>
         </div>
       )}

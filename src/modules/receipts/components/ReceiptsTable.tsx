@@ -80,7 +80,7 @@ export function ReceiptsTable({
             <TableHead className="font-medium text-sm py-3 w-[120px]">
               Vencimento
             </TableHead>
-            <TableHead className="font-medium text-sm py-3">
+            <TableHead className="font-medium text-sm py-3 w-[180px]">
               Origem
             </TableHead>
             <TableHead className="font-medium text-sm py-3 w-[150px]">

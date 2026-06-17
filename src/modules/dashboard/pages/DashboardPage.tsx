@@ -10,6 +10,18 @@ import {
   XAxis,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { STATUS_LABEL, STATUS_COLOR_SCHEME } from "@/modules/receipts/constants";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -103,6 +115,13 @@ const COLOR_OUT = "#f87171"; // red-400
 
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+}
+
+/** "YYYY-MM-DD" -> "DD/MM/YYYY" (sem timezone). */
+function fmtDateBR(d: string | null): string {
+  if (!d) return "—";
+  const [y, m, day] = d.slice(0, 10).split("-");
+  return `${day}/${m}/${y}`;
 }
 
 function monthKey(d: Date): string {
@@ -284,15 +303,15 @@ export default function DashboardPage() {
     const selKey = isMonth ? monthKey(new Date(period.month.year, period.month.month - 1, 1)) : "";
     const realMonths = isMonth ? sixMonthsEnding(period.month) : monthsBetween(range.from, range.to);
     const futMonths = isMonth ? futureMonths(period.month, 3) : [];
-    type Row = { mes: string; entradas: number; saidas: number; previsto: boolean; sel: boolean };
+    type Row = { mes: string; mesNum: string; entradas: number; saidas: number; previsto: boolean; sel: boolean };
     const acc: Record<string, Row> = {};
     const order: string[] = [];
     for (const m of realMonths) {
-      acc[m.key] = { mes: m.label, entradas: 0, saidas: 0, previsto: false, sel: m.key === selKey };
+      acc[m.key] = { mes: m.label, mesNum: m.key.slice(5), entradas: 0, saidas: 0, previsto: false, sel: m.key === selKey };
       order.push(m.key);
     }
     for (const m of futMonths) {
-      acc[m.key] = { mes: m.label, entradas: 0, saidas: 0, previsto: true, sel: false };
+      acc[m.key] = { mes: m.label, mesNum: m.key.slice(5), entradas: 0, saidas: 0, previsto: true, sel: false };
       order.push(m.key);
     }
     for (const l of lines) {
@@ -317,6 +336,13 @@ export default function DashboardPage() {
     return order.map((k) => acc[k]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, openItems, period, activeCC, fromKey, toKey]);
+
+  // Rótulos do eixo X: no mobile a régua fica estreita, então mostramos TODOS os
+  // meses mas com rótulo numérico (01, 02, …) — cabe sem o auto-skip irregular do
+  // recharts. No desktop mantém os nomes (Jan, Fev, …) com o comportamento padrão.
+  const isMobile = useIsMobile();
+  // Prévia de um lançamento ao clicar numa linha de "Próximos vencimentos".
+  const [previewReceipt, setPreviewReceipt] = useState<Receipt | null>(null);
 
   // (D) Comparativo com o mês anterior — só no modo Mês (passado está no fetch).
   const lastMonthKpis = useMemo(() => {
@@ -397,14 +423,14 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-          <PeriodModeSelect value={period} onChange={setPeriod} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap sm:justify-end">
+          <PeriodModeSelect value={period} onChange={setPeriod} className="w-full sm:w-[180px]" />
           {period.mode === "month" && (
             <MonthSwitcher
               value={period.month}
               onChange={(month) => setPeriod({ ...period, month })}
               variant="picker"
-              className="w-[185px]"
+              className="w-full sm:w-[185px]"
             />
           )}
           {showCCFilter && (
@@ -412,7 +438,7 @@ export default function DashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-9 w-[210px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                  className="h-9 w-full sm:w-[210px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 >
                   {activeCC !== "all" ? (
                     <CostCenterChip
@@ -485,7 +511,7 @@ export default function DashboardPage() {
           como contexto. Sem grade/eixo Y/legenda do recharts — valores no
           tooltip, legenda em dots discretos no título. */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 space-y-2">
           <h2 className="text-xs font-medium text-slate-500">
             Entradas × Saídas
           </h2>
@@ -519,6 +545,13 @@ export default function DashboardPage() {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                interval={isMobile ? 0 : undefined}
+                tickFormatter={
+                  isMobile
+                    ? (_value: string, index: number) =>
+                        chartData[index]?.mesNum ?? ""
+                    : undefined
+                }
               />
               <Tooltip
                 cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -531,7 +564,7 @@ export default function DashboardPage() {
                 }}
                 formatter={(value: number) => fmtBRLfull(value)}
               />
-              <Bar dataKey="entradas" name="Entradas" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              <Bar dataKey="entradas" name="Entradas" maxBarSize={28}>
                 {chartData.map((d, i) => (
                   <Cell
                     key={i}
@@ -540,7 +573,7 @@ export default function DashboardPage() {
                   />
                 ))}
               </Bar>
-              <Bar dataKey="saidas" name="Saídas" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              <Bar dataKey="saidas" name="Saídas" maxBarSize={28}>
                 {chartData.map((d, i) => (
                   <Cell
                     key={i}
@@ -570,8 +603,8 @@ export default function DashboardPage() {
                 const pct = max ? Math.max(4, Math.round((c.total / max) * 100)) : 0;
                 return (
                   <li key={c.cat} className="flex items-center gap-3">
-                    <span className="text-sm text-slate-700 w-32 shrink-0 truncate">{getCategoryLabel(c.cat, categories)}</span>
-                    <div className="flex-1 h-3 bg-slate-100 rounded">
+                    <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">{getCategoryLabel(c.cat, categories)}</span>
+                    <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded">
                       <div className="h-3 rounded bg-slate-400" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
@@ -593,7 +626,7 @@ export default function DashboardPage() {
             {ccSpend.length === 0 ? (
               <p className="text-sm text-slate-500">Sem despesas neste período.</p>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="h-40 w-40 shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -607,7 +640,7 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <ul className="flex-1 space-y-1.5 min-w-0">
+                <ul className="w-full sm:flex-1 space-y-1.5 min-w-0">
                   {(() => {
                     const total = ccSpend.reduce((s, x) => s + x.total, 0);
                     return ccSpend.map((c) => (
@@ -636,7 +669,11 @@ export default function DashboardPage() {
               const cc = ccs.find((c) => c.id === r.cost_center_id);
               const income = r.direction === "income";
               return (
-                <li key={r.id} className="flex items-center gap-3 py-2 text-sm">
+                <li
+                  key={r.id}
+                  onClick={() => setPreviewReceipt(r)}
+                  className="flex items-center gap-3 py-2 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 rounded transition-colors"
+                >
                   <span className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}>{dueLabel(days)}</span>
                   <span className="flex-1 min-w-0 truncate text-slate-700">
                     {r.vendor || (r.category ? getCategoryLabel(r.category, categories) : (income ? "A receber" : "A pagar"))}
@@ -652,6 +689,71 @@ export default function DashboardPage() {
           </ul>
         </div>
       )}
+
+      {/* Prévia do lançamento (Próximos vencimentos) — só leitura. */}
+      <Dialog open={!!previewReceipt} onOpenChange={(o) => !o && setPreviewReceipt(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Lançamento</DialogTitle>
+          </DialogHeader>
+          {previewReceipt && (() => {
+            const r = previewReceipt;
+            const cc = ccs.find((c) => c.id === r.cost_center_id);
+            const income = r.direction === "income";
+            const statusKey = r.status as keyof typeof STATUS_LABEL;
+            return (
+              <dl className="text-sm">
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Tipo</dt>
+                  <dd className="text-slate-900">{income ? "Entrada (receita)" : "Saída (despesa)"}</dd>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Status</dt>
+                  <dd>
+                    <Badge colorScheme={STATUS_COLOR_SCHEME[statusKey]}>
+                      {STATUS_LABEL[statusKey] ?? r.status}
+                    </Badge>
+                    {r.is_estimated ? <span className="text-slate-400 ml-2">Previsto</span> : null}
+                  </dd>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Valor</dt>
+                  <dd className={`font-medium tabular-nums ${income ? "text-emerald-700" : "text-slate-900"}`}>
+                    {income ? "+" : ""}{fmtBRLfull(Number(r.total_value))}
+                  </dd>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Origem</dt>
+                  <dd className="text-slate-900 break-words">{r.vendor || "—"}</dd>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Categoria</dt>
+                  <dd className="text-slate-900">{getCategoryLabel(r.category, categories)}</dd>
+                </div>
+                {showCCFilter && (
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Centro de custo</dt>
+                    <dd className="text-slate-900">{cc?.name ?? "—"}</dd>
+                  </div>
+                )}
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                  <dt className="text-slate-500">Transação</dt>
+                  <dd className="text-slate-900 tabular-nums">{fmtDateBR(r.transaction_date)}</dd>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-3 py-2">
+                  <dt className="text-slate-500">Vencimento</dt>
+                  <dd className="text-slate-900 tabular-nums">{fmtDateBR(r.due_date)}</dd>
+                </div>
+              </dl>
+            );
+          })()}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

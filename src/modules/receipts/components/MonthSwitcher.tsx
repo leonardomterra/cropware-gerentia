@@ -93,10 +93,36 @@ export function MonthSwitcher({
   const chipMonths: YearMonth[] = stretch
     ? Array.from({ length: 12 }, (_, i) => ({ year: value.year, month: i + 1 }))
     : windowMonths;
+  // No mobile a variante "chips" vira "◀ Mês de Ano ▶" (mês ativo centralizado,
+  // setas nas laterais) em vez do strip esticado com os 12 meses.
+  const mobileChips = stretch && isMobile;
 
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      {showChips && (
+      {showChips && mobileChips && (
+        <>
+          <button
+            type="button"
+            aria-label="Mês anterior"
+            onClick={() => onChange(addMonths(value, -1))}
+            className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <div className="flex-1 min-w-0 text-center text-sm font-medium text-slate-700 capitalize">
+            {MONTHS_FULL[value.month - 1]} {value.year}
+          </div>
+          <button
+            type="button"
+            aria-label="Próximo mês"
+            onClick={() => onChange(addMonths(value, 1))}
+            className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shrink-0"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        </>
+      )}
+      {showChips && !mobileChips && (
       <>
       {!stretch && (
         <button

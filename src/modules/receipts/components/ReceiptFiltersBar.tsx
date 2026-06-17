@@ -19,6 +19,7 @@ import {
 import { type SearchableOption } from "@/components/ui/searchable-select";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { cn } from "@/components/ui/utils";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import { useCategories } from "../hooks/useCategories";
 import type {
   ReceiptDirection,
@@ -52,6 +53,7 @@ const STATUS_OPTIONS: ReceiptStatus[] = [
 export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersBarProps) {
   const { categories } = useCategories();
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const set = <K extends keyof ReceiptFilters>(
     key: K,
@@ -88,7 +90,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   );
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <div className="flex-1 min-w-0">
         <div className="relative">
           <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -107,7 +109,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-9 shrink-0 inline-flex items-center gap-1.5 px-3 rounded border border-slate-100 bg-white text-base md:text-sm text-slate-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-center sm:justify-start gap-1.5 px-3 rounded border border-slate-100 bg-white text-base md:text-sm text-slate-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
             <FilterList className="size-4 text-slate-400 shrink-0" />
             Filtrar
@@ -118,7 +120,11 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             )}
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 p-3 space-y-3">
+        <PopoverContent
+          align="end"
+          className="p-3 space-y-3"
+          style={isMobile ? { width: "var(--radix-popover-trigger-width)" } : undefined}
+        >
           <div className="space-y-1.5">
             <p className="text-xs text-slate-500">Tipo</p>
             <Select
