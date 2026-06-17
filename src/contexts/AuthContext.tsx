@@ -157,8 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // recovery = reset de senha; invite = primeiro acesso (convite por email).
+        // Ambos caem na tela de definir senha (setIsResettingPassword).
         if (
-          type === "recovery" &&
+          (type === "recovery" || type === "invite") &&
           accessTokenFromUrl &&
           refreshTokenFromUrl
         ) {

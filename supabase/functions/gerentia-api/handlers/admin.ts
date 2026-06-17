@@ -118,9 +118,12 @@ export function mountAdminRoutes(app: Hono) {
       };
 
       if (body.invite) {
+        // redirectTo leva o link do convite de volta pro app; lá o AuthContext
+        // detecta type=invite no hash e abre a tela de definir senha.
+        // (Precisa estar na allowlist em Auth -> URL Configuration.)
         const { data, error } = await admin.auth.admin.inviteUserByEmail(
           body.email,
-          { data: metadata },
+          { data: metadata, redirectTo: "https://gerentia.app" },
         );
         if (error) return c.json({ error: error.message }, 400);
         return c.json({ ok: true, user_id: data.user?.id, invited: true });
