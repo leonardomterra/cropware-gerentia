@@ -66,7 +66,7 @@ function DialogContent({
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
-            "relative bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 grid w-full max-w-4xl gap-4 rounded-lg border p-6 shadow-sm duration-200 pointer-events-auto max-h-[calc(100vh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] overflow-y-auto",
+            "relative bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 grid w-full max-w-4xl gap-4 rounded-lg border p-4 sm:p-6 shadow-sm duration-200 pointer-events-auto max-h-[calc(100vh-env(safe-area-inset-top,0)-env(safe-area-inset-bottom,0)-2rem)] overflow-y-auto",
             className,
           )}
           onAnimationStart={(e) => {
@@ -87,7 +87,7 @@ function DialogContent({
         >
           <ModalScopeProvider>{children}</ModalScopeProvider>
           {!hideCloseButton && (
-            <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
+            <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 p-2 min-w-[44px] min-h-[44px] hidden sm:flex items-center justify-center">
               <XIcon />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
@@ -117,7 +117,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
         // (full-width via -mx-6 px-6). Mesmo padrao do AlertDialogFooter.
         // NAO sticky - flui no fim do conteudo (o DialogContent ja tem
         // overflow-y-auto), evita sobrepor o ultimo campo.
-        "flex flex-row gap-2 *:flex-1 border-t border-slate-100 pt-4 -mx-6 px-6",
+        "flex flex-row gap-2 *:flex-1 border-t border-slate-100 pt-4 -mx-4 px-4 sm:-mx-6 sm:px-6",
         className,
       )}
       {...props}

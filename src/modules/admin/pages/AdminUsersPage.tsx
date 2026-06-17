@@ -1,14 +1,22 @@
 import { useMemo, useState } from "react";
 
 import KeyIcon from "~icons/material-symbols-light/key-outline";
-import BlockIcon from "~icons/material-symbols-light/block";
+import BlockIcon from "~icons/material-symbols-light/block-outline";
 import CheckIcon from "~icons/material-symbols-light/check-circle-outline";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
 import LoginIcon from "~icons/material-symbols-light/login";
+import MailIcon from "~icons/material-symbols-light/mail-outline";
+import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -74,23 +82,42 @@ export default function AdminUsersPage() {
   const [emailForm, setEmailForm] = useState({ email: "" });
   const [savingEmail, setSavingEmail] = useState(false);
 
+  type SortBy = "name" | "last_access" | "trial";
+  type FilterStatus = "suspended" | "trial_expired" | "pending_invite";
+
+  const [sortBy, setSortBy] = useState<SortBy>("name");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus | null>(null);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users
-      .filter(
-        (u) =>
+      .filter((u) => {
+        const matchSearch =
           (u.full_name ?? "").toLowerCase().includes(q) ||
           (u.email ?? "").toLowerCase().includes(q) ||
-          (u.organization_name ?? "").toLowerCase().includes(q),
-      )
+          (u.organization_name ?? "").toLowerCase().includes(q);
+        if (!matchSearch) return false;
+        if (filterStatus === "suspended" && !isSuspended(u)) return false;
+        if (filterStatus === "trial_expired" && (
+          !u.trial_ends_at || new Date(u.trial_ends_at).getTime() > Date.now()
+        )) return false;
+        if (filterStatus === "pending_invite" && !!u.email_confirmed_at) return false;
+        return true;
+      })
       .sort((a, b) => {
         if (a.is_master !== b.is_master) return a.is_master ? 1 : -1;
-        return (a.full_name ?? a.email ?? "").localeCompare(
-          b.full_name ?? b.email ?? "",
-          "pt-BR",
-        );
+        if (sortBy === "name") {
+          return (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? "", "pt-BR");
+        }
+        if (sortBy === "last_access") {
+          return (b.last_sign_in_at ?? "").localeCompare(a.last_sign_in_at ?? "");
+        }
+        if (sortBy === "trial") {
+          return (a.trial_ends_at ?? "9999").localeCompare(b.trial_ends_at ?? "9999");
+        }
+        return 0;
       });
-  }, [users, search]);
+  }, [users, search, sortBy, filterStatus]);
 
   async function handleInvite() {
     if (!iForm.email.trim()) { toast.error("Email é obrigatório"); return; }
@@ -265,21 +292,90 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Input
-          placeholder="Buscar por nome, email ou organização..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
-        <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" onClick={() => setInviteOpen(true)}>
-            Convidar Usuário
+    <div className="space-y-6">
+      <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+        {/* Busca: full width no mobile, cresce no desktop */}
+        <div className="sm:flex-1 sm:min-w-0">
+          <Input
+            placeholder="Buscar..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full"
+          />
+        </div>
+
+        {/* Filtros: 2 colunas no mobile, inline no desktop */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2 sm:shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md transition-colors text-sm focus-visible:outline-none ${
+                  filterStatus
+                    ? "bg-slate-800 text-white hover:bg-slate-700"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {filterStatus === "suspended" && "Suspensos"}
+                {filterStatus === "trial_expired" && "Trial Expirado"}
+                {filterStatus === "pending_invite" && "Aguardando Convite"}
+                {!filterStatus && "Filtrar"}
+                <ChevronDown className="size-4 opacity-60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-40">
+              <DropdownMenuItem onClick={() => setFilterStatus(null)} className={!filterStatus ? "bg-slate-100 font-medium" : ""}>
+                Todos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("suspended")} className={filterStatus === "suspended" ? "bg-slate-100 font-medium" : ""}>
+                Suspensos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("trial_expired")} className={filterStatus === "trial_expired" ? "bg-slate-100 font-medium" : ""}>
+                Trial Expirado
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus("pending_invite")} className={filterStatus === "pending_invite" ? "bg-slate-100 font-medium" : ""}>
+                Aguardando Convite
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm focus-visible:outline-none"
+              >
+                {sortBy === "name" && "Nome"}
+                {sortBy === "last_access" && "Último Acesso"}
+                {sortBy === "trial" && "Trial"}
+                <ChevronDown className="size-4 text-slate-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-40">
+              <DropdownMenuItem onClick={() => setSortBy("name")} className={sortBy === "name" ? "bg-slate-100 font-medium" : ""}>
+                Nome
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy("last_access")} className={sortBy === "last_access" ? "bg-slate-100 font-medium" : ""}>
+                Último Acesso
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy("trial")} className={sortBy === "trial" ? "bg-slate-100 font-medium" : ""}>
+                Trial
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Botões: 2 colunas no mobile, inline no desktop */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2 sm:shrink-0">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setInviteOpen(true)}>
+            <MailIcon className="size-4 mr-1.5" />
+            <span className="sm:hidden">Convidar</span>
+            <span className="hidden sm:inline">Convidar Usuário</span>
           </Button>
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
             <span className="mr-1 text-base leading-none">+</span>
-            Novo Usuário
+            <span className="sm:hidden">Novo</span>
+            <span className="hidden sm:inline">Novo Usuário</span>
           </Button>
         </div>
       </div>
@@ -298,9 +394,9 @@ export default function AdminUsersPage() {
             <thead className="bg-slate-50 text-slate-600 text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Usuário</th>
-                <th className="text-left px-4 py-2 font-medium">Trial</th>
-                <th className="text-left px-4 py-2 font-medium">Último acesso</th>
-                <th className="text-right px-4 py-2 font-medium">Ações</th>
+                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell">Trial</th>
+                <th className="text-left px-4 py-2 font-medium hidden md:table-cell">Último Acesso</th>
+                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -310,7 +406,7 @@ export default function AdminUsersPage() {
                   !!u.trial_ends_at &&
                   new Date(u.trial_ends_at).getTime() > Date.now();
                 return (
-                  <tr key={u.id} className="border-t border-slate-100">
+                  <tr key={u.id} className="border-t border-slate-100 cursor-pointer hover:bg-slate-50 sm:cursor-default" onClick={() => openEdit(u)}>
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900 flex items-center gap-2">
                         {u.full_name || "(sem nome)"}
@@ -321,8 +417,18 @@ export default function AdminUsersPage() {
                         )}
                       </div>
                       <div className="text-xs text-slate-500">{u.email}</div>
+                      <div className="text-xs text-slate-400 mt-0.5 sm:hidden">
+                        {u.is_master ? (
+                          <Badge size="compact" colorScheme="amber">master</Badge>
+                        ) : u.trial_ends_at ? (
+                          <span className={trialActive ? "text-slate-500" : "text-rose-500"}>
+                            {trialActive ? "trial até " : "trial expirou "}
+                            {fmtDate(u.trial_ends_at)}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="px-4 py-3 text-xs hidden sm:table-cell">
                       {u.is_master ? (
                         <Badge size="compact" colorScheme="amber">master</Badge>
                       ) : u.trial_ends_at ? (
@@ -334,13 +440,13 @@ export default function AdminUsersPage() {
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
+                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
                       {fmtDate(u.last_sign_in_at)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right hidden sm:table-cell">
                       <button
                         type="button"
-                        onClick={() => openEdit(u)}
+                        onClick={(e) => { e.stopPropagation(); openEdit(u); }}
                         className="text-xs text-slate-600 hover:text-slate-900"
                       >
                         Editar
@@ -475,7 +581,10 @@ export default function AdminUsersPage() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar {editing?.full_name || editing?.email}</DialogTitle>
+            <DialogTitle>
+              <span className="sm:hidden">Editar</span>
+              <span className="hidden sm:inline">Editar {editing?.full_name || editing?.email}</span>
+            </DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-4 py-2">
@@ -498,10 +607,11 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
+                  className="flex-1 min-w-[calc(50%-4px)]"
                   onClick={() => {
                     setChangingEmailFor(editing);
                     setEmailForm({ email: editing?.email ?? "" });
@@ -512,6 +622,7 @@ export default function AdminUsersPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  className="flex-1 min-w-[calc(50%-4px)]"
                   onClick={() => {
                     setChangingPasswordFor(editing);
                     setPwForm({ password: "", password_confirm: "" });
@@ -529,6 +640,7 @@ export default function AdminUsersPage() {
                       <Button
                         type="button"
                         variant="outline"
+                        className="flex-1 min-w-[calc(50%-4px)]"
                         disabled={editPending}
                         onClick={async () => {
                           setEditPending(true);
@@ -542,21 +654,25 @@ export default function AdminUsersPage() {
                           }
                         }}
                       >
+                        <MailIcon className="size-4 mr-1.5" />
                         Enviar Convite
                       </Button>
                     )}
                     <Button
                       type="button"
                       variant="outline"
+                      className="flex-1 min-w-[calc(50%-4px)]"
                       disabled={editPending}
                       onClick={() => { handleImpersonate(editing!); setEditing(null); }}
                     >
                       <LoginIcon className="size-4 mr-1.5" />
                       Entrar Como
+
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
+                      className="flex-1 min-w-[calc(50%-4px)]"
                       disabled={editPending}
                       onClick={() => { handleReset(editing!); }}
                     >
@@ -566,6 +682,7 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      className="flex-1 min-w-[calc(50%-4px)]"
                       disabled={editPending}
                       onClick={() => { handleSuspend(editing!); setEditing(null); }}
                     >
@@ -578,8 +695,8 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                       disabled={editPending}
-                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                       onClick={() => { handleDelete(editing!); setEditing(null); }}
                     >
                       <Trash2 className="size-4 mr-1.5" />
