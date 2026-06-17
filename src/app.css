@@ -371,7 +371,7 @@ input:-webkit-autofill:active {
   white-space: nowrap;
   overflow: hidden;
   font-family: "Mozilla Headline Variable", "Mozilla Headline", sans-serif;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: lowercase;
   letter-spacing: 0;
 }
