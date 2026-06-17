@@ -309,6 +309,33 @@ export function mountAdminRoutes(app: Hono) {
     }
   });
 
+  // POST /admin/users/:id/resend-invite — reenvia o email de convite (só se não confirmado).
+  app.post("/admin/users/:id/resend-invite", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireMaster(client);
+      if (auth.error) return auth.error;
+
+      const id = c.req.param("id");
+      const admin = getSupabaseAdmin();
+      const { data: u } = await admin.auth.admin.getUserById(id);
+      const email = u?.user?.email;
+      if (!email) return c.json({ error: "user_not_found" }, 404);
+      if (isMasterUser(email)) return c.json({ error: "cannot_invite_master" }, 400);
+      if (u?.user?.email_confirmed_at) return c.json({ error: "already_confirmed" }, 400);
+
+      const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: "https://gerentia.app",
+      });
+      if (error) return c.json({ error: error.message }, 400);
+      await logAdminAction(admin, c, auth.user, "resend_invite", { id, email });
+      return c.json({ ok: true });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      throw resp;
+    }
+  });
+
   // DELETE /admin/users/:id — exclui o usuário (users_meta cai por cascade FK).
   app.delete("/admin/users/:id", async (c) => {
     try {

@@ -78,6 +78,10 @@ export function useAdminUsers() {
     }>(`/admin/users/${id}/impersonate`, { method: "POST" });
   }, []);
 
+  const resendInvite = useCallback(async (id: string) => {
+    return api<{ ok: true }>(`/admin/users/${id}/resend-invite`, { method: "POST" });
+  }, []);
+
   return {
     users,
     loading,
@@ -89,5 +93,6 @@ export function useAdminUsers() {
     suspendUser,
     deleteUser,
     impersonate,
+    resendInvite,
   };
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import UserPlus from "~icons/material-symbols-light/person-add-outline";
+
 import KeyIcon from "~icons/material-symbols-light/key-outline";
 import BlockIcon from "~icons/material-symbols-light/block";
 import CheckIcon from "~icons/material-symbols-light/check-circle-outline";
@@ -39,6 +39,7 @@ export default function AdminUsersPage() {
     suspendUser,
     deleteUser,
     impersonate,
+    resendInvite,
   } = useAdminUsers();
 
   const [search, setSearch] = useState("");
@@ -53,13 +54,24 @@ export default function AdminUsersPage() {
   });
   const [creating, setCreating] = useState(false);
 
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [iForm, setIForm] = useState({ email: "", full_name: "" });
+  const [inviting, setInviting] = useState(false);
+
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [eForm, setEForm] = useState({
     full_name: "",
     role: "owner",
     trial_ends_at: "",
-    password: "",
   });
+
+  const [changingPasswordFor, setChangingPasswordFor] = useState<AdminUser | null>(null);
+  const [pwForm, setPwForm] = useState({ password: "", password_confirm: "" });
+  const [savingPw, setSavingPw] = useState(false);
+
+  const [changingEmailFor, setChangingEmailFor] = useState<AdminUser | null>(null);
+  const [emailForm, setEmailForm] = useState({ email: "" });
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -78,6 +90,25 @@ export default function AdminUsersPage() {
         );
       });
   }, [users, search]);
+
+  async function handleInvite() {
+    if (!iForm.email.trim()) { toast.error("Email é obrigatório"); return; }
+    setInviting(true);
+    try {
+      await createUser({
+        email: iForm.email.trim(),
+        full_name: iForm.full_name.trim() || undefined,
+        invite: true,
+      });
+      toast.success("Convite enviado");
+      setInviteOpen(false);
+      setIForm({ email: "", full_name: "" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar convite");
+    } finally {
+      setInviting(false);
+    }
+  }
 
   async function handleCreate() {
     if (!cForm.email.trim()) {
@@ -113,7 +144,6 @@ export default function AdminUsersPage() {
       full_name: u.full_name ?? "",
       role: u.role ?? "owner",
       trial_ends_at: u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : "",
-      password: "",
     });
   }
 
@@ -127,12 +157,51 @@ export default function AdminUsersPage() {
       if (eForm.trial_ends_at) {
         patch.trial_ends_at = new Date(eForm.trial_ends_at).toISOString();
       }
-      if (eForm.password.trim()) patch.password = eForm.password.trim();
       await updateUser(editing.id, patch);
       toast.success("Usuário atualizado");
       setEditing(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    }
+  }
+
+  async function handleSavePassword() {
+    if (!changingPasswordFor) return;
+    if (!pwForm.password.trim()) {
+      toast.error("Informe a nova senha");
+      return;
+    }
+    if (pwForm.password !== pwForm.password_confirm) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    setSavingPw(true);
+    try {
+      await updateUser(changingPasswordFor.id, { password: pwForm.password.trim() });
+      toast.success("Senha alterada");
+      setChangingPasswordFor(null);
+      setPwForm({ password: "", password_confirm: "" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao alterar senha");
+    } finally {
+      setSavingPw(false);
+    }
+  }
+
+  async function handleSaveEmail() {
+    if (!changingEmailFor) return;
+    const email = emailForm.email.trim();
+    if (!email) { toast.error("Informe o novo email"); return; }
+    setSavingEmail(true);
+    try {
+      await updateUser(changingEmailFor.id, { email });
+      toast.success("Email alterado");
+      setChangingEmailFor(null);
+      setEmailForm({ email: "" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao alterar email");
+    } finally {
+      setSavingEmail(false);
     }
   }
 
@@ -193,14 +262,16 @@ export default function AdminUsersPage() {
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-base font-medium text-slate-900">Usuários</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Gestão de todos os usuários do gerentia. {users.length} no total.
-          </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <UserPlus className="size-4 mr-1" />
-          Novo Usuário
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setInviteOpen(true)}>
+            Convidar Usuário
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <span className="mr-1 text-base leading-none">+</span>
+            Novo Usuário
+          </Button>
+        </div>
       </header>
 
       <Input
@@ -224,8 +295,6 @@ export default function AdminUsersPage() {
             <thead className="bg-slate-50 text-slate-600 text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Usuário</th>
-                <th className="text-left px-4 py-2 font-medium">Organização</th>
-                <th className="text-left px-4 py-2 font-medium">Role</th>
                 <th className="text-left px-4 py-2 font-medium">Trial</th>
                 <th className="text-left px-4 py-2 font-medium">Último acesso</th>
                 <th className="text-right px-4 py-2 font-medium">Ações</th>
@@ -242,11 +311,6 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900 flex items-center gap-2">
                         {u.full_name || "(sem nome)"}
-                        {u.is_master && (
-                          <Badge size="compact" colorScheme="amber">
-                            master
-                          </Badge>
-                        )}
                         {suspended && (
                           <Badge size="compact" colorScheme="rose">
                             suspenso
@@ -255,33 +319,10 @@ export default function AdminUsersPage() {
                       </div>
                       <div className="text-xs text-slate-500">{u.email}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {u.organization_name || (
-                        <span className="text-xs italic text-rose-500">
-                          sem org
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.role ? (
-                        <Badge
-                          size="compact"
-                          colorScheme={
-                            u.role === "owner"
-                              ? "amber"
-                              : u.role === "admin"
-                                ? "blue"
-                                : "slate"
-                          }
-                        >
-                          {u.role}
-                        </Badge>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
                     <td className="px-4 py-3 text-xs">
-                      {u.trial_ends_at ? (
+                      {u.is_master ? (
+                        <Badge size="compact" colorScheme="amber">master</Badge>
+                      ) : u.trial_ends_at ? (
                         <span className={trialActive ? "text-slate-600" : "text-rose-500"}>
                           {trialActive ? "até " : "expirou "}
                           {fmtDate(u.trial_ends_at)}
@@ -294,62 +335,20 @@ export default function AdminUsersPage() {
                       {fmtDate(u.last_sign_in_at)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="inline-flex gap-2 items-center">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(u)}
-                          className="text-xs text-slate-600 hover:text-slate-900"
-                        >
-                          Editar
-                        </button>
-                        {!u.is_master && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleImpersonate(u)}
-                              title="Entrar como (login como)"
-                              className="text-slate-500 hover:text-slate-900"
-                            >
-                              <LoginIcon className="size-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleReset(u)}
-                              title="Resetar senha"
-                              className="text-slate-500 hover:text-slate-900"
-                            >
-                              <KeyIcon className="size-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSuspend(u)}
-                              title={suspended ? "Reativar" : "Suspender"}
-                              className="text-slate-500 hover:text-slate-900"
-                            >
-                              {suspended ? (
-                                <CheckIcon className="size-4" />
-                              ) : (
-                                <BlockIcon className="size-4" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(u)}
-                              title="Excluir"
-                              className="text-slate-500 hover:text-red-600"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(u)}
+                        className="text-xs text-slate-600 hover:text-slate-900"
+                      >
+                        Editar
+                      </button>
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
@@ -358,6 +357,41 @@ export default function AdminUsersPage() {
           </table>
         )}
       </section>
+
+      {/* Convidar usuário */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setIForm({ email: "", full_name: "" }); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Convidar Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">Email *</label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={iForm.email}
+                onChange={(e) => setIForm((s) => ({ ...s, email: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">Nome <span className="text-slate-400 font-normal">(opcional)</span></label>
+              <Input
+                placeholder="Nome completo"
+                value={iForm.full_name}
+                onChange={(e) => setIForm((s) => ({ ...s, full_name: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+            <Button onClick={handleInvite} disabled={inviting || !iForm.email.trim()}>
+              {inviting ? "Enviando..." : "Enviar Convite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Criar usuário */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -453,20 +487,6 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Role
-                </label>
-                <select
-                  value={eForm.role}
-                  onChange={(e) => setEForm((s) => ({ ...s, role: e.target.value }))}
-                  className="w-full h-9 rounded-md border border-slate-200 px-2 text-sm bg-white"
-                >
-                  <option value="owner">owner</option>
-                  <option value="admin">admin</option>
-                  <option value="member">member</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
                   Trial termina em
                 </label>
                 <Input
@@ -475,17 +495,88 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))}
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Nova senha (opcional)
-                </label>
-                <Input
-                  type="text"
-                  placeholder="Deixe em branco pra manter"
-                  value={eForm.password}
-                  onChange={(e) => setEForm((s) => ({ ...s, password: e.target.value }))}
-                />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setChangingEmailFor(editing);
+                    setEmailForm({ email: editing?.email ?? "" });
+                  }}
+                >
+                  Alterar Email
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setChangingPasswordFor(editing);
+                    setPwForm({ password: "", password_confirm: "" });
+                  }}
+                >
+                  Alterar Senha
+                </Button>
               </div>
+
+              {!editing?.is_master && (
+                <>
+                  <hr className="border-slate-100" />
+                  <div className="flex flex-wrap gap-2">
+                    {!editing?.email_confirmed_at && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await resendInvite(editing!.id);
+                            toast.success("Convite reenviado");
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Erro ao reenviar convite");
+                          }
+                        }}
+                      >
+                        Enviar Convite
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { handleImpersonate(editing!); setEditing(null); }}
+                    >
+                      <LoginIcon className="size-4 mr-1.5" />
+                      Entrar Como
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { handleReset(editing!); }}
+                    >
+                      <KeyIcon className="size-4 mr-1.5" />
+                      Resetar Senha
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { handleSuspend(editing!); setEditing(null); }}
+                    >
+                      {isSuspended(editing!) ? (
+                        <><CheckIcon className="size-4 mr-1.5" />Reativar</>
+                      ) : (
+                        <><BlockIcon className="size-4 mr-1.5" />Suspender</>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+                      onClick={() => { handleDelete(editing!); setEditing(null); }}
+                    >
+                      <Trash2 className="size-4 mr-1.5" />
+                      Excluir
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -493,6 +584,99 @@ export default function AdminUsersPage() {
               Cancelar
             </Button>
             <Button onClick={handleSaveEdit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alterar senha */}
+      <Dialog
+        open={!!changingPasswordFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setChangingPasswordFor(null);
+            setPwForm({ password: "", password_confirm: "" });
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar senha</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Nova senha
+              </label>
+              <Input
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={pwForm.password}
+                onChange={(e) => setPwForm((s) => ({ ...s, password: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Confirmar nova senha
+              </label>
+              <Input
+                type="password"
+                placeholder="Repita a senha"
+                value={pwForm.password_confirm}
+                onChange={(e) => setPwForm((s) => ({ ...s, password_confirm: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setChangingPasswordFor(null);
+                setPwForm({ password: "", password_confirm: "" });
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePassword} disabled={savingPw}>
+              {savingPw ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alterar email */}
+      <Dialog
+        open={!!changingEmailFor}
+        onOpenChange={(o) => {
+          if (!o) { setChangingEmailFor(null); setEmailForm({ email: "" }); }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Novo email
+              </label>
+              <Input
+                type="email"
+                placeholder="novo@email.com"
+                value={emailForm.email}
+                onChange={(e) => setEmailForm({ email: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setChangingEmailFor(null); setEmailForm({ email: "" }); }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEmail} disabled={savingEmail}>
+              {savingEmail ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

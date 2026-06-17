@@ -81,6 +81,7 @@ function DialogContent({
           }}
           // Bloqueia fechar ao clicar fora (padrao Farm: dialog so fecha
           // via X, Cancelar ou acao explicita). Override via props se preciso.
+          onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           {...props}
         >

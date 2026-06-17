@@ -1,0 +1,52 @@
+<!--
+  gerentia.app — template de MAGIC LINK (Supabase: Authentication → Emails → Templates → Magic Link)
+  Assunto sugerido: Seu link de acesso — gerentia.app
+  Variáveis Go (Supabase): {{ .MagicLink }}.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fcfcfc;margin:0;padding:0;width:100%;">
+  <tr>
+    <td align="center" style="padding:48px 24px 40px 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;">
+        <tr>
+          <td align="left" style="padding-bottom:32px;">
+            <img src="https://gerentia.app/icon-name-gerentia.png" width="130" alt="gerentia.app" style="display:block;border:0;outline:none;text-decoration:none;height:auto;">
+          </td>
+        </tr>
+        <tr>
+          <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding-bottom:20px;">
+            <p style="margin:0;font-size:15px;line-height:1.6;color:#475569;">
+              Clique abaixo para entrar no gerentia.app. O link expira em 1 hora e pode ser usado uma única vez.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td align="left" style="padding-bottom:28px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="border-radius:6px;background-color:#0f172a;">
+                  <a href="{{ .MagicLink }}" target="_blank" style="display:inline-block;padding:13px 26px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:400;line-height:1;color:#ffffff;text-decoration:none;border-radius:6px;">Entrar</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding-bottom:32px;">
+            <p style="margin:0;font-size:12.5px;line-height:1.6;color:#94a3b8;">
+              Se o botão não funcionar, <a href="{{ .MagicLink }}" target="_blank" style="color:#64748b;">acesse este link</a>.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px 0;">
+            <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#94a3b8;">
+              gerentia.app<br>
+              Se você não solicitou este link, é só ignorar este email.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
