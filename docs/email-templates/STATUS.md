@@ -56,5 +56,7 @@ Objetivo: emails de auth (convite, reset de senha…) saindo por **SMTP próprio
 
 **Notas:**
 - Templates do **Supabase** (não do Resend) — mesmo enviando por SMTP do Resend, o HTML vem dos templates do Supabase.
+- Após salvar um template no dashboard, leva ~2 minutos para propagar. Testar antes disso vai usar o template antigo.
 - Imagens de email costumam ser bloqueadas por padrão até o usuário clicar "exibir imagens" — normal.
+- O preview do Supabase não carrega imagens externas (aparece quebrado) — no email real aparece normalmente.
 - Auth do Supabase CLI nesta máquina: o keyring não funciona; usar `SUPABASE_ACCESS_TOKEN` (PAT `sbp_`).
