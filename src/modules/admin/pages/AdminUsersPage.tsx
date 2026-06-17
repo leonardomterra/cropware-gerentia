@@ -64,6 +64,7 @@ export default function AdminUsersPage() {
     role: "owner",
     trial_ends_at: "",
   });
+  const [editPending, setEditPending] = useState(false);
 
   const [changingPasswordFor, setChangingPasswordFor] = useState<AdminUser | null>(null);
   const [pwForm, setPwForm] = useState({ password: "", password_confirm: "" });
@@ -149,6 +150,7 @@ export default function AdminUsersPage() {
 
   async function handleSaveEdit() {
     if (!editing) return;
+    setEditPending(true);
     try {
       const patch: Record<string, unknown> = {
         full_name: eForm.full_name.trim(),
@@ -162,6 +164,8 @@ export default function AdminUsersPage() {
       setEditing(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setEditPending(false);
     }
   }
 
@@ -207,12 +211,15 @@ export default function AdminUsersPage() {
 
   async function handleReset(u: AdminUser) {
     if (!confirm(`Resetar a senha de ${u.email}?`)) return;
+    setEditPending(true);
     try {
       const r = await resetPassword(u.id);
       await navigator.clipboard.writeText(r.password).catch(() => {});
       toast.success(`Nova senha: ${r.password} (copiada)`, { duration: 12000 });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao resetar senha");
+    } finally {
+      setEditPending(false);
     }
   }
 
@@ -259,11 +266,14 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-6xl space-y-6">
-      <header className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-base font-medium text-slate-900">Usuários</h1>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Buscar por nome, email ou organização..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+        <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" onClick={() => setInviteOpen(true)}>
             Convidar Usuário
           </Button>
@@ -272,14 +282,7 @@ export default function AdminUsersPage() {
             Novo Usuário
           </Button>
         </div>
-      </header>
-
-      <Input
-        placeholder="Buscar por nome, email ou organização..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-sm"
-      />
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
@@ -526,12 +529,16 @@ export default function AdminUsersPage() {
                       <Button
                         type="button"
                         variant="outline"
+                        disabled={editPending}
                         onClick={async () => {
+                          setEditPending(true);
                           try {
                             await resendInvite(editing!.id);
                             toast.success("Convite reenviado");
                           } catch (e) {
                             toast.error(e instanceof Error ? e.message : "Erro ao reenviar convite");
+                          } finally {
+                            setEditPending(false);
                           }
                         }}
                       >
@@ -541,6 +548,7 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={editPending}
                       onClick={() => { handleImpersonate(editing!); setEditing(null); }}
                     >
                       <LoginIcon className="size-4 mr-1.5" />
@@ -549,6 +557,7 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={editPending}
                       onClick={() => { handleReset(editing!); }}
                     >
                       <KeyIcon className="size-4 mr-1.5" />
@@ -557,6 +566,7 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={editPending}
                       onClick={() => { handleSuspend(editing!); setEditing(null); }}
                     >
                       {isSuspended(editing!) ? (
@@ -568,6 +578,7 @@ export default function AdminUsersPage() {
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={editPending}
                       className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                       onClick={() => { handleDelete(editing!); setEditing(null); }}
                     >
@@ -580,10 +591,12 @@ export default function AdminUsersPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>
+            <Button variant="outline" disabled={editPending} onClick={() => setEditing(null)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit}>Salvar</Button>
+            <Button onClick={handleSaveEdit} disabled={editPending}>
+              {editPending ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
