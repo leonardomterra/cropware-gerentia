@@ -11,25 +11,16 @@ declare
   cc  uuid;
   rid uuid;
 begin
-  -- 1) Resolver org/usuário A PARTIR DE UM LANÇAMENTO QUE O APP JÁ MOSTRA.
-  -- Isso garante que o seed cai na MESMA org que você está vendo (evita o
-  -- problema de cair numa conta/org diferente quando há vários usuários).
-  -- Troque os vendors abaixo se nenhum existir mais na sua lista.
-  select organization_id, created_by into org, uid
-  from public.farm_receipts
-  where upper(coalesce(vendor, '')) in
-    ('POSTO 15', 'TACO JEANS', 'CARTÃO DE CRÉDITO', 'LAUDO', 'INTERNET UBERABA')
-  order by created_at desc
-  limit 1;
-
-  -- Fallback: pelo email (caso você tenha apagado todos os lançamentos antigos)
-  if org is null then
-    select u.id into uid from auth.users u
-    where lower(u.email) = lower('leonardoterra.comercial@gmail.com') limit 1;
-    select organization_id into org from public.users_meta where user_id = uid;
+  -- 1) Resolver org/usuário pelo EMAIL da conta usada no app.
+  -- (Resolver por vendor se auto-contamina, porque o próprio seed cria vendors.)
+  select u.id into uid from auth.users u
+  where lower(u.email) = lower('leonardo.terra@outlook.com') limit 1;
+  if uid is null then
+    raise exception 'Usuário leonardo.terra@outlook.com não encontrado.';
   end if;
-  if org is null or uid is null then
-    raise exception 'Não consegui resolver org/usuário. Me diga o email do app.';
+  select organization_id into org from public.users_meta where user_id = uid;
+  if org is null then
+    raise exception 'Organização não encontrada para leonardo.terra@outlook.com.';
   end if;
 
   select id into cc
