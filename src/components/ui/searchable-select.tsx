@@ -92,7 +92,7 @@ export function SearchableSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-9 w-full inline-flex items-center justify-between gap-2 rounded border border-slate-100 bg-white px-3 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
+            "h-9 w-full inline-flex items-center justify-between gap-2 rounded border border-slate-100 bg-white px-3 text-base md:text-sm text-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
             triggerClassName,
           )}

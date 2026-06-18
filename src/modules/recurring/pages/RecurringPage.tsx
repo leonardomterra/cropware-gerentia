@@ -198,8 +198,8 @@ export default function RecurringPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-end gap-2">
-        <Button variant="outline" onClick={openNew}>
+      <header className="flex items-center justify-start gap-2">
+        <Button variant="outline" onClick={openNew} className="w-full sm:w-auto">
           <Plus className="size-4 mr-1" />
           Nova Recorrência
         </Button>

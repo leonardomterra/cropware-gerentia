@@ -74,7 +74,7 @@
        14px  texto padrao  -> text-sm  (e body default p/ texto sem classe)
        13px  complementar  -> text-xs  (remapeado de 12 -> 13)
        16px  destaque      -> text-base
-       12.5px badges       -> regra global [data-slot="badge"]
+       13px  badges        -> text-xs no componente <Badge> (font-medium)
      text-sm (14) e text-base (16) ja batem com o default do Tailwind
      (html=16px); so o xs precisa virar 13. */
   --text-xs: 13px;
@@ -135,7 +135,7 @@
        - 14px   texto padrao  -> body default / text-sm
        - 13px   complementar  -> text-xs (remapeado no @theme acima)
        - 16px   destaque      -> text-base (page h1, KPI value)
-       - 12.5px badges        -> override global [data-slot="badge"]
+       - 13px   badges        -> text-xs no componente <Badge> (font-medium)
      Excecoes: displays de codigo/OTP (text-2xl/3xl mono) e o logo.
    * font-weight 400 default; 300 (light) pra texto secundario.
    * font-variation-settings: normal (igual CDM).
@@ -250,13 +250,10 @@ select,
   font-weight: 400 !important;
 }
 
-/* Badges: padronizacao global (padrao CDM, atualizado 2026-05-28).
-   Sem font-family (herda Inter Tight do body), 12.5px weight 300,
-   letter-spacing -0.01em, text-transform none (NAO uppercase).
-   !important vence inline fontSize/transform de componentes. */
+/* Badges: o tamanho (text-xs/text-[11px]) e o peso (font-medium) vêm do
+   componente <Badge>. Aqui só mantemos o letter-spacing e garantimos que
+   nunca fica maiúsculo (NAO uppercase). */
 [data-slot="badge"] {
-  font-size: 12.5px !important;
-  font-weight: 300 !important;
   letter-spacing: -0.01em !important;
   text-transform: none !important;
 }

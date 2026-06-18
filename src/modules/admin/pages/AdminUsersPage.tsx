@@ -101,7 +101,7 @@ export default function AdminUsersPage() {
         if (filterStatus === "trial_expired" && (
           !u.trial_ends_at || new Date(u.trial_ends_at).getTime() > Date.now()
         )) return false;
-        if (filterStatus === "pending_invite" && !!u.email_confirmed_at) return false;
+        if (filterStatus === "pending_invite" && (!!u.email_confirmed_at || !!u.last_sign_in_at)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -636,7 +636,7 @@ export default function AdminUsersPage() {
                 <>
                   <hr className="border-slate-100" />
                   <div className="flex flex-wrap gap-2">
-                    {!editing?.email_confirmed_at && (
+                    {!editing?.email_confirmed_at && !editing?.last_sign_in_at && (
                       <Button
                         type="button"
                         variant="outline"
@@ -648,7 +648,12 @@ export default function AdminUsersPage() {
                             await resendInvite(editing!.id);
                             toast.success("Convite reenviado");
                           } catch (e) {
-                            toast.error(e instanceof Error ? e.message : "Erro ao reenviar convite");
+                            const msg = e instanceof Error ? e.message : "";
+                            if (msg.includes("already_confirmed")) {
+                              toast.info("Usuário já confirmou a conta");
+                            } else {
+                              toast.error(msg || "Erro ao reenviar convite");
+                            }
                           } finally {
                             setEditPending(false);
                           }

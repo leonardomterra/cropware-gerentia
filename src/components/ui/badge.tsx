@@ -6,7 +6,9 @@ import { cn, toSubtitleCase } from "./utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded border px-2.5 py-0.5 w-fit whitespace-nowrap shrink-0 [&>svg]:size-3.5 gap-1.5 [&>svg]:pointer-events-none transition-all shadow-xs overflow-hidden",
+  // Mesmas classes do simulador (/badges): sem sombra, sem transição, fonte via
+  // text-xs (não inline), padding por tamanho. Tom/cor vem de colorScheme.
+  "inline-flex items-center justify-center rounded border w-fit whitespace-nowrap shrink-0 font-medium [&>svg]:size-3.5 gap-1.5 [&>svg]:pointer-events-none",
   {
     variants: {
       variant: {
@@ -20,29 +22,31 @@ const badgeVariants = cva(
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
       },
       size: {
-        default: "h-6",
-        compact: "h-5",
+        default: "h-6 px-2.5 text-xs",
+        compact: "h-5 px-2 text-[11px]",
       },
       colorScheme: {
+        // Padrão "soft forte" (igual ao simulador): fundo claro (100) + texto
+        // escuro (800), SEM borda visível.
         // Semantic
-        slate: "bg-slate-50 text-slate-700 border-slate-200",
-        amber: "bg-amber-50 text-amber-700 border-amber-200",
-        emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        red: "bg-red-50 text-red-700 border-red-200",
-        blue: "bg-blue-50 text-blue-700 border-blue-200",
+        slate: "bg-slate-100 text-slate-800 border-transparent",
+        amber: "bg-amber-100 text-amber-800 border-transparent",
+        emerald: "bg-emerald-100 text-emerald-800 border-transparent",
+        red: "bg-red-100 text-red-800 border-transparent",
+        blue: "bg-blue-100 text-blue-800 border-transparent",
         // Extended
-        green: "bg-green-50 text-green-700 border-green-200",
-        orange: "bg-orange-50 text-orange-700 border-orange-200",
-        yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
-        purple: "bg-purple-50 text-purple-700 border-purple-200",
-        cyan: "bg-cyan-50 text-cyan-700 border-cyan-200",
-        teal: "bg-teal-50 text-teal-700 border-teal-200",
-        indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
-        pink: "bg-pink-50 text-pink-700 border-pink-200",
-        rose: "bg-rose-50 text-rose-700 border-rose-200",
-        sky: "bg-sky-50 text-sky-700 border-sky-200",
-        lime: "bg-lime-50 text-lime-700 border-lime-200",
-        gray: "bg-gray-100 text-gray-700 border-gray-200",
+        green: "bg-green-100 text-green-800 border-transparent",
+        orange: "bg-orange-100 text-orange-800 border-transparent",
+        yellow: "bg-yellow-100 text-yellow-800 border-transparent",
+        purple: "bg-purple-100 text-purple-800 border-transparent",
+        cyan: "bg-cyan-100 text-cyan-800 border-transparent",
+        teal: "bg-teal-100 text-teal-800 border-transparent",
+        indigo: "bg-indigo-100 text-indigo-800 border-transparent",
+        pink: "bg-pink-100 text-pink-800 border-transparent",
+        rose: "bg-rose-100 text-rose-800 border-transparent",
+        sky: "bg-sky-100 text-sky-800 border-transparent",
+        lime: "bg-lime-100 text-lime-800 border-transparent",
+        gray: "bg-gray-100 text-gray-800 border-transparent",
         white: "bg-white text-slate-600 border-slate-200",
         // Nenhuma cor (para uso com className custom)
         none: "",
@@ -54,11 +58,6 @@ const badgeVariants = cva(
     },
   },
 );
-
-const sizeToFontSize: Record<string, string> = {
-  default: "12.5px",
-  compact: "12.5px",
-};
 
 function Badge({
   className,
@@ -74,7 +73,6 @@ function Badge({
 }: React.ComponentPropsWithoutRef<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean; truncate?: boolean }) {
   const Comp = asChild ? Slot : "span";
-  const fontSize = sizeToFontSize[size || "default"];
   const useShadcnTooltip = truncate && !!title;
 
   // Badges sempre em Title Case PT-BR: "A Pagar", "Nota de Saida".
@@ -92,7 +90,7 @@ function Badge({
         truncate && "shrink min-w-0 max-w-[260px] md:max-w-[420px]",
         className,
       )}
-      style={{ fontSize, ...style }}
+      style={style}
       title={useShadcnTooltip ? undefined : title}
       {...props}
     >
