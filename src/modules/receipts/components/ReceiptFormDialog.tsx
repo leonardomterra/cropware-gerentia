@@ -172,7 +172,10 @@ export function ReceiptFormDialog({
         paid_date: receipt.paid_date ?? "",
         invoice_number: receipt.invoice_number ?? "",
         notes: receipt.notes ?? "",
-        cost_center_id: receipt.cost_center_id ?? defaultCCId,
+        cost_center_id:
+          receipt.cost_center_id ??
+          receipt.items?.[0]?.cost_center_id ??
+          defaultCCId,
         items: allowItems
           ? (receipt.items ?? [])
               .slice()
@@ -359,7 +362,8 @@ export function ReceiptFormDialog({
           return {
             description: it.description.trim() || null,
             category: it.category || null,
-            cost_center_id: it.cost_center_id || null,
+            // Um CC pro documento inteiro: aplica o CC do cabeçalho a cada item.
+            cost_center_id: form.cost_center_id || null,
             quantity: Number.isFinite(q) ? q : null,
             unit_value: Number.isFinite(u) ? u : null,
             total_value: total,
@@ -592,9 +596,14 @@ export function ReceiptFormDialog({
             </div>
           </div>
 
-          {!hasItems && !summaryMode && ccs.length > 1 && (
+          {!summaryMode && ccs.length > 1 && (
             <div>
-              <Label>Centro de Custo</Label>
+              <Label>
+                Centro de Custo
+                {hasItems && (
+                  <span className="text-slate-400 font-normal"> (aplica a todos os itens)</span>
+                )}
+              </Label>
               <Select
                 value={form.cost_center_id}
                 onValueChange={(v) => set("cost_center_id", v)}
@@ -817,68 +826,38 @@ export function ReceiptFormDialog({
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <div className="flex items-center justify-between min-h-[1.125rem]">
-                            <Label className="text-xs text-slate-500">
-                              Categoria
-                            </Label>
-                            <AiSuggestButton
-                              onClick={() => runSuggest(it.key, it.description)}
-                              loading={suggestingKey === it.key}
-                              disabled={
-                                suggestingKey !== null ||
-                                !form.vendor.trim() ||
-                                !it.description.trim()
-                              }
-                              disabledHint="Preencha origem e a descrição do item para sugerir"
-                            />
-                          </div>
-                          <SearchableSelect
-                            options={[
-                              { value: "none", label: "Sem categoria" },
-                              ...catOptions,
-                            ]}
-                            value={it.category || "none"}
-                            onValueChange={(v) =>
-                              updateItem(it.key, {
-                                category: v === "none" ? "" : v,
-                              })
+                      <div>
+                        <div className="flex items-center justify-between min-h-[1.125rem]">
+                          <Label className="text-xs text-slate-500">
+                            Categoria
+                          </Label>
+                          <AiSuggestButton
+                            onClick={() => runSuggest(it.key, it.description)}
+                            loading={suggestingKey === it.key}
+                            disabled={
+                              suggestingKey !== null ||
+                              !form.vendor.trim() ||
+                              !it.description.trim()
                             }
-                            placeholder="Selecione..."
-                            searchPlaceholder="Buscar categoria..."
-                            emptyMessage="Nenhuma categoria."
-                            triggerClassName="mt-1"
+                            disabledHint="Preencha origem e a descrição do item para sugerir"
                           />
                         </div>
-                        <div>
-                          <div className="flex items-center min-h-[1.125rem]">
-                            <Label className="text-xs text-slate-500">
-                              Centro de Custo
-                            </Label>
-                          </div>
-                          <Select
-                            value={it.cost_center_id || "none"}
-                            onValueChange={(v) =>
-                              updateItem(it.key, {
-                                cost_center_id: v === "none" ? "" : v,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="h-9 mt-1">
-                              <SelectValue placeholder="Escolher..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Sem centro</SelectItem>
-                              {ccs.map((cc) => (
-                                <SelectItem key={cc.id} value={cc.id}>
-                                  {cc.name}
-                                  {cc.is_default ? " (Padrão)" : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <SearchableSelect
+                          options={[
+                            { value: "none", label: "Sem categoria" },
+                            ...catOptions,
+                          ]}
+                          value={it.category || "none"}
+                          onValueChange={(v) =>
+                            updateItem(it.key, {
+                              category: v === "none" ? "" : v,
+                            })
+                          }
+                          placeholder="Selecione..."
+                          searchPlaceholder="Buscar categoria..."
+                          emptyMessage="Nenhuma categoria."
+                          triggerClassName="mt-1"
+                        />
                       </div>
                     </div>
                   ))}

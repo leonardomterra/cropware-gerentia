@@ -11,15 +11,26 @@ declare
   cc  uuid;
   rid uuid;
 begin
-  -- 1) Resolver usuário, org e um centro de custo padrão
-  select u.id into uid
-  from auth.users u
-  where lower(u.email) = lower('leonardoterra.comercial@gmail.com')
+  -- 1) Resolver org/usuário A PARTIR DE UM LANÇAMENTO QUE O APP JÁ MOSTRA.
+  -- Isso garante que o seed cai na MESMA org que você está vendo (evita o
+  -- problema de cair numa conta/org diferente quando há vários usuários).
+  -- Troque os vendors abaixo se nenhum existir mais na sua lista.
+  select organization_id, created_by into org, uid
+  from public.farm_receipts
+  where upper(coalesce(vendor, '')) in
+    ('POSTO 15', 'TACO JEANS', 'CARTÃO DE CRÉDITO', 'LAUDO', 'INTERNET UBERABA')
+  order by created_at desc
   limit 1;
-  if uid is null then raise exception 'Usuário não encontrado pelo email'; end if;
 
-  select organization_id into org from public.users_meta where user_id = uid;
-  if org is null then raise exception 'Organização não encontrada para o usuário'; end if;
+  -- Fallback: pelo email (caso você tenha apagado todos os lançamentos antigos)
+  if org is null then
+    select u.id into uid from auth.users u
+    where lower(u.email) = lower('leonardoterra.comercial@gmail.com') limit 1;
+    select organization_id into org from public.users_meta where user_id = uid;
+  end if;
+  if org is null or uid is null then
+    raise exception 'Não consegui resolver org/usuário. Me diga o email do app.';
+  end if;
 
   select id into cc
   from public.farm_cost_centers
@@ -27,8 +38,9 @@ begin
   order by is_default desc, created_at asc
   limit 1; -- pode ficar null se não houver CC; tudo bem
 
-  -- 0) Limpa seeds anteriores (cascade apaga os itens)
-  delete from public.farm_receipts where organization_id = org and notes = '[SEED]';
+  -- 0) Limpa seeds anteriores em QUALQUER org (remove os que caíram na org
+  -- errada numa execução anterior). Marcador é exclusivo: notes = '[SEED]'.
+  delete from public.farm_receipts where notes = '[SEED]';
 
   -- 2) LANÇAMENTOS SIMPLES (sem itens) ------------------------------------
   insert into public.farm_receipts
