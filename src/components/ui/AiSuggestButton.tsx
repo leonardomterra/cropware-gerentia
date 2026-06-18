@@ -56,7 +56,7 @@ export function AiSuggestButton({
               "disabled:pointer-events-none",
               blocked
                 ? "bg-slate-100 text-slate-400"
-                : "bg-[#caff33] text-[#1a2e05] shadow-[0_0_12px_-2px_rgba(190,242,100,0.9)] hover:brightness-105",
+                : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
             )}
           >
             <GlassesIcon
