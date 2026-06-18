@@ -46,6 +46,14 @@ export const DOC_TYPE_PREFIX: Partial<Record<ReceiptDocType, string>> = {
   cupom: "C",
 };
 
+/** Cor (classe Tailwind, literal p/ JIT) do prefixo por tipo. */
+export const DOC_TYPE_PREFIX_COLOR: Partial<Record<ReceiptDocType, string>> = {
+  nota_fiscal: "text-indigo-600",
+  fatura: "text-purple-600",
+  recibo: "text-teal-600",
+  cupom: "text-sky-600",
+};
+
 /** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
 export const DOC_TYPE_SHORT_LABEL: Record<ReceiptDocType, string> = {
   cupom: "Cupom",

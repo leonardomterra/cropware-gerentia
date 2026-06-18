@@ -24,6 +24,7 @@ import type { Receipt } from "../types";
 import {
   DOC_TYPE_LABEL,
   DOC_TYPE_PREFIX,
+  DOC_TYPE_PREFIX_COLOR,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
 } from "../constants";
@@ -163,7 +164,9 @@ export function ReceiptsTable({
                     )}
                   >
                     {DOC_TYPE_PREFIX[r.doc_type] && (
-                      <span className="font-medium text-slate-500">({DOC_TYPE_PREFIX[r.doc_type]}) </span>
+                      <span className={cn("font-semibold", DOC_TYPE_PREFIX_COLOR[r.doc_type])}>
+                        ({DOC_TYPE_PREFIX[r.doc_type]}){" "}
+                      </span>
                     )}
                     {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
                   </span>
