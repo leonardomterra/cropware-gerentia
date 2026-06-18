@@ -422,8 +422,14 @@ export function mountReceiptRoutes(app: Hono) {
       if (!receipt) return c.json({ error: "not_found" }, 404);
 
       if (items) {
-        // replace: apaga itens antigos, insere novos (se houver).
-        await client.from("farm_receipt_items").delete().eq("receipt_id", id);
+        // replace: apaga os itens ATIVOS e insere os novos. Itens desmembrados
+        // (promoted_to_receipt_id != null) são PRESERVADOS — o editor não os
+        // envia e eles não podem ser apagados ao salvar o cabeçalho/itens.
+        await client
+          .from("farm_receipt_items")
+          .delete()
+          .eq("receipt_id", id)
+          .is("promoted_to_receipt_id", null);
         let newItems: unknown[] = [];
         if (items.length > 0) {
           const { data: ins, error: itemsErr } = await client
@@ -543,14 +549,19 @@ export function mountReceiptRoutes(app: Hono) {
         .single();
       if (cErr) return c.json({ error: cErr.message }, 400);
 
-      // Remove o item do pai.
-      await client.from("farm_receipt_items").delete().eq("id", itemId);
+      // Desmembrar (MOVER, não apagar): marca o item com o lançamento criado.
+      // Ele continua na nota/fatura, porém esmaecido e fora do total/contagem.
+      await client
+        .from("farm_receipt_items")
+        .update({ promoted_to_receipt_id: created.id })
+        .eq("id", itemId);
 
-      // Recalcula o pai a partir dos itens restantes.
+      // Recalcula o pai a partir dos itens ATIVOS (ignora desmembrados).
       const { data: remaining } = await client
         .from("farm_receipt_items")
         .select("total_value")
-        .eq("receipt_id", id);
+        .eq("receipt_id", id)
+        .is("promoted_to_receipt_id", null);
       const remTotal = Number(
         (remaining ?? [])
           .reduce((s, r) => s + (Number(r.total_value) || 0), 0)

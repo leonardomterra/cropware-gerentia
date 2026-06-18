@@ -178,6 +178,7 @@ export function ReceiptFormDialog({
           defaultCCId,
         items: allowItems
           ? (receipt.items ?? [])
+              .filter((it) => !it.promoted_to_receipt_id)
               .slice()
               .sort((a, b) => a.position - b.position)
               .map((it) => ({

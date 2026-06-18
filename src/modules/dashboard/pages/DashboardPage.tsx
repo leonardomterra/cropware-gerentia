@@ -48,6 +48,7 @@ interface ReceiptItemLite {
   category: string | null;
   cost_center_id: string | null;
   total_value: number;
+  promoted_to_receipt_id?: string | null;
 }
 
 interface Receipt {
@@ -84,8 +85,10 @@ interface DashLine {
 
 function linesOf(r: Receipt): DashLine[] {
   const date = r.paid_date || r.transaction_date || null;
-  if (r.items && r.items.length > 0) {
-    return r.items.map((it) => ({
+  // Itens desmembrados viraram lançamento próprio: fora das linhas (evita dobra).
+  const activeItems = (r.items ?? []).filter((it) => !it.promoted_to_receipt_id);
+  if (activeItems.length > 0) {
+    return activeItems.map((it) => ({
       direction: r.direction,
       status: r.status,
       date,

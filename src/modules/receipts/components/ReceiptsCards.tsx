@@ -67,7 +67,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
             <p className="text-sm text-slate-500 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
               {(() => {
-                const its = r.items ?? [];
+                const its = (r.items ?? []).filter((i) => !i.promoted_to_receipt_id);
                 const hasItems = r.item_count > 0 && its.length > 0;
                 if (hasItems) {
                   const uCats = [...new Set(its.map((i) => i.category))];

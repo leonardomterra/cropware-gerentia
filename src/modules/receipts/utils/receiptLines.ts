@@ -26,8 +26,11 @@ export interface ReceiptLine {
 
 export function receiptLines(r: Receipt): ReceiptLine[] {
   const date = r.paid_date || r.transaction_date || null;
-  if (r.items && r.items.length > 0) {
-    return r.items.map((it) => ({
+  // Itens desmembrados viraram lançamento próprio: não entram nas linhas
+  // (senão contariam em dobro no Dashboard/CSV).
+  const activeItems = (r.items ?? []).filter((it) => !it.promoted_to_receipt_id);
+  if (activeItems.length > 0) {
+    return activeItems.map((it) => ({
       receipt_id: r.id,
       direction: r.direction,
       status: r.status,

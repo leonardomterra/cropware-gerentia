@@ -48,6 +48,9 @@ export interface ReceiptItem {
   quantity: number | null;
   unit_value: number | null;
   total_value: number;
+  /** Quando != null, o item foi DESMEMBRADO num lançamento próprio: continua
+   *  visível (esmaecido), mas fora do total/contagem e das agregações. */
+  promoted_to_receipt_id?: string | null;
   created_at: string;
   updated_at: string;
 }

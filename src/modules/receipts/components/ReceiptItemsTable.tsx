@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import CallMade from "~icons/material-symbols-light/call-made";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import type { Receipt, ReceiptItem } from "../types";
@@ -71,16 +73,31 @@ export function ReceiptItemsTable({
         <tbody>
           {items.map((it) => {
             const cc = it.cost_center_id ? ccById.get(it.cost_center_id) : null;
+            // Item desmembrado: continua visível, porém esmaecido e fora do total.
+            const promoted = !!it.promoted_to_receipt_id;
             return (
-              <tr key={it.id} className="border-t border-slate-100">
+              <tr
+                key={it.id}
+                className={cn(
+                  "border-t border-slate-100",
+                  promoted && "bg-slate-50/60 text-slate-400",
+                )}
+              >
                 <td className="px-3 py-2 text-slate-700">
-                  {it.description || "—"}
+                  <span className={promoted ? "text-slate-400" : undefined}>
+                    {it.description || "—"}
+                  </span>
                   {it.quantity != null && it.unit_value != null ? (
                     <span className="text-xs text-slate-400">
                       {" "}
                       · {it.quantity} × {formatBRL(it.unit_value)}
                     </span>
                   ) : null}
+                  {promoted && (
+                    <Badge size="compact" colorScheme="slate" className="ml-2 align-middle">
+                      Desmembrado
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-slate-600">
                   {getCategoryLabel(it.category, categories)}
@@ -99,17 +116,24 @@ export function ReceiptItemsTable({
                     <span className="text-slate-400">—</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900">
+                <td
+                  className={cn(
+                    "px-3 py-2 text-right tabular-nums",
+                    promoted ? "text-slate-400 line-through" : "text-slate-900",
+                  )}
+                >
                   {formatBRL(it.total_value)}
                 </td>
                 {editable && (
                   <td className="px-3 py-2 text-right">
-                    <ActionIconButton
-                      icon={CallMade}
-                      label="Converter em lançamento"
-                      disabled={!canPromote}
-                      onClick={() => setPendingPromote(it)}
-                    />
+                    {!promoted && (
+                      <ActionIconButton
+                        icon={CallMade}
+                        label="Converter em lançamento"
+                        disabled={!canPromote}
+                        onClick={() => setPendingPromote(it)}
+                      />
+                    )}
                   </td>
                 )}
               </tr>

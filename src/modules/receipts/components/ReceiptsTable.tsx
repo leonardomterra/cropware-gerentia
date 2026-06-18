@@ -123,7 +123,8 @@ export function ReceiptsTable({
             const isSelected = selectedIds.has(r.id);
             // Com itens: se TODOS partilham a mesma categoria/CC, mostra ela;
             // so' vira "Vários" quando realmente diverge (independente p/ cat e CC).
-            const its = r.items ?? [];
+            // Itens ativos (desmembrados não entram na derivação de categoria/CC).
+            const its = (r.items ?? []).filter((i) => !i.promoted_to_receipt_id);
             const hasItems = r.item_count > 0 && its.length > 0;
             const uCats = hasItems ? [...new Set(its.map((i) => i.category))] : [];
             const uCcs = hasItems ? [...new Set(its.map((i) => i.cost_center_id))] : [];
