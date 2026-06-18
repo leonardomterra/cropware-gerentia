@@ -3,6 +3,8 @@ import Pencil from "~icons/material-symbols-light/edit-outline";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
 import Notes from "~icons/material-symbols-light/notes";
 import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
+import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
+import CreditCard from "~icons/material-symbols-light/credit-card-outline";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import {
   Tooltip,
@@ -24,7 +26,6 @@ import type { Receipt } from "../types";
 import {
   DOC_TYPE_LABEL,
   DOC_TYPE_PREFIX,
-  DOC_TYPE_PREFIX_COLOR,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
 } from "../constants";
@@ -159,16 +160,18 @@ export function ReceiptsTable({
                 <TableCell className="py-3">
                   <span
                     className={cn(
-                      "text-sm font-normal truncate block",
+                      "text-sm font-normal flex items-center gap-1.5 min-w-0",
                       (r.vendor ?? r.description) ? "text-slate-700" : "text-slate-400",
                     )}
                   >
-                    {DOC_TYPE_PREFIX[r.doc_type] && (
-                      <span className={cn("font-semibold", DOC_TYPE_PREFIX_COLOR[r.doc_type])}>
-                        ({DOC_TYPE_PREFIX[r.doc_type]}){" "}
-                      </span>
-                    )}
-                    {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
+                    {DOC_TYPE_PREFIX[r.doc_type] === "F" ? (
+                      <CreditCard className="size-4 shrink-0 text-slate-400" />
+                    ) : DOC_TYPE_PREFIX[r.doc_type] === "N" ? (
+                      <ReceiptLong className="size-4 shrink-0 text-slate-400" />
+                    ) : null}
+                    <span className="truncate">
+                      {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
+                    </span>
                   </span>
                 </TableCell>
                 <TableCell className="py-3 text-sm font-normal text-slate-600">

@@ -48,15 +48,6 @@ export const DOC_TYPE_PREFIX: Partial<Record<ReceiptDocType, string>> = {
   fatura: "F",
 };
 
-/** Cor (classe Tailwind, literal p/ JIT) do prefixo por classificação.
- *  Cinza claro pros dois (N e F) — sinalização discreta. */
-export const DOC_TYPE_PREFIX_COLOR: Partial<Record<ReceiptDocType, string>> = {
-  nota_fiscal: "text-slate-400",
-  recibo: "text-slate-400",
-  cupom: "text-slate-400",
-  fatura: "text-slate-400",
-};
-
 /** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
 export const DOC_TYPE_SHORT_LABEL: Record<ReceiptDocType, string> = {
   cupom: "Cupom",
