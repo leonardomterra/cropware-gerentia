@@ -20,7 +20,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 import type { Receipt } from "../types";
-import { STATUS_COLOR_SCHEME, STATUS_LABEL } from "../constants";
+import {
+  DOC_TYPE_COLOR_SCHEME,
+  DOC_TYPE_SHORT_LABEL,
+  STATUS_COLOR_SCHEME,
+  STATUS_LABEL,
+} from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
@@ -155,7 +160,7 @@ export function ReceiptsTable({
                       (r.vendor ?? r.description) ? "text-slate-700" : "text-slate-400",
                     )}
                   >
-                    {r.vendor ? r.vendor.toUpperCase() : (r.description ?? "—")}
+                    {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
                   </span>
                 </TableCell>
                 <TableCell className="py-3 text-sm font-normal text-slate-600">
@@ -175,10 +180,21 @@ export function ReceiptsTable({
                 </TableCell>
                 <TableCell className="py-3">
                   {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
-                      que é projeção, não conta firmada. */}
-                  <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
-                    {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
-                  </Badge>
+                      que é projeção, não conta firmada. Lançamento itemizado
+                      ganha um badge "Tipo · N itens" ao lado. */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
+                      {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
+                    </Badge>
+                    {hasItems && (
+                      <Badge size="compact" colorScheme={DOC_TYPE_COLOR_SCHEME[r.doc_type]}>
+                        <span>
+                          {DOC_TYPE_SHORT_LABEL[r.doc_type]} · {r.item_count}{" "}
+                          {r.item_count === 1 ? "item" : "itens"}
+                        </span>
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="py-3 text-right text-sm font-medium tabular-nums">
                   <span

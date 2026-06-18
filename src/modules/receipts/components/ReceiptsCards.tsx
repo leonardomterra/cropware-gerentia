@@ -11,7 +11,12 @@ import {
 import { cn } from "@/components/ui/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Receipt } from "../types";
-import { STATUS_COLOR_SCHEME, STATUS_LABEL } from "../constants";
+import {
+  DOC_TYPE_COLOR_SCHEME,
+  DOC_TYPE_SHORT_LABEL,
+  STATUS_COLOR_SCHEME,
+  STATUS_LABEL,
+} from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import {
   formatBRL,
@@ -40,18 +45,10 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
           key={r.id}
           className="bg-white border border-slate-200 rounded-lg p-3 flex items-start gap-3"
         >
-          <div className="size-8 rounded-md bg-slate-50 flex items-center justify-center shrink-0">
-            {r.direction === "income" ? (
-              <ArrowDownLeft className="size-4 text-emerald-600" />
-            ) : (
-              <ArrowUpRight className="size-4 text-slate-500" />
-            )}
-          </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="font-medium text-slate-900 truncate">
-                {r.vendor ?? r.description ?? "(sem origem)"}
+                {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
               </p>
               <p
                 className={cn(
@@ -84,10 +81,25 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
                   : "";
               })()}
             </p>
-            <div className="mt-2">
+            <div className="mt-2 flex items-center gap-1.5">
+              <Badge
+                colorScheme={r.direction === "income" ? "emerald" : "rose"}
+                className="px-0 w-6"
+                title={r.direction === "income" ? "Entrada" : "Saída"}
+              >
+                {r.direction === "income" ? <ArrowDownLeft /> : <ArrowUpRight />}
+              </Badge>
               <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
                 {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
               </Badge>
+              {r.item_count > 0 && (r.items?.length ?? 0) > 0 && (
+                <Badge size="compact" colorScheme={DOC_TYPE_COLOR_SCHEME[r.doc_type]}>
+                  <span>
+                    {DOC_TYPE_SHORT_LABEL[r.doc_type]} · {r.item_count}{" "}
+                    {r.item_count === 1 ? "item" : "itens"}
+                  </span>
+                </Badge>
+              )}
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { AiSuggestButton } from "@/components/ui/AiSuggestButton";
 import Plus from "~icons/material-symbols-light/add";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
+import OpenInNew from "~icons/material-symbols-light/open-in-new";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -45,6 +47,7 @@ import {
 } from "../hooks/useReceipts";
 import { useCategories } from "../hooks/useCategories";
 import type {
+  ItemRow,
   Receipt,
   ReceiptDirection,
   ReceiptDocType,
@@ -67,17 +70,11 @@ interface ReceiptFormDialogProps {
   receipt?: Receipt | null;
   prefill?: PrefillFromScan | null;
   onSaved: () => void;
-}
-
-/** Linha do repetidor de itens (strings p/ inputs + key estavel). */
-export interface ItemRow {
-  key: string;
-  description: string;
-  quantity: string;
-  unit_value: string;
-  total_value: string;
-  category: string;
-  cost_center_id: string;
+  /** Habilita o editor de itens (split). Em Lançamentos = false (simples);
+   *  nas páginas Notas e Recibos / Faturas = true. */
+  allowItems?: boolean;
+  /** doc_type semeado ao criar (ex.: "fatura" na página de Faturas). */
+  defaultDocType?: ReceiptDocType;
 }
 
 interface FormState {
@@ -134,8 +131,11 @@ export function ReceiptFormDialog({
   receipt,
   prefill,
   onSaved,
+  allowItems = true,
+  defaultDocType,
 }: ReceiptFormDialogProps) {
   const isEdit = !!receipt;
+  const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +145,10 @@ export function ReceiptFormDialog({
   const { user } = useAuth();
   const ccs = user?.costCenters ?? [];
   const defaultCCId = ccs.find((c) => c.is_default)?.id || ccs[0]?.id || "";
+
+  // Lançamento itemizado sendo editado num contexto SEM editor de itens
+  // (Lançamentos): vira resumo (total read-only + atalho "gerenciar itens").
+  const summaryMode = !allowItems && isEdit && (receipt?.item_count ?? 0) > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -169,26 +173,40 @@ export function ReceiptFormDialog({
         invoice_number: receipt.invoice_number ?? "",
         notes: receipt.notes ?? "",
         cost_center_id: receipt.cost_center_id ?? defaultCCId,
-        items: (receipt.items ?? [])
-          .slice()
-          .sort((a, b) => a.position - b.position)
-          .map((it) => ({
-            key: it.id,
-            description: it.description ?? "",
-            quantity: it.quantity != null ? String(it.quantity) : "",
-            unit_value: it.unit_value != null ? brl(it.unit_value) : "",
-            total_value: brl(it.total_value),
-            category: it.category ?? "",
-            cost_center_id: it.cost_center_id ?? "",
-          })),
+        items: allowItems
+          ? (receipt.items ?? [])
+              .slice()
+              .sort((a, b) => a.position - b.position)
+              .map((it) => ({
+                key: it.id,
+                description: it.description ?? "",
+                quantity: it.quantity != null ? String(it.quantity) : "",
+                unit_value: it.unit_value != null ? brl(it.unit_value) : "",
+                total_value: brl(it.total_value),
+                category: it.category ?? "",
+                cost_center_id: it.cost_center_id ?? "",
+              }))
+          : [],
       });
     } else if (prefill) {
-      setForm({ ...EMPTY, cost_center_id: defaultCCId, ...prefill.values });
+      setForm({
+        ...EMPTY,
+        cost_center_id: defaultCCId,
+        ...(defaultDocType ? { doc_type: defaultDocType } : {}),
+        ...prefill.values,
+        items: allowItems ? prefill.values.items ?? [] : [],
+      });
     } else {
-      setForm({ ...EMPTY, cost_center_id: defaultCCId });
+      setForm({
+        ...EMPTY,
+        cost_center_id: defaultCCId,
+        ...(defaultDocType ? { doc_type: defaultDocType } : {}),
+        // Páginas itemizadas começam com 1 linha de item pra o editor aparecer.
+        items: allowItems ? [newItemRow()] : [],
+      });
     }
     setError(null);
-  }, [open, receipt, prefill, defaultCCId]);
+  }, [open, receipt, prefill, defaultCCId, allowItems, defaultDocType]);
 
   const availableStatuses = useMemo(
     () => STATUSES_BY_DIRECTION[form.direction],
@@ -229,7 +247,7 @@ export function ReceiptFormDialog({
     [groupedCategories],
   );
 
-  const hasItems = form.items.length > 0;
+  const hasItems = allowItems && form.items.length > 0;
   const itemsTotal = useMemo(
     () =>
       form.items.reduce((s, it) => {
@@ -300,6 +318,36 @@ export function ReceiptFormDialog({
     e.preventDefault();
     setError(null);
 
+    // Resumo de itemizado (Lançamentos): PATCH só do cabeçalho, sem mexer em
+    // total/categoria/CC/itens (que são derivados dos itens).
+    if (summaryMode && receipt) {
+      setSubmitting(true);
+      try {
+        await updateReceipt(receipt.id, {
+          doc_type: form.doc_type,
+          direction: form.direction,
+          status: form.status,
+          transaction_date: form.transaction_date || null,
+          due_date: showDueDate ? form.due_date || null : null,
+          paid_date: showPaidDate ? form.paid_date || null : null,
+          vendor: form.vendor.trim().toUpperCase() || null,
+          description: form.description.trim() || null,
+          payment_method:
+            form.payment_method === "" ? null : form.payment_method,
+          invoice_number: form.invoice_number.trim() || null,
+          notes: form.notes.trim() || null,
+        });
+        toast.success("Lançamento atualizado");
+        onSaved();
+        onOpenChange(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao salvar.");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     // Monta itens (split) ou valida o valor unico (caso simples).
     let itemsPayload: ReceiptItemInput[] | undefined;
     if (hasItems) {
@@ -332,8 +380,8 @@ export function ReceiptFormDialog({
     }
 
     // Se editava um lançamento itemizado e o usuario removeu todos os itens,
-    // manda items:[] pro backend voltar a header-only.
-    const wasItemized = isEdit && (receipt?.item_count ?? 0) > 0;
+    // manda items:[] pro backend voltar a header-only. (Só quando allowItems.)
+    const wasItemized = allowItems && isEdit && (receipt?.item_count ?? 0) > 0;
     const itemsKey = hasItems
       ? { items: itemsPayload }
       : wasItemized
@@ -442,10 +490,10 @@ export function ReceiptFormDialog({
 
           <div>
             <Label htmlFor="total_value">Valor (R$)</Label>
-            {hasItems ? (
+            {hasItems || summaryMode ? (
               <Input
                 id="total_value"
-                value={formatBRL(itemsTotal)}
+                value={formatBRL(summaryMode ? receipt!.total_value : itemsTotal)}
                 readOnly
                 disabled
                 className="mt-1"
@@ -487,14 +535,14 @@ export function ReceiptFormDialog({
             <Input
               id="description"
               value={form.description}
-              onChange={(e) => set("description", e.target.value)}
+              onChange={(e) => set("description", e.target.value.toUpperCase())}
               placeholder="Ex: Diesel S10 - 50L"
               className="mt-1"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {!hasItems && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {!hasItems && !summaryMode && (
               <div>
                 <div className="flex items-center justify-between min-h-[1.125rem]">
                   <Label>Categoria</Label>
@@ -544,7 +592,7 @@ export function ReceiptFormDialog({
             </div>
           </div>
 
-          {!hasItems && ccs.length > 1 && (
+          {!hasItems && !summaryMode && ccs.length > 1 && (
             <div>
               <Label>Centro de Custo</Label>
               <Select
@@ -604,7 +652,7 @@ export function ReceiptFormDialog({
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Forma de Pagamento</Label>
               <Select
@@ -646,172 +694,204 @@ export function ReceiptFormDialog({
             <Textarea
               id="notes"
               value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
+              onChange={(e) => set("notes", e.target.value.toUpperCase())}
               rows={2}
               className="mt-1"
             />
           </div>
 
-          {/* Itens (split): cada um com categoria + centro de custo proprios.
-              Com itens, o total/categoria/CC do cabeçalho vem dos itens. */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>
-                {hasItems ? `Itens (${form.items.length})` : "Itens (opcional)"}
-              </Label>
+          {/* Resumo de itemizado (Lançamentos): atalho pra gerenciar os itens
+              na página dedicada (Notas e Recibos / Faturas). */}
+          {summaryMode && receipt && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
+              <p className="text-sm text-slate-600">
+                Este lançamento tem{" "}
+                <span className="font-medium text-slate-900">
+                  {receipt.item_count} {receipt.item_count === 1 ? "item" : "itens"}
+                </span>
+                . Edite-os na página dedicada.
+              </p>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={addItem}
-                className="gap-1"
+                className="gap-1 shrink-0"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate(receipt.doc_type === "fatura" ? "/faturas" : "/notas");
+                }}
               >
-                <Plus className="size-4" />
-                Adicionar item
+                <OpenInNew className="size-4" />
+                Gerenciar itens
               </Button>
             </div>
+          )}
 
-            {hasItems && (
-              <div className="space-y-2">
-                {form.items.map((it) => (
-                  <div
-                    key={it.key}
-                    className="rounded-md border border-slate-200 p-3 space-y-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={it.description}
-                        onChange={(e) =>
-                          updateItem(it.key, { description: e.target.value })
-                        }
-                        placeholder="Descrição do item"
-                        className="flex-1"
-                      />
-                      <ActionIconButton
-                        icon={Trash2}
-                        label="Remover item"
-                        tone="danger"
-                        onClick={() => removeItem(it.key)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-xs text-slate-500">Qtd</Label>
+          {/* Itens (split): cada um com categoria + centro de custo proprios.
+              Com itens, o total/categoria/CC do cabeçalho vem dos itens.
+              Só aparece quando allowItems (páginas Notas e Recibos / Faturas). */}
+          {allowItems && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>
+                  {hasItems ? `Itens (${form.items.length})` : "Itens (opcional)"}
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addItem}
+                  className="gap-1"
+                >
+                  <Plus className="size-4" />
+                  Adicionar item
+                </Button>
+              </div>
+
+              {hasItems && (
+                <div className="space-y-2">
+                  {form.items.map((it) => (
+                    <div
+                      key={it.key}
+                      className="rounded-md border border-slate-200 p-3 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
                         <Input
-                          value={it.quantity}
-                          onChange={(e) =>
-                            updateItem(it.key, { quantity: e.target.value })
-                          }
-                          placeholder="0"
-                          inputMode="decimal"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-slate-500">
-                          Valor unit.
-                        </Label>
-                        <Input
-                          value={it.unit_value}
+                          value={it.description}
                           onChange={(e) =>
                             updateItem(it.key, {
-                              unit_value: formatBRLInput(e.target.value),
+                              description: e.target.value.toUpperCase(),
                             })
                           }
-                          placeholder="0,00"
-                          inputMode="decimal"
-                          className="mt-1"
+                          placeholder="Descrição do item"
+                          className="flex-1"
+                        />
+                        <ActionIconButton
+                          icon={Trash2}
+                          label="Remover item"
+                          tone="danger"
+                          onClick={() => removeItem(it.key)}
                         />
                       </div>
-                      <div>
-                        <Label className="text-xs text-slate-500">Total</Label>
-                        <Input
-                          value={it.total_value}
-                          onChange={(e) =>
-                            updateItem(it.key, {
-                              total_value: formatBRLInput(e.target.value),
-                            })
-                          }
-                          placeholder="0,00"
-                          inputMode="decimal"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <div className="flex items-center justify-between min-h-[1.125rem]">
-                          <Label className="text-xs text-slate-500">
-                            Categoria
-                          </Label>
-                          <AiSuggestButton
-                            onClick={() => runSuggest(it.key, it.description)}
-                            loading={suggestingKey === it.key}
-                            disabled={
-                              suggestingKey !== null ||
-                              !form.vendor.trim() ||
-                              !it.description.trim()
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-xs text-slate-500">Qtd</Label>
+                          <Input
+                            value={it.quantity}
+                            onChange={(e) =>
+                              updateItem(it.key, { quantity: e.target.value })
                             }
-                            disabledHint="Preencha origem e a descrição do item para sugerir"
+                            placeholder="0"
+                            inputMode="decimal"
+                            className="mt-1"
                           />
                         </div>
-                        <SearchableSelect
-                          options={[
-                            { value: "none", label: "Sem categoria" },
-                            ...catOptions,
-                          ]}
-                          value={it.category || "none"}
-                          onValueChange={(v) =>
-                            updateItem(it.key, {
-                              category: v === "none" ? "" : v,
-                            })
-                          }
-                          placeholder="Selecione..."
-                          searchPlaceholder="Buscar categoria..."
-                          emptyMessage="Nenhuma categoria."
-                          triggerClassName="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center min-h-[1.125rem]">
+                        <div>
                           <Label className="text-xs text-slate-500">
-                            Centro de Custo
+                            Valor unit.
                           </Label>
+                          <Input
+                            value={it.unit_value}
+                            onChange={(e) =>
+                              updateItem(it.key, {
+                                unit_value: formatBRLInput(e.target.value),
+                              })
+                            }
+                            placeholder="0,00"
+                            inputMode="decimal"
+                            className="mt-1"
+                          />
                         </div>
-                        <Select
-                          value={it.cost_center_id || "none"}
-                          onValueChange={(v) =>
-                            updateItem(it.key, {
-                              cost_center_id: v === "none" ? "" : v,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-9 mt-1">
-                            <SelectValue placeholder="Escolher..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sem centro</SelectItem>
-                            {ccs.map((cc) => (
-                              <SelectItem key={cc.id} value={cc.id}>
-                                {cc.name}
-                                {cc.is_default ? " (Padrão)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div>
+                          <Label className="text-xs text-slate-500">Total</Label>
+                          <Input
+                            value={it.total_value}
+                            onChange={(e) =>
+                              updateItem(it.key, {
+                                total_value: formatBRLInput(e.target.value),
+                              })
+                            }
+                            placeholder="0,00"
+                            inputMode="decimal"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="flex items-center justify-between min-h-[1.125rem]">
+                            <Label className="text-xs text-slate-500">
+                              Categoria
+                            </Label>
+                            <AiSuggestButton
+                              onClick={() => runSuggest(it.key, it.description)}
+                              loading={suggestingKey === it.key}
+                              disabled={
+                                suggestingKey !== null ||
+                                !form.vendor.trim() ||
+                                !it.description.trim()
+                              }
+                              disabledHint="Preencha origem e a descrição do item para sugerir"
+                            />
+                          </div>
+                          <SearchableSelect
+                            options={[
+                              { value: "none", label: "Sem categoria" },
+                              ...catOptions,
+                            ]}
+                            value={it.category || "none"}
+                            onValueChange={(v) =>
+                              updateItem(it.key, {
+                                category: v === "none" ? "" : v,
+                              })
+                            }
+                            placeholder="Selecione..."
+                            searchPlaceholder="Buscar categoria..."
+                            emptyMessage="Nenhuma categoria."
+                            triggerClassName="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center min-h-[1.125rem]">
+                            <Label className="text-xs text-slate-500">
+                              Centro de Custo
+                            </Label>
+                          </div>
+                          <Select
+                            value={it.cost_center_id || "none"}
+                            onValueChange={(v) =>
+                              updateItem(it.key, {
+                                cost_center_id: v === "none" ? "" : v,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 mt-1">
+                              <SelectValue placeholder="Escolher..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem centro</SelectItem>
+                              {ccs.map((cc) => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.name}
+                                  {cc.is_default ? " (Padrão)" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                  <div className="text-right text-sm text-slate-600">
+                    Total dos itens:{" "}
+                    <span className="font-medium text-slate-900">
+                      {formatBRL(itemsTotal)}
+                    </span>
                   </div>
-                ))}
-                <div className="text-right text-sm text-slate-600">
-                  Total dos itens:{" "}
-                  <span className="font-medium text-slate-900">
-                    {formatBRL(itemsTotal)}
-                  </span>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {error ? (
             <p className="text-sm text-red-600" role="alert">

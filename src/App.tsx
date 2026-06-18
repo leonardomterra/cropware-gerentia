@@ -21,6 +21,12 @@ const DashboardPage = lazyWithRetry(
 const ReceiptsPage = lazyWithRetry(
   () => import("@/modules/receipts/pages/ReceiptsPage"),
 );
+const NotasRecibosPage = lazyWithRetry(
+  () => import("@/modules/receipts/pages/NotasRecibosPage"),
+);
+const FaturasPage = lazyWithRetry(
+  () => import("@/modules/receipts/pages/FaturasPage"),
+);
 const FarmsPage = lazyWithRetry(
   () => import("@/modules/farms/pages/FarmsPage"),
 );
@@ -112,6 +118,22 @@ function RootRoutes() {
           element={
             <Suspense fallback={<LoadingScreen />}>
               <ReceiptsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="notas"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <NotasRecibosPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="faturas"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <FaturasPage />
             </Suspense>
           }
         />

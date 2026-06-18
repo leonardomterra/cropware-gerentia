@@ -30,15 +30,43 @@ export const DOC_TYPE_LABEL: Record<ReceiptDocType, string> = {
   cupom: "Cupom",
   nota_fiscal: "Nota fiscal",
   recibo: "Recibo",
+  fatura: "Fatura",
   pix: "PIX",
   boleto: "Boleto",
   outro: "Outro",
+};
+
+/** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
+export const DOC_TYPE_SHORT_LABEL: Record<ReceiptDocType, string> = {
+  cupom: "Cupom",
+  nota_fiscal: "Nota",
+  recibo: "Recibo",
+  fatura: "Fatura",
+  pix: "PIX",
+  boleto: "Boleto",
+  outro: "Outro",
+};
+
+/** colorScheme do badge de tipo de documento. Tons FORA da paleta de status
+ *  (amber/emerald/blue/red/slate) pra nao confundir com o badge de status. */
+export const DOC_TYPE_COLOR_SCHEME: Record<
+  ReceiptDocType,
+  "indigo" | "sky" | "teal" | "purple" | "cyan" | "orange" | "gray"
+> = {
+  nota_fiscal: "indigo",
+  cupom: "sky",
+  recibo: "teal",
+  fatura: "purple",
+  pix: "cyan",
+  boleto: "orange",
+  outro: "gray",
 };
 
 export const DOC_TYPES: ReceiptDocType[] = [
   "cupom",
   "nota_fiscal",
   "recibo",
+  "fatura",
   "pix",
   "boleto",
   "outro",

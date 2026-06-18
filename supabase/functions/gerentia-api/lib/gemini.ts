@@ -37,7 +37,14 @@ export interface ReceiptExtraction {
   vendor_cnpj: string | null;
   total_value: number | null;
   transaction_date: string | null;
-  doc_type: "cupom" | "nota_fiscal" | "recibo" | "pix" | "boleto" | "outro";
+  doc_type:
+    | "cupom"
+    | "nota_fiscal"
+    | "recibo"
+    | "fatura"
+    | "pix"
+    | "boleto"
+    | "outro";
   payment_method:
     | "pix"
     | "cartao"

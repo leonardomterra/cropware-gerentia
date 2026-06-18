@@ -12,6 +12,7 @@ export type ReceiptDocType =
   | "cupom"
   | "nota_fiscal"
   | "recibo"
+  | "fatura"
   | "pix"
   | "boleto"
   | "outro";
@@ -59,6 +60,17 @@ export interface ReceiptItemInput {
   unit_value?: number | null;
   total_value: number;
   position?: number;
+}
+
+/** Linha do repetidor de itens nos forms (strings p/ inputs + key estável). */
+export interface ItemRow {
+  key: string;
+  description: string;
+  quantity: string;
+  unit_value: string;
+  total_value: string;
+  category: string;
+  cost_center_id: string;
 }
 
 export interface Receipt {

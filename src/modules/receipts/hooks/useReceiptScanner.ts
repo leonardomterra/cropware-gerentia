@@ -18,6 +18,7 @@ export interface ReceiptExtraction {
     | "cupom"
     | "nota_fiscal"
     | "recibo"
+    | "fatura"
     | "pix"
     | "boleto"
     | "outro";
