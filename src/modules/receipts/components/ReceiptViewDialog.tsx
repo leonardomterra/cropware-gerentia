@@ -1,5 +1,5 @@
-import Pencil from "~icons/material-symbols-light/edit-outline";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/components/ui/utils";
 import {
   Dialog,
   DialogClose,
@@ -33,16 +33,24 @@ interface ReceiptViewDialogProps {
   onChanged?: () => void;
 }
 
-/** Linha label + valor lado a lado, hierarquia de cor padrão. */
+/** Linha label + valor lado a lado, hierarquia de cor padrão. Sem divisória.
+ *  `wide` faz o campo ocupar a linha inteira (2 colunas) — bom p/ textos longos. */
 function Field({
   label,
   children,
+  wide,
 }: {
   label: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] gap-3 py-2 border-b border-slate-100 last:border-b-0">
+    <div
+      className={cn(
+        "grid grid-cols-[140px_1fr] gap-3 py-1.5",
+        wide && "sm:col-span-2",
+      )}
+    >
       <dt className="text-sm text-slate-500">{label}</dt>
       <dd className="text-sm text-slate-900 break-words">{children}</dd>
     </div>
@@ -72,62 +80,56 @@ export function ReceiptViewDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-          <div>
-            <Field label="Tipo">{directionLabel}</Field>
-            <Field label="Status">
-              <Badge colorScheme={STATUS_COLOR_SCHEME[receipt.status]}>
-                {STATUS_LABEL[receipt.status]}
-              </Badge>
-            </Field>
-            <Field label="Valor">
-              <span
-                className={
-                  receipt.direction === "income"
-                    ? "text-emerald-700 font-medium tabular-nums"
-                    : "text-slate-900 font-medium tabular-nums"
-                }
-              >
-                {receipt.direction === "income" ? "+" : ""}
-                {formatBRL(receipt.total_value)}
-              </span>
-            </Field>
-            <Field label="Origem">{receipt.vendor || "—"}</Field>
-            <Field label="CNPJ">{receipt.vendor_cnpj || "—"}</Field>
-            {!hasItems && (
-              <Field label="Categoria">
-                {getCategoryLabel(receipt.category, categories)}
-              </Field>
-            )}
-            <Field label="Descrição">{receipt.description || "—"}</Field>
-          </div>
+          <Field label="Tipo">{directionLabel}</Field>
+          <Field label="Status">
+            <Badge colorScheme={STATUS_COLOR_SCHEME[receipt.status]}>
+              {STATUS_LABEL[receipt.status]}
+            </Badge>
+          </Field>
 
-          <div>
-            <Field label="Data da transação">
-              {receipt.transaction_date
-                ? formatDateBR(receipt.transaction_date)
-                : "—"}
+          <Field label="Origem" wide>{receipt.vendor || "—"}</Field>
+
+          <Field label="Valor">
+            <span
+              className={
+                receipt.direction === "income"
+                  ? "text-emerald-700 font-medium tabular-nums"
+                  : "text-slate-900 font-medium tabular-nums"
+              }
+            >
+              {receipt.direction === "income" ? "+" : ""}
+              {formatBRL(receipt.total_value)}
+            </span>
+          </Field>
+          <Field label="Data da transação">
+            {receipt.transaction_date ? formatDateBR(receipt.transaction_date) : "—"}
+          </Field>
+          <Field label="Vencimento">
+            {receipt.due_date ? formatDateBR(receipt.due_date) : "—"}
+          </Field>
+          <Field label="Pago em">
+            {receipt.paid_date ? formatDateBR(receipt.paid_date) : "—"}
+          </Field>
+          <Field label="Forma de pagamento">
+            {receipt.payment_method
+              ? PAYMENT_METHOD_LABEL[receipt.payment_method]
+              : "—"}
+          </Field>
+          <Field label="Tipo de documento">
+            {DOC_TYPE_LABEL[receipt.doc_type]}
+          </Field>
+          <Field label="Número da NF">{receipt.invoice_number || "—"}</Field>
+          <Field label="CNPJ">{receipt.vendor_cnpj || "—"}</Field>
+          <Field label="Fonte">
+            <span className="capitalize">{receipt.source}</span>
+          </Field>
+          {!hasItems && (
+            <Field label="Categoria">
+              {getCategoryLabel(receipt.category, categories)}
             </Field>
-            <Field label="Vencimento">
-              {receipt.due_date ? formatDateBR(receipt.due_date) : "—"}
-            </Field>
-            <Field label="Pago em">
-              {receipt.paid_date ? formatDateBR(receipt.paid_date) : "—"}
-            </Field>
-            <Field label="Forma de pagamento">
-              {receipt.payment_method
-                ? PAYMENT_METHOD_LABEL[receipt.payment_method]
-                : "—"}
-            </Field>
-            <Field label="Tipo de documento">
-              {DOC_TYPE_LABEL[receipt.doc_type]}
-            </Field>
-            <Field label="Número da NF">
-              {receipt.invoice_number || "—"}
-            </Field>
-            <Field label="Origem">
-              <span className="capitalize">{receipt.source}</span>
-            </Field>
-          </div>
+          )}
+
+          <Field label="Descrição" wide>{receipt.description || "—"}</Field>
         </div>
 
         {hasItems && (
@@ -156,9 +158,7 @@ export function ReceiptViewDialog({
               onOpenChange(false);
               onEdit(receipt);
             }}
-            className="gap-1"
           >
-            <Pencil className="size-4" />
             Editar
           </Button>
         </DialogFooter>
