@@ -113,8 +113,8 @@ const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "S
 
 // Cores de entrada/saída alinhadas à paleta dos centros de custo (CC_COLORS):
 // preenchimentos (barras/legenda) nos tons 400; texto num tom legível da mesma família.
-const COLOR_IN = "#34d399";  // emerald-400
-const COLOR_OUT = "#f87171"; // red-400
+const COLOR_IN = "#047857";  // emerald-700 (= valor de entrada em Lançamentos)
+const COLOR_OUT = "#0f172a"; // slate-900 (despesa neutra, = Lançamentos)
 
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -498,14 +498,14 @@ export default function DashboardPage() {
 
       {/* KPIs do mês + pendências: uma linha só, mesmo padrão de card. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {/* Paleta (alinhada aos centros de custo): verde/emerald = entra/bom
-            (Entradas, A receber, Saldo+); amber = compromisso a pagar (A pagar);
-            vermelho/red = sai/alerta (Saídas, Vencido, Saldo-). */}
-        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-600" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.income, lastMonthKpis.income, true) : null} />
-        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-red-600" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false) : null} />
-        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-600" : "text-red-600"} loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true) : null} />
+        {/* Paleta alinhada aos valores em Lançamentos: entrada/receita =
+            emerald-700; despesa = slate-900 (neutra, sem vermelho). Vermelho
+            fica só p/ ALERTA (Vencido, Saldo negativo); amber = A pagar. */}
+        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-700" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.income, lastMonthKpis.income, true) : null} />
+        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-slate-900" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false) : null} />
+        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-600"} loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true) : null} />
         <KpiCard label="A pagar" value={pending.aPagar} color="text-amber-600" loading={loading} />
-        <KpiCard label="A receber" value={pending.aReceber} color="text-emerald-600" loading={loading} />
+        <KpiCard label="A receber" value={pending.aReceber} color="text-emerald-700" loading={loading} />
         <KpiCard label="Vencido" value={pending.vencido} color="text-red-600" loading={loading} />
       </div>
 
@@ -520,11 +520,11 @@ export default function DashboardPage() {
           </h2>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-400" />
+              <span className="size-2 rounded-full bg-emerald-700" />
               Entradas
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-red-400" />
+              <span className="size-2 rounded-full bg-slate-900" />
               Saídas
             </span>
             {period.mode === "month" && (
@@ -683,7 +683,7 @@ export default function DashboardPage() {
                     {cc && showCCFilter ? <span className="text-slate-400"> — {cc.name}</span> : null}
                     {r.is_estimated ? <span className="text-slate-400"> — Previsto</span> : null}
                   </span>
-                  <span className={`tabular-nums shrink-0 ${income ? "text-emerald-600" : "text-slate-800"}`}>
+                  <span className={`tabular-nums shrink-0 ${income ? "text-emerald-700" : "text-slate-900"}`}>
                     {income ? "+" : ""}{fmtBRLfull(Number(r.total_value))}
                   </span>
                 </li>
