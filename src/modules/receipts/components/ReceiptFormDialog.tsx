@@ -519,13 +519,24 @@ export function ReceiptFormDialog({
             <div>
               <Label>Status</Label>
               <Select
-                value={form.status}
-                onValueChange={(v) => set("status", v as ReceiptStatus)}
+                value={form.is_estimated ? "previsto" : form.status}
+                onValueChange={(v) => {
+                  if (v === "previsto") {
+                    set("is_estimated", true);
+                  } else {
+                    setForm((f) => ({
+                      ...f,
+                      is_estimated: false,
+                      status: v as ReceiptStatus,
+                    }));
+                  }
+                }}
               >
                 <SelectTrigger className="h-9 mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="previsto">Previsto</SelectItem>
                   {availableStatuses.map((s) => (
                     <SelectItem key={s} value={s}>
                       {STATUS_LABEL[s]}
@@ -535,19 +546,6 @@ export function ReceiptFormDialog({
               </Select>
             </div>
           </div>
-
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.is_estimated}
-              onChange={(e) => set("is_estimated", e.target.checked)}
-              className="size-4 accent-slate-700"
-            />
-            Previsto
-            <span className="text-slate-400 font-normal">
-              — lançamento estimado/projetado
-            </span>
-          </label>
 
           <div>
             <Label htmlFor="total_value">Valor (R$)</Label>
