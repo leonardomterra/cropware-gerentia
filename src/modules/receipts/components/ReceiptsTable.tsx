@@ -163,7 +163,7 @@ export function ReceiptsTable({
                     )}
                   >
                     {DOC_TYPE_PREFIX[r.doc_type] && (
-                      <span className="text-slate-400">({DOC_TYPE_PREFIX[r.doc_type]}) </span>
+                      <span className="font-medium text-slate-500">({DOC_TYPE_PREFIX[r.doc_type]}) </span>
                     )}
                     {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
                   </span>
