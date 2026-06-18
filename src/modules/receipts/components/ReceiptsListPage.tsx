@@ -94,6 +94,8 @@ export interface ReceiptsListPageProps {
   createLabel?: string;
   /** Texto quando não há registros. */
   emptyLabel?: string;
+  /** Substantivo da contagem ("Mostrando N ___"). Default lançamento(s). */
+  countNoun?: { one: string; many: string };
 }
 
 // Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
@@ -152,6 +154,7 @@ export function ReceiptsListPage({
   showCapture = true,
   createLabel = "Novo Lançamento",
   emptyLabel = "Sem lançamentos",
+  countNoun = { one: "lançamento", many: "lançamentos" },
 }: ReceiptsListPageProps) {
   const { user } = useAuth();
   const userCCs = user?.costCenters ?? [];
@@ -506,7 +509,7 @@ export function ReceiptsListPage({
               ? "Carregando…"
               : receipts.length === 0
                 ? emptyLabel
-                : `Mostrando ${receipts.length} ${receipts.length === 1 ? "lançamento" : "lançamentos"}`}
+                : `Mostrando ${receipts.length} ${receipts.length === 1 ? countNoun.one : countNoun.many}`}
             {isRefetching ? <Loader2 className="size-3 text-slate-400" /> : null}
           </p>
           {selectedIds.size > 0 ? (
