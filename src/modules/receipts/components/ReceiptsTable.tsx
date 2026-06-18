@@ -94,7 +94,7 @@ export function ReceiptsTable({
             <TableHead className="font-medium text-sm py-3 w-[160px]">
               Centro de Custo
             </TableHead>
-            <TableHead className="font-medium text-sm py-3 w-[100px]">
+            <TableHead className="font-medium text-sm py-3 w-[150px]">
               Status
             </TableHead>
             <TableHead className="font-medium text-sm py-3 w-[120px] text-right">
@@ -183,7 +183,7 @@ export function ReceiptsTable({
                   {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
                       que é projeção, não conta firmada. Lançamento itemizado
                       ganha um badge "Tipo · N itens" ao lado. */}
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
                       {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                     </Badge>
