@@ -161,7 +161,7 @@ export function mountReceiptRoutes(app: Hono) {
 
       let query = client
         .from("farm_receipts")
-        .select("*, items:farm_receipt_items(*)")
+        .select("*, items:farm_receipt_items!receipt_id(*)")
         .order("transaction_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -574,7 +574,7 @@ export function mountReceiptRoutes(app: Hono) {
 
       const { data: parentFull } = await client
         .from("farm_receipts")
-        .select("*, items:farm_receipt_items(*)")
+        .select("*, items:farm_receipt_items!receipt_id(*)")
         .eq("id", id)
         .single();
 

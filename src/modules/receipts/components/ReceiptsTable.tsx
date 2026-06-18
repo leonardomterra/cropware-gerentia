@@ -190,7 +190,7 @@ export function ReceiptsTable({
                     {hasItems && (
                       <Badge size="compact" colorScheme={DOC_TYPE_COLOR_SCHEME[r.doc_type]}>
                         <span>
-                          {DOC_TYPE_SHORT_LABEL[r.doc_type]} · {r.item_count}{" "}
+                          {DOC_TYPE_SHORT_LABEL[r.doc_type]} — {r.item_count}{" "}
                           {r.item_count === 1 ? "item" : "itens"}
                         </span>
                       </Badge>
