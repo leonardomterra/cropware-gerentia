@@ -22,6 +22,8 @@ export default function NotasRecibosPage() {
       createLabel="Nova Nota / Recibo"
       emptyLabel="Sem notas ou recibos"
       countNoun={{ one: "documento", many: "documentos" }}
+      titleNew="Nova Nota / Recibo"
+      titleEdit="Editar Nota / Recibo"
     />
   );
 }

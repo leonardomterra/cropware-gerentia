@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/material-symbols-light/arrow-downward";
 import ArrowUpNarrowWide from "~icons/material-symbols-light/arrow-upward";
@@ -96,6 +97,9 @@ export interface ReceiptsListPageProps {
   emptyLabel?: string;
   /** Substantivo da contagem ("Mostrando N ___"). Default lançamento(s). */
   countNoun?: { one: string; many: string };
+  /** Títulos do dialog de criar/editar (por aba). */
+  titleNew?: string;
+  titleEdit?: string;
 }
 
 // Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
@@ -155,6 +159,8 @@ export function ReceiptsListPage({
   createLabel = "Novo Lançamento",
   emptyLabel = "Sem lançamentos",
   countNoun = { one: "lançamento", many: "lançamentos" },
+  titleNew,
+  titleEdit,
 }: ReceiptsListPageProps) {
   const { user } = useAuth();
   const userCCs = user?.costCenters ?? [];
@@ -176,6 +182,7 @@ export function ReceiptsListPage({
   const [deleting, setDeleting] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Mês é o escopo primário de data: define from/to (transaction_date).
   const monthRange = useMemo(() => monthRangeISO(month), [month]);
@@ -261,6 +268,21 @@ export function ReceiptsListPage({
   useEffect(() => {
     setSelectedIds(new Set());
   }, [filters, activeCCId]);
+
+  // Deep-link "?open=<id>" (vindo do "Gerenciar itens" em Lançamentos): abre
+  // direto o dialog de edição do lançamento quando ele estiver carregado.
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+    const found = receipts.find((r) => r.id === openId);
+    if (!found) return;
+    setEditing(found);
+    setPrefill(null);
+    setFormOpen(true);
+    searchParams.delete("open");
+    setSearchParams(searchParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, receipts]);
 
   const handleScanComplete = (scan: ScanResult) => {
     setEditing(null);
@@ -591,6 +613,8 @@ export function ReceiptsListPage({
         prefill={prefill}
         allowItems={formAllowItems}
         defaultDocType={defaultDocType}
+        titleNew={titleNew}
+        titleEdit={titleEdit}
         onSaved={() => {
           void refetch();
         }}

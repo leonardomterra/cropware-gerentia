@@ -76,10 +76,10 @@ export function ConfirmActionDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-row gap-2 w-full sm:space-x-0 mt-2">
+        <AlertDialogFooter className="grid grid-cols-2 gap-2 mt-2">
           <AlertDialogCancel
             disabled={loading}
-            className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 flex-1 rounded-md text-sm font-normal shadow-none transition-colors mt-0"
+            className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 w-full rounded-md text-sm font-normal shadow-none transition-colors mt-0"
           >
             {cancelLabel}
           </AlertDialogCancel>
@@ -89,7 +89,7 @@ export function ConfirmActionDialog({
               onConfirm();
             }}
             disabled={loading}
-            className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 flex-1 rounded-md text-sm font-normal shadow-none transition-colors"
+            className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 w-full rounded-md text-sm font-normal shadow-none transition-colors"
           >
             {loading ? loadingLabel : confirmLabel}
           </AlertDialogAction>

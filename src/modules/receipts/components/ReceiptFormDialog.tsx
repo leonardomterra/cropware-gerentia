@@ -22,8 +22,10 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { AiSuggestButton } from "@/components/ui/AiSuggestButton";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import Plus from "~icons/material-symbols-light/add";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
+import CallMade from "~icons/material-symbols-light/call-made";
 import OpenInNew from "~icons/material-symbols-light/open-in-new";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -42,6 +44,7 @@ import {
 } from "../utils/receiptFormatters";
 import {
   createReceipt,
+  promoteReceiptItem,
   suggestCategory,
   updateReceipt,
 } from "../hooks/useReceipts";
@@ -75,6 +78,9 @@ interface ReceiptFormDialogProps {
   allowItems?: boolean;
   /** doc_type semeado ao criar (ex.: "fatura" na página de Faturas). */
   defaultDocType?: ReceiptDocType;
+  /** Títulos do dialog (por contexto de aba). */
+  titleNew?: string;
+  titleEdit?: string;
 }
 
 interface FormState {
@@ -133,6 +139,8 @@ export function ReceiptFormDialog({
   onSaved,
   allowItems = true,
   defaultDocType,
+  titleNew = "Novo Lançamento",
+  titleEdit = "Editar Lançamento",
 }: ReceiptFormDialogProps) {
   const isEdit = !!receipt;
   const navigate = useNavigate();
@@ -141,6 +149,9 @@ export function ReceiptFormDialog({
   const [error, setError] = useState<string | null>(null);
   // Qual campo esta inferindo categoria via IA ("header" ou item.key).
   const [suggestingKey, setSuggestingKey] = useState<string | null>(null);
+  // Desagrupar item (converter em lançamento) — confirmação.
+  const [pendingConvert, setPendingConvert] = useState<ItemRow | null>(null);
+  const [converting, setConverting] = useState(false);
   const { categories } = useCategories();
   const { user } = useAuth();
   const ccs = user?.costCenters ?? [];
@@ -149,6 +160,14 @@ export function ReceiptFormDialog({
   // Lançamento itemizado sendo editado num contexto SEM editor de itens
   // (Lançamentos): vira resumo (total read-only + atalho "gerenciar itens").
   const summaryMode = !allowItems && isEdit && (receipt?.item_count ?? 0) > 0;
+
+  // Itens já salvos (têm id no banco) podem ser desagrupados; itens novos não.
+  // Só dá pra desagrupar com 2+ itens ativos (não esvaziar o lançamento).
+  const savedItemIds = useMemo(
+    () => new Set((receipt?.items ?? []).map((i) => i.id)),
+    [receipt],
+  );
+  const canConvert = isEdit && (receipt?.item_count ?? 0) >= 2;
 
   useEffect(() => {
     if (!open) return;
@@ -312,6 +331,27 @@ export function ReceiptFormDialog({
     }
   }
 
+  // Desagrupar: converte o item (já salvo) num lançamento próprio. Opera no
+  // backend pelo id do item; fecha o dialog e refetch (o estado local fica
+  // defasado após o split).
+  async function confirmConvert() {
+    if (!receipt || !pendingConvert) return;
+    setConverting(true);
+    try {
+      await promoteReceiptItem(receipt.id, pendingConvert.key);
+      toast.success("Item convertido em lançamento.");
+      setPendingConvert(null);
+      onSaved();
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível converter.",
+      );
+    } finally {
+      setConverting(false);
+    }
+  }
+
   const showDueDate =
     form.status === "a_pagar" ||
     form.status === "a_receber" ||
@@ -449,9 +489,7 @@ export function ReceiptFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Editar Lançamento" : "Novo Lançamento"}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? titleEdit : titleNew}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -728,7 +766,8 @@ export function ReceiptFormDialog({
                 className="gap-1 shrink-0"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate(receipt.doc_type === "fatura" ? "/faturas" : "/notas");
+                  const base = receipt.doc_type === "fatura" ? "/faturas" : "/notas";
+                  navigate(`${base}?open=${receipt.id}`);
                 }}
               >
                 <OpenInNew className="size-4" />
@@ -776,6 +815,13 @@ export function ReceiptFormDialog({
                           placeholder="Descrição do item"
                           className="flex-1"
                         />
+                        {canConvert && savedItemIds.has(it.key) && (
+                          <ActionIconButton
+                            icon={CallMade}
+                            label="Converter em lançamento"
+                            onClick={() => setPendingConvert(it)}
+                          />
+                        )}
                         <ActionIconButton
                           icon={Trash2}
                           label="Remover item"
@@ -894,6 +940,24 @@ export function ReceiptFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <ConfirmActionDialog
+        open={pendingConvert !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingConvert(null);
+        }}
+        title="Converter em Lançamento"
+        description={
+          pendingConvert
+            ? `Converter "${pendingConvert.description || "este item"}" (${formatBRL(parseBRLInput(pendingConvert.total_value) || 0)}) em um lançamento separado? Ele sai deste lançamento e o total é recalculado.`
+            : ""
+        }
+        confirmLabel="Converter"
+        cancelLabel="Cancelar"
+        loading={converting}
+        loadingLabel="Convertendo..."
+        onConfirm={confirmConvert}
+      />
     </Dialog>
   );
 }

@@ -16,6 +16,8 @@ export default function FaturasPage() {
       createLabel="Nova Fatura"
       emptyLabel="Sem faturas"
       countNoun={{ one: "fatura", many: "faturas" }}
+      titleNew="Nova Fatura"
+      titleEdit="Editar Fatura"
     />
   );
 }

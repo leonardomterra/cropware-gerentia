@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import CallMade from "~icons/material-symbols-light/call-made";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
@@ -32,6 +33,7 @@ export function ReceiptItemsTable({
 }: ReceiptItemsTableProps) {
   const { categories } = useCategories();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c]));
   const [pendingPromote, setPendingPromote] = useState<ReceiptItem | null>(null);
   const [promoting, setPromoting] = useState(false);
@@ -90,11 +92,19 @@ export function ReceiptItemsTable({
                   {it.quantity != null && it.unit_value != null ? (
                     <span className="text-xs text-slate-400">
                       {" "}
-                      · {it.quantity} × {formatBRL(it.unit_value)}
+                      ({it.quantity} × {formatBRL(it.unit_value)})
                     </span>
                   ) : null}
                   {promoted && (
-                    <Badge size="compact" colorScheme="slate" className="ml-2 align-middle">
+                    <Badge
+                      size="compact"
+                      colorScheme="slate"
+                      className="ml-2 align-middle cursor-pointer hover:opacity-80"
+                      title="Ver o lançamento que este item virou"
+                      onClick={() =>
+                        navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`)
+                      }
+                    >
                       Desmembrado
                     </Badge>
                   )}

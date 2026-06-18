@@ -54,7 +54,6 @@ export function ReceiptViewDialog({
   open,
   onOpenChange,
   onEdit,
-  onChanged,
 }: ReceiptViewDialogProps) {
   const { categories } = useCategories();
 
@@ -134,13 +133,8 @@ export function ReceiptViewDialog({
         {hasItems && (
           <div className="mt-3">
             <p className="text-sm text-slate-500 mb-2">Itens</p>
-            <ReceiptItemsTable
-              receipt={receipt}
-              onChanged={() => {
-                onChanged?.();
-                onOpenChange(false);
-              }}
-            />
+            {/* Só leitura: converter/desagrupar agora vive no dialog de edição. */}
+            <ReceiptItemsTable receipt={receipt} editable={false} />
           </div>
         )}
 
