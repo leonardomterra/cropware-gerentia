@@ -207,7 +207,7 @@ export function ReceiptsTable({
                           : "text-slate-900",
                     )}
                   >
-                    {r.is_estimated ? "~" : r.direction === "income" ? "+" : ""}
+                    {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
                     {formatBRL(r.total_value)}
                   </span>
                 </TableCell>

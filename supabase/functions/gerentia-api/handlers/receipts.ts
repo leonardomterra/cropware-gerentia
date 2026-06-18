@@ -297,6 +297,7 @@ export function mountReceiptRoutes(app: Hono) {
         ai_confidence: body.ai_confidence ?? null,
         ai_raw: body.ai_raw ?? null,
         item_count: hasItems ? items!.length : 0,
+        is_estimated: body.is_estimated === true,
       };
 
       const { data: receipt, error } = await client
@@ -359,6 +360,7 @@ export function mountReceiptRoutes(app: Hono) {
         "invoice_number",
         "notes",
         "ai_confidence",
+        "is_estimated",
       ];
       const patch: Record<string, unknown> = {};
       for (const k of ALLOWED) {
@@ -403,8 +405,12 @@ export function mountReceiptRoutes(app: Hono) {
 
       // Editar o valor (ou os itens) confirma um lançamento PREVISTO: deixa de
       // ser estimativa e passa a ser "do usuário" (some o ~, e o re-sync da
-      // recorrência nao o sobrescreve mais).
-      if ("total_value" in body || itemsProvided) {
+      // recorrência nao o sobrescreve mais). EXCETO quando o body manda
+      // is_estimated explicitamente (o usuário escolheu o estado no form).
+      if (
+        ("total_value" in body || itemsProvided) &&
+        !("is_estimated" in body)
+      ) {
         patch.is_estimated = false;
       }
 

@@ -60,7 +60,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
                       : "text-slate-900",
                 )}
               >
-                {r.is_estimated ? "~" : r.direction === "income" ? "+" : ""}
+                {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
                 {formatBRL(r.total_value)}
               </p>
             </div>

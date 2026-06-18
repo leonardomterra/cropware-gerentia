@@ -147,6 +147,8 @@ export interface ReceiptInput {
   source?: ReceiptSource;
   ai_confidence?: number | null;
   ai_raw?: unknown;
+  /** Marca o lançamento como previsto (estimativa/projeção), manualmente. */
+  is_estimated?: boolean;
   /** Itens (split). Quando presente e nao-vazio, o backend deriva
    *  total_value/category/cost_center_id do cabeçalho a partir dos itens. */
   items?: ReceiptItemInput[];

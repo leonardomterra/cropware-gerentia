@@ -98,6 +98,7 @@ interface FormState {
   invoice_number: string;
   notes: string;
   cost_center_id: string;
+  is_estimated: boolean;
   items: ItemRow[];
 }
 
@@ -116,6 +117,7 @@ const EMPTY: FormState = {
   invoice_number: "",
   notes: "",
   cost_center_id: "",
+  is_estimated: false,
   items: [],
 };
 
@@ -195,6 +197,7 @@ export function ReceiptFormDialog({
           receipt.cost_center_id ??
           receipt.items?.[0]?.cost_center_id ??
           defaultCCId,
+        is_estimated: receipt.is_estimated,
         items: allowItems
           ? (receipt.items ?? [])
               .filter((it) => !it.promoted_to_receipt_id)
@@ -380,6 +383,7 @@ export function ReceiptFormDialog({
             form.payment_method === "" ? null : form.payment_method,
           invoice_number: form.invoice_number.trim() || null,
           notes: form.notes.trim() || null,
+          is_estimated: form.is_estimated,
         });
         toast.success("Lançamento atualizado");
         onSaved();
@@ -453,6 +457,7 @@ export function ReceiptFormDialog({
         invoice_number: form.invoice_number.trim() || null,
         notes: form.notes.trim() || null,
         cost_center_id: hasItems ? null : form.cost_center_id || null,
+        is_estimated: form.is_estimated,
         ...itemsKey,
       };
 
@@ -530,6 +535,19 @@ export function ReceiptFormDialog({
               </Select>
             </div>
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.is_estimated}
+              onChange={(e) => set("is_estimated", e.target.checked)}
+              className="size-4 accent-slate-700"
+            />
+            Previsto
+            <span className="text-slate-400 font-normal">
+              — lançamento estimado/projetado
+            </span>
+          </label>
 
           <div>
             <Label htmlFor="total_value">Valor (R$)</Label>
