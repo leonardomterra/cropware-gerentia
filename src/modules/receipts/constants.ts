@@ -39,19 +39,21 @@ export const DOC_TYPE_LABEL: Record<ReceiptDocType, string> = {
 /** Prefixo de UMA letra exibido antes da origem na lista ((N) nota fiscal,
  *  (F) fatura, (R) recibo, (C) cupom). Tipos simples (pix/boleto/outro) ficam
  *  sem prefixo. */
+// Só duas classificações, espelhando as abas: N (Notas e Recibos: nota fiscal,
+// recibo, cupom) e F (Faturas). Tipos simples (pix/boleto/outro) ficam sem prefixo.
 export const DOC_TYPE_PREFIX: Partial<Record<ReceiptDocType, string>> = {
   nota_fiscal: "N",
+  recibo: "N",
+  cupom: "N",
   fatura: "F",
-  recibo: "R",
-  cupom: "C",
 };
 
-/** Cor (classe Tailwind, literal p/ JIT) do prefixo por tipo. */
+/** Cor (classe Tailwind, literal p/ JIT) do prefixo por classificação. */
 export const DOC_TYPE_PREFIX_COLOR: Partial<Record<ReceiptDocType, string>> = {
   nota_fiscal: "text-indigo-600",
+  recibo: "text-indigo-600",
+  cupom: "text-indigo-600",
   fatura: "text-purple-600",
-  recibo: "text-teal-600",
-  cupom: "text-sky-600",
 };
 
 /** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
