@@ -66,7 +66,7 @@ function DialogContent({
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
-            "relative bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 grid w-full max-w-4xl gap-4 rounded-lg border p-4 sm:p-6 shadow-sm duration-200 pointer-events-auto max-h-[calc(100vh-env(safe-area-inset-top,0)-env(safe-area-inset-bottom,0)-2rem)] overflow-y-auto",
+            "relative bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 grid w-full max-w-4xl gap-4 rounded border p-4 sm:p-6 shadow-sm duration-200 pointer-events-auto max-h-[calc(100vh-env(safe-area-inset-top,0)-env(safe-area-inset-bottom,0)-2rem)] overflow-y-auto",
             className,
           )}
           onAnimationStart={(e) => {
