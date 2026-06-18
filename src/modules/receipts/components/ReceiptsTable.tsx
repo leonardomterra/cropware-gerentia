@@ -23,6 +23,7 @@ import { cn } from "@/components/ui/utils";
 import type { Receipt } from "../types";
 import {
   DOC_TYPE_LABEL,
+  DOC_TYPE_PREFIX,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
 } from "../constants";
@@ -161,6 +162,9 @@ export function ReceiptsTable({
                       (r.vendor ?? r.description) ? "text-slate-700" : "text-slate-400",
                     )}
                   >
+                    {DOC_TYPE_PREFIX[r.doc_type] && (
+                      <span className="text-slate-400">({DOC_TYPE_PREFIX[r.doc_type]}) </span>
+                    )}
                     {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
                   </span>
                 </TableCell>

@@ -36,6 +36,16 @@ export const DOC_TYPE_LABEL: Record<ReceiptDocType, string> = {
   outro: "Outro",
 };
 
+/** Prefixo de UMA letra exibido antes da origem na lista ((N) nota fiscal,
+ *  (F) fatura, (R) recibo, (C) cupom). Tipos simples (pix/boleto/outro) ficam
+ *  sem prefixo. */
+export const DOC_TYPE_PREFIX: Partial<Record<ReceiptDocType, string>> = {
+  nota_fiscal: "N",
+  fatura: "F",
+  recibo: "R",
+  cupom: "C",
+};
+
 /** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
 export const DOC_TYPE_SHORT_LABEL: Record<ReceiptDocType, string> = {
   cupom: "Cupom",

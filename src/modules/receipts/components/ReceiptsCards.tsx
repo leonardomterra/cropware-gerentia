@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Receipt } from "../types";
 import {
   DOC_TYPE_LABEL,
+  DOC_TYPE_PREFIX,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
 } from "../constants";
@@ -48,6 +49,9 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="font-medium text-slate-900 truncate">
+                {DOC_TYPE_PREFIX[r.doc_type] && (
+                  <span className="text-slate-400">({DOC_TYPE_PREFIX[r.doc_type]}) </span>
+                )}
                 {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
               </p>
               <p
