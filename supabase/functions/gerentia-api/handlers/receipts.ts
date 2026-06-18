@@ -521,7 +521,9 @@ export function mountReceiptRoutes(app: Hono) {
         created_by: auth.user!.id,
         farm_id: parent.farm_id,
         cost_center_id: item.cost_center_id,
-        doc_type: parent.doc_type,
+        // Item desmembrado vira um lançamento SIMPLES (não herda o tipo do pai,
+        // senão apareceria nas abas Notas/Faturas). Fica só em Lançamentos.
+        doc_type: "outro",
         direction: parent.direction,
         status: parent.status,
         total_value: item.total_value,
