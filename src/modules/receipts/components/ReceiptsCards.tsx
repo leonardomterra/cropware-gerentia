@@ -1,6 +1,7 @@
 import ArrowDownLeft from "~icons/material-symbols-light/call-received";
 import ArrowUpRight from "~icons/material-symbols-light/call-made";
 import MoreVertical from "~icons/material-symbols-light/more-vert";
+import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,8 +13,7 @@ import { cn } from "@/components/ui/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Receipt } from "../types";
 import {
-  DOC_TYPE_COLOR_SCHEME,
-  DOC_TYPE_SHORT_LABEL,
+  DOC_TYPE_LABEL,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
 } from "../constants";
@@ -93,11 +93,13 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
                 {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
               </Badge>
               {r.item_count > 0 && (r.items?.length ?? 0) > 0 && (
-                <Badge size="compact" colorScheme={DOC_TYPE_COLOR_SCHEME[r.doc_type]}>
-                  <span>
-                    {DOC_TYPE_SHORT_LABEL[r.doc_type]} — {r.item_count}{" "}
-                    {r.item_count === 1 ? "item" : "itens"}
-                  </span>
+                <Badge
+                  size="compact"
+                  colorScheme="white"
+                  title={`${DOC_TYPE_LABEL[r.doc_type]} — ${r.item_count} ${r.item_count === 1 ? "item" : "itens"}`}
+                >
+                  <ListIcon />
+                  {r.item_count}
                 </Badge>
               )}
             </div>
