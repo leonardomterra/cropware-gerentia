@@ -608,7 +608,7 @@ export default function DashboardPage() {
                   <li key={c.cat} className="flex items-center gap-3">
                     <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">{getCategoryLabel(c.cat, categories)}</span>
                     <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded">
-                      <div className="h-3 rounded bg-slate-400" style={{ width: `${pct}%` }} />
+                      <div className="h-3 rounded bg-slate-900" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
                       {fmtBRLfull(c.total)}
