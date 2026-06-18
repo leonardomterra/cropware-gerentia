@@ -104,7 +104,6 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
               </Badge>
               {r.item_count > 0 && (r.items?.length ?? 0) > 0 && (
                 <Badge
-                  size="compact"
                   colorScheme="white"
                   title={`${DOC_TYPE_LABEL[r.doc_type]} — ${r.item_count} ${r.item_count === 1 ? "item" : "itens"}`}
                 >
