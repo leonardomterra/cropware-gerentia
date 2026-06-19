@@ -113,8 +113,8 @@ const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "S
 
 // Cores de entrada/saída alinhadas à paleta dos centros de custo (CC_COLORS):
 // preenchimentos (barras/legenda) nos tons 400; texto num tom legível da mesma família.
-const COLOR_IN = "#047857";  // emerald-700 (= valor de entrada em Lançamentos)
-const COLOR_OUT = "#0f172a"; // slate-900 (despesa neutra, = Lançamentos)
+const COLOR_IN = "#34D399";  // emerald-400
+const COLOR_OUT = "#A1A1AA"; // zinc-400 (gráfico Entradas×Saídas)
 
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -520,11 +520,11 @@ export default function DashboardPage() {
           </h2>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-700" />
+              <span className="size-2 rounded-full bg-[#34D399]" />
               Entradas
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-slate-900" />
+              <span className="size-2 rounded-full bg-slate-400" />
               Saídas
             </span>
             {period.mode === "month" && (
@@ -607,8 +607,8 @@ export default function DashboardPage() {
                 return (
                   <li key={c.cat} className="flex items-center gap-3">
                     <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">{getCategoryLabel(c.cat, categories)}</span>
-                    <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded">
-                      <div className="h-3 rounded bg-[#0F172A]" style={{ width: `${pct}%` }} />
+                    <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded-sm">
+                      <div className="h-3 rounded-sm bg-slate-400" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
                       {fmtBRLfull(c.total)}
