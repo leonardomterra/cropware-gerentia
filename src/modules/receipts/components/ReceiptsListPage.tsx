@@ -91,6 +91,8 @@ export interface ReceiptsListPageProps {
   defaultDocType?: ReceiptDocType;
   /** Mostra o botão "Capturar Recibo". Default true. */
   showCapture?: boolean;
+  /** Mostra o botão de criar lançamento. Default true. */
+  showCreate?: boolean;
   /** Rótulo do botão de criar. Default "Novo Lançamento". */
   createLabel?: string;
   /** Texto quando não há registros. */
@@ -156,6 +158,7 @@ export function ReceiptsListPage({
   itemized = false,
   defaultDocType,
   showCapture = true,
+  showCreate = true,
   createLabel = "Novo Lançamento",
   emptyLabel = "Sem lançamentos",
   countNoun = { one: "lançamento", many: "lançamentos" },
@@ -373,10 +376,12 @@ export function ReceiptsListPage({
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
-        <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
-          <Plus className="size-4 shrink-0" />
-          <span className="flex-1 text-left">{createLabel}</span>
-        </Button>
+        {showCreate && (
+          <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
+            <Plus className="size-4 shrink-0" />
+            <span className="flex-1 text-left">{createLabel}</span>
+          </Button>
+        )}
         {showCapture && (
           <Button
             variant="outline"

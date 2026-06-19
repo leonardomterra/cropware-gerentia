@@ -27,6 +27,9 @@ const NotasRecibosPage = lazyWithRetry(
 const FaturasPage = lazyWithRetry(
   () => import("@/modules/receipts/pages/FaturasPage"),
 );
+const AnexosPage = lazyWithRetry(
+  () => import("@/modules/receipts/pages/AnexosPage"),
+);
 const FarmsPage = lazyWithRetry(
   () => import("@/modules/farms/pages/FarmsPage"),
 );
@@ -134,6 +137,14 @@ function RootRoutes() {
           element={
             <Suspense fallback={<LoadingScreen />}>
               <FaturasPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="anexos"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <AnexosPage />
             </Suspense>
           }
         />

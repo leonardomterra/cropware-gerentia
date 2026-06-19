@@ -1,3 +1,5 @@
+import { useState } from "react";
+import AttachFile from "~icons/material-symbols-light/attach-file";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import {
@@ -18,6 +20,7 @@ import {
 } from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import { ReceiptItemsTable } from "./ReceiptItemsTable";
+import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
 import {
   formatBRL,
   formatDateBR,
@@ -64,6 +67,7 @@ export function ReceiptViewDialog({
   onEdit,
 }: ReceiptViewDialogProps) {
   const { categories } = useCategories();
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   if (!receipt) return null;
 
@@ -153,6 +157,16 @@ export function ReceiptViewDialog({
           <DialogClose asChild>
             <Button variant="outline">Fechar</Button>
           </DialogClose>
+          {receipt.attachment_key && (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => setViewerOpen(true)}
+            >
+              <AttachFile className="size-4" />
+              Ver arquivo
+            </Button>
+          )}
           <Button
             onClick={() => {
               onOpenChange(false);
@@ -163,6 +177,12 @@ export function ReceiptViewDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AttachmentViewerDialog
+        receipt={receipt}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
     </Dialog>
   );
 }

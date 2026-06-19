@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "@/utils/api";
+import { compressImage, isImageFile, supportsWebP } from "@/utils/imageCompression";
 
 export interface ReceiptLineItem {
   description: string | null;
@@ -75,20 +76,32 @@ export function useReceiptScanner() {
   const [error, setError] = useState<string | null>(null);
 
   const scan = async (file: File): Promise<ScanResult | null> => {
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Imagem maior que 10MB. Reduza e tente de novo.");
-      return null;
-    }
-
     setScanning(true);
     setError(null);
     try {
-      const base64 = await fileToBase64(file);
+      // Imagens: comprime pra WebP no browser antes de subir (menor upload +
+      // storage). PDFs e formatos sem suporte passam direto. Igual ao CDM.
+      let upload = file;
+      if (isImageFile(file) && (await supportsWebP())) {
+        try {
+          const { file: compressed } = await compressImage(file);
+          upload = compressed;
+        } catch (e) {
+          console.warn("Falha ao comprimir, enviando original:", e);
+        }
+      }
+
+      if (upload.size > 10 * 1024 * 1024) {
+        setError("Arquivo maior que 10MB. Reduza e tente de novo.");
+        return null;
+      }
+
+      const base64 = await fileToBase64(upload);
       const data = await api<ScanResponse>("/receipts/scan", {
         method: "POST",
         body: {
           image_base64: base64,
-          mime_type: file.type || "image/jpeg",
+          mime_type: upload.type || "image/jpeg",
         },
       });
       return {
