@@ -10,6 +10,7 @@ import ArrowLeftRight from "~icons/material-symbols-light/swap-horiz";
 import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
 import CreditCard from "~icons/material-symbols-light/credit-card-outline";
 import FolderOpen from "~icons/material-symbols-light/folder-open-outline";
+import Assessment from "~icons/material-symbols-light/summarize-outline";
 import SlidersHorizontal from "~icons/material-symbols-light/tune";
 import Repeat from "~icons/material-symbols-light/autorenew";
 // import Users from "~icons/material-symbols-light/group-outline"; // Equipe desativada (app individual)
@@ -49,6 +50,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { to: "/faturas", label: "Faturas", icon: CreditCard },
   { to: "/anexos", label: "Anexos", icon: FolderOpen },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/relatorios", label: "Relatórios", icon: Assessment },
   // "Fazendas" escondido do menu (CRUD orfao). Rota /fazendas continua
   // valida pra acesso direto via URL.
 ];
