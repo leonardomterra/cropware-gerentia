@@ -39,6 +39,7 @@ import { ReceiptsCards } from "./ReceiptsCards";
 import { ReceiptFormDialog } from "./ReceiptFormDialog";
 import { ReceiptCaptureDialog } from "./ReceiptCaptureDialog";
 import { ReceiptViewDialog } from "./ReceiptViewDialog";
+import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
 import {
   MonthSwitcher,
   currentYearMonth,
@@ -180,6 +181,7 @@ export function ReceiptsListPage({
   >("recent");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<Receipt | null>(null);
+  const [viewingAttachment, setViewingAttachment] = useState<Receipt | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [editing, setEditing] = useState<Receipt | null>(null);
@@ -245,7 +247,9 @@ export function ReceiptsListPage({
     setFormOpen(true);
   };
 
-  const openView = (r: Receipt) => setViewing(r);
+  // Em viewOnly (aba Anexos) o "olho" abre direto o arquivo; senão, os detalhes.
+  const openView = (r: Receipt) =>
+    viewOnly ? setViewingAttachment(r) : setViewing(r);
 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) => {
@@ -646,6 +650,14 @@ export function ReceiptsListPage({
         }}
         onEdit={openEdit}
         onChanged={() => void refetch()}
+      />
+
+      <AttachmentViewerDialog
+        receipt={viewingAttachment}
+        open={viewingAttachment !== null}
+        onOpenChange={(o) => {
+          if (!o) setViewingAttachment(null);
+        }}
       />
 
       <AlertDialog
