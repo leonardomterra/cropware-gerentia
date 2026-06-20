@@ -15,7 +15,7 @@ import Trash2 from "~icons/material-symbols-light/delete-outline";
 import Print from "~icons/material-symbols-light/print-outline";
 import { cn } from "@/components/ui/utils";
 import { apiGetArrayBuffer } from "@/utils/api";
-import { mergeAttachmentsToPdf } from "../utils/mergeAttachmentsPdf";
+import { mergeAttachmentsToPdf, pdfViewerHtml } from "../utils/mergeAttachmentsPdf";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -309,15 +309,17 @@ export function ReceiptsListPage({
       );
       const { blob, failed } = await mergeAttachmentsToPdf(items);
       const url = URL.createObjectURL(blob);
+      const filename = `anexos_${month.year}-${String(month.month).padStart(2, "0")}.pdf`;
       if (win) {
-        win.location.href = url;
+        win.document.open();
+        win.document.write(pdfViewerHtml(url, filename));
+        win.document.close();
       } else {
         const a = document.createElement("a");
         a.href = url;
-        a.download = `anexos_${month.year}-${String(month.month).padStart(2, "0")}.pdf`;
+        a.download = filename;
         a.click();
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
       if (failed > 0) {
         toast.warning(
           `${failed} arquivo(s) não puderam ser incluídos.`,
