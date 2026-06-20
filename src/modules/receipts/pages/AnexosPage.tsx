@@ -13,6 +13,7 @@ export default function AnexosPage() {
       docFilter={hasAttachment}
       showCapture={false}
       showCreate={false}
+      viewOnly
       emptyLabel="Nenhum arquivo anexado neste mês"
       countNoun={{ one: "anexo", many: "anexos" }}
     />

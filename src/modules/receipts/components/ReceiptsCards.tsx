@@ -32,9 +32,11 @@ interface ReceiptsCardsProps {
   onView: (r: Receipt) => void;
   onEdit: (r: Receipt) => void;
   onDelete: (r: Receipt) => void;
+  /** Só a ação "Ver detalhes" (sem editar/excluir). */
+  viewOnly?: boolean;
 }
 
-export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCardsProps) {
+export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = false }: ReceiptsCardsProps) {
   const { categories } = useCategories();
   return (
     <div className="flex flex-col gap-2">
@@ -129,15 +131,19 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete }: ReceiptsCa
               <DropdownMenuItem onSelect={() => onView(r)}>
                 Ver detalhes
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onEdit(r)}>
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => onDelete(r)}
-                className="text-red-600 focus:text-red-700 focus:bg-red-50"
-              >
-                Excluir
-              </DropdownMenuItem>
+              {!viewOnly && (
+                <DropdownMenuItem onSelect={() => onEdit(r)}>
+                  Editar
+                </DropdownMenuItem>
+              )}
+              {!viewOnly && (
+                <DropdownMenuItem
+                  onSelect={() => onDelete(r)}
+                  className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                >
+                  Excluir
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

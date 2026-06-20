@@ -93,6 +93,8 @@ export interface ReceiptsListPageProps {
   showCapture?: boolean;
   /** Mostra o botão de criar lançamento. Default true. */
   showCreate?: boolean;
+  /** Só a ação "Ver detalhes" nas linhas (sem editar/excluir/descrição). */
+  viewOnly?: boolean;
   /** Rótulo do botão de criar. Default "Novo Lançamento". */
   createLabel?: string;
   /** Texto quando não há registros. */
@@ -159,6 +161,7 @@ export function ReceiptsListPage({
   defaultDocType,
   showCapture = true,
   showCreate = true,
+  viewOnly = false,
   createLabel = "Novo Lançamento",
   emptyLabel = "Sem lançamentos",
   countNoun = { one: "lançamento", many: "lançamentos" },
@@ -590,6 +593,7 @@ export function ReceiptsListPage({
               onView={openView}
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
+              viewOnly={viewOnly}
             />
           ) : (
             <ReceiptsTable
@@ -600,6 +604,7 @@ export function ReceiptsListPage({
               selectedIds={selectedIds}
               onToggleOne={toggleOne}
               onToggleAll={toggleAll}
+              viewOnly={viewOnly}
             />
           )}
         </div>

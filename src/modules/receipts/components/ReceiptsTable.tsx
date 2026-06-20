@@ -47,6 +47,8 @@ interface ReceiptsTableProps {
   selectedIds: Set<string>;
   onToggleOne: (id: string) => void;
   onToggleAll: () => void;
+  /** Só a ação "Ver detalhes" (sem descrição/editar/excluir). */
+  viewOnly?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export function ReceiptsTable({
   selectedIds,
   onToggleOne,
   onToggleAll,
+  viewOnly = false,
 }: ReceiptsTableProps) {
   const { categories } = useCategories();
   const { user } = useAuth();
@@ -224,39 +227,45 @@ export function ReceiptsTable({
                 </TableCell>
                 <TableCell className="py-3 text-right pr-2">
                   <div className="flex gap-2 justify-end items-center">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <ActionIconButton
-                          icon={Notes}
-                          label="Descrição"
-                          title=""
-                          className={
-                            r.description?.trim()
-                              ? undefined
-                              : "text-slate-300 hover:text-slate-400"
-                          }
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        {r.description?.trim() || "Sem descrição"}
-                      </TooltipContent>
-                    </Tooltip>
+                    {!viewOnly && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <ActionIconButton
+                            icon={Notes}
+                            label="Descrição"
+                            title=""
+                            className={
+                              r.description?.trim()
+                                ? undefined
+                                : "text-slate-300 hover:text-slate-400"
+                            }
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          {r.description?.trim() || "Sem descrição"}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     <ActionIconButton
                       icon={Eye}
                       label="Ver detalhes"
                       onClick={() => onView(r)}
                     />
-                    <ActionIconButton
-                      icon={Pencil}
-                      label="Editar"
-                      onClick={() => onEdit(r)}
-                    />
-                    <ActionIconButton
-                      icon={Trash2}
-                      label="Excluir"
-                      tone="danger"
-                      onClick={() => onDelete(r)}
-                    />
+                    {!viewOnly && (
+                      <ActionIconButton
+                        icon={Pencil}
+                        label="Editar"
+                        onClick={() => onEdit(r)}
+                      />
+                    )}
+                    {!viewOnly && (
+                      <ActionIconButton
+                        icon={Trash2}
+                        label="Excluir"
+                        tone="danger"
+                        onClick={() => onDelete(r)}
+                      />
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
