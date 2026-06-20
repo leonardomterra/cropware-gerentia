@@ -47,6 +47,8 @@ export interface ReceiptExtraction {
     | "outro";
   payment_method:
     | "pix"
+    | "cartao_credito"
+    | "cartao_debito"
     | "cartao"
     | "boleto"
     | "dinheiro"

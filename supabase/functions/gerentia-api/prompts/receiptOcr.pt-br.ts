@@ -17,7 +17,7 @@ Analise a imagem e retorne APENAS um objeto JSON valido com os campos:
   "total_value": number | null,       // valor total em reais (ex: 287.50). Na fatura: o total a pagar
   "transaction_date": string | null,  // data no formato YYYY-MM-DD. Na fatura: a data de vencimento
   "doc_type": "cupom" | "nota_fiscal" | "recibo" | "fatura" | "pix" | "boleto" | "outro",
-  "payment_method": "pix" | "cartao" | "boleto" | "dinheiro" | "transferencia" | null,
+  "payment_method": "pix" | "cartao_credito" | "cartao_debito" | "cartao" | "boleto" | "dinheiro" | "transferencia" | null,
   "invoice_number": string | null,    // numero da NF/cupom se visivel
   "category": string,                 // slug de UMA das categorias abaixo
   "description": string | null,       // descricao curta (max 100 chars) do que foi comprado/recebido
@@ -83,4 +83,11 @@ REGRAS RIGIDAS:
    - "recibo": recibo de pagamento/servico.
    - "boleto": boleto bancario. "pix": comprovante de PIX/transferencia.
    - "outro": quando nao se encaixar.
-8. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;
+8. "payment_method": distinga CARTAO DE CREDITO de DEBITO quando o documento
+   mostrar (ex: "CREDITO", "CARTAO DE CREDITO", "MASTERCARD CREDITO" ->
+   "cartao_credito"; "DEBITO", "CARTAO DE DEBITO", "ELO DEBITO" ->
+   "cartao_debito"). Se disser so "cartao"/"cartao de credito ou debito" sem
+   especificar, use "cartao". PIX/transferencia -> "pix"/"transferencia";
+   dinheiro/especie -> "dinheiro"; boleto -> "boleto". Se nao houver indicacao,
+   null. FATURA (doc_type="fatura") normalmente nao tem payment_method (null).
+9. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;

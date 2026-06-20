@@ -214,7 +214,7 @@ function receiptSummary(e: any, ccName: string | null, showCC: boolean): string 
     // Com itens, a categoria vem por item (mostrada no bloco abaixo).
     !itemized && e.category ? "Categoria: " + e.category : null,
     e.transaction_date ? "Data: " + e.transaction_date : null,
-    e.payment_method ? "Pagamento: " + e.payment_method : null,
+    e.payment_method ? "Pagamento: " + (PAY_LABEL[e.payment_method] || e.payment_method) : null,
     e.invoice_number ? "Documento: " + e.invoice_number : null,
     e.description ? "Descricao: " + e.description : null,
     showCC && ccName ? "Centro: " + ccName : null,
@@ -255,6 +255,26 @@ const PHOTO_DATE_BUTTONS = [
   { id: "cr_date:hoje", title: "Hoje" },
   { id: "cr_date:ontem", title: "Ontem" },
   { id: "cr_date:custom", title: "Outra data" },
+];
+
+const PAY_LABEL: Record<string, string> = {
+  pix: "Pix",
+  cartao: "Cartão",
+  cartao_credito: "Cartão de crédito",
+  cartao_debito: "Cartão de débito",
+  boleto: "Boleto",
+  dinheiro: "Dinheiro",
+  transferencia: "Transferência",
+};
+
+// Perguntado quando a forma de pagamento de uma despesa não é identificada
+// (ajuda a marcar cartão de crédito p/ anti-duplicidade com a fatura).
+const PHOTO_PAY_BUTTONS = [
+  { id: "cw_pay:cartao_credito", title: "Crédito" },
+  { id: "cw_pay:cartao_debito", title: "Débito" },
+  { id: "cw_pay:pix", title: "Pix" },
+  { id: "cw_pay:dinheiro", title: "Dinheiro" },
+  { id: "cw_pay:boleto", title: "Boleto" },
 ];
 
 // ---------- Wizard de criação guiado (categoria -> status -> centro -> data -> confirmar) ----------
@@ -478,6 +498,8 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     invoice_number: e.invoice_number ?? null,
     cost_center_id: itemized ? null : (p.cost_center_id ?? null),
     item_count: itemized ? items.length : 0,
+    // Fatura nasce informativa (não soma); demais somam.
+    counts_in_total: (e.doc_type || "outro") !== "fatura",
     attachment_key: p.attachment_key ?? null,
     attachment_mime: p.attachment_mime ?? null,
     source: "whatsapp",
@@ -533,6 +555,28 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
   if (msg.type === "interactive") {
     const i = msg.interactive;
     const actionId = i?.button_reply?.id || i?.list_reply?.id || "";
+
+    // Resposta da pergunta "Como foi pago?" (foto sem forma de pagamento clara).
+    if (actionId.startsWith("cw_pay:")) {
+      const pending = await getPending(admin, from);
+      if (!pending || pending.kind !== "photo_payment_method" || !linked) {
+        await sendText(from, "⏳ Essa escolha expirou. Manda o comprovante de novo.");
+        return;
+      }
+      const pm = actionId.slice("cw_pay:".length);
+      const data = {
+        ...pending.data,
+        extracted: { ...pending.data.extracted, payment_method: pm },
+      };
+      const showCC = linked.cost_centers.length > 1;
+      await setPending(admin, from, "receipt_confirm", data);
+      await sendButtons(
+        from,
+        receiptSummary(data.extracted, data.cost_center_name, showCC),
+        confirmButtons(showCC),
+      );
+      return;
+    }
 
     if (actionId === "rcpt_ok") {
       const pending = await getPending(admin, from);
@@ -894,20 +938,35 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       return;
     }
 
-    await setPending(admin, from, "receipt_confirm", {
-      extracted: ocr.data,
+    const e = ocr.data;
+    const pendingData = {
+      extracted: e,
       attachment_key: key,
       attachment_mime: mime,
       user_id: linked.user_id,
       organization_id: linked.organization_id,
       cost_center_id: defaultCC.id,
       cost_center_name: defaultCC.name,
-    });
-
+    };
     const showCC = linked.cost_centers.length > 1;
+
+    // Forma de pagamento não identificada numa DESPESA (não-fatura): pergunta
+    // antes de confirmar. Ajuda a marcar cartão de crédito (anti-duplicidade
+    // com a fatura). Se o OCR já soube, ou se for fatura/receita, vai direto.
+    const needPay =
+      e.direction !== "income" &&
+      e.doc_type !== "fatura" &&
+      (!e.payment_method || e.payment_method === "cartao");
+    if (needPay) {
+      await setPending(admin, from, "photo_payment_method", pendingData);
+      await sendButtons(from, "Como foi pago? 💳", PHOTO_PAY_BUTTONS);
+      return;
+    }
+
+    await setPending(admin, from, "receipt_confirm", pendingData);
     await sendButtons(
       from,
-      receiptSummary(ocr.data, defaultCC.name, showCC),
+      receiptSummary(e, defaultCC.name, showCC),
       confirmButtons(showCC),
     );
     return;
