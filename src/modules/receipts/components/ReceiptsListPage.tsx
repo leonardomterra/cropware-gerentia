@@ -15,7 +15,7 @@ import Trash2 from "~icons/material-symbols-light/delete-outline";
 import Print from "~icons/material-symbols-light/print-outline";
 import { cn } from "@/components/ui/utils";
 import { apiGet } from "@/utils/api";
-import { printAttachments } from "../utils/printAttachments";
+import { mergeAttachmentsToPdf } from "../utils/mergeAttachmentsPdf";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -279,8 +279,9 @@ export function ReceiptsListPage({
   const clearSelection = () => setSelectedIds(new Set());
 
   const [printing, setPrinting] = useState(false);
-  // Imprime os anexos selecionados num PDF único (aba Anexos). Busca os URLs
-  // presigned e monta um documento com 1 imagem por página.
+  // Junta os anexos selecionados (PDFs + imagens) num PDF único e abre numa nova
+  // aba pra visualizar/imprimir/salvar. A janela é aberta no clique (gesto do
+  // usuário) pra escapar do bloqueador de pop-up; o conteúdo entra após o merge.
   const handlePrintSelected = async () => {
     const chosen = sortedReceipts.filter(
       (r) => selectedIds.has(r.id) && r.attachment_key,
@@ -288,6 +289,12 @@ export function ReceiptsListPage({
     if (chosen.length === 0) {
       toast.error("Nenhum anexo selecionado.");
       return;
+    }
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(
+        "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando PDF…</p>",
+      );
     }
     setPrinting(true);
     try {
@@ -299,14 +306,23 @@ export function ReceiptsListPage({
           return { receipt: r, url };
         }),
       );
-      const skipped = printAttachments(items);
-      if (skipped > 0) {
-        toast.warning(
-          `${skipped} PDF(s) não entram na impressão combinada — abra individualmente.`,
-        );
+      const { blob, failed } = await mergeAttachmentsToPdf(items);
+      const url = URL.createObjectURL(blob);
+      if (win) {
+        win.location.href = url;
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `anexos_${month.year}-${String(month.month).padStart(2, "0")}.pdf`;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      if (failed > 0) {
+        toast.warning(`${failed} arquivo(s) não puderam ser incluídos.`);
       }
     } catch {
-      toast.error("Erro ao preparar a impressão.");
+      win?.close();
+      toast.error("Erro ao gerar o PDF.");
     } finally {
       setPrinting(false);
     }
@@ -597,7 +613,7 @@ export function ReceiptsListPage({
                   className="h-7 text-slate-700"
                 >
                   <Print className="size-4 mr-1" />
-                  {printing ? "Preparando…" : "Imprimir"}
+                  {printing ? "Gerando…" : "Imprimir"}
                 </Button>
               ) : (
                 <Button
