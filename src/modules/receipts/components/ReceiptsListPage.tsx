@@ -12,7 +12,10 @@ import FileText from "~icons/material-symbols-light/description-outline";
 import Loader2 from "~icons/svg-spinners/ring-resize";
 import Plus from "~icons/material-symbols-light/add";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
+import Print from "~icons/material-symbols-light/print-outline";
 import { cn } from "@/components/ui/utils";
+import { apiGet } from "@/utils/api";
+import { printAttachments } from "../utils/printAttachments";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -274,6 +277,40 @@ export function ReceiptsListPage({
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  const [printing, setPrinting] = useState(false);
+  // Imprime os anexos selecionados num PDF único (aba Anexos). Busca os URLs
+  // presigned e monta um documento com 1 imagem por página.
+  const handlePrintSelected = async () => {
+    const chosen = sortedReceipts.filter(
+      (r) => selectedIds.has(r.id) && r.attachment_key,
+    );
+    if (chosen.length === 0) {
+      toast.error("Nenhum anexo selecionado.");
+      return;
+    }
+    setPrinting(true);
+    try {
+      const items = await Promise.all(
+        chosen.map(async (r) => {
+          const { url } = await apiGet<{ url: string }>(
+            `/receipts/${r.id}/attachment-url`,
+          );
+          return { receipt: r, url };
+        }),
+      );
+      const skipped = printAttachments(items);
+      if (skipped > 0) {
+        toast.warning(
+          `${skipped} PDF(s) não entram na impressão combinada — abra individualmente.`,
+        );
+      }
+    } catch {
+      toast.error("Erro ao preparar a impressão.");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -551,15 +588,28 @@ export function ReceiptsListPage({
               <span className="text-slate-700">
                 {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
               </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setBulkOpen(true)}
-                className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                <Trash2 className="size-4 mr-1" />
-                Excluir
-              </Button>
+              {viewOnly ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePrintSelected}
+                  disabled={printing}
+                  className="h-7 text-slate-700"
+                >
+                  <Print className="size-4 mr-1" />
+                  {printing ? "Preparando…" : "Imprimir"}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBulkOpen(true)}
+                  className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <Trash2 className="size-4 mr-1" />
+                  Excluir
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
