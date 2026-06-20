@@ -253,9 +253,12 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
 
 export function buildReport(
   kind: ReportKind,
-  receipts: Receipt[],
+  allReceipts: Receipt[],
   ctx: ReportContext,
 ): ReportDoc {
+  // Informativos (counts_in_total=false, ex.: faturas) ficam fora dos relatórios
+  // — assim não duplicam com as compras avulsas de cartão.
+  const receipts = allReceipts.filter((r) => r.counts_in_total !== false);
   switch (kind) {
     case "resumo":
       return buildResumo(receipts, ctx);

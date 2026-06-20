@@ -19,7 +19,9 @@ export type ReceiptDocType =
 
 export type ReceiptPaymentMethod =
   | "pix"
-  | "cartao"
+  | "cartao" // legado (genérico) — novos lançamentos usam crédito/débito
+  | "cartao_credito"
+  | "cartao_debito"
   | "boleto"
   | "dinheiro"
   | "transferencia"
@@ -107,6 +109,9 @@ export interface Receipt {
   /** Lançamento PREVISTO: projetado por uma recorrência com o valor médio,
    *  ainda não confirmado. Editar o valor o transforma em confirmado (false). */
   is_estimated: boolean;
+  /** Entra nas somas (Dashboard/Relatórios/CSV)? false = "informativo" — usado
+   *  pra evitar duplicidade entre fatura de cartão e as compras avulsas. */
+  counts_in_total: boolean;
   /** Itens embutidos no GET (presente quando item_count > 0). */
   items?: ReceiptItem[];
   created_at: string;
@@ -149,6 +154,8 @@ export interface ReceiptInput {
   ai_raw?: unknown;
   /** Marca o lançamento como previsto (estimativa/projeção), manualmente. */
   is_estimated?: boolean;
+  /** Contabilizar no total (default: fatura=false, demais=true; backend decide). */
+  counts_in_total?: boolean;
   /** Itens (split). Quando presente e nao-vazio, o backend deriva
    *  total_value/category/cost_center_id do cabeçalho a partir dos itens. */
   items?: ReceiptItemInput[];

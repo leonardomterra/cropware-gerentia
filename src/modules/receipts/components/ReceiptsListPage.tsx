@@ -368,7 +368,7 @@ export function ReceiptsListPage({
     const headers = [
       "data", "tipo", "valor", "categoria", "centro de custo", "item",
       "origem", "documento", "pagamento", "status", "vencimento",
-      "pago em", "descricao", "observacoes",
+      "pago em", "descricao", "observacoes", "contabilizado",
     ];
     const rows: string[][] = [];
     for (const r of receipts) {
@@ -388,6 +388,7 @@ export function ReceiptsListPage({
           r.paid_date || "",
           r.description || "",
           r.notes || "",
+          r.counts_in_total === false ? "nao" : "sim",
         ]);
       }
     }

@@ -298,6 +298,12 @@ export function mountReceiptRoutes(app: Hono) {
         ai_raw: body.ai_raw ?? null,
         item_count: hasItems ? items!.length : 0,
         is_estimated: body.is_estimated === true,
+        // "Contabilizar no total": fatura nasce informativa (false); demais true.
+        // Body pode sobrescrever (toggle no form).
+        counts_in_total:
+          typeof body.counts_in_total === "boolean"
+            ? body.counts_in_total
+            : String(body.doc_type) !== "fatura",
       };
 
       const { data: receipt, error } = await client
@@ -361,6 +367,7 @@ export function mountReceiptRoutes(app: Hono) {
         "notes",
         "ai_confidence",
         "is_estimated",
+        "counts_in_total",
       ];
       const patch: Record<string, unknown> = {};
       for (const k of ALLOWED) {
@@ -548,6 +555,9 @@ export function mountReceiptRoutes(app: Hono) {
         notes: parent.notes,
         source: parent.source,
         item_count: 0,
+        // Desmembrado vira lançamento próprio que SOMA (mesmo vindo de fatura
+        // informativa) — é o jeito de "puxar" pro total um gasto da fatura.
+        counts_in_total: true,
       };
 
       const { data: created, error: cErr } = await client

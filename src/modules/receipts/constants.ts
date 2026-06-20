@@ -89,19 +89,30 @@ export const PAYMENT_METHOD_LABEL: Record<
   string
 > = {
   pix: "PIX",
-  cartao: "Cartao",
+  cartao: "Cartão", // legado (genérico)
+  cartao_credito: "Cartão de crédito",
+  cartao_debito: "Cartão de débito",
   boleto: "Boleto",
   dinheiro: "Dinheiro",
-  transferencia: "Transferencia",
+  transferencia: "Transferência",
 };
 
+// Lista selecionável nos forms (o "cartao" genérico fica só pra exibir legado).
 export const PAYMENT_METHODS: NonNullable<ReceiptPaymentMethod>[] = [
   "pix",
-  "cartao",
+  "cartao_credito",
+  "cartao_debito",
   "boleto",
   "dinheiro",
   "transferencia",
 ];
+
+/** É cartão de crédito? (o tipo que pode duplicar com a fatura.) */
+export function isCreditCard(
+  pm: ReceiptPaymentMethod | undefined,
+): boolean {
+  return pm === "cartao_credito";
+}
 
 export const STATUSES_BY_DIRECTION: Record<
   "expense" | "income",

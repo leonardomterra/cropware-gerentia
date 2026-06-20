@@ -63,6 +63,8 @@ interface Receipt {
   vendor: string | null;
   cost_center_id: string | null;
   is_estimated?: boolean;
+  /** false = informativo (não soma nos totais). */
+  counts_in_total?: boolean;
   item_count?: number;
   items?: ReceiptItemLite[];
 }
@@ -265,7 +267,10 @@ export default function DashboardPage() {
   // Expande em linhas (split por item) e filtra por CC na LINHA - assim uma
   // nota dividida contribui so a porção do CC ativo.
   const lines = useMemo(() => {
-    const all = receipts.flatMap(linesOf);
+    // Informativos (counts_in_total=false, ex.: faturas) não entram nas somas.
+    const all = receipts
+      .filter((r) => r.counts_in_total !== false)
+      .flatMap(linesOf);
     return activeCC === "all"
       ? all
       : all.filter((l) => l.cost_center_id === activeCC);
@@ -326,6 +331,7 @@ export default function DashboardPage() {
     }
     if (isMonth) {
       for (const r of openItems) {
+        if (r.counts_in_total === false) continue;
         if (activeCC !== "all" && r.cost_center_id !== activeCC) continue;
         const d = r.transaction_date || r.due_date;
         if (!d) continue;
@@ -362,7 +368,9 @@ export default function DashboardPage() {
 
   // (C) Gastos por Centro de Custo no período (todas as despesas, sem filtro de CC).
   const ccSpend = useMemo(() => {
-    const all = receipts.flatMap(linesOf);
+    const all = receipts
+      .filter((r) => r.counts_in_total !== false)
+      .flatMap(linesOf);
     const byCC: Record<string, number> = {};
     for (const l of all) {
       if (l.direction !== "expense" || !inRange(l.date)) continue;
@@ -383,6 +391,7 @@ export default function DashboardPage() {
     const today = todayISO();
     return openItems
       .filter((r) => {
+        if (r.counts_in_total === false) return false;
         if (activeCC !== "all" && r.cost_center_id !== activeCC) return false;
         return r.due_date && r.due_date.slice(0, 10) >= today;
       })
