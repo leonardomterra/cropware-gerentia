@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,7 @@ import {
   PAYMENT_METHOD_LABEL,
   STATUSES_BY_DIRECTION,
   STATUS_LABEL,
+  isCreditCard,
 } from "../constants";
 import {
   formatBRL,
@@ -99,6 +101,7 @@ interface FormState {
   notes: string;
   cost_center_id: string;
   is_estimated: boolean;
+  counts_in_total: boolean;
   items: ItemRow[];
 }
 
@@ -118,6 +121,7 @@ const EMPTY: FormState = {
   notes: "",
   cost_center_id: "",
   is_estimated: false,
+  counts_in_total: true,
   items: [],
 };
 
@@ -198,6 +202,7 @@ export function ReceiptFormDialog({
           receipt.items?.[0]?.cost_center_id ??
           defaultCCId,
         is_estimated: receipt.is_estimated,
+        counts_in_total: receipt.counts_in_total,
         items: allowItems
           ? (receipt.items ?? [])
               .filter((it) => !it.promoted_to_receipt_id)
@@ -215,18 +220,23 @@ export function ReceiptFormDialog({
           : [],
       });
     } else if (prefill) {
+      const dt = prefill.values.doc_type ?? defaultDocType ?? EMPTY.doc_type;
       setForm({
         ...EMPTY,
         cost_center_id: defaultCCId,
         ...(defaultDocType ? { doc_type: defaultDocType } : {}),
         ...prefill.values,
+        // Fatura nasce informativa; demais somam (backend tem o mesmo default).
+        counts_in_total: dt !== "fatura",
         items: allowItems ? prefill.values.items ?? [] : [],
       });
     } else {
+      const dt = defaultDocType ?? EMPTY.doc_type;
       setForm({
         ...EMPTY,
         cost_center_id: defaultCCId,
         ...(defaultDocType ? { doc_type: defaultDocType } : {}),
+        counts_in_total: dt !== "fatura",
         // Páginas itemizadas começam com 1 linha de item pra o editor aparecer.
         items: allowItems ? [newItemRow()] : [],
       });
@@ -384,6 +394,7 @@ export function ReceiptFormDialog({
           invoice_number: form.invoice_number.trim() || null,
           notes: form.notes.trim() || null,
           is_estimated: form.is_estimated,
+          counts_in_total: form.counts_in_total,
         });
         toast.success("Lançamento atualizado");
         onSaved();
@@ -458,6 +469,7 @@ export function ReceiptFormDialog({
         notes: form.notes.trim() || null,
         cost_center_id: hasItems ? null : form.cost_center_id || null,
         is_estimated: form.is_estimated,
+        counts_in_total: form.counts_in_total,
         ...itemsKey,
       };
 
@@ -763,6 +775,30 @@ export function ReceiptFormDialog({
               className="mt-1"
             />
           </div>
+
+          {/* "Contabilizar no total" — aparece só onde há risco de duplicar
+              (fatura ou cartão de crédito). Fatura nasce desligado; cartão,
+              ligado. Desligado = informativo (não soma). */}
+          {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
+            <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
+              <div className="min-w-0">
+                <Label htmlFor="counts_in_total" className="text-sm">
+                  Contabilizar no total
+                </Label>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {form.doc_type === "fatura"
+                    ? "Faturas entram como informativo por padrão (não somam) — os gastos vêm das compras lançadas. Ligue se preferir contabilizar só a fatura."
+                    : "Despesa no cartão de crédito. Desligue se ela já está incluída na fatura, pra não somar duas vezes."}
+                </p>
+              </div>
+              <Switch
+                id="counts_in_total"
+                checked={form.counts_in_total}
+                onCheckedChange={(v) => set("counts_in_total", v)}
+                className="mt-0.5 shrink-0"
+              />
+            </div>
+          )}
 
           {/* Resumo de itemizado (Lançamentos): atalho pra gerenciar os itens
               na página dedicada (Notas e Recibos / Faturas). */}

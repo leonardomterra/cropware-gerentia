@@ -109,7 +109,7 @@ export const PAYMENT_METHODS: NonNullable<ReceiptPaymentMethod>[] = [
 
 /** É cartão de crédito? (o tipo que pode duplicar com a fatura.) */
 export function isCreditCard(
-  pm: ReceiptPaymentMethod | undefined,
+  pm: ReceiptPaymentMethod | "" | undefined,
 ): boolean {
   return pm === "cartao_credito";
 }

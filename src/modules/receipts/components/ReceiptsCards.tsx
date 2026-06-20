@@ -19,6 +19,7 @@ import {
   DOC_TYPE_PREFIX,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
+  isCreditCard,
 } from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import {
@@ -58,6 +59,9 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
                 ) : DOC_TYPE_PREFIX[r.doc_type] === "N" ? (
                   <ReceiptLong className="size-4 shrink-0 text-slate-400" />
                 ) : null}
+                {isCreditCard(r.payment_method) && (
+                  <CreditCard className="size-4 shrink-0 text-violet-500" title="Cartão de crédito" />
+                )}
                 <span className="truncate">
                   {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
                 </span>
@@ -65,7 +69,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
               <p
                 className={cn(
                   "font-medium tabular-nums whitespace-nowrap text-sm",
-                  r.is_estimated
+                  r.is_estimated || r.counts_in_total === false
                     ? "text-slate-400"
                     : r.direction === "income"
                       ? "text-emerald-700"
@@ -111,6 +115,11 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
                 >
                   <ListIcon />
                   {r.item_count}
+                </Badge>
+              )}
+              {r.counts_in_total === false && (
+                <Badge colorScheme="slate" title="Não entra nos totais">
+                  Informativo
                 </Badge>
               )}
             </div>

@@ -28,6 +28,7 @@ import {
   DOC_TYPE_PREFIX,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
+  isCreditCard,
 } from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import { useAuth } from "@/contexts/AuthContext";
@@ -172,6 +173,12 @@ export function ReceiptsTable({
                     ) : DOC_TYPE_PREFIX[r.doc_type] === "N" ? (
                       <ReceiptLong className="size-4 shrink-0 text-slate-400" />
                     ) : null}
+                    {isCreditCard(r.payment_method) && (
+                      <CreditCard
+                        className="size-4 shrink-0 text-violet-500"
+                        title="Cartão de crédito"
+                      />
+                    )}
                     <span className="truncate">
                       {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
                     </span>
@@ -196,7 +203,7 @@ export function ReceiptsTable({
                   {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
                       que é projeção, não conta firmada. Lançamento itemizado
                       ganha um badge "Tipo · N itens" ao lado. */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
                       {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                     </Badge>
@@ -209,12 +216,17 @@ export function ReceiptsTable({
                         {r.item_count}
                       </Badge>
                     )}
+                    {r.counts_in_total === false && (
+                      <Badge colorScheme="slate" title="Não entra nos totais">
+                        Informativo
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="py-3 text-right text-sm font-medium tabular-nums">
                   <span
                     className={cn(
-                      r.is_estimated
+                      r.is_estimated || r.counts_in_total === false
                         ? "text-slate-400"
                         : r.direction === "income"
                           ? "text-emerald-700"
