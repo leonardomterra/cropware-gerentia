@@ -1,6 +1,4 @@
 import Spinner from "~icons/material-symbols-light/progress-activity";
-import OpenInNew from "~icons/material-symbols-light/open-in-new";
-import Download from "~icons/material-symbols-light/download";
 import {
   Dialog,
   DialogClose,
@@ -82,10 +80,8 @@ export function AttachmentViewerDialog({
           <Button
             onClick={() => url && window.open(url, "_blank", "noopener")}
             disabled={!url}
-            className="gap-1.5"
           >
-            {isPdf ? <OpenInNew className="size-4" /> : <Download className="size-4" />}
-            {isPdf ? "Abrir em nova aba" : "Baixar"}
+            {isPdf ? "Abrir em Nova Aba" : "Baixar"}
           </Button>
         </DialogFooter>
       </DialogContent>
