@@ -86,3 +86,27 @@ export function apiGet<T = unknown>(
 ): Promise<T> {
   return api<T>(path, { ...options, method: "GET" });
 }
+
+/**
+ * GET de conteúdo binário (ex.: bytes de um anexo) com Authorization. Em 401
+ * tenta refresh + UMA segunda tentativa, como o `api()`.
+ */
+export async function apiGetArrayBuffer(
+  path: string,
+  _isRetry = false,
+): Promise<ArrayBuffer> {
+  const { accessToken } = await getSessionTokens();
+  const headers: Record<string, string> = {};
+  if (accessToken) headers["authorization"] = `Bearer ${accessToken}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { method: "GET", headers });
+  if (res.status === 401 && !_isRetry) {
+    await ensureSession();
+    return apiGetArrayBuffer(path, true);
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new ApiError(res.status, text, path);
+  }
+  return res.arrayBuffer();
+}

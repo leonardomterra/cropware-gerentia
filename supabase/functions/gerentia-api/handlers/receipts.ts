@@ -1,6 +1,6 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
-import { uploadToR2, presignGetUrl } from "../lib/r2.ts";
+import { uploadToR2, presignGetUrl, getFromR2 } from "../lib/r2.ts";
 import { extractReceiptFromImage, suggestCategory } from "../lib/gemini.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { getUserDefaultCostCenter, userCanAccessCC } from "../lib/cc.ts";
@@ -745,6 +745,42 @@ export function mountReceiptRoutes(app: Hono) {
 
       const url = await presignGetUrl(data.attachment_key, 300);
       return c.json({ url, expires_in: 300 });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      throw resp;
+    }
+  });
+
+  /**
+   * GET /receipts/:id/attachment — devolve os BYTES do anexo via o próprio API
+   * (proxy server-side do R2). Necessário pro merge em PDF no cliente: o browser
+   * não pode `fetch()` o presigned do R2 (sem CORS no bucket); aqui a resposta
+   * herda o CORS do edge. RLS garante que só o dono enxerga o attachment_key.
+   */
+  app.get("/receipts/:id/attachment", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+
+      const id = c.req.param("id");
+      const { data, error } = await client
+        .from("farm_receipts")
+        .select("attachment_key, attachment_mime")
+        .eq("id", id)
+        .single();
+
+      if (error) return c.json({ error: error.message }, 400);
+      if (!data) return c.json({ error: "not_found" }, 404);
+      if (!data.attachment_key) return c.json({ error: "no_attachment" }, 404);
+
+      const bytes = await getFromR2(data.attachment_key);
+      return new Response(bytes, {
+        headers: {
+          "content-type": data.attachment_mime || "application/octet-stream",
+          "cache-control": "private, max-age=300",
+        },
+      });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;

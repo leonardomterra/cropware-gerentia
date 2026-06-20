@@ -14,7 +14,7 @@ import Plus from "~icons/material-symbols-light/add";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
 import Print from "~icons/material-symbols-light/print-outline";
 import { cn } from "@/components/ui/utils";
-import { apiGet } from "@/utils/api";
+import { apiGetArrayBuffer } from "@/utils/api";
 import { mergeAttachmentsToPdf } from "../utils/mergeAttachmentsPdf";
 import { Button } from "@/components/ui/button";
 import {
@@ -297,13 +297,14 @@ export function ReceiptsListPage({
       );
     }
     setPrinting(true);
+    const toastId = toast.loading(
+      `Gerando PDF de ${chosen.length} anexo${chosen.length === 1 ? "" : "s"}…`,
+    );
     try {
       const items = await Promise.all(
         chosen.map(async (r) => {
-          const { url } = await apiGet<{ url: string }>(
-            `/receipts/${r.id}/attachment-url`,
-          );
-          return { receipt: r, url };
+          const bytes = await apiGetArrayBuffer(`/receipts/${r.id}/attachment`);
+          return { receipt: r, bytes };
         }),
       );
       const { blob, failed } = await mergeAttachmentsToPdf(items);
@@ -318,11 +319,16 @@ export function ReceiptsListPage({
       }
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       if (failed > 0) {
-        toast.warning(`${failed} arquivo(s) não puderam ser incluídos.`);
+        toast.warning(
+          `${failed} arquivo(s) não puderam ser incluídos.`,
+          { id: toastId },
+        );
+      } else {
+        toast.success("PDF gerado.", { id: toastId });
       }
     } catch {
       win?.close();
-      toast.error("Erro ao gerar o PDF.");
+      toast.error("Erro ao gerar o PDF.", { id: toastId });
     } finally {
       setPrinting(false);
     }

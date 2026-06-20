@@ -3,7 +3,8 @@ import type { Receipt } from "../types";
 
 export interface AttachmentItem {
   receipt: Receipt;
-  url: string;
+  /** bytes do anexo (baixados via o proxy /receipts/:id/attachment). */
+  bytes: ArrayBuffer;
 }
 
 export interface MergeResult {
@@ -45,9 +46,7 @@ export async function mergeAttachmentsToPdf(
 
   for (const it of items) {
     try {
-      const res = await fetch(it.url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const bytes = await res.arrayBuffer();
+      const bytes = it.bytes;
       const mime = it.receipt.attachment_mime ?? "";
 
       if (mime === "application/pdf") {
