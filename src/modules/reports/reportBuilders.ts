@@ -100,43 +100,49 @@ const fmtPct = (part: number, whole: number) =>
 
 // ---- Builders -------------------------------------------------------------
 
+// Agrupa linhas por uma chave (categoria/centro), ordena desc e calcula %.
+function groupRows(
+  ls: RLine[],
+  key: (l: RLine) => string,
+  total: number,
+): ReportCell[][] {
+  const m = new Map<string, number>();
+  for (const l of ls) m.set(key(l), (m.get(key(l)) ?? 0) + l.value);
+  return [...m.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => [k, v, fmtPct(v, total)] as ReportCell[]);
+}
+
+const PCT_COLS = (head: string): ReportColumn[] => [
+  { label: head },
+  { label: "Valor", money: true, align: "right" },
+  { label: "%", align: "right" },
+];
+
 function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
   const lines = toReportLines(receipts, ctx);
-  const income = sum(lines.filter((l) => l.direction === "income").map((l) => l.value));
-  const expense = sum(lines.filter((l) => l.direction === "expense").map((l) => l.value));
-
-  // Saídas por categoria
+  const incLines = lines.filter((l) => l.direction === "income");
   const expLines = lines.filter((l) => l.direction === "expense");
-  const byCat = new Map<string, number>();
-  for (const l of expLines) byCat.set(l.categoryLabel, (byCat.get(l.categoryLabel) ?? 0) + l.value);
-  const catRows = [...byCat.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([cat, val]) => [cat, val, fmtPct(val, expense)] as ReportCell[]);
-
-  // Saídas por centro de custo
-  const byCc = new Map<string, number>();
-  for (const l of expLines) byCc.set(l.ccName, (byCc.get(l.ccName) ?? 0) + l.value);
-  const ccRows = [...byCc.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([cc, val]) => [cc, val, fmtPct(val, expense)] as ReportCell[]);
+  const income = sum(incLines.map((l) => l.value));
+  const expense = sum(expLines.map((l) => l.value));
 
   const tables: ReportTable[] = [];
-  if (catRows.length) {
-    tables.push({
-      title: "Saídas por categoria",
-      columns: [{ label: "Categoria" }, { label: "Valor", money: true, align: "right" }, { label: "%", align: "right" }],
-      rows: catRows,
-      total: ["Total", expense, ""],
-    });
-  }
-  if (ccRows.length) {
-    tables.push({
-      title: "Saídas por centro de custo",
-      columns: [{ label: "Centro de custo" }, { label: "Valor", money: true, align: "right" }, { label: "%", align: "right" }],
-      rows: ccRows,
-      total: ["Total", expense, ""],
-    });
-  }
+  const pushGroup = (
+    title: string,
+    rows: ReportCell[][],
+    head: string,
+    total: number,
+  ) => {
+    if (rows.length) {
+      tables.push({ title, columns: PCT_COLS(head), rows, total: ["Total", total, ""] });
+    }
+  };
+
+  // Entradas (por categoria + por centro), depois Saídas — espelha os cards.
+  pushGroup("Entradas por categoria", groupRows(incLines, (l) => l.categoryLabel, income), "Categoria", income);
+  pushGroup("Entradas por centro de custo", groupRows(incLines, (l) => l.ccName, income), "Centro de custo", income);
+  pushGroup("Saídas por categoria", groupRows(expLines, (l) => l.categoryLabel, expense), "Categoria", expense);
+  pushGroup("Saídas por centro de custo", groupRows(expLines, (l) => l.ccName, expense), "Centro de custo", expense);
 
   return {
     title: REPORT_LABEL.resumo,
