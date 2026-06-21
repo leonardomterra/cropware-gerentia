@@ -309,17 +309,20 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, fromKey, toKey]);
 
-  // Pendentes (a_pagar / a_receber / vencido) — INCLUI previsto (são obrigações
-  // futuras projetadas), ao contrário do realizado acima.
+  // Pendentes (a_pagar / a_receber / vencido) DO PERÍODO selecionado (mesmo
+  // recorte das Entradas/Saídas — não soma contas de meses anteriores). INCLUI
+  // previsto (são obrigações projetadas do período).
   const pending = useMemo(() => {
     let aPagar = 0, aReceber = 0, vencido = 0;
     for (const l of lines) {
+      if (!inRange(l.date)) continue;
       if (l.status === "a_pagar") aPagar += l.value;
       else if (l.status === "a_receber") aReceber += l.value;
       else if (l.status === "vencido") vencido += l.value;
     }
     return { aPagar, aReceber, vencido };
-  }, [lines]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, fromKey, toKey]);
 
   // Série do gráfico: realizado (passado + atual) + PREVISTO (meses futuros, só
   // no modo Mês), alimentado pelos itens em aberto (recorrências projetadas etc.).
@@ -534,8 +537,8 @@ export default function DashboardPage() {
         <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-700" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.income, lastMonthKpis.income, true) : null} />
         <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-slate-900" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false) : null} />
         <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-600"} loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true) : null} />
-        <KpiCard label="A pagar" value={pending.aPagar} color="text-amber-600" loading={loading} />
-        <KpiCard label="A receber" value={pending.aReceber} color="text-emerald-700" loading={loading} />
+        <KpiCard label={period.mode === "month" ? "A pagar (mês)" : "A pagar"} value={pending.aPagar} color="text-amber-600" loading={loading} />
+        <KpiCard label={period.mode === "month" ? "A receber (mês)" : "A receber"} value={pending.aReceber} color="text-emerald-700" loading={loading} />
         <KpiCard label="Vencido" value={pending.vencido} color="text-red-600" loading={loading} />
       </div>
 
