@@ -44,14 +44,9 @@ import {
   type ReportKind,
   type ReportTable,
 } from "../reportBuilders";
-import { downloadReportCsv, openReportPage } from "../reportExport";
-import { renderReportToPdf } from "../reportRender";
+import { downloadReportCsv, openReportPage, reportPageHtml } from "../reportExport";
+import { attachmentsToPagesHtml } from "../reportAttachments";
 import { apiGetArrayBuffer } from "@/utils/api";
-import {
-  appendAttachments,
-  pdfDocToBlob,
-  pdfViewerHtml,
-} from "@/modules/receipts/utils/mergeAttachmentsPdf";
 
 function cellText(v: ReportCell, col: ReportColumn): string {
   if (col.money && typeof v === "number" && Number.isFinite(v)) return formatBRL(v);
@@ -163,22 +158,22 @@ export default function ReportsPage() {
   const activeCC = userCCs.find((c) => c.id === activeCCId);
   const [printing, setPrinting] = useState(false);
 
-  // Gera o PDF do relatório (HTML do app -> imagem -> pdf-lib, com fonte+logo) e,
-  // se `withAtt`, anexa os arquivos dos lançamentos do período logo após. Abre na
-  // página-visualizador.
-  const handlePrint = async (withAtt: boolean) => {
-    const docs = withAtt ? receipts.filter((r) => !!r.attachment_key) : [];
+  // Com anexos: mesma página do "sem anexos", com os arquivos (PDFs rasterizados
+  // + imagens) embutidos como páginas logo após o relatório. A janela é aberta no
+  // clique (gesto) e preenchida após montar os anexos.
+  const handlePrintWithAttachments = async () => {
+    const docs = receipts.filter((r) => !!r.attachment_key);
     const win = window.open("", "_blank");
     if (win) {
       win.document.write(
-        "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando PDF…</p>",
+        "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando relatório…</p>",
       );
     }
     setPrinting(true);
     const toastId = toast.loading(
-      withAtt && docs.length
-        ? `Gerando PDF (relatório + ${docs.length} anexo${docs.length === 1 ? "" : "s"})…`
-        : "Gerando PDF do relatório…",
+      docs.length
+        ? `Gerando relatório + ${docs.length} anexo${docs.length === 1 ? "" : "s"}…`
+        : "Gerando relatório…",
     );
     try {
       const items = await Promise.all(
@@ -187,29 +182,21 @@ export default function ReportsPage() {
           bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
         })),
       );
-      const pdf = await renderReportToPdf(doc);
-      const failed = withAtt ? await appendAttachments(pdf, items) : 0;
-      const blob = await pdfDocToBlob(pdf);
-      const url = URL.createObjectURL(blob);
-      const filename = csvName.replace(/\.csv$/, ".pdf");
+      const { html: attHtml, failed } = await attachmentsToPagesHtml(items);
       if (win) {
         win.document.open();
-        win.document.write(pdfViewerHtml(url, filename));
+        win.document.write(reportPageHtml(doc, attHtml));
         win.document.close();
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
+        win.focus();
       }
       if (failed > 0) {
         toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, { id: toastId });
       } else {
-        toast.success("PDF gerado.", { id: toastId });
+        toast.dismiss(toastId);
       }
     } catch {
       win?.close();
-      toast.error("Erro ao gerar o PDF.", { id: toastId });
+      toast.error("Erro ao gerar o relatório.", { id: toastId });
     } finally {
       setPrinting(false);
     }
@@ -325,7 +312,7 @@ export default function ReportsPage() {
               <DropdownMenuItem onClick={() => openReportPage(doc)}>
                 Sem anexos
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handlePrint(true)}>
+              <DropdownMenuItem onClick={handlePrintWithAttachments}>
                 Com anexos
               </DropdownMenuItem>
             </DropdownMenuContent>

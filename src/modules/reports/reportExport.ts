@@ -79,7 +79,7 @@ function tableHtml(t: ReportDoc["tables"][number]): string {
 // Página HTML do relatório no estilo do CDM (laudos): folha A4 com a marca, fonte
 // via @import (Inter Tight — funciona em janela nova), e uma barra fixa no rodapé
 // com "Imprimir / Salvar PDF" + "Cancelar" (escondida na impressão via .no-print).
-function reportPageHtml(doc: ReportDoc): string {
+export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   const origin = window.location.origin;
   const meta = doc.meta
     .map(
@@ -120,6 +120,10 @@ function reportPageHtml(doc: ReportDoc): string {
   td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; color: #0f172a; }
   .foot { margin-top: 24px; color: #94a3b8; font-size: 10px; }
+  .att { padding: 0; display: flex; align-items: center; justify-content: center; }
+  .att .att-img { max-width: 100%; max-height: 265mm; object-fit: contain; display: block; }
+  @media screen { .att { min-height: 297mm; } .sheet + .sheet { margin-top: 24px; } }
+  @media print { .att { break-before: page; page-break-before: always; } }
   .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e2e8f0; }
   .btn { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
   .btn.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
@@ -140,6 +144,7 @@ function reportPageHtml(doc: ReportDoc): string {
     ${tables || '<p class="sub">Sem dados para o período.</p>'}
     <div class="foot">Gerado por gerentia.app — ${esc(new Date().toLocaleString("pt-BR"))}</div>
   </div>
+  ${attachmentsHtml}
   <div class="bar no-print">
     <button class="btn primary" onclick="window.print()">Imprimir / Salvar PDF</button>
     <button class="btn" onclick="window.close()">Cancelar</button>
