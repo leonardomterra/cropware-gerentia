@@ -229,6 +229,15 @@ export function mountRecurringRoutes(app: Hono) {
       if (auth.error) return auth.error;
       const id = c.req.param("id");
 
+      // Confirma posse (via RLS) ANTES de qualquer RPC admin por id — senão o
+      // cleanup (service-role) rodaria sobre a recorrência de outro org.
+      const { data: owned } = await client
+        .from("farm_recurring_receipts")
+        .select("id")
+        .eq("id", id)
+        .maybeSingle();
+      if (!owned) return c.json({ error: "not_found" }, 404);
+
       // Apaga os previstos futuros ANTES do delete: a FK recurring_id e
       // 'on delete set null' (nao cascade), entao depois o vinculo se perde.
       // Confirmados/passados ficam (recurring_id vira null).
@@ -238,12 +247,11 @@ export function mountRecurringRoutes(app: Hono) {
       });
       if (cleanErr) console.error("[recurring] cleanup on delete:", cleanErr.message);
 
-      const { error, count } = await client
+      const { error } = await client
         .from("farm_recurring_receipts")
-        .delete({ count: "exact" })
+        .delete()
         .eq("id", id);
       if (error) return c.json({ error: error.message }, 400);
-      if (!count) return c.json({ error: "not_found" }, 404);
       return c.json({ ok: true });
     } catch (resp) {
       if (resp instanceof Response) return resp;

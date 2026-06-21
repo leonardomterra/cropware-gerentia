@@ -1,5 +1,6 @@
 import type { Hono } from "npm:hono";
 import { requireCronSecret } from "../lib/cronGuard.ts";
+import { getUserClient, requireMaster } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { sendTemplate, submitTemplate } from "../lib/whatsapp.ts";
 import { secret } from "../lib/env.ts";
@@ -194,10 +195,8 @@ export function mountCronRoutes(app: Hono) {
   // expoe nada). Guard pelo verify_token. Retorna name, status, category,
   // rejected_reason, quality_score.
   app.get("/admin/list-templates", async (c) => {
-    const key = c.req.query("key");
-    if (key !== Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
-      return c.json({ error: "forbidden" }, 403);
-    }
+    const auth = await requireMaster(getUserClient(c.req.raw));
+    if (auth.error) return auth.error;
     const waba = secret("WHATSAPP_GERENTIA_BOT_WABA_ID");
     const token = secret("WHATSAPP_GERENTIA_BOT_TOKEN");
     if (!waba || !token) return c.json({ error: "config_missing" }, 500);
@@ -211,10 +210,8 @@ export function mountCronRoutes(app: Hono) {
   });
 
   app.get("/admin/submit-templates", async (c) => {
-    const key = c.req.query("key");
-    if (key !== Deno.env.get("WHATSAPP_VERIFY_TOKEN")) {
-      return c.json({ error: "forbidden" }, 403);
-    }
+    const auth = await requireMaster(getUserClient(c.req.raw));
+    if (auth.error) return auth.error;
     const results: Array<{ name: string; status: string; error?: string }> = [];
 
     const dueTpl = {

@@ -1081,17 +1081,17 @@ export function mountWhatsappRoutes(app: Hono) {
   app.post("/webhook/whatsapp", async (c) => {
     // Lê o corpo CRU antes de parsear (HMAC precisa dos bytes exatos).
     const raw = await c.req.text();
-    // Verifica a assinatura da Meta. Fail-open ATÉ o App Secret ser configurado
-    // (pra não derrubar o bot no deploy); quando o secret existir, enforce.
+    // Verifica a assinatura da Meta — FAIL-CLOSED: sem o App Secret configurado,
+    // recusa (não processa payload não assinado). Evita forja de eventos.
     const appSecret = secret("WHATSAPP_GERENTIA_APP_SECRET");
-    if (appSecret) {
-      const ok = await verifyMetaSignature(raw, c.req.header("x-hub-signature-256"), appSecret);
-      if (!ok) {
-        console.warn("[wa webhook] assinatura X-Hub-Signature-256 inválida — rejeitado");
-        return c.json({ error: "bad_signature" }, 401);
-      }
-    } else {
-      console.warn("[wa webhook] WHATSAPP_GERENTIA_APP_SECRET ausente — assinatura NÃO verificada (configure pra ativar)");
+    if (!appSecret) {
+      console.error("[wa webhook] WHATSAPP_GERENTIA_APP_SECRET ausente — recusando (fail-closed).");
+      return c.json({ error: "webhook_not_configured" }, 503);
+    }
+    const ok = await verifyMetaSignature(raw, c.req.header("x-hub-signature-256"), appSecret);
+    if (!ok) {
+      console.warn("[wa webhook] assinatura X-Hub-Signature-256 inválida — rejeitado");
+      return c.json({ error: "bad_signature" }, 401);
     }
     // deno-lint-ignore no-explicit-any
     let body: any = null;
@@ -1143,10 +1143,16 @@ export function mountWhatsappRoutes(app: Hono) {
   });
 
   app.post("/webhook/salvy-sms", async (c) => {
+    // Fail-closed: exige segredo compartilhado (header). Sem GERENTIA_SALVY_SECRET
+    // configurado, recusa — evita escrita não autenticada no banco.
+    const salvySecret = secret("GERENTIA_SALVY_SECRET");
+    if (!salvySecret || c.req.header("x-salvy-secret") !== salvySecret) {
+      return c.json({ error: "unauthorized" }, 401);
+    }
     const body = await c.req.json().catch(() => null);
     if (!body) return c.json({ error: "invalid" }, 400);
     if (body.type === "sms.received") {
-      console.log("[salvy-sms] recebido:", JSON.stringify(body.data ?? body).slice(0, 300));
+      console.log("[salvy-sms] recebido (type:", body.type, ")");
       const admin = getSupabaseAdmin();
       await admin.from("farm_wa_pending").upsert({
         phone_number: "salvy:last-sms",

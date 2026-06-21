@@ -13,6 +13,21 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
+// Rate-limit por usuário pros endpoints caros de IA (OCR/sugestão). In-memory
+// (por instância) — não é perfeito em multi-instância, mas freia abuso/custo.
+const _aiHits = new Map<string, number[]>();
+function aiRateOk(userId: string, max = 20, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const arr = (_aiHits.get(userId) ?? []).filter((t) => now - t < windowMs);
+  if (arr.length >= max) {
+    _aiHits.set(userId, arr);
+    return false;
+  }
+  arr.push(now);
+  _aiHits.set(userId, arr);
+  return true;
+}
+
 function extFromMime(mime: string): string {
   switch (mime) {
     case "image/jpeg": return "jpg";
@@ -229,6 +244,14 @@ export function mountReceiptRoutes(app: Hono) {
       }
       if (!body.doc_type) {
         return c.json({ error: "doc_type obrigatorio" }, 400);
+      }
+      // attachment_key (quando enviado) tem que ser do próprio org — o scan gera
+      // "org-<orgId>/...". Bloqueia apontar pro arquivo de outro org.
+      if (
+        body.attachment_key &&
+        !String(body.attachment_key).startsWith(`org-${auth.organizationId}/`)
+      ) {
+        return c.json({ error: "invalid_attachment_key" }, 400);
       }
 
       const admin = getSupabaseAdmin();
@@ -616,6 +639,7 @@ export function mountReceiptRoutes(app: Hono) {
       const client = getUserClient(c.req.raw);
       const auth = await requireFarmUser(client);
       if (auth.error) return auth.error;
+      if (!aiRateOk(auth.user!.id)) return c.json({ error: "rate_limited" }, 429);
 
       const body = await c.req.json().catch(() => null);
       if (!body || typeof body !== "object") {
@@ -663,6 +687,7 @@ export function mountReceiptRoutes(app: Hono) {
       const client = getUserClient(c.req.raw);
       const auth = await requireFarmUser(client);
       if (auth.error) return auth.error;
+      if (!aiRateOk(auth.user!.id)) return c.json({ error: "rate_limited" }, 429);
 
       const body = await c.req.json().catch(() => null);
       const imageBase64 = body?.image_base64;

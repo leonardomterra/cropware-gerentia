@@ -131,7 +131,15 @@ export function mountMemberRoutes(app: Hono) {
       if (!tgt) return c.json({ error: "not_found" }, 404);
       if (tgt.role === "owner") return c.json({ error: "cannot_remove_owner" }, 400);
 
-      const { error } = await client.from("users_meta").delete().eq("user_id", userId);
+      // users_meta não tem policy de DELETE (RLS) — o delete via client seria
+      // no-op. Já validamos (admin do org + alvo no mesmo org + não-owner), então
+      // removemos via admin com filtro explícito de org.
+      const admin = getSupabaseAdmin();
+      const { error } = await admin
+        .from("users_meta")
+        .delete()
+        .eq("user_id", userId)
+        .eq("organization_id", auth.organizationId!);
       if (error) return c.json({ error: error.message }, 400);
       return c.json({ ok: true });
     } catch (resp) {
