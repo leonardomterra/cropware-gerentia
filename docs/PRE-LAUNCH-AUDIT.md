@@ -3,7 +3,7 @@
 Auditoria em **5 etapas**, feita antes do lançamento oficial. Cada etapa gera
 achados (por severidade) + correções. Status no topo de cada seção.
 
-- [x] **Etapa 1 — Segurança** (achados abaixo; correções de código em andamento)
+- [x] **Etapa 1 — Segurança** ✅ FECHADA (correções deployadas + RLS endurecido + segredos rotacionados)
 - [ ] **Etapa 2 — Robustez / pontos de erro**
 - [ ] **Etapa 3 — Visual / UI**
 - [ ] **Etapa 4 — Mobile / responsividade**
@@ -68,10 +68,7 @@ privado; signup/invites sem entrar em org arbitrária.
    (`gerentia_cron_secret`), `GERENTIA_CRON_SECRET` atualizado (digest novo),
    jobs lendo do Vault (sem literal), `FARM_CRON_SECRET` legado removido. O valor
    antigo não autentica mais.
-2. [ ] **WhatsApp verify token** — PENDENTE (precisa do painel Meta): escolher
-   valor novo → atualizar no Meta (WhatsApp → Configuration → Webhook) → `supabase
-   secrets set WHATSAPP_VERIFY_TOKEN=<NOVO>`. Risco baixo (a proteção real é o
-   APP_SECRET/HMAC, que não vazou).
+2. [x] **WhatsApp verify token** — ROTACIONADO (Meta + env atualizados; digest novo).
 3. [x] **Confirmados setados em prod**: `GERENTIA_ALLOWED_ORIGINS`,
    `WHATSAPP_GERENTIA_APP_SECRET`, `GERENTIA_INTERNAL_SECRET` ✅. `GERENTIA_SALVY_SECRET`
    não setado → endpoint salvy-sms fica fail-closed (inerte; setar só se for usar).
