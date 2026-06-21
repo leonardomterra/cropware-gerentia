@@ -63,14 +63,15 @@ function ReportTableView({ table }: { table: ReportTable }) {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-slate-200">
               {table.columns.map((c, i) => (
                 <th
                   key={i}
+                  style={c.width ? { width: c.width } : undefined}
                   className={cn(
-                    "py-2.5 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide",
+                    "py-2.5 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide truncate",
                     c.align === "right" ? "text-right" : "text-left",
                   )}
                 >
@@ -86,7 +87,7 @@ function ReportTableView({ table }: { table: ReportTable }) {
                   <td
                     key={ci}
                     className={cn(
-                      "py-2 px-4 text-slate-700",
+                      "py-2 px-4 text-slate-700 truncate",
                       table.columns[ci].align === "right" && "text-right tabular-nums",
                     )}
                   >
@@ -101,7 +102,7 @@ function ReportTableView({ table }: { table: ReportTable }) {
                   <td
                     key={ci}
                     className={cn(
-                      "py-2 px-4 font-semibold text-slate-900",
+                      "py-2 px-4 font-semibold text-slate-900 truncate",
                       table.columns[ci].align === "right" && "text-right tabular-nums",
                     )}
                   >

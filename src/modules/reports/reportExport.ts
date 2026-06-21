@@ -61,7 +61,10 @@ function dispVal(v: ReportCell, col: ReportColumn): string {
 
 function tableHtml(t: ReportDoc["tables"][number]): string {
   const head = t.columns
-    .map((c) => `<th class="${c.align === "right" ? "r" : ""}">${esc(c.label)}</th>`)
+    .map(
+      (c) =>
+        `<th class="${c.align === "right" ? "r" : ""}"${c.width ? ` style="width:${c.width}"` : ""}>${esc(c.label)}</th>`,
+    )
     .join("");
   const body = t.rows
     .map(
@@ -124,8 +127,8 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   .kpi.muted .kv { color: #475569; }
   section { margin-bottom: 22px; page-break-inside: avoid; }
   h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: #334155; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eef2f6; font-size: 13.5px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eef2f6; font-size: 13.5px; overflow-wrap: anywhere; }
   th { color: #64748b; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
   td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; color: #0f172a; }

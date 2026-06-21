@@ -17,6 +17,9 @@ export interface ReportColumn {
   /** célula é monetária (number cru → formatado na exibição/CSV). */
   money?: boolean;
   align?: "right";
+  /** largura fixa (CSS) p/ alinhar colunas entre tabelas (table-fixed). As
+   *  colunas sem width dividem o espaço restante. */
+  width?: string;
 }
 export type ReportCell = string | number;
 export interface ReportTable {
@@ -115,8 +118,8 @@ function groupRows(
 
 const PCT_COLS = (head: string): ReportColumn[] => [
   { label: head },
-  { label: "Valor", money: true, align: "right" },
-  { label: "%", align: "right" },
+  { label: "Valor", money: true, align: "right", width: "30mm" },
+  { label: "%", align: "right", width: "18mm" },
 ];
 
 function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
@@ -181,10 +184,10 @@ function buildGrouped(
     .map(({ key, ls, total }) => ({
       title: key,
       columns: [
-        { label: "Data" },
+        { label: "Data", width: "26mm" },
         { label: "Origem" },
         { label: groupBy === "categoria" ? "Centro de custo" : "Categoria" },
-        { label: "Valor", money: true, align: "right" as const },
+        { label: "Valor", money: true, align: "right" as const, width: "30mm" },
       ],
       rows: ls
         .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
@@ -229,11 +232,11 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
     ]);
 
   const cols: ReportColumn[] = [
-    { label: "Vencimento" },
+    { label: "Vencimento", width: "26mm" },
     { label: "Origem" },
     { label: "Categoria" },
-    { label: "Status" },
-    { label: "Valor", money: true, align: "right" },
+    { label: "Status", width: "26mm" },
+    { label: "Valor", money: true, align: "right", width: "30mm" },
   ];
   const totalPagar = sum(pagar.map((r) => Number(r.total_value) || 0));
   const totalReceber = sum(receber.map((r) => Number(r.total_value) || 0));
