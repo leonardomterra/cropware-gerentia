@@ -175,10 +175,14 @@ export function ReceiptsTable({
                       <ReceiptLong className="size-4 shrink-0 text-slate-400" />
                     ) : null}
                     {isCreditCard(r.payment_method) && (
-                      <CreditCard
-                        className="size-4 shrink-0 text-violet-500"
-                        title="Cartão de crédito"
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex shrink-0 text-violet-500">
+                            <CreditCard className="size-4" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Cartão de crédito</TooltipContent>
+                      </Tooltip>
                     )}
                     <span className="truncate">
                       {r.vendor ? r.vendor.toUpperCase() : (r.description ? r.description.toUpperCase() : "—")}
@@ -209,13 +213,18 @@ export function ReceiptsTable({
                       {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                     </Badge>
                     {hasItems && (
-                      <Badge
-                        colorScheme="white"
-                        title={`${DOC_TYPE_LABEL[r.doc_type]} — ${r.item_count} ${r.item_count === 1 ? "item" : "itens"}`}
-                      >
-                        <ListIcon />
-                        {r.item_count}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge colorScheme="white">
+                            <ListIcon />
+                            {r.item_count}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {DOC_TYPE_LABEL[r.doc_type]} — {r.item_count}{" "}
+                          {r.item_count === 1 ? "item" : "itens"}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </TableCell>
