@@ -50,16 +50,39 @@ commitado; `.env` fora do git; client web só anon key; rotas DEV gated; compara
 de segredo em tempo constante; funções de recorrência só service_role; bucket
 privado; signup/invites sem entrar em org arbitrária.
 
-### Correções
-**Código (eu faço):** WITH CHECK users_meta · WhatsApp fail-closed · salvy-sms auth ·
-member delete (org/scoped) · recurring delete checa dono · validar prefixo
-attachment_key · admin-templates requireMaster · cron via Vault · search_path
-helpers · rate-limit OCR · farm_categories INSERT pin org.
+### Correções — código ✅ FEITO (deployado)
+- [x] WhatsApp webhook **fail-closed** (whatsapp.ts)
+- [x] `salvy-sms` exige `x-salvy-secret` + sem PII no log (whatsapp.ts)
+- [x] POST /receipts valida prefixo do `attachment_key` (receipts.ts)
+- [x] DELETE /members via admin scoped ao org (members.ts)
+- [x] DELETE /recurring confirma posse antes do cleanup (recurring.ts)
+- [x] /admin/*-templates via `requireMaster` (cron.ts)
+- [x] rate-limit por usuário no OCR/suggest (receipts.ts)
+- [x] users_meta **WITH CHECK** (migração `20260621120000`, aplicada)
+- [x] `search_path=''` em farm_user_can_access_cc / farm_cc_check_limit (idem)
+- [x] farm_categories INSERT fixa organization_id (idem)
+- [ ] cron via Vault: migração `20260621130000` **criada, NÃO aplicada** (depende
+      da rotação abaixo — aplicar só após criar o secret no Vault).
 
-**Rotação (o usuário faz):** novo `GERENTIA_CRON_SECRET` (criar no Vault como
-`gerentia_cron_secret`) · novo `WHATSAPP_VERIFY_TOKEN` · confirmar setados em prod:
-`GERENTIA_ALLOWED_ORIGINS`, `WHATSAPP_GERENTIA_APP_SECRET`, `GERENTIA_INTERNAL_SECRET`.
-Limpar literais de `docs/FARM-MIGRATION-NEW-PROJECT.md`.
+### Correções — rotação ⏳ PENDENTE (o usuário faz)
+1. **Cron secret** (Crítico): gerar valor novo →
+   `select vault.create_secret('<NOVO>', 'gerentia_cron_secret');` →
+   `supabase secrets set GERENTIA_CRON_SECRET=<NOVO>` → aplicar migração
+   `20260621130000_gerentia_cron_secret_vault.sql`. Depois validar que os jobs
+   rodam (forçar um run e ver 200).
+2. **WhatsApp verify token**: regenerar no Meta → `supabase secrets set
+   WHATSAPP_VERIFY_TOKEN=<NOVO>` → reconfigurar no painel da Meta.
+3. **Confirmar setados em prod** (senão fail-closed/aberto): `GERENTIA_ALLOWED_ORIGINS`
+   (= https://gerentia.app), `WHATSAPP_GERENTIA_APP_SECRET`, `GERENTIA_INTERNAL_SECRET`.
+   Se usar Salvy: `GERENTIA_SALVY_SECRET` (novo).
+4. **Limpar literais** de `docs/FARM-MIGRATION-NEW-PROJECT.md` (cron secret +
+   verify token + IDs). Obs: continuam no histórico do git → a rotação é o que resolve.
+
+### Não corrigido (aceito por ora — risco baixo)
+- `.or()` do PostgREST com interpolação (RLS protege; validar slugs depois).
+- Proxy `gemini` fail-open se faltar `GERENTIA_INTERNAL_SECRET` (confirmar setado).
+- Brute-force do código de vínculo WhatsApp 6 díg. (TTL + 1 código ativo mitigam).
+- `.eq(organization_id)` defensivo extra em mutações `:id` (RLS já cobre).
 
 ---
 
