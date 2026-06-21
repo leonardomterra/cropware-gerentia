@@ -113,6 +113,18 @@ function RootRoutes() {
 
   return (
     <Routes>
+      {/* DEV-only: preview da tela de erro em tela cheia (fora do AppShell),
+          igual ao erro real. Acesse /erro. */}
+      {import.meta.env.DEV && (
+        <Route
+          path="erro"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ErrorTestPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route element={<AppShell />}>
         <Route
           index
@@ -230,16 +242,6 @@ function RootRoutes() {
             element={
               <Suspense fallback={<LoadingScreen />}>
                 <IconLabPage />
-              </Suspense>
-            }
-          />
-        )}
-        {import.meta.env.DEV && (
-          <Route
-            path="erro"
-            element={
-              <Suspense fallback={<LoadingScreen />}>
-                <ErrorTestPage />
               </Suspense>
             }
           />
