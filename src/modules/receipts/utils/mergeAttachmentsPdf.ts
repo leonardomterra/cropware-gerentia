@@ -50,12 +50,16 @@ function fitA4(w: number, h: number) {
  * vira uma folha A4. Mantém a ordem recebida. Erros por item são contabilizados
  * em `failed` sem abortar o resto.
  */
-export async function mergeAttachmentsToPdf(
+/**
+ * Anexa os arquivos (PDFs + imagens) como páginas A4 numa doc pdf-lib EXISTENTE.
+ * Reusado pelo merge da aba Anexos e pelo "relatório com anexos". Retorna quantos
+ * itens falharam (sem abortar o resto).
+ */
+export async function appendAttachments(
+  out: PDFDocument,
   items: AttachmentItem[],
-): Promise<MergeResult> {
-  const out = await PDFDocument.create();
+): Promise<number> {
   let failed = 0;
-
   for (const it of items) {
     try {
       const mime = it.receipt.attachment_mime ?? "";
@@ -80,15 +84,26 @@ export async function mergeAttachmentsToPdf(
       failed += 1;
     }
   }
+  return failed;
+}
 
+/** Serializa uma doc pdf-lib num Blob (copia p/ ArrayBuffer concreto — o
+ *  Uint8Array do pdf-lib é genérico e o tipo do Blob recusa ArrayBufferLike). */
+export async function pdfDocToBlob(out: PDFDocument): Promise<Blob> {
   const pdfBytes = await out.save();
-  // Copia pra um ArrayBuffer concreto (o Uint8Array do pdf-lib é genérico e o
-  // tipo do Blob recusa ArrayBufferLike/SharedArrayBuffer).
   const ab = pdfBytes.buffer.slice(
     pdfBytes.byteOffset,
     pdfBytes.byteOffset + pdfBytes.byteLength,
   ) as ArrayBuffer;
-  return { blob: new Blob([ab], { type: "application/pdf" }), failed };
+  return new Blob([ab], { type: "application/pdf" });
+}
+
+export async function mergeAttachmentsToPdf(
+  items: AttachmentItem[],
+): Promise<MergeResult> {
+  const out = await PDFDocument.create();
+  const failed = await appendAttachments(out, items);
+  return { blob: await pdfDocToBlob(out), failed };
 }
 
 /**

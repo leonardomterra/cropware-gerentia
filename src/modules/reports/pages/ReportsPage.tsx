@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import Download from "~icons/material-symbols-light/download";
 import Print from "~icons/material-symbols-light/print-outline";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
@@ -44,6 +45,9 @@ import {
   type ReportTable,
 } from "../reportBuilders";
 import { downloadReportCsv, printReport } from "../reportExport";
+import { buildReportWithAttachmentsPdf } from "../reportPdf";
+import { apiGetArrayBuffer } from "@/utils/api";
+import { pdfViewerHtml } from "@/modules/receipts/utils/mergeAttachmentsPdf";
 
 function cellText(v: ReportCell, col: ReportColumn): string {
   if (col.money && typeof v === "number" && Number.isFinite(v)) return formatBRL(v);
@@ -153,14 +157,61 @@ export default function ReportsPage() {
   const noData = doc.empty;
 
   const activeCC = userCCs.find((c) => c.id === activeCCId);
+  const [printing, setPrinting] = useState(false);
+
+  // Imprimir COM anexos: relatório em PDF (pdf-lib) + os arquivos dos lançamentos
+  // do período logo após, num único PDF aberto na página-visualizador.
+  const handlePrintWithAttachments = async () => {
+    const withAtt = receipts.filter((r) => !!r.attachment_key);
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(
+        "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando PDF…</p>",
+      );
+    }
+    setPrinting(true);
+    const toastId = toast.loading(
+      withAtt.length
+        ? `Gerando PDF (relatório + ${withAtt.length} anexo${withAtt.length === 1 ? "" : "s"})…`
+        : "Gerando PDF do relatório…",
+    );
+    try {
+      const items = await Promise.all(
+        withAtt.map(async (r) => ({
+          receipt: r,
+          bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
+        })),
+      );
+      const { blob, failed } = await buildReportWithAttachmentsPdf(doc, items);
+      const url = URL.createObjectURL(blob);
+      const filename = csvName.replace(/\.csv$/, ".pdf");
+      if (win) {
+        win.document.open();
+        win.document.write(pdfViewerHtml(url, filename));
+        win.document.close();
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+      }
+      if (failed > 0) {
+        toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, { id: toastId });
+      } else {
+        toast.success("PDF gerado.", { id: toastId });
+      }
+    } catch {
+      win?.close();
+      toast.error("Erro ao gerar o PDF.", { id: toastId });
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-base font-medium text-slate-900">Relatórios</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Modelos prontos pra acompanhar suas contas. Exporte em CSV ou imprima/salve em PDF.
-        </p>
       </div>
 
       {/* Controles — ocupam a largura: filtros flex-1, ações à direita. */}
@@ -251,15 +302,27 @@ export default function ReportsPage() {
             <Download className="size-4" />
             Baixar CSV
           </Button>
-          <Button
-            variant="outline"
-            className="gap-1.5 flex-1 lg:flex-none"
-            disabled={noData}
-            onClick={() => printReport(doc)}
-          >
-            <Print className="size-4" />
-            Imprimir / PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-1.5 flex-1 lg:flex-none"
+                disabled={noData || printing}
+              >
+                <Print className="size-4" />
+                {printing ? "Gerando…" : "Imprimir / PDF"}
+                <ChevronDown className="size-4 text-slate-500" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => printReport(doc)}>
+                Sem anexos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePrintWithAttachments}>
+                Com anexos
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
