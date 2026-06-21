@@ -116,7 +116,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
               >
                 {r.direction === "income" ? <ArrowDownLeft /> : <ArrowUpRight />}
               </Badge>
-              <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
+              <Badge colorScheme={r.is_estimated ? "orange" : (STATUS_COLOR_SCHEME[r.status] ?? "slate")}>
                 {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
               </Badge>
               {r.item_count > 0 && (r.items?.length ?? 0) > 0 && (

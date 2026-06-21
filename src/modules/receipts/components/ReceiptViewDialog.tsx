@@ -87,7 +87,7 @@ export function ReceiptViewDialog({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
           <Field label="Tipo">{directionLabel}</Field>
           <Field label="Status">
-            <Badge colorScheme={STATUS_COLOR_SCHEME[receipt.status]}>
+            <Badge colorScheme={STATUS_COLOR_SCHEME[receipt.status] ?? "slate"}>
               {STATUS_LABEL[receipt.status]}
             </Badge>
           </Field>

@@ -209,7 +209,7 @@ export function ReceiptsTable({
                       que é projeção, não conta firmada. Lançamento itemizado
                       ganha um badge "Tipo · N itens" ao lado. */}
                   <div className="flex items-center gap-1.5">
-                    <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
+                    <Badge colorScheme={r.is_estimated ? "orange" : (STATUS_COLOR_SCHEME[r.status] ?? "slate")}>
                       {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                     </Badge>
                     {hasItems && (

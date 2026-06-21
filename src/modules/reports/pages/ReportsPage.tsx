@@ -164,11 +164,13 @@ export default function ReportsPage() {
   const handlePrintWithAttachments = async () => {
     const docs = receipts.filter((r) => !!r.attachment_key);
     const win = window.open("", "_blank");
-    if (win) {
-      win.document.write(
-        "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando relatório…</p>",
-      );
+    if (!win) {
+      toast.error("Permita pop-ups para gerar o PDF.");
+      return;
     }
+    win.document.write(
+      "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando relatório…</p>",
+    );
     setPrinting(true);
     const toastId = toast.loading(
       docs.length

@@ -230,6 +230,8 @@ export function ReceiptsListPage({
         return arr.sort((a, b) => Number(b.total_value) - Number(a.total_value));
       case "value_asc":
         return arr.sort((a, b) => Number(a.total_value) - Number(b.total_value));
+      default:
+        return arr;
     }
   }, [receipts, sortBy]);
 
@@ -320,6 +322,8 @@ export function ReceiptsListPage({
         a.download = filename;
         a.click();
       }
+      // Libera o blob depois (a aba/iframe já carregou) — evita vazamento.
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
       if (failed > 0) {
         toast.warning(
           `${failed} arquivo(s) não puderam ser incluídos.`,
@@ -374,7 +378,7 @@ export function ReceiptsListPage({
     for (const r of receipts) {
       for (const ln of receiptLines(r)) {
         rows.push([
-          r.transaction_date || "",
+          ln.date || "",
           r.direction === "income" ? "receita" : "despesa",
           ln.value.toFixed(2).replace(".", ","),
           ln.category || "",

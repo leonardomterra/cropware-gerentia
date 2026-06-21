@@ -83,10 +83,13 @@ interface DashLine {
   category: string | null;
   cost_center_id: string | null;
   value: number;
+  /** previsto (projeção de recorrência) — fora do realizado, só em pendências. */
+  is_estimated: boolean;
 }
 
 function linesOf(r: Receipt): DashLine[] {
   const date = r.paid_date || r.transaction_date || null;
+  const est = r.is_estimated === true;
   // Itens desmembrados viraram lançamento próprio: fora das linhas (evita dobra).
   const activeItems = (r.items ?? []).filter((it) => !it.promoted_to_receipt_id);
   if (activeItems.length > 0) {
@@ -97,6 +100,7 @@ function linesOf(r: Receipt): DashLine[] {
       category: it.category,
       cost_center_id: it.cost_center_id,
       value: Number(it.total_value) || 0,
+      is_estimated: est,
     }));
   }
   return [
@@ -107,8 +111,19 @@ function linesOf(r: Receipt): DashLine[] {
       category: r.category,
       cost_center_id: r.cost_center_id,
       value: Number(r.total_value) || 0,
+      is_estimated: est,
     },
   ];
+}
+
+/** Casa o lançamento com o CC selecionado. Itemizado tem CC nulo no header,
+ *  então também casa se QUALQUER item ativo for daquele centro. */
+function receiptMatchesCC(r: Receipt, cc: string): boolean {
+  if (cc === "all") return true;
+  if (r.cost_center_id === cc) return true;
+  return (r.items ?? []).some(
+    (it) => !it.promoted_to_receipt_id && it.cost_center_id === cc,
+  );
 }
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -286,6 +301,7 @@ export default function DashboardPage() {
     let income = 0, expense = 0;
     for (const l of lines) {
       if (!inRange(l.date)) continue;
+      if (l.is_estimated) continue; // previsto não entra no realizado
       if (l.direction === "income") income += l.value;
       else expense += l.value;
     }
@@ -293,7 +309,8 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, fromKey, toKey]);
 
-  // Pendentes (a_pagar / a_receber / vencido), agregado em todo o range.
+  // Pendentes (a_pagar / a_receber / vencido) — INCLUI previsto (são obrigações
+  // futuras projetadas), ao contrário do realizado acima.
   const pending = useMemo(() => {
     let aPagar = 0, aReceber = 0, vencido = 0;
     for (const l of lines) {
@@ -324,6 +341,7 @@ export default function DashboardPage() {
     }
     for (const l of lines) {
       if (!l.date) continue;
+      if (l.is_estimated) continue; // realizado não inclui previsto
       const k = l.date.slice(0, 7);
       if (!acc[k] || acc[k].previsto) continue;
       if (l.direction === "income") acc[k].entradas += l.value;
@@ -332,7 +350,7 @@ export default function DashboardPage() {
     if (isMonth) {
       for (const r of openItems) {
         if (r.counts_in_total === false) continue;
-        if (activeCC !== "all" && r.cost_center_id !== activeCC) continue;
+        if (!receiptMatchesCC(r, activeCC)) continue;
         const d = r.transaction_date || r.due_date;
         if (!d) continue;
         const k = d.slice(0, 7);
@@ -360,6 +378,7 @@ export default function DashboardPage() {
     let income = 0, expense = 0;
     for (const l of lines) {
       if (!l.date || l.date.slice(0, 7) !== prevKey) continue;
+      if (l.is_estimated) continue;
       if (l.direction === "income") income += l.value;
       else expense += l.value;
     }
@@ -374,6 +393,7 @@ export default function DashboardPage() {
     const byCC: Record<string, number> = {};
     for (const l of all) {
       if (l.direction !== "expense" || !inRange(l.date)) continue;
+      if (l.is_estimated) continue;
       const id = l.cost_center_id || "none";
       byCC[id] = (byCC[id] || 0) + l.value;
     }
@@ -392,7 +412,7 @@ export default function DashboardPage() {
     return openItems
       .filter((r) => {
         if (r.counts_in_total === false) return false;
-        if (activeCC !== "all" && r.cost_center_id !== activeCC) return false;
+        if (!receiptMatchesCC(r, activeCC)) return false;
         return r.due_date && r.due_date.slice(0, 10) >= today;
       })
       .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
@@ -405,6 +425,7 @@ export default function DashboardPage() {
     for (const l of lines) {
       if (l.direction !== "expense") continue;
       if (!inRange(l.date)) continue;
+      if (l.is_estimated) continue;
       const cat = l.category || "outros_despesa";
       byCat[cat] = (byCat[cat] || 0) + l.value;
     }
@@ -722,7 +743,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
                   <dt className="text-slate-500">Status</dt>
                   <dd>
-                    <Badge colorScheme={STATUS_COLOR_SCHEME[statusKey]}>
+                    <Badge colorScheme={STATUS_COLOR_SCHEME[statusKey] ?? "slate"}>
                       {STATUS_LABEL[statusKey] ?? r.status}
                     </Badge>
                     {r.is_estimated ? <span className="text-slate-400 ml-2">Previsto</span> : null}

@@ -4,7 +4,7 @@ Auditoria em **5 etapas**, feita antes do lançamento oficial. Cada etapa gera
 achados (por severidade) + correções. Status no topo de cada seção.
 
 - [x] **Etapa 1 — Segurança** ✅ FECHADA (correções deployadas + RLS endurecido + segredos rotacionados)
-- [ ] **Etapa 2 — Robustez / pontos de erro**
+- [x] **Etapa 2 — Robustez / pontos de erro** ✅ corrigida
 - [ ] **Etapa 3 — Visual / UI**
 - [ ] **Etapa 4 — Mobile / responsividade**
 - [ ] **Etapa 5 — Capacitor (Android/iOS)**
@@ -83,19 +83,36 @@ privado; signup/invites sem entrar em org arbitrária.
 
 ---
 
-## Etapa 2 — Robustez / pontos de erro  ⏳ pendente
+## Etapa 2 — Robustez / pontos de erro  ✅ auditada + corrigida
 
-Escopo a auditar:
-- Tratamento de erro nas chamadas de API (frontend): toasts, estados de erro,
-  retry; promessas sem catch; `void` em async.
-- Edge cases de dados: null-safety (campos opcionais), divisão por zero (%),
-  listas vazias, valores muito grandes, datas inválidas.
-- Condições de corrida: refetch concorrente (já há reqId em useReceipts — checar
-  os demais hooks), duplo-submit em dialogs, duplo-clique em ações.
-- Integridade: itemizado vs header (total derivado), desmembrado, counts_in_total
-  em todas as agregações; recorrências (materialização/limpeza).
-- Edge backend: erros não tratados, `onError`, respostas de erro consistentes.
-- Uploads: limites, mimes, falha de R2, OCR retornando lixo.
+### Corrigido
+- [x] **Agente WhatsApp não baixa PREVISTO** (`mark_receipt_paid` exclui is_estimated).
+- [x] **pending.extracted guardado** (savePhotoReceipt + cw_pay) — sem crash/save perdido.
+- [x] **PATCH de itens com restore** (troca itens antes do header; restaura antigos
+  se a inserção falhar) — não deixa itemizado sem itens.
+- [x] **Cap de 200 itens**; **filtro de categoria/CC sanitizado** no `.or()`; **onError
+  não vaza** err.message.
+- [x] **Dashboard: previsto fora do realizado** (Entradas/Saídas, Onde Mais Saiu,
+  Gastos por Centro, mês anterior, barras realizadas) — segue em A pagar/A receber
+  + projeção. (decisão do usuário)
+- [x] **CC derivado dos itens** em Próximos vencimentos / projeção (itemizado tinha
+  CC nulo no header e sumia sob filtro de centro).
+- [x] **sortedReceipts** com `default` (sem tela branca); **blob revogado** no Imprimir
+  de Anexos; **pop-up bloqueado** tratado nos Relatórios; **STATUS_COLOR_SCHEME**
+  com fallback; **CSV usa data efetiva** (paid||transaction).
+
+### Aceito / adiado (risco baixo)
+- Duplo-clique em alguns "managers" (categorias/CC/recorrências) sem trava →
+  toast de erro espúrio (idempotente). `AlertDialogAction` fecha antes do async
+  (guard `disabled` cosmético).
+- **Anexos órfãos no R2** em scan/foto abandonado → falta um GC (cron) — anotar p/ depois.
+- OCR não valida enums antes de salvar; base64 decodificado antes do cap; dedup/
+  rate-limit in-memory (multi-instância); lazyWithRetry sem quebra-loop.
+
+### ✅ Bem feito
+reqId guard (useReceipts/useAttachmentUrl); flags resetadas em finally; rollback no
+POST itemizado; promovidos/counts_in_total excluídos consistentemente; idempotência
+mensal da recorrência; TZ São Paulo DST-safe; formatters defensivos.
 
 ## Etapa 3 — Visual / UI  ⏳ pendente
 
