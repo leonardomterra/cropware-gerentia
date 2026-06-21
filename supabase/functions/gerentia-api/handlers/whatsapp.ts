@@ -488,7 +488,11 @@ async function finalizeWizard(admin: any, linked: LinkedUser, from: string, wiz:
  */
 // deno-lint-ignore no-explicit-any
 async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null, linked: LinkedUser | null): Promise<string | null> {
-  const e = p.extracted;
+  const e = p?.extracted;
+  if (!e || typeof e !== "object") {
+    console.error("[wa] savePhotoReceipt: pending sem extracted");
+    return null;
+  }
   const direction = e.direction === "income" ? "income" : "expense";
 
   // Itens da OCR: 2+ => recibo itemizado (total = soma, header cat/cc nulos,
@@ -577,7 +581,7 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
     // Resposta da pergunta "Como foi pago?" (foto sem forma de pagamento clara).
     if (actionId.startsWith("cw_pay:")) {
       const pending = await getPending(admin, from);
-      if (!pending || pending.kind !== "photo_payment_method" || !linked) {
+      if (!pending || pending.kind !== "photo_payment_method" || !pending.data?.extracted || !linked) {
         await sendText(from, "⏳ Essa escolha expirou. Manda o comprovante de novo.");
         return;
       }

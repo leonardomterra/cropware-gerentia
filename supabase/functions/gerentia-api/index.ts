@@ -45,8 +45,10 @@ mountRecurringRoutes(app);
 mountAdminRoutes(app);
 
 app.onError((err, c) => {
+  // Loga o detalhe no servidor; ao cliente devolve só genérico (não vaza
+  // mensagens internas/driver).
   console.error("[gerentia-api] unhandled error:", err);
-  return c.json({ error: "internal_error", message: err.message }, 500);
+  return c.json({ error: "internal_error" }, 500);
 });
 
 app.notFound((c) =>

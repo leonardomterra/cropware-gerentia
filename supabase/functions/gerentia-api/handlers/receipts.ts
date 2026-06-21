@@ -91,8 +91,9 @@ function sumItems(items: NormalizedItem[]): number {
   );
 }
 
-/** Valida total de cada item (finito >= 0). Retorna erro ou null. */
+/** Valida itens: limite de quantidade + total de cada item (finito >= 0). */
 function validateItems(items: NormalizedItem[]): string | null {
+  if (items.length > 200) return "itens_demais"; // teto de sanidade
   for (const it of items) {
     if (!Number.isFinite(it.total_value) || it.total_value < 0) {
       return "item_total_invalido";
@@ -194,17 +195,21 @@ export function mountReceiptRoutes(app: Hono) {
 
       // category / cost_center: casa HEADER ou qualquer ITEM. Busca os
       // receipt_ids dos itens que casam e combina via .or(header, id.in(...)).
-      if (categoryArr.length > 0) {
+      // Sanitiza slugs (só [a-z0-9_-]) antes de interpolar no .or() do PostgREST —
+      // um slug com vírgula/parêntese corromperia a expressão do filtro.
+      const safeCats = categoryArr.filter((cc) => /^[a-z0-9_-]+$/i.test(cc));
+      if (safeCats.length > 0) {
         const { data: rows } = await client
           .from("farm_receipt_items")
           .select("receipt_id")
-          .in("category", categoryArr);
+          .in("category", safeCats);
         const ids = [...new Set((rows ?? []).map((r) => r.receipt_id))];
-        const ors = [`category.in.(${categoryArr.join(",")})`];
+        const ors = [`category.in.(${safeCats.join(",")})`];
         if (ids.length) ors.push(`id.in.(${ids.join(",")})`);
         query = query.or(ors.join(","));
       }
-      if (costCenterId) {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (costCenterId && UUID_RE.test(costCenterId)) {
         const { data: rows } = await client
           .from("farm_receipt_items")
           .select("receipt_id")
@@ -448,6 +453,51 @@ export function mountReceiptRoutes(app: Hono) {
         return c.json({ error: "no_fields_to_update" }, 400);
       }
 
+      // Itemizado: troca os itens ATIVOS ANTES de mexer no header, com
+      // compensação. Se a inserção falhar, restaura os itens antigos — evita
+      // deixar o lançamento "itemizado" com zero itens (header já não bate).
+      // Itens desmembrados (promoted_to_receipt_id != null) são PRESERVADOS.
+      if (items) {
+        const { data: oldItems } = await client
+          .from("farm_receipt_items")
+          .select("*")
+          .eq("receipt_id", id)
+          .is("promoted_to_receipt_id", null);
+
+        await client
+          .from("farm_receipt_items")
+          .delete()
+          .eq("receipt_id", id)
+          .is("promoted_to_receipt_id", null);
+
+        let newItems: unknown[] = [];
+        if (items.length > 0) {
+          const { data: ins, error: itemsErr } = await client
+            .from("farm_receipt_items")
+            .insert(itemRowsFor(id, auth.organizationId!, items))
+            .select();
+          if (itemsErr) {
+            // restaura os antigos (compensação) e aborta sem tocar no header
+            if (oldItems && oldItems.length > 0) {
+              await client.from("farm_receipt_items").insert(oldItems);
+            }
+            return c.json({ error: itemsErr.message }, 400);
+          }
+          newItems = ins ?? [];
+        }
+
+        const { data: receipt, error } = await client
+          .from("farm_receipts")
+          .update(patch)
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) return c.json({ error: error.message }, 400);
+        if (!receipt) return c.json({ error: "not_found" }, 404);
+        return c.json({ receipt: { ...receipt, items: newItems } });
+      }
+
+      // Sem mexer em itens: atualiza o header e re-le os itens pra resposta.
       const { data: receipt, error } = await client
         .from("farm_receipts")
         .update(patch)
@@ -457,28 +507,6 @@ export function mountReceiptRoutes(app: Hono) {
       if (error) return c.json({ error: error.message }, 400);
       if (!receipt) return c.json({ error: "not_found" }, 404);
 
-      if (items) {
-        // replace: apaga os itens ATIVOS e insere os novos. Itens desmembrados
-        // (promoted_to_receipt_id != null) são PRESERVADOS — o editor não os
-        // envia e eles não podem ser apagados ao salvar o cabeçalho/itens.
-        await client
-          .from("farm_receipt_items")
-          .delete()
-          .eq("receipt_id", id)
-          .is("promoted_to_receipt_id", null);
-        let newItems: unknown[] = [];
-        if (items.length > 0) {
-          const { data: ins, error: itemsErr } = await client
-            .from("farm_receipt_items")
-            .insert(itemRowsFor(id, auth.organizationId!, items))
-            .select();
-          if (itemsErr) return c.json({ error: itemsErr.message }, 400);
-          newItems = ins ?? [];
-        }
-        return c.json({ receipt: { ...receipt, items: newItems } });
-      }
-
-      // patch sem mexer em itens: re-le os itens atuais pra resposta coerente.
       const { data: cur } = await client
         .from("farm_receipt_items")
         .select("*")

@@ -344,6 +344,9 @@ async function execMarkPaid(args: any, ctx: ToolCtx): Promise<ToolResult> {
     .select("id, direction, vendor, description, category, total_value, transaction_date, due_date, status, cost_center_id")
     .eq("organization_id", linked.organization_id)
     .in("status", ["a_pagar", "a_receber", "vencido"])
+    // Não dá pra "pagar" um PREVISTO (projeção de recorrência ainda não
+    // confirmada) — senão corrompe a fila de projeção.
+    .eq("is_estimated", false)
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("transaction_date", { ascending: false })
     .limit(50);
