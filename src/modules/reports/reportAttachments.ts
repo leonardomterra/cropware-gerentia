@@ -1,8 +1,16 @@
-import * as pdfjsLib from "pdfjs-dist";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import type { AttachmentItem } from "@/modules/receipts/utils/mergeAttachmentsPdf";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// pdf.js é grande — carrega só quando realmente preciso (clique em "Com anexos"),
+// fora do chunk da página de Relatórios. Evita travar/recarregar a página.
+let _pdfjs: typeof import("pdfjs-dist") | null = null;
+async function getPdfjs(): Promise<typeof import("pdfjs-dist")> {
+  if (_pdfjs) return _pdfjs;
+  const lib = await import("pdfjs-dist");
+  const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  lib.GlobalWorkerOptions.workerSrc = worker.default;
+  _pdfjs = lib;
+  return lib;
+}
 
 function bytesToDataUrl(bytes: ArrayBuffer, mime: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -15,6 +23,7 @@ function bytesToDataUrl(bytes: ArrayBuffer, mime: string): Promise<string> {
 
 // Rasteriza cada página de um PDF em JPEG (data URL) via pdf.js.
 async function pdfToImageDataUrls(bytes: ArrayBuffer): Promise<string[]> {
+  const pdfjsLib = await getPdfjs();
   const task = pdfjsLib.getDocument({ data: new Uint8Array(bytes) });
   const doc = await task.promise;
   const urls: string[] = [];
