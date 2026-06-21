@@ -61,22 +61,22 @@ privado; signup/invites sem entrar em org arbitrária.
 - [x] users_meta **WITH CHECK** (migração `20260621120000`, aplicada)
 - [x] `search_path=''` em farm_user_can_access_cc / farm_cc_check_limit (idem)
 - [x] farm_categories INSERT fixa organization_id (idem)
-- [ ] cron via Vault: migração `20260621130000` **criada, NÃO aplicada** (depende
-      da rotação abaixo — aplicar só após criar o secret no Vault).
+- [x] cron via Vault: migração `20260621130000` **aplicada** (jobs leem do Vault).
 
-### Correções — rotação ⏳ PENDENTE (o usuário faz)
-1. **Cron secret** (Crítico): gerar valor novo →
-   `select vault.create_secret('<NOVO>', 'gerentia_cron_secret');` →
-   `supabase secrets set GERENTIA_CRON_SECRET=<NOVO>` → aplicar migração
-   `20260621130000_gerentia_cron_secret_vault.sql`. Depois validar que os jobs
-   rodam (forçar um run e ver 200).
-2. **WhatsApp verify token**: regenerar no Meta → `supabase secrets set
-   WHATSAPP_VERIFY_TOKEN=<NOVO>` → reconfigurar no painel da Meta.
-3. **Confirmar setados em prod** (senão fail-closed/aberto): `GERENTIA_ALLOWED_ORIGINS`
-   (= https://gerentia.app), `WHATSAPP_GERENTIA_APP_SECRET`, `GERENTIA_INTERNAL_SECRET`.
-   Se usar Salvy: `GERENTIA_SALVY_SECRET` (novo).
-4. **Limpar literais** de `docs/FARM-MIGRATION-NEW-PROJECT.md` (cron secret +
-   verify token + IDs). Obs: continuam no histórico do git → a rotação é o que resolve.
+### Correções — rotação
+1. [x] **Cron secret** (Crítico) — ROTACIONADO: valor novo no Vault
+   (`gerentia_cron_secret`), `GERENTIA_CRON_SECRET` atualizado (digest novo),
+   jobs lendo do Vault (sem literal), `FARM_CRON_SECRET` legado removido. O valor
+   antigo não autentica mais.
+2. [ ] **WhatsApp verify token** — PENDENTE (precisa do painel Meta): escolher
+   valor novo → atualizar no Meta (WhatsApp → Configuration → Webhook) → `supabase
+   secrets set WHATSAPP_VERIFY_TOKEN=<NOVO>`. Risco baixo (a proteção real é o
+   APP_SECRET/HMAC, que não vazou).
+3. [x] **Confirmados setados em prod**: `GERENTIA_ALLOWED_ORIGINS`,
+   `WHATSAPP_GERENTIA_APP_SECRET`, `GERENTIA_INTERNAL_SECRET` ✅. `GERENTIA_SALVY_SECRET`
+   não setado → endpoint salvy-sms fica fail-closed (inerte; setar só se for usar).
+4. [x] **Literais limpos** de `docs/FARM-MIGRATION-NEW-PROJECT.md` (cron secret,
+   verify token, IDs). Obs: continuam no histórico do git → a rotação é o que resolve.
 
 ### Não corrigido (aceito por ora — risco baixo)
 - `.or()` do PostgREST com interpolação (RLS protege; validar slugs depois).

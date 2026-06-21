@@ -36,13 +36,14 @@
 | Secret | Para quê | Origem do valor |
 |---|---|---|
 | `GOOGLE_AI_KEY` | função `gemini` (OCR/IA) | Google AI Studio |
-| `FARM_CRON_SECRET` | autentica cron (alertas/resumo) | `farm_alerts_2026_x9k2p3m7` (igual ao hardcoded nas migrations de cron) |
-| `FARM_R2_ACCOUNT_ID` | endpoint R2 | `8bcccd537c6c256b830b982e0027ac29` |
-| `FARM_R2_BUCKET_NAME` | bucket de anexos | `cropware-farm` |
-| `FARM_R2_ACCESS_KEY_ID` / `FARM_R2_SECRET_ACCESS_KEY` | upload/download de recibo | R2 API Token (Cloudflare → R2 → Manage API Tokens) |
-| `WHATSAPP_VERIFY_TOKEN` | verificação do webhook | `cropware_services_farm_bot#154510` |
-| `WHATSAPP_FARM_BOT_WABA_ID` / `_PNID` | identificadores Meta | WABA `4033117623491103`, PNID `1074925085713900` |
-| `WHATSAPP_FARM_BOT_TOKEN` | enviar msg Cloud API | system user permanente do app Meta `1291983795982267` |
+| `GERENTIA_CRON_SECRET` | autentica cron (alertas/resumo) | **rotacionado** — guardado no Vault (`gerentia_cron_secret`); os jobs leem de lá (não hardcodar) |
+| `GERENTIA_R2_ACCOUNT_ID` | endpoint R2 | Cloudflare (dashboard) |
+| `GERENTIA_R2_BUCKET_NAME` | bucket de anexos | `gerentia-receipts` |
+| `GERENTIA_R2_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | upload/download de recibo | R2 API Token (Cloudflare → R2 → Manage API Tokens) |
+| `WHATSAPP_VERIFY_TOKEN` | verificação do webhook | definido por você (Meta + env) — **rotacionar**; não versionar |
+| `WHATSAPP_GERENTIA_BOT_WABA_ID` / `_PNID` | identificadores Meta | ver no Meta (App → WhatsApp) |
+| `WHATSAPP_GERENTIA_BOT_TOKEN` | enviar msg Cloud API | system user permanente do app Meta (ver no Meta) |
+| `WHATSAPP_GERENTIA_APP_SECRET` | assinatura HMAC do webhook | App Meta → Settings → Basic |
 
 > `SUPABASE_URL` / `ANON_KEY` / `SERVICE_ROLE_KEY` são **auto-injetados** — não setar.
 > Anexos vão pro **Cloudflare R2**, não pro Storage do Supabase (bucket `farm-receipts` da migration é vestigial).
@@ -59,7 +60,7 @@
 
 ## Pendências
 
-- [ ] **Repontar o webhook do WhatsApp no Meta** (app `1291983795982267` → WhatsApp → Configuration → Webhook): Callback `https://ttnsywnwjybrrtykoqxr.supabase.co/functions/v1/farm-api/webhook/whatsapp`, Verify Token `cropware_services_farm_bot#154510`, reinscrever campo `messages`. (Até fazer isso, o bot ainda aponta pro projeto antigo.)
+- [ ] **Repontar o webhook do WhatsApp no Meta** (App Meta → WhatsApp → Configuration → Webhook): Callback `https://ttnsywnwjybrrtykoqxr.supabase.co/functions/v1/gerentia-api/webhook/whatsapp`, Verify Token = o valor de `WHATSAPP_VERIFY_TOKEN` (não versionar aqui), reinscrever campo `messages`.
 - [ ] **Testar upload de recibo** (R2 agora configurado).
 - [ ] **Deploy do frontend** em gerentia.app (Cloudflare Pages) — domínio registrado, ainda não hospedado.
 - [ ] Considerar **keep-alive** se o FREE pausar; ou subir pra Pro quando houver atividade real.
