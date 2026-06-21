@@ -103,32 +103,33 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { size: A4 portrait; margin: 14mm; }
-  html, body { background: #fff; color: #0f172a; font-family: 'Mozilla Text Variable', 'Mozilla Text', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; }
+  html, body { background: #fff; color: #0f172a; font-family: 'Mozilla Text Variable', 'Mozilla Text', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 13.5px; line-height: 1.5; }
   @media screen {
     body { background: #eef0f3; padding: 24px 0 96px; }
-    .sheet { max-width: 210mm; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.06), 0 2px 16px rgba(15,23,42,.05); }
+    /* Folha sempre A4 (mesmo tamanho independente do conteúdo) — consistência. */
+    .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.06), 0 2px 16px rgba(15,23,42,.05); }
   }
   .sheet { padding: 40px; }
   .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 18px; }
   .brand img { height: 30px; width: auto; }
   .brand .wm { font-size: 17px; font-weight: 600; }
   .brand .wm .dot { color: #64748b; }
-  h1 { font-size: 20px; font-weight: 600; margin: 0 0 2px; }
-  .sub { color: #64748b; font-size: 12px; margin: 0 0 18px; }
-  .kpis { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
-  .kpi { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; min-width: 130px; }
-  .kpi .kl { display: block; color: #64748b; font-size: 11px; }
-  .kpi .kv { display: block; font-size: 16px; font-weight: 600; margin-top: 2px; color: #0f172a; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: #64748b; font-size: 13px; margin: 0 0 18px; }
+  .kpis { display: flex; gap: 12px; margin-bottom: 22px; }
+  .kpi { flex: 1 1 0; min-width: 0; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; }
+  .kpi .kl { display: block; color: #64748b; font-size: 12px; }
+  .kpi .kv { display: block; font-size: 18px; font-weight: 600; margin-top: 2px; color: #0f172a; }
   .kpi.in .kv { color: #047857; }
   .kpi.muted .kv { color: #475569; }
   section { margin-bottom: 22px; page-break-inside: avoid; }
-  h2 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: #334155; }
+  h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: #334155; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef2f6; }
-  th { color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eef2f6; font-size: 13.5px; }
+  th { color: #64748b; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
   td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; color: #0f172a; }
-  .foot { margin-top: 24px; color: #94a3b8; font-size: 10px; }
+  .foot { margin-top: 24px; color: #94a3b8; font-size: 11px; }
   .att { padding: 0; display: flex; align-items: center; justify-content: center; }
   .att .att-img { max-width: 100%; max-height: 265mm; object-fit: contain; display: block; }
   @media screen { .att { min-height: 297mm; } .sheet + .sheet { margin-top: 24px; } }
