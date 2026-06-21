@@ -14,16 +14,16 @@ export const STATUS_LABEL: Record<ReceiptStatus, string> = {
 };
 
 /** Mapeia status -> colorScheme do componente Badge (semantica universal).
- *  pago (despesa quitada) = emerald; recebido (receita) = teal — cores distintas
- *  pra não confundir os dois "concluídos". */
+ *  pago (despesa quitada) = emerald; recebido (receita) = purple — bem distinto
+ *  do verde (pago) e do azul (a receber), pra não confundir os concluídos. */
 export const STATUS_COLOR_SCHEME: Record<
   ReceiptStatus,
-  "amber" | "emerald" | "blue" | "red" | "slate" | "teal"
+  "amber" | "emerald" | "blue" | "red" | "slate" | "purple"
 > = {
   a_pagar: "amber",
   pago: "emerald",
   a_receber: "blue",
-  recebido: "teal",
+  recebido: "purple",
   vencido: "red",
   cancelado: "slate",
 };
