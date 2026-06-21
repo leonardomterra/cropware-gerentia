@@ -9,7 +9,7 @@ import { buildFinanceAgentPrompt } from "../prompts/financeAgent.pt-br.ts";
 const MODEL = "gemini-3.5-flash";
 const HISTORY_MAX = 16;
 const MAX_ITERS = 5;
-const PAYMENT_METHODS = ["pix", "cartao", "boleto", "dinheiro", "transferencia"];
+const PAYMENT_METHODS = ["pix", "cartao_credito", "cartao_debito", "cartao", "boleto", "dinheiro", "transferencia"];
 
 /** LinkedUser estendido com role + CCs permitidos (V2 — Centros de Custo). */
 export interface LinkedUser {

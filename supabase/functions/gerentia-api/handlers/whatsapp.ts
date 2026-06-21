@@ -277,6 +277,16 @@ const PHOTO_PAY_BUTTONS = [
   { id: "cw_pay:boleto", title: "Boleto" },
 ];
 
+// Mesma pergunta no wizard de texto/voz (ids próprios "cw_wpay:" + opção Pular).
+const WIZ_PAY_BUTTONS = [
+  { id: "cw_wpay:cartao_credito", title: "Crédito" },
+  { id: "cw_wpay:cartao_debito", title: "Débito" },
+  { id: "cw_wpay:pix", title: "Pix" },
+  { id: "cw_wpay:dinheiro", title: "Dinheiro" },
+  { id: "cw_wpay:boleto", title: "Boleto" },
+  { id: "cw_wpay:skip", title: "Pular" },
+];
+
 // ---------- Wizard de criação guiado (categoria -> status -> centro -> data -> confirmar) ----------
 
 const STATUS_LABEL: Record<string, string> = {
@@ -300,6 +310,9 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
   steps.push("category");
   if (!draft.status) steps.push("status");
   if (!draft.cost_center_id && linked.cost_centers.length > 1) steps.push("cost_center");
+  // Camada extra (anti-duplicidade cartão): pergunta a forma de pagamento numa
+  // DESPESA quando a IA não captou do texto. Receita não precisa.
+  if (draft.direction !== "income" && !draft.payment_method) steps.push("payment");
   // Data de LANÇAMENTO = hoje (automática), nunca perguntada. Já o VENCIMENTO
   // (due_date) só faz sentido em conta a pagar/receber: pergunta se não veio no
   // texto. Quando o status ainda é desconhecido, incluímos e pulamos depois se
@@ -365,6 +378,10 @@ async function sendWizardStep(_admin: any, linked: LinkedUser, from: string, wiz
     ]);
     return;
   }
+  if (step === "payment") {
+    await sendButtons(from, "Como foi pago? 💳", WIZ_PAY_BUTTONS);
+    return;
+  }
   if (step === "origem") {
     const q = d.direction === "income" ? "De quem veio? (nome, ou toque Pular)" : "Pra quem foi? (nome, ou toque Pular)";
     await sendButtons(from, q, [{ id: "cw_origem:skip", title: "Pular" }]);
@@ -397,6 +414,7 @@ function formatLaunch(title: string, d: WizardDraft, linked: LinkedUser, status:
     (d.due_date && open) ? "*Vence:* " + fmtDateBR(d.due_date) : null,
     (ccName && linked.cost_centers.length > 1) ? "*Centro:* " + ccName : null,
     d.vendor ? "*Origem:* " + d.vendor : null,
+    d.payment_method ? "*Pagamento:* " + (PAY_LABEL[d.payment_method] || d.payment_method) : null,
     d.notes ? "*Obs:* " + d.notes : null,
   ].filter(Boolean);
   return lines.join("\n");
@@ -715,6 +733,12 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
           return; // segue na etapa; o que digitar vira o vencimento
         }
         wiz.draft.due_date = todayBR();
+        await advanceWizard(admin, linked, from, wiz);
+        return;
+      }
+      if (actionId.startsWith("cw_wpay:")) {
+        const v = actionId.slice("cw_wpay:".length);
+        wiz.draft.payment_method = v === "skip" ? null : v;
         await advanceWizard(admin, linked, from, wiz);
         return;
       }

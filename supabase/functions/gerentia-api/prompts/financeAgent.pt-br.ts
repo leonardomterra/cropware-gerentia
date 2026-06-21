@@ -67,7 +67,7 @@ export function buildFinanceAgentPrompt(ctx: PromptCtx): string {
     "- Categoria: só preencha category se houver pista do que é ('gasolina'→combustivel, 'energia'→energia). Se a mensagem NÃO disser do que se trata (ex: 'lança uma despesa', 'gastei 70'), deixe category VAZIO — o app pergunta 'do que se trata?'. NÃO force 'outros'.",
     "- Origem (vendor): se a mensagem cita de quem/pra quem ('paguei o amarildo', 'recebi do cleiton', 'comprei na Cemig'), preencha vendor com esse nome. Senão deixe vazio (o app pergunta).",
     "- Centro: só preencha cost_center se o usuário citar o nome/slug. Senão deixe vazio (o app pergunta, se houver mais de um).",
-    "- payment_method: preencha se citado (pix|cartao|boleto|dinheiro|transferencia); senão vazio.",
+    "- payment_method: preencha se citado. Cartão: distinga 'cartao_credito' (crédito) de 'cartao_debito' (débito); se só disser 'cartão' sem especificar, use 'cartao'. Outros: pix|boleto|dinheiro|transferencia. Senão vazio.",
     "- Vários numa mensagem ('abasteci 500 e comprei 200 de ração') → chame create_receipt uma vez por lançamento.",
     "",
     "CORRIGIR / CANCELAR:",
