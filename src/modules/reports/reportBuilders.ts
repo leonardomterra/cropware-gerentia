@@ -117,9 +117,9 @@ function groupRows(
 }
 
 const PCT_COLS = (head: string): ReportColumn[] => [
-  { label: head },
-  { label: "Valor", money: true, align: "right", width: "30mm" },
-  { label: "%", align: "right", width: "18mm" },
+  { label: head, width: "56%" },
+  { label: "Valor", money: true, align: "right", width: "28%" },
+  { label: "%", align: "right", width: "16%" },
 ];
 
 function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
@@ -184,10 +184,10 @@ function buildGrouped(
     .map(({ key, ls, total }) => ({
       title: key,
       columns: [
-        { label: "Data", width: "26mm" },
-        { label: "Origem" },
-        { label: groupBy === "categoria" ? "Centro de custo" : "Categoria" },
-        { label: "Valor", money: true, align: "right" as const, width: "30mm" },
+        { label: "Data", width: "16%" },
+        { label: "Origem", width: "38%" },
+        { label: groupBy === "categoria" ? "Centro de custo" : "Categoria", width: "26%" },
+        { label: "Valor", money: true, align: "right" as const, width: "20%" },
       ],
       rows: ls
         .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
@@ -232,11 +232,11 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
     ]);
 
   const cols: ReportColumn[] = [
-    { label: "Vencimento", width: "26mm" },
-    { label: "Origem" },
-    { label: "Categoria" },
-    { label: "Status", width: "26mm" },
-    { label: "Valor", money: true, align: "right", width: "30mm" },
+    { label: "Vencimento", width: "16%" },
+    { label: "Origem", width: "30%" },
+    { label: "Categoria", width: "24%" },
+    { label: "Status", width: "14%" },
+    { label: "Valor", money: true, align: "right", width: "16%" },
   ];
   const totalPagar = sum(pagar.map((r) => Number(r.total_value) || 0));
   const totalReceber = sum(receber.map((r) => Number(r.total_value) || 0));
