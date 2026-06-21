@@ -5,6 +5,7 @@ import Notes from "~icons/material-symbols-light/notes";
 import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
 import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
 import CreditCard from "~icons/material-symbols-light/credit-card-outline";
+import InfoIcon from "~icons/material-symbols-light/info-outline";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import {
   Tooltip,
@@ -203,7 +204,7 @@ export function ReceiptsTable({
                   {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
                       que é projeção, não conta firmada. Lançamento itemizado
                       ganha um badge "Tipo · N itens" ao lado. */}
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <Badge colorScheme={r.is_estimated ? "orange" : STATUS_COLOR_SCHEME[r.status]}>
                       {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
                     </Badge>
@@ -216,26 +217,35 @@ export function ReceiptsTable({
                         {r.item_count}
                       </Badge>
                     )}
-                    {r.counts_in_total === false && (
-                      <Badge colorScheme="slate" title="Não entra nos totais">
-                        Informativo
-                      </Badge>
-                    )}
                   </div>
                 </TableCell>
                 <TableCell className="py-3 text-right text-sm font-medium tabular-nums">
-                  <span
-                    className={cn(
-                      r.is_estimated || r.counts_in_total === false
-                        ? "text-slate-400"
-                        : r.direction === "income"
-                          ? "text-emerald-700"
-                          : "text-slate-900",
+                  <div className="flex items-center justify-end gap-1.5">
+                    {r.counts_in_total === false && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex text-slate-400">
+                            <InfoIcon className="size-4" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          Informativo — não entra nos totais
+                        </TooltipContent>
+                      </Tooltip>
                     )}
-                  >
-                    {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
-                    {formatBRL(r.total_value)}
-                  </span>
+                    <span
+                      className={cn(
+                        r.is_estimated || r.counts_in_total === false
+                          ? "text-slate-400"
+                          : r.direction === "income"
+                            ? "text-emerald-700"
+                            : "text-slate-900",
+                      )}
+                    >
+                      {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
+                      {formatBRL(r.total_value)}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell className="py-3 text-right pr-2">
                   <div className="flex gap-2 justify-end items-center">

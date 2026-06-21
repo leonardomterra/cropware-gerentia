@@ -4,6 +4,7 @@ import MoreVertical from "~icons/material-symbols-light/more-vert";
 import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
 import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
 import CreditCard from "~icons/material-symbols-light/credit-card-outline";
+import InfoIcon from "~icons/material-symbols-light/info-outline";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -66,19 +67,29 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
                   {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
                 </span>
               </p>
-              <p
-                className={cn(
-                  "font-medium tabular-nums whitespace-nowrap text-sm",
-                  r.is_estimated || r.counts_in_total === false
-                    ? "text-slate-400"
-                    : r.direction === "income"
-                      ? "text-emerald-700"
-                      : "text-slate-900",
+              <div className="flex items-center gap-1 shrink-0">
+                {r.counts_in_total === false && (
+                  <span
+                    className="inline-flex text-slate-400"
+                    title="Informativo — não entra nos totais"
+                  >
+                    <InfoIcon className="size-4" />
+                  </span>
                 )}
-              >
-                {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
-                {formatBRL(r.total_value)}
-              </p>
+                <p
+                  className={cn(
+                    "font-medium tabular-nums whitespace-nowrap text-sm",
+                    r.is_estimated || r.counts_in_total === false
+                      ? "text-slate-400"
+                      : r.direction === "income"
+                        ? "text-emerald-700"
+                        : "text-slate-900",
+                  )}
+                >
+                  {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
+                  {formatBRL(r.total_value)}
+                </p>
+              </div>
             </div>
             <p className="text-sm text-slate-500 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
@@ -115,11 +126,6 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
                 >
                   <ListIcon />
                   {r.item_count}
-                </Badge>
-              )}
-              {r.counts_in_total === false && (
-                <Badge colorScheme="slate" title="Não entra nos totais">
-                  Informativo
                 </Badge>
               )}
             </div>
