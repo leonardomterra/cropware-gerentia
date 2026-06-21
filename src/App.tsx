@@ -54,6 +54,9 @@ const RecurringPage = lazyWithRetry(
 const IconLabPage = lazyWithRetry(
   () => import("@/modules/dev/pages/IconLabPage"),
 );
+const ErrorTestPage = lazyWithRetry(
+  () => import("@/modules/dev/pages/ErrorTestPage"),
+);
 const AdminUsersPage = lazyWithRetry(
   () => import("@/modules/admin/pages/AdminUsersPage"),
 );
@@ -227,6 +230,16 @@ function RootRoutes() {
             element={
               <Suspense fallback={<LoadingScreen />}>
                 <IconLabPage />
+              </Suspense>
+            }
+          />
+        )}
+        {import.meta.env.DEV && (
+          <Route
+            path="erro"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <ErrorTestPage />
               </Suspense>
             }
           />
