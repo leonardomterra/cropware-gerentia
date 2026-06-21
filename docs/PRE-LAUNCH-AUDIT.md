@@ -5,7 +5,7 @@ achados (por severidade) + correções. Status no topo de cada seção.
 
 - [x] **Etapa 1 — Segurança** ✅ FECHADA (correções deployadas + RLS endurecido + segredos rotacionados)
 - [x] **Etapa 2 — Robustez / pontos de erro** ✅ corrigida
-- [ ] **Etapa 3 — Visual / UI**
+- [x] **Etapa 3 — Visual / UI + a11y** ✅ auditada + corrigida (alto + médios baratos)
 - [ ] **Etapa 4 — Mobile / responsividade**
 - [ ] **Etapa 5 — Capacitor (Android/iOS)**
 
@@ -114,15 +114,45 @@ reqId guard (useReceipts/useAttachmentUrl); flags resetadas em finally; rollback
 POST itemizado; promovidos/counts_in_total excluídos consistentemente; idempotência
 mensal da recorrência; TZ São Paulo DST-safe; formatters defensivos.
 
-## Etapa 3 — Visual / UI  ⏳ pendente
+## Etapa 3 — Visual / UI + a11y  ✅ auditada + corrigida
 
-Escopo:
-- Consistência de badges/botões/cores (já padronizado — revisar exceções).
-- Estados: vazio, carregando, erro, "sem permissão".
-- Textos longos (vendor/descrição/categoria) — truncamento/overflow.
-- Tabelas com muitos itens; números grandes (alinhamento tabular).
-- Dark mode? (verificar se existe/é suportado).
-- Acessibilidade básica (foco, aria em ícones-botão, contraste).
+Duas frentes (consistência/estados + acessibilidade). App já bem polido no geral.
+
+### 🔴 Alto — CORRIGIDO
+- [x] **Botão "Ver" (olho) morto** nos cards de Centro de Custo (`onClick={()=>{}}`) → removido.
+- [x] **Estado vazio no desktop** era linha de "—" apagada → mensagem central (`emptyLabel`)
+  na tabela (`ReceiptsTable` colSpan). `emptyLabel` propagado de `ReceiptsListPage`.
+- [x] **Vazio no mobile** fixo "Nenhum lançamento" → usa `emptyLabel` (certo em Anexos/Faturas/Notas).
+- [x] **A11y teclado:** linhas de "Próximos vencimentos" e badge "Desmembrado" eram clique-only
+  → `role=button` + `tabIndex` + `onKeyDown` (Enter/Espaço) + anel de foco.
+
+### 🟠 Médio — CORRIGIDO (baratos)
+- [x] **Cards mobile: despesa em `rose`** → `slate` (despesa = neutro; vermelho só p/ alerta).
+- [x] **Dashboard sem sinal "−"** na despesa → `{income ? "+" : "−"}` (consistente c/ a lista + a11y).
+- [x] **Botão da conta (sidebar) sem anel de foco** → `focus-visible:ring`.
+- [x] **Título da aba não mudava por rota** → `document.title` por rota no AppShell.
+- [x] **KPI de Relatórios sem truncate** → `truncate`/`min-w-0` (não estoura com valor grande).
+
+### 🟡 Adiado (refactor / baixo valor) — para depois
+- Adotar `EmptyStateCard` + skeleton **app-wide** (hoje 5 tratamentos de vazio/loading divergentes;
+  uns mostram `<p>Carregando...</p>` cru).
+- **Associar labels** a todos os Select/SearchableSelect/MultiSelect (leitor de tela não anuncia o
+  nome) — padrão difundido (ReceiptFormDialog, RecurringPage, ReceiptFiltersBar, CategoriesManager).
+  Caminho barato: prop `aria-label` no trigger do SearchableSelect + nos `SelectTrigger`.
+- Trocar `confirm()`/`alert()` nativo por dialog estilizado (RecurringPage, CostCentersManager,
+  AdminUsers) — quebra visual do design system.
+- Consolidar os 2 sistemas de botão de toolbar (Button `h-9 rounded` vs hand-rolled
+  `bg-slate-100 rounded-md`); usar `ActionIconButton` nos 3 managers que reimplementam.
+- Ellipsis "..." → "…"; spacing de ícone (`mr-1`/`mr-1.5` vs `gap`); AdminUsers "+" → ícone `Plus`.
+- Contraste `text-slate-400` em infos reais do Dashboard → `slate-500/600` (L4).
+- `accessibilityLayer` nos charts; skip-link p/ `<main>`; `<dl>` + `alt` contextual no PDF.
+- `CostCentersPage` standalone duplicado (legado) → confirmar rota e deletar (ver rebrand-cleanup).
+
+### ✅ Bem feito (sem mudança)
+Badges/status disciplinados (STATUS_COLOR_SCHEME); erros uniformes (`bg-red-50`); cards padrão;
+títulos h1 consistentes; `tabular-nums` nos valores; `ActionIconButton` força `aria-label`;
+dialogs Radix (foco/Esc, sr-only no X); MonthSwitcher/kebab/nav com `aria-label`; PDF bem
+estruturado (`lang`/`title`); AttachmentViewer com os 4 estados; `index.html` com `lang=pt-BR`.
 
 ## Etapa 4 — Mobile / responsividade  ⏳ pendente
 

@@ -153,6 +153,12 @@ export function AppShell() {
     return fallback ? [fallback] : [];
   }, [location.pathname]);
 
+  // Título da aba por rota (acessibilidade/histórico). Mantém a marca no fim.
+  useEffect(() => {
+    const page = breadcrumbSegments[breadcrumbSegments.length - 1];
+    document.title = page ? `${page} — gerentia.app` : "gerentia.app";
+  }, [breadcrumbSegments]);
+
   // Conteudo da sidebar (reusado no desktop fixo + drawer mobile).
   // `inDrawer` força full (nao colapsado) no mobile.
   const renderSidebar = (inDrawer: boolean) => {
@@ -206,7 +212,7 @@ export function AppShell() {
                 type="button"
                 title={user?.fullName || user?.email || "Conta"}
                 className={cn(
-                  "flex items-center h-9 w-full rounded-md text-sm text-slate-700 hover:bg-slate-200 transition-colors outline-none",
+                  "flex items-center h-9 w-full rounded-md text-sm text-slate-700 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
                   isCollapsed ? "justify-center" : "gap-2 px-2.5",
                 )}
               >

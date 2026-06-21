@@ -36,15 +36,24 @@ interface ReceiptsCardsProps {
   onDelete: (r: Receipt) => void;
   /** Só a ação "Ver detalhes" (sem editar/excluir). */
   viewOnly?: boolean;
+  /** Mensagem quando não há registros. */
+  emptyLabel?: string;
 }
 
-export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = false }: ReceiptsCardsProps) {
+export function ReceiptsCards({
+  receipts,
+  onView,
+  onEdit,
+  onDelete,
+  viewOnly = false,
+  emptyLabel = "Nenhum lançamento neste mês.",
+}: ReceiptsCardsProps) {
   const { categories } = useCategories();
   return (
     <div className="flex flex-col gap-2">
       {receipts.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-400">
-          Nenhum lançamento neste mês.
+          {emptyLabel}
         </div>
       ) : null}
       {receipts.map((r) => (
@@ -110,7 +119,7 @@ export function ReceiptsCards({ receipts, onView, onEdit, onDelete, viewOnly = f
             </p>
             <div className="mt-2 flex items-center gap-1.5">
               <Badge
-                colorScheme={r.direction === "income" ? "emerald" : "rose"}
+                colorScheme={r.direction === "income" ? "emerald" : "slate"}
                 className="px-0 w-6"
                 title={r.direction === "income" ? "Entrada" : "Saída"}
               >

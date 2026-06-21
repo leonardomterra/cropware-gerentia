@@ -333,11 +333,11 @@ export default function ReportsPage() {
       {doc.meta.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {doc.meta.map((m, i) => (
-            <div key={i} className="bg-white rounded-lg border border-slate-200 p-4">
-              <p className="text-sm text-slate-500">{m.label}</p>
+            <div key={i} className="bg-white rounded-lg border border-slate-200 p-4 min-w-0">
+              <p className="text-sm text-slate-500 truncate">{m.label}</p>
               <p
                 className={cn(
-                  "text-lg font-semibold mt-0.5 tabular-nums",
+                  "text-lg font-semibold mt-0.5 tabular-nums truncate",
                   m.tone === "in" && "text-emerald-700",
                   m.tone === "muted" && "text-slate-600",
                   (!m.tone || m.tone === "out") && "text-slate-900",

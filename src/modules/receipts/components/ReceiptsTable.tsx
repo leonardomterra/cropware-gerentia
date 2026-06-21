@@ -51,6 +51,8 @@ interface ReceiptsTableProps {
   onToggleAll: () => void;
   /** Só a ação "Ver detalhes" (sem descrição/editar/excluir). */
   viewOnly?: boolean;
+  /** Mensagem quando não há registros. */
+  emptyLabel?: string;
 }
 
 /**
@@ -69,6 +71,7 @@ export function ReceiptsTable({
   onToggleOne,
   onToggleAll,
   viewOnly = false,
+  emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsTableProps) {
   const { categories } = useCategories();
   const { user } = useAuth();
@@ -115,16 +118,10 @@ export function ReceiptsTable({
         </TableHeader>
         <TableBody>
           {receipts.length === 0 ? (
-            <TableRow className="hover:bg-transparent border-b-0 text-slate-300">
-              <TableCell className="py-3 pl-4" />
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm">—</TableCell>
-              <TableCell className="py-3 text-sm text-right">—</TableCell>
-              <TableCell className="py-3 text-sm text-right pr-4">—</TableCell>
+            <TableRow className="hover:bg-transparent border-b-0">
+              <TableCell colSpan={9} className="py-12 text-center text-sm text-slate-400">
+                {emptyLabel}
+              </TableCell>
             </TableRow>
           ) : null}
           {receipts.map((r) => {

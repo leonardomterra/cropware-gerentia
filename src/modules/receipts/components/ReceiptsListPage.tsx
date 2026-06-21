@@ -677,6 +677,7 @@ export function ReceiptsListPage({
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
               viewOnly={viewOnly}
+              emptyLabel={emptyLabel}
             />
           ) : (
             <ReceiptsTable
@@ -688,6 +689,7 @@ export function ReceiptsListPage({
               onToggleOne={toggleOne}
               onToggleAll={toggleAll}
               viewOnly={viewOnly}
+              emptyLabel={emptyLabel}
             />
           )}
         </div>

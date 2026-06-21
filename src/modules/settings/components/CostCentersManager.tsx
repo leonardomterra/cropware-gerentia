@@ -4,7 +4,6 @@ import Star from "~icons/material-symbols-light/star-outline";
 import StarFilled from "~icons/material-symbols-light/star";
 import Archive from "~icons/material-symbols-light/archive-outline";
 import Pencil from "~icons/material-symbols-light/edit-outline";
-import Eye from "~icons/material-symbols-light/visibility-outline";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -180,15 +179,6 @@ export function CostCentersManager() {
                       <Star className="size-5" />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {}}
-                    title="Ver"
-                    aria-label="Ver"
-                    className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                  >
-                    <Eye className="size-5" />
-                  </button>
                   <button
                     type="button"
                     onClick={() => openEdit(cc)}

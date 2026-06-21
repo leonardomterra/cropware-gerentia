@@ -99,11 +99,20 @@ export function ReceiptItemsTable({
                     <Badge
                       size="compact"
                       colorScheme="slate"
-                      className="ml-2 align-middle cursor-pointer hover:opacity-80"
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Ver o lançamento que este item virou"
+                      className="ml-2 align-middle cursor-pointer hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                       title="Ver o lançamento que este item virou"
                       onClick={() =>
                         navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`)
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`);
+                        }
+                      }}
                     >
                       Desmembrado
                     </Badge>
