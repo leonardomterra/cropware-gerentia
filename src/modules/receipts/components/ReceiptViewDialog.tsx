@@ -17,6 +17,7 @@ import {
   PAYMENT_METHOD_LABEL,
   STATUS_COLOR_SCHEME,
   STATUS_LABEL,
+  isCreditCard,
 } from "../constants";
 import { useCategories } from "../hooks/useCategories";
 import { ReceiptItemsTable } from "./ReceiptItemsTable";
@@ -127,6 +128,17 @@ export function ReceiptViewDialog({
           <Field label="Fonte">
             <span className="capitalize">{receipt.source}</span>
           </Field>
+          {(receipt.doc_type === "fatura" || isCreditCard(receipt.payment_method)) && (
+            <Field label="Contabilizado">
+              {receipt.counts_in_total ? (
+                "Sim"
+              ) : (
+                <Badge colorScheme="slate" title="Não entra nos totais">
+                  Informativo
+                </Badge>
+              )}
+            </Field>
+          )}
           {!hasItems && (
             <Field label="Categoria">
               {getCategoryLabel(receipt.category, categories)}
