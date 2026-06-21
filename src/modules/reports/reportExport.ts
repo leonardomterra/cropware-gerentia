@@ -1,6 +1,9 @@
 import { downloadCsv } from "@/utils/csv";
 import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import type { ReportCell, ReportColumn, ReportDoc } from "./reportBuilders";
+// Fonte padrão do app (Mozilla Text) bundlada — embutida via @font-face pra
+// valer na aba nova de impressão (não depende do Google Fonts).
+import mozillaTextUrl from "@fontsource-variable/mozilla-text/files/mozilla-text-latin-wght-normal.woff2?url";
 
 // ---- CSV (multi-tabela empilhada) -----------------------------------------
 
@@ -91,10 +94,16 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />
 <title>${esc(doc.title)}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap');
+  @font-face {
+    font-family: 'Mozilla Text Variable';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('${origin}${mozillaTextUrl}') format('woff2');
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { size: A4 portrait; margin: 14mm; }
-  html, body { background: #fff; color: #0f172a; font-family: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; }
+  html, body { background: #fff; color: #0f172a; font-family: 'Mozilla Text Variable', 'Mozilla Text', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; }
   @media screen {
     body { background: #eef0f3; padding: 24px 0 96px; }
     .sheet { max-width: 210mm; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.06), 0 2px 16px rgba(15,23,42,.05); }
