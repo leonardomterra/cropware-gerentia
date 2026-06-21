@@ -42,25 +42,25 @@ interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
+  /** Só pra admin (RBAC). No app individual o dono é admin, então aparecem. */
+  adminOnly?: boolean;
 }
 
-const BASE_NAV_ITEMS: NavItem[] = [
+// Ordem única do menu. adminOnly marca os itens de gestão (Recorrências/
+// Configurações) — RBAC preservado p/ multi-usuário futuro; no app individual
+// o dono é admin e vê todos.
+const NAV_ITEMS: NavItem[] = [
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
-  { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
-  { to: "/faturas", label: "Faturas", icon: CreditCard },
-  { to: "/anexos", label: "Anexos", icon: FolderOpen },
+  { to: "/recorrencias", label: "Recorrências", icon: Repeat, adminOnly: true },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/relatorios", label: "Relatórios", icon: Assessment },
-  // "Fazendas" escondido do menu (CRUD orfao). Rota /fazendas continua
-  // valida pra acesso direto via URL.
-];
-
-const ADMIN_NAV_ITEMS: NavItem[] = [
-  { to: "/recorrencias", label: "Recorrências", icon: Repeat },
-  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
-  // "Equipe" desativada temporariamente: por ora o app e individual. A infra
-  // de organizacao/RBAC/convites continua intacta (dormente) no backend pro
-  // app futuro (fazendas/empresas). Rota /equipe segue valida via URL direta.
+  { to: "/anexos", label: "Anexos", icon: FolderOpen },
+  { to: "/faturas", label: "Faturas", icon: CreditCard },
+  { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
+  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, adminOnly: true },
+  // "Fazendas" escondido do menu (CRUD orfao); rota /fazendas segue válida via URL.
+  // "Equipe" desativada (app individual); infra de org/RBAC/convites dormente no
+  // backend. Rota /equipe segue válida via URL direta.
   // { to: "/equipe", label: "Equipe", icon: Users },
 ];
 
@@ -137,15 +137,14 @@ export function AppShell() {
   }, [location.pathname]);
 
   const navItems: NavItem[] = [
-    ...BASE_NAV_ITEMS,
-    ...(isAdmin ? ADMIN_NAV_ITEMS : []),
+    ...NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin),
     ...(isMaster ? MASTER_NAV_ITEMS : []),
   ];
 
   const breadcrumbSegments = useMemo(() => {
     const path = location.pathname;
     if (path === "/" || path === "") return ["Dashboard"];
-    const lookup = [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS, ...MASTER_NAV_ITEMS, ACCOUNT_NAV_ITEM].find(
+    const lookup = [...NAV_ITEMS, ...MASTER_NAV_ITEMS, ACCOUNT_NAV_ITEM].find(
       (it) => path === it.to || path.startsWith(it.to + "/"),
     );
     if (lookup) return [lookup.label];
