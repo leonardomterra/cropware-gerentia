@@ -163,10 +163,10 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      {/* Controles */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+      {/* Controles — ocupam a largura: filtros flex-1, ações à direita. */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
-          <SelectTrigger className="w-full lg:w-[260px]">
+          <SelectTrigger className="w-full lg:flex-1">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -182,12 +182,12 @@ export default function ReportsPage() {
           value={month}
           onChange={setMonth}
           variant="picker"
-          className="w-full lg:w-[185px]"
+          className="w-full lg:flex-1"
         />
 
         {showDirection && (
           <Select value={direction} onValueChange={(v) => setDirection(v as DirectionFilter)}>
-            <SelectTrigger className="w-full lg:w-[160px]">
+            <SelectTrigger className="w-full lg:flex-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -203,7 +203,7 @@ export default function ReportsPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-9 w-full lg:w-[210px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                className="h-9 w-full lg:flex-1 inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
               >
                 {activeCC ? (
                   <CostCenterChip icon={activeCC.icon} color={activeCC.color} className="size-6" />
@@ -241,7 +241,7 @@ export default function ReportsPage() {
           </DropdownMenu>
         )}
 
-        <div className="flex gap-2 lg:ml-auto">
+        <div className="flex gap-2 lg:shrink-0">
           <Button
             variant="outline"
             className="gap-1.5 flex-1 lg:flex-none"
@@ -252,6 +252,7 @@ export default function ReportsPage() {
             Baixar CSV
           </Button>
           <Button
+            variant="outline"
             className="gap-1.5 flex-1 lg:flex-none"
             disabled={noData}
             onClick={() => printReport(doc)}
