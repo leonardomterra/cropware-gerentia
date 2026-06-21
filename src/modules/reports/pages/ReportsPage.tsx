@@ -44,10 +44,14 @@ import {
   type ReportKind,
   type ReportTable,
 } from "../reportBuilders";
-import { downloadReportCsv, printReport } from "../reportExport";
-import { buildReportWithAttachmentsPdf } from "../reportPdf";
+import { downloadReportCsv } from "../reportExport";
+import { renderReportToPdf } from "../reportRender";
 import { apiGetArrayBuffer } from "@/utils/api";
-import { pdfViewerHtml } from "@/modules/receipts/utils/mergeAttachmentsPdf";
+import {
+  appendAttachments,
+  pdfDocToBlob,
+  pdfViewerHtml,
+} from "@/modules/receipts/utils/mergeAttachmentsPdf";
 
 function cellText(v: ReportCell, col: ReportColumn): string {
   if (col.money && typeof v === "number" && Number.isFinite(v)) return formatBRL(v);
@@ -159,10 +163,11 @@ export default function ReportsPage() {
   const activeCC = userCCs.find((c) => c.id === activeCCId);
   const [printing, setPrinting] = useState(false);
 
-  // Imprimir COM anexos: relatório em PDF (pdf-lib) + os arquivos dos lançamentos
-  // do período logo após, num único PDF aberto na página-visualizador.
-  const handlePrintWithAttachments = async () => {
-    const withAtt = receipts.filter((r) => !!r.attachment_key);
+  // Gera o PDF do relatório (HTML do app -> imagem -> pdf-lib, com fonte+logo) e,
+  // se `withAtt`, anexa os arquivos dos lançamentos do período logo após. Abre na
+  // página-visualizador.
+  const handlePrint = async (withAtt: boolean) => {
+    const docs = withAtt ? receipts.filter((r) => !!r.attachment_key) : [];
     const win = window.open("", "_blank");
     if (win) {
       win.document.write(
@@ -171,18 +176,20 @@ export default function ReportsPage() {
     }
     setPrinting(true);
     const toastId = toast.loading(
-      withAtt.length
-        ? `Gerando PDF (relatório + ${withAtt.length} anexo${withAtt.length === 1 ? "" : "s"})…`
+      withAtt && docs.length
+        ? `Gerando PDF (relatório + ${docs.length} anexo${docs.length === 1 ? "" : "s"})…`
         : "Gerando PDF do relatório…",
     );
     try {
       const items = await Promise.all(
-        withAtt.map(async (r) => ({
+        docs.map(async (r) => ({
           receipt: r,
           bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
         })),
       );
-      const { blob, failed } = await buildReportWithAttachmentsPdf(doc, items);
+      const pdf = await renderReportToPdf(doc);
+      const failed = withAtt ? await appendAttachments(pdf, items) : 0;
+      const blob = await pdfDocToBlob(pdf);
       const url = URL.createObjectURL(blob);
       const filename = csvName.replace(/\.csv$/, ".pdf");
       if (win) {
@@ -315,10 +322,10 @@ export default function ReportsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => printReport(doc)}>
+              <DropdownMenuItem onClick={() => handlePrint(false)}>
                 Sem anexos
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePrintWithAttachments}>
+              <DropdownMenuItem onClick={() => handlePrint(true)}>
                 Com anexos
               </DropdownMenuItem>
             </DropdownMenuContent>
