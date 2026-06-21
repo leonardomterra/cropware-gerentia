@@ -44,7 +44,7 @@ import {
   type ReportKind,
   type ReportTable,
 } from "../reportBuilders";
-import { downloadReportCsv } from "../reportExport";
+import { downloadReportCsv, openReportPage } from "../reportExport";
 import { renderReportToPdf } from "../reportRender";
 import { apiGetArrayBuffer } from "@/utils/api";
 import {
@@ -322,7 +322,7 @@ export default function ReportsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handlePrint(false)}>
+              <DropdownMenuItem onClick={() => openReportPage(doc)}>
                 Sem anexos
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handlePrint(true)}>

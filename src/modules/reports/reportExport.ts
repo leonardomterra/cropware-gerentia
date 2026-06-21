@@ -76,7 +76,11 @@ function tableHtml(t: ReportDoc["tables"][number]): string {
   return `<section><h2>${esc(t.title ?? "")}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}${total}</tbody></table></section>`;
 }
 
-function reportHtml(doc: ReportDoc): string {
+// Página HTML do relatório no estilo do CDM (laudos): folha A4 com a marca, fonte
+// via @import (Inter Tight — funciona em janela nova), e uma barra fixa no rodapé
+// com "Imprimir / Salvar PDF" + "Cancelar" (escondida na impressão via .no-print).
+function reportPageHtml(doc: ReportDoc): string {
+  const origin = window.location.origin;
   const meta = doc.meta
     .map(
       (m) =>
@@ -87,44 +91,70 @@ function reportHtml(doc: ReportDoc): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />
 <title>${esc(doc.title)}</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 32px; font-size: 13px; }
-  h1 { font-size: 18px; margin: 0 0 2px; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: A4 portrait; margin: 14mm; }
+  html, body { background: #fff; color: #0f172a; font-family: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 12px; line-height: 1.5; }
+  @media screen {
+    body { background: #eef0f3; padding: 24px 0 96px; }
+    .sheet { max-width: 210mm; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.06), 0 2px 16px rgba(15,23,42,.05); }
+  }
+  .sheet { padding: 40px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 18px; }
+  .brand img { height: 30px; width: auto; }
+  .brand .wm { font-size: 17px; font-weight: 600; }
+  .brand .wm .dot { color: #64748b; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 2px; }
   .sub { color: #64748b; font-size: 12px; margin: 0 0 18px; }
   .kpis { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
   .kpi { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; min-width: 130px; }
   .kpi .kl { display: block; color: #64748b; font-size: 11px; }
-  .kpi .kv { display: block; font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .kpi .kv { display: block; font-size: 16px; font-weight: 600; margin-top: 2px; color: #0f172a; }
   .kpi.in .kv { color: #047857; }
-  .kpi.out .kv { color: #0f172a; }
   .kpi.muted .kv { color: #475569; }
   section { margin-bottom: 22px; page-break-inside: avoid; }
-  h2 { font-size: 13px; margin: 0 0 6px; color: #334155; }
+  h2 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: #334155; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef2f6; }
   th { color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
-  td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; }
-  footer { margin-top: 24px; color: #94a3b8; font-size: 10px; }
-  @media print { body { margin: 0; } @page { margin: 16mm; } }
+  td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; color: #0f172a; }
+  .foot { margin-top: 24px; color: #94a3b8; font-size: 10px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e2e8f0; }
+  .btn { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
+  .btn.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+  @media print {
+    body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet { max-width: none; margin: 0; box-shadow: none; padding: 0; }
+    .no-print { display: none !important; }
+  }
 </style></head><body>
-  <h1>${esc(doc.title)}</h1>
-  <p class="sub">${esc(doc.periodLabel)} — ${esc(doc.ccLabel)}</p>
-  <div class="kpis">${meta}</div>
-  ${tables || '<p class="sub">Sem dados para o período.</p>'}
-  <footer>Gerado por gerentia.app — ${new Date().toLocaleString("pt-BR")}</footer>
+  <div class="sheet">
+    <div class="brand">
+      <img src="${origin}/icon.png" alt="" />
+      <span class="wm">gerentia<span class="dot">.app</span></span>
+    </div>
+    <h1>${esc(doc.title)}</h1>
+    <p class="sub">${esc(doc.periodLabel)} — ${esc(doc.ccLabel)}</p>
+    <div class="kpis">${meta}</div>
+    ${tables || '<p class="sub">Sem dados para o período.</p>'}
+    <div class="foot">Gerado por gerentia.app — ${esc(new Date().toLocaleString("pt-BR"))}</div>
+  </div>
+  <div class="bar no-print">
+    <button class="btn primary" onclick="window.print()">Imprimir / Salvar PDF</button>
+    <button class="btn" onclick="window.close()">Cancelar</button>
+  </div>
 </body></html>`;
 }
 
-export function printReport(doc: ReportDoc): void {
+/** Abre o relatório numa aba nova (HTML vetorial) com barra de ações no rodapé. */
+export function openReportPage(doc: ReportDoc): void {
   const w = window.open("", "_blank");
   if (!w) {
-    alert("Permita pop-ups para imprimir o relatório.");
+    alert("Permita pop-ups para abrir o relatório.");
     return;
   }
-  w.document.write(reportHtml(doc));
+  w.document.write(reportPageHtml(doc));
   w.document.close();
   w.focus();
-  // Pequeno atraso pro layout assentar antes do diálogo de impressão.
-  setTimeout(() => w.print(), 300);
 }
