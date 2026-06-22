@@ -59,19 +59,26 @@ const badgeVariants = cva(
   },
 );
 
-function Badge({
-  className,
-  variant,
-  size = "default",
-  colorScheme,
-  asChild = false,
-  style,
-  truncate,
-  title,
-  children,
-  ...props
-}: React.ComponentPropsWithoutRef<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean; truncate?: boolean }) {
+type BadgeProps = React.ComponentPropsWithoutRef<"span"> &
+  VariantProps<typeof badgeVariants> & { asChild?: boolean; truncate?: boolean };
+
+// forwardRef: o Badge é usado como filho de TooltipTrigger/Slot asChild (que
+// injeta um ref) — sem encaminhar o ref, o React avisa no console.
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  {
+    className,
+    variant,
+    size = "default",
+    colorScheme,
+    asChild = false,
+    style,
+    truncate,
+    title,
+    children,
+    ...props
+  },
+  ref,
+) {
   const Comp = asChild ? Slot : "span";
   const useShadcnTooltip = truncate && !!title;
 
@@ -84,6 +91,7 @@ function Badge({
 
   const badge = (
     <Comp
+      ref={ref}
       data-slot="badge"
       className={cn(
         badgeVariants({ variant, size, colorScheme }),
@@ -110,6 +118,6 @@ function Badge({
   }
 
   return badge;
-}
+});
 
 export { Badge, badgeVariants };

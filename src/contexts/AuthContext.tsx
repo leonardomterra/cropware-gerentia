@@ -191,14 +191,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Persiste os tokens JÁ renovados pelo setSession ANTES do /auth/me —
+        // senão o api() manda o token antigo (possivelmente expirado) e toma um
+        // 401 no console antes do refresh+retry.
+        await persistSessionTokens(
+          data.session.access_token,
+          data.session.refresh_token,
+          data.session.expires_at ?? null,
+        );
+
         const profile = await fetchUserProfile();
         if (profile) {
           setUser(profile);
-          await persistSessionTokens(
-            data.session.access_token,
-            data.session.refresh_token,
-            data.session.expires_at ?? null,
-          );
         } else {
           await clearSessionTokens();
         }
