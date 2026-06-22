@@ -205,6 +205,15 @@ body {
   }
 }
 
+/* Bottom sheet do menu mobile: sobe do rodape. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* Bump tipografico no mobile/app: sobe as fontes principais (~+1-2px) p/ leitura
    melhor no celular, SEM mexer em espacamento/altura. O Tailwind v4 gera as
    utilities a partir de var(--text-*), entao redefinir os tokens aqui reescala

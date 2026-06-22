@@ -271,7 +271,7 @@ export function AppShell() {
         {renderSidebar(false)}
       </aside>
 
-      {/* DRAWER MOBILE */}
+      {/* BOTTOM SHEET MOBILE: menu que sobe do rodapé, itens centralizados, sem logo */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-[1500]">
           <div
@@ -279,13 +279,65 @@ export function AppShell() {
             onClick={() => setMobileOpen(false)}
           />
           <div
-            className="absolute inset-y-0 left-0 w-64 shadow-xl bg-slate-100"
-            style={{
-              paddingTop: "env(safe-area-inset-top, 0px)",
-              paddingBottom: "env(safe-area-inset-bottom, 0px)",
-            }}
+            className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl animate-sheet-up"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           >
-            {renderSidebar(true)}
+            {/* puxador */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-slate-300" />
+            </div>
+            <nav className="px-3 pb-3 pt-1 max-h-[70vh] overflow-y-auto flex flex-col gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center justify-center gap-2 h-11 rounded-md text-sm transition-colors",
+                      isActive
+                        ? "bg-slate-100 text-slate-900 font-medium"
+                        : "text-slate-600 hover:bg-slate-50",
+                    )
+                  }
+                >
+                  <item.icon className="size-5 shrink-0" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+              <div className="my-1 h-px bg-slate-100" />
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate("/conta");
+                }}
+                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <UserCircle className="size-5 shrink-0" />
+                Conta
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <HelpCircle className="size-5 shrink-0" />
+                Ajuda
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  void signOut();
+                }}
+                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <LogOut className="size-5 shrink-0" />
+                Sair
+              </button>
+            </nav>
           </div>
         </div>
       )}
@@ -293,20 +345,13 @@ export function AppShell() {
       {/* COLUNA DE CONTEUDO */}
       <div className="flex flex-col flex-1 min-w-0">
         <ImpersonationBanner />
-        {/* Topbar: desktop = toggle + breadcrumb; mobile = logo + título.
-            paddingTop reserva o notch/dynamic island (safe-area). */}
-        <div
-          className="flex items-center shrink-0 border-b border-slate-200 px-2 sm:px-3 gap-2"
-          style={{
-            paddingTop: "env(safe-area-inset-top, 0px)",
-            minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
-          }}
-        >
-          {/* Desktop: colapsar/expandir */}
+
+        {/* DESKTOP: topbar com toggle + breadcrumb */}
+        <div className="hidden md:flex items-center h-13 shrink-0 border-b border-slate-200 px-3 gap-2">
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
-            className="hidden md:inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+            className="inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
             title={collapsed ? "Expandir menu" : "Recolher menu"}
           >
             {collapsed ? (
@@ -315,15 +360,28 @@ export function AppShell() {
               <PanelLeftClose className="size-5" />
             )}
           </button>
-          {/* Mobile: marca (logo + wordmark estático, sem animação) */}
-          <div className="md:hidden flex items-center gap-1.5 shrink-0">
-            <Logo className="h-7 w-auto opacity-80" />
-            <LogoWordmark animate={false} className="text-slate-500/80" />
-          </div>
-
           <div className="flex-1 min-w-0">
             <PageBreadcrumb segments={breadcrumbSegments} embedded />
           </div>
+        </div>
+
+        {/* MOBILE: cabeçalho com a logo centralizada (safe-area no topo) */}
+        <div
+          className="md:hidden flex items-center justify-center shrink-0 border-b border-slate-200 px-3"
+          style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <Logo className="h-7 w-auto opacity-80" />
+            <LogoWordmark animate={false} className="text-slate-500/80" />
+          </div>
+        </div>
+
+        {/* MOBILE: sub-cabeçalho com o título da página à esquerda */}
+        <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2">
+          <PageBreadcrumb segments={breadcrumbSegments} embedded />
         </div>
 
         {/* MAIN - scroll vive aqui (min-h-0 + overflow-y-auto). */}
