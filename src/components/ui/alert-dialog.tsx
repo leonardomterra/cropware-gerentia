@@ -87,9 +87,10 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        // Linha suave em cima (full-width via -mx-6 px-6) + botoes
-        // dividindo a largura igualmente ([&>*]:flex-1). Padrao Farm.
-        "flex flex-row gap-2 border-t border-slate-100 pt-4 -mx-6 px-6 [&>*]:flex-1",
+        // No mobile empilha (col-reverse: ação primária em cima); no desktop
+        // vira linha com botoes dividindo a largura igualmente. Linha suave em
+        // cima (full-width via -mx-6 px-6). Mesmo padrao do DialogFooter.
+        "flex flex-col-reverse gap-2 sm:flex-row border-t border-slate-100 pt-4 -mx-6 px-6 sm:*:flex-1",
         className,
       )}
       {...props}

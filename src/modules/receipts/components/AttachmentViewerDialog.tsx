@@ -64,18 +64,13 @@ export function AttachmentViewerDialog({
             />
           ) : url && isPdf ? (
             isMobile ? (
-              // WebView/mobile costuma renderizar <iframe> de PDF em branco —
-              // abre direto numa nova aba (anchor é mais confiável que window.open).
-              <div className="flex flex-col items-center gap-3 p-8 text-center">
-                <p className="text-sm text-slate-500">
-                  Pré-visualização de PDF indisponível no celular.
-                </p>
-                <Button asChild>
-                  <a href={url} target="_blank" rel="noopener noreferrer">
-                    Abrir PDF
-                  </a>
-                </Button>
-              </div>
+              // WebView/mobile costuma renderizar <iframe> de PDF em branco — o
+              // usuário abre pelo botão "Abrir em nova aba" do rodapé.
+              <p className="text-sm text-slate-500 p-8 text-center">
+                Pré-visualização indisponível no celular.
+                <br />
+                Use “Abrir em nova aba” abaixo.
+              </p>
             ) : (
               <iframe
                 src={url}
@@ -98,7 +93,7 @@ export function AttachmentViewerDialog({
             onClick={() => url && window.open(url, "_blank", "noopener")}
             disabled={!url}
           >
-            {isPdf ? "Abrir em Nova Aba" : "Baixar"}
+            {isPdf ? "Abrir em nova aba" : "Baixar"}
           </Button>
         </DialogFooter>
       </DialogContent>

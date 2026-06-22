@@ -113,11 +113,12 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        // Botoes dividem a largura (*:flex-1), linha suave em cima
-        // (full-width via -mx-6 px-6). Mesmo padrao do AlertDialogFooter.
+        // No mobile empilha (col-reverse: ação primária em cima); no desktop
+        // vira linha com botoes dividindo a largura (sm:*:flex-1). Linha suave
+        // em cima (full-width via -mx-6 px-6). Mesmo padrao do AlertDialogFooter.
         // NAO sticky - flui no fim do conteudo (o DialogContent ja tem
         // overflow-y-auto), evita sobrepor o ultimo campo.
-        "flex flex-row gap-2 *:flex-1 border-t border-slate-100 pt-4 -mx-4 px-4 sm:-mx-6 sm:px-6",
+        "flex flex-col-reverse gap-2 sm:flex-row sm:*:flex-1 border-t border-slate-100 pt-4 -mx-4 px-4 sm:-mx-6 sm:px-6",
         className,
       )}
       {...props}

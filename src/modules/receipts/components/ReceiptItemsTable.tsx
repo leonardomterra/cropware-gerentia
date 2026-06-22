@@ -6,6 +6,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import type { Receipt, ReceiptItem } from "../types";
@@ -34,6 +35,7 @@ export function ReceiptItemsTable({
   const { categories } = useCategories();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c]));
   const [pendingPromote, setPendingPromote] = useState<ReceiptItem | null>(null);
   const [promoting, setPromoting] = useState(false);
@@ -60,10 +62,123 @@ export function ReceiptItemsTable({
 
   if (items.length === 0) return null;
 
+  // Badge "Desmembrado" (reusado na tabela e nos cards mobile).
+  const promotedBadge = (it: ReceiptItem) => (
+    <Badge
+      size="compact"
+      colorScheme="slate"
+      role="button"
+      tabIndex={0}
+      aria-label="Ver o lançamento que este item virou"
+      className="align-middle cursor-pointer hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+      title="Ver o lançamento que este item virou"
+      onClick={() => navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`);
+        }
+      }}
+    >
+      Desmembrado
+    </Badge>
+  );
+
+  // Mobile: cards empilhados (a tabela larga estourava a tela).
+  if (isMobile) {
+    return (
+      <>
+        <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
+          {items.map((it) => {
+            const cc = it.cost_center_id ? ccById.get(it.cost_center_id) : null;
+            const promoted = !!it.promoted_to_receipt_id;
+            return (
+              <div key={it.id} className={cn("p-3", promoted && "bg-slate-50/60")}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 text-sm">
+                    <span className={promoted ? "text-slate-400" : "text-slate-700"}>
+                      {it.description || "—"}
+                    </span>
+                    {it.quantity != null && it.unit_value != null ? (
+                      <span className="text-xs text-slate-400">
+                        {" "}
+                        ({it.quantity} × {formatBRL(it.unit_value)})
+                      </span>
+                    ) : null}
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 text-sm tabular-nums",
+                      promoted
+                        ? "text-slate-400 line-through"
+                        : "text-slate-900 font-medium",
+                    )}
+                  >
+                    {formatBRL(it.total_value)}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500">
+                    <span className="truncate">
+                      {getCategoryLabel(it.category, categories)}
+                    </span>
+                    {cc ? (
+                      <span className="inline-flex items-center gap-1 shrink-0">
+                        <CostCenterChip
+                          icon={cc.icon}
+                          color={cc.color}
+                          className="size-4 shrink-0"
+                        />
+                        <span className="truncate text-slate-600">{cc.name}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  {promoted ? (
+                    promotedBadge(it)
+                  ) : editable ? (
+                    <ActionIconButton
+                      icon={CallMade}
+                      label="Converter em lançamento"
+                      disabled={!canPromote}
+                      onClick={() => setPendingPromote(it)}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between p-3 bg-slate-50">
+            <span className="text-sm font-medium text-slate-700">Total</span>
+            <span className="text-sm font-medium tabular-nums text-slate-900">
+              {formatBRL(receipt.total_value)}
+            </span>
+          </div>
+        </div>
+
+        <ConfirmActionDialog
+          open={pendingPromote !== null}
+          onOpenChange={(o) => {
+            if (!o) setPendingPromote(null);
+          }}
+          title="Converter em Lançamento"
+          description={
+            pendingPromote
+              ? `Converter "${pendingPromote.description || getCategoryLabel(pendingPromote.category, categories)}" (${formatBRL(pendingPromote.total_value)}) em um lançamento separado? Ele sai deste lançamento e o total é recalculado.`
+              : ""
+          }
+          confirmLabel="Converter"
+          cancelLabel="Cancelar"
+          loading={promoting}
+          loadingLabel="Convertendo..."
+          onConfirm={confirmPromote}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <div className="overflow-x-auto">
-      <table className="w-full text-sm min-w-md">
+      <table className="w-full text-sm">
         <thead className="bg-slate-50 text-slate-600 text-xs">
           <tr>
             <th className="text-left px-3 py-2 font-medium">Descrição</th>
@@ -172,7 +287,6 @@ export function ReceiptItemsTable({
           </tr>
         </tfoot>
       </table>
-      </div>
 
       <ConfirmActionDialog
         open={pendingPromote !== null}

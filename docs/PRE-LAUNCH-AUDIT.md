@@ -164,13 +164,16 @@ datas nativas, inputMode decimal no dinheiro).
 ### 🔴 Alto — CORRIGIDO
 - [x] **X de fechar do dialog escondido no mobile** (`hidden sm:flex`) + clique-fora
   desativado → beco sem saída. Removido o `hidden sm:flex` (X aparece sempre, 44px).
-- [x] **Viewer de PDF = `<iframe>` cru** (branco em WebView) → no mobile mostra card
-  "Abrir PDF" (anchor `target=_blank`, mais confiável que window.open).
+- [x] **Viewer de PDF = `<iframe>` cru** (branco em WebView) → no mobile mostra mensagem
+  ("Use 'Abrir em nova aba' abaixo") + o botão "Abrir em nova aba" do rodapé (sem botão
+  duplicado). Refinado a pedido do usuário.
 
 ### 🟠 Médio — CORRIGIDO
 - [x] **Kebab dos cards 28px** (`size-7`, única ação por linha no mobile) → `size-9` + ícone `size-5`.
-- [x] **`ReceiptItemsTable` sem scroll** → envolto em `overflow-x-auto` + `min-w-md` (não estoura no dialog).
-- [x] **Abas de Configurações sem scroll** → `overflow-x-auto` + `whitespace-nowrap shrink-0`.
+- [x] **`ReceiptItemsTable` estourava a tela no mobile** → vira **cards empilhados** no mobile
+  (tabela só no desktop). Botões do dialog **empilham no mobile** (DialogFooter/AlertDialogFooter
+  `flex-col-reverse sm:flex-row`).
+- [x] **Abas de Configurações não cabiam** → no mobile viram **Select**; tabs só no desktop.
 - [x] **Botão "Sugerir" minúsculo** → bump sutil de toque (`py-1 min-h-6`) sem descaracterizar a marca.
 - [x] **Setas de ano do month picker 28px** → `size-9`.
 - [x] **`type=number` em Recorrências** (dia/meses) → + `inputMode="numeric"` (teclado certo).
@@ -184,6 +187,10 @@ datas nativas, inputMode decimal no dinheiro).
   só vira problema se reativar (modelo individual hoje). Anotado.
 - Tooltips de chart só hover (info redundante em KPIs/labels); dia/meses poderiam ser
   `inputMode` puro (já melhorado).
+- **Tabelas → cards no mobile no app TODO** (consistência): o usuário sugeriu padronizar.
+  Hoje as listas principais já usam cards (ReceiptsCards) e ReceiptItemsTable foi convertida.
+  Restantes a avaliar caso a caso (confirmar escopo antes): tabelas de Relatórios
+  (preview), AdminUsers (já progressiva c/ colunas ocultas), TeamPage (desativada).
 
 ## Etapa 5 — Capacitor (Android/iOS)  ⏳ pendente
 

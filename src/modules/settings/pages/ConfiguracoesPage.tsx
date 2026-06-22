@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { cn } from "@/components/ui/utils";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
 
@@ -19,31 +27,47 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
  */
 export default function ConfiguracoesPage() {
   const [active, setActive] = useState<SubTab>("centros");
+  const isMobile = useIsMobile();
 
   return (
     <div className="space-y-4">
-      {/* Sub-tabs - pill underline estilo leve (nao confundir com a tab
-          bar principal slate-600 do AppShell). */}
-      <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto">
-        {SUB_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActive(t.id)}
-            className={cn(
-              "relative px-3 py-2 text-sm transition-colors -mb-px whitespace-nowrap shrink-0",
-              active === t.id
-                ? "text-slate-900 font-medium"
-                : "text-slate-500 hover:text-slate-800",
-            )}
-          >
-            {t.label}
-            {active === t.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-700" />
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Mobile: Select (3 labels longos não cabem como tabs). Desktop: sub-tabs
+          pill underline estilo leve (nao confundir com a tab bar principal). */}
+      {isMobile ? (
+        <Select value={active} onValueChange={(v) => setActive(v as SubTab)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUB_TABS.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <div className="border-b border-slate-200 flex items-center gap-1">
+          {SUB_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActive(t.id)}
+              className={cn(
+                "relative px-3 py-2 text-sm transition-colors -mb-px",
+                active === t.id
+                  ? "text-slate-900 font-medium"
+                  : "text-slate-500 hover:text-slate-800",
+              )}
+            >
+              {t.label}
+              {active === t.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-700" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {active === "centros" ? (
         <CostCentersManager />
