@@ -283,7 +283,7 @@ export function AppShell() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl animate-sheet-up">
+          <div className="absolute inset-x-0 bottom-0 bg-white shadow-xl animate-sheet-up">
             {/* puxador */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-slate-300" />
@@ -297,7 +297,7 @@ export function AppShell() {
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center justify-center gap-2 h-11 rounded-md text-sm transition-colors",
+                      "flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm transition-colors",
                       isActive
                         ? "bg-slate-100 text-slate-900 font-medium"
                         : "text-slate-600 hover:bg-slate-50",
@@ -315,7 +315,7 @@ export function AppShell() {
                   setMobileOpen(false);
                   navigate("/conta");
                 }}
-                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 <UserCircle className="size-5 shrink-0" />
                 Conta
@@ -323,7 +323,7 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 <HelpCircle className="size-5 shrink-0" />
                 Ajuda
@@ -334,7 +334,7 @@ export function AppShell() {
                   setMobileOpen(false);
                   void signOut();
                 }}
-                className="flex items-center justify-center gap-2 h-11 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 <LogOut className="size-5 shrink-0" />
                 Sair
@@ -410,7 +410,12 @@ export function AppShell() {
           <button
             type="button"
             onClick={() => setMobileOpen((o) => !o)}
-            className="flex items-center justify-center gap-2 w-full h-12 text-slate-600 hover:bg-slate-100 active:bg-slate-100 transition-colors"
+            className={cn(
+              "flex items-center justify-center gap-2 w-full h-12 transition-colors",
+              mobileOpen
+                ? "text-[#f87171] hover:bg-red-50"
+                : "text-slate-600 hover:bg-slate-100 active:bg-slate-100",
+            )}
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={mobileOpen}
           >
