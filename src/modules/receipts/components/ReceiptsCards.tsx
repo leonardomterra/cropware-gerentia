@@ -62,44 +62,43 @@ export function ReceiptsCards({
           className="bg-white border border-slate-200 rounded-lg p-3 flex items-start gap-3"
         >
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <p className="font-medium text-slate-900 flex items-center gap-1.5 min-w-0">
-                {DOC_TYPE_PREFIX[r.doc_type] === "F" ? (
-                  <CreditCard className="size-4 shrink-0 text-slate-400" />
-                ) : DOC_TYPE_PREFIX[r.doc_type] === "N" ? (
-                  <ReceiptLong className="size-4 shrink-0 text-slate-400" />
-                ) : null}
-                {isCreditCard(r.payment_method) && (
-                  <CreditCard className="size-4 shrink-0 text-violet-500" title="Cartão de crédito" />
-                )}
-                <span className="truncate">
-                  {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
-                </span>
-              </p>
-              <div className="flex items-center gap-1 shrink-0">
-                {r.counts_in_total === false && (
-                  <span
-                    className="inline-flex text-slate-400"
-                    title="Informativo — não entra nos totais"
-                  >
-                    <InfoIcon className="size-4" />
-                  </span>
-                )}
-                <p
-                  className={cn(
-                    "font-medium tabular-nums whitespace-nowrap text-sm",
-                    r.is_estimated || r.counts_in_total === false
-                      ? "text-slate-400"
-                      : r.direction === "income"
-                        ? "text-emerald-700"
-                        : "text-slate-900",
-                  )}
+            {/* Valor em destaque, na própria linha (mobile). */}
+            <div className="flex items-center gap-1.5">
+              {r.counts_in_total === false && (
+                <span
+                  className="inline-flex text-slate-400"
+                  title="Informativo — não entra nos totais"
                 >
-                  {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
-                  {formatBRL(r.total_value)}
-                </p>
-              </div>
+                  <InfoIcon className="size-4" />
+                </span>
+              )}
+              <p
+                className={cn(
+                  "font-semibold tabular-nums whitespace-nowrap text-base",
+                  r.is_estimated || r.counts_in_total === false
+                    ? "text-slate-400"
+                    : r.direction === "income"
+                      ? "text-emerald-700"
+                      : "text-slate-900",
+                )}
+              >
+                {r.is_estimated ? "~" : r.direction === "income" ? "+" : "−"}
+                {formatBRL(r.total_value)}
+              </p>
             </div>
+            <p className="font-medium text-slate-900 text-sm flex items-center gap-1.5 min-w-0 mt-0.5">
+              {DOC_TYPE_PREFIX[r.doc_type] === "F" ? (
+                <CreditCard className="size-4 shrink-0 text-slate-400" />
+              ) : DOC_TYPE_PREFIX[r.doc_type] === "N" ? (
+                <ReceiptLong className="size-4 shrink-0 text-slate-400" />
+              ) : null}
+              {isCreditCard(r.payment_method) && (
+                <CreditCard className="size-4 shrink-0 text-violet-500" title="Cartão de crédito" />
+              )}
+              <span className="truncate">
+                {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
+              </span>
+            </p>
             <p className="text-sm text-slate-500 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
               {(() => {
