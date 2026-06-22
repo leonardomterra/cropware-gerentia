@@ -109,9 +109,9 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-center sm:justify-start gap-1.5 px-3 rounded border border-slate-100 bg-white text-base md:text-sm text-slate-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-center sm:justify-start gap-1.5 px-3 rounded border border-slate-300 bg-white text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
-            <FilterList className="size-4 text-slate-400 shrink-0" />
+            <FilterList className="size-4 shrink-0" />
             Filtrar
             {activeCount > 0 && (
               <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-zinc-800 text-white text-xs tabular-nums">
