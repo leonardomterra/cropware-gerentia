@@ -106,33 +106,6 @@ export function ReceiptItemsTable({
                       </span>
                     ) : null}
                   </div>
-                  <span
-                    className={cn(
-                      "shrink-0 text-sm tabular-nums",
-                      promoted
-                        ? "text-slate-400 line-through"
-                        : "text-slate-900 font-medium",
-                    )}
-                  >
-                    {formatBRL(it.total_value)}
-                  </span>
-                </div>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500">
-                    <span className="truncate">
-                      {getCategoryLabel(it.category, categories)}
-                    </span>
-                    {cc ? (
-                      <span className="inline-flex items-center gap-1 shrink-0">
-                        <CostCenterChip
-                          icon={cc.icon}
-                          color={cc.color}
-                          className="size-4 shrink-0"
-                        />
-                        <span className="truncate text-slate-600">{cc.name}</span>
-                      </span>
-                    ) : null}
-                  </div>
                   {promoted ? (
                     promotedBadge(it)
                   ) : editable ? (
@@ -144,6 +117,44 @@ export function ReceiptItemsTable({
                     />
                   ) : null}
                 </div>
+                <dl className="mt-2 space-y-1 text-xs">
+                  <div className="flex gap-2">
+                    <dt className="w-20 shrink-0 text-slate-400">Categoria</dt>
+                    <dd className="min-w-0 text-slate-600">
+                      {getCategoryLabel(it.category, categories)}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-20 shrink-0 text-slate-400">Centro</dt>
+                    <dd className="min-w-0">
+                      {cc ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <CostCenterChip
+                            icon={cc.icon}
+                            color={cc.color}
+                            className="size-4 shrink-0"
+                          />
+                          <span className="truncate text-slate-600">{cc.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-20 shrink-0 text-slate-400">Valor</dt>
+                    <dd
+                      className={cn(
+                        "tabular-nums",
+                        promoted
+                          ? "text-slate-400 line-through"
+                          : "text-slate-900 font-medium",
+                      )}
+                    >
+                      {formatBRL(it.total_value)}
+                    </dd>
+                  </div>
+                </dl>
               </div>
             );
           })}
