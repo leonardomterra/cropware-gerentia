@@ -284,7 +284,7 @@ export function AppShell() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 bg-white shadow-xl animate-sheet-up">
+          <div className="absolute inset-x-0 bottom-0 bg-slate-100 shadow-xl animate-sheet-up">
             {/* puxador */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-slate-300" />
@@ -300,8 +300,8 @@ export function AppShell() {
                     cn(
                       "flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm transition-colors",
                       isActive
-                        ? "bg-slate-100 text-slate-900 font-medium"
-                        : "text-slate-600 hover:bg-slate-50",
+                        ? "bg-white text-slate-900 font-medium shadow-sm"
+                        : "text-slate-600 hover:bg-slate-200",
                     )
                   }
                 >
@@ -316,7 +316,7 @@ export function AppShell() {
                   setMobileOpen(false);
                   navigate("/conta");
                 }}
-                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 <UserCircle className="size-5 shrink-0" />
                 Conta
@@ -324,7 +324,7 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 <HelpCircle className="size-5 shrink-0" />
                 Ajuda
@@ -335,7 +335,7 @@ export function AppShell() {
                   setMobileOpen(false);
                   void signOut();
                 }}
-                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 <LogOut className="size-5 shrink-0" />
                 Sair
@@ -370,7 +370,7 @@ export function AppShell() {
 
         {/* MOBILE: cabeçalho com a logo centralizada (safe-area no topo) */}
         <div
-          className="md:hidden flex items-center justify-center shrink-0 border-b border-slate-200 px-3"
+          className="md:hidden flex items-center justify-center shrink-0 border-b border-slate-200 px-3 bg-slate-100"
           style={{
             paddingTop: "env(safe-area-inset-top, 0px)",
             minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
@@ -386,7 +386,7 @@ export function AppShell() {
         </div>
 
         {/* MOBILE: sub-cabeçalho com o título da página à esquerda */}
-        <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2">
+        <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2 bg-slate-100">
           <PageBreadcrumb segments={breadcrumbSegments} embedded />
         </div>
 
@@ -408,7 +408,7 @@ export function AppShell() {
         {/* BOTTOM BAR MOBILE: toggle do menu — fica SEMPRE visível (z acima do
             sheet) p/ recolher a qualquer momento. paddingBottom = home indicator. */}
         <div
-          className="md:hidden shrink-0 relative z-[1600] border-t border-slate-200 bg-white"
+          className="md:hidden shrink-0 relative z-[1600] border-t border-slate-200 bg-slate-100"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           <button
@@ -418,7 +418,7 @@ export function AppShell() {
               "flex items-center justify-center gap-2 w-full h-12 transition-colors",
               mobileOpen
                 ? "text-[#f87171] hover:bg-red-50"
-                : "text-slate-600 hover:bg-slate-100 active:bg-slate-100",
+                : "text-slate-600 hover:bg-slate-200 active:bg-slate-200",
             )}
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={mobileOpen}
