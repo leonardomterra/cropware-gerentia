@@ -243,5 +243,13 @@ tooling externo (Android Studio; iOS exige macOS + Xcode + Universal Links + ass
 - **Fase 3 (iOS)**: `cap add ios` + Info.plist (permissões) + Universal Links; revalidar OffscreenCanvas/WebP
   e todos os fluxos de print/share/PDF no WKWebView.
 
-**Decisão pendente**: começar a Fase 0 + os ajustes de código seguros (fallback de canvas, ativar
-`.native-ios`, parar de usar `origin` nos redirects) agora, ou deixar como plano até iniciar o build nativo.
+### ✅ Ajustes de código seguros — FEITOS (não dependem de build nativo)
+- [x] **Fallback de canvas no merge de PDF** (`mergeAttachmentsPdf.ts`): `createImageBitmap`→`<img>` e
+  `OffscreenCanvas`→`<canvas>` — anexos-imagem deixam de falhar no WKWebView/iOS.
+- [x] **Ativa `.native-ios`** no iOS nativo (`main.tsx`) — a classe existia mas nunca rodava.
+- [x] **`appRedirectBase()`** (`platform.ts`): web = origin; nativo = domínio público. Usado em
+  signup/reset (`AuthContext`) e invite (`JoinPage`). Web idêntico; pronto p/ deep link.
+
+**Restante = build nativo de fato** (Fases 0→3 acima): config + projetos + plugins + Filesystem/Share +
+deep links + status-bar/splash/ícones/permissões + assinatura. Projeto à parte (precisa Android Studio;
+iOS precisa macOS/Xcode). Retomar por este doc quando for empacotar.
