@@ -271,17 +271,19 @@ export function AppShell() {
         {renderSidebar(false)}
       </aside>
 
-      {/* BOTTOM SHEET MOBILE: menu que sobe do rodapé, itens centralizados, sem logo */}
+      {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua
+          visível no rodapé p/ recolher a qualquer momento). O overlay para no
+          topo da barra (bottom = altura da barra + safe-area). */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-[1500]">
+        <div
+          className="md:hidden fixed inset-x-0 top-0 z-[1500]"
+          style={{ bottom: "calc(3rem + env(safe-area-inset-bottom, 0px))" }}
+        >
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
-          <div
-            className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl animate-sheet-up"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-          >
+          <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl animate-sheet-up">
             {/* puxador */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-slate-300" />
@@ -399,20 +401,23 @@ export function AppShell() {
           </div>
         </main>
 
-        {/* BOTTOM BAR MOBILE: só o botão de abrir o menu (drawer). paddingBottom
-            reserva o home indicator (safe-area). */}
+        {/* BOTTOM BAR MOBILE: toggle do menu — fica SEMPRE visível (z acima do
+            sheet) p/ recolher a qualquer momento. paddingBottom = home indicator. */}
         <div
-          className="md:hidden shrink-0 border-t border-slate-200 bg-white"
+          className="md:hidden shrink-0 relative z-[1600] border-t border-slate-200 bg-white"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           <button
             type="button"
-            onClick={() => setMobileOpen(true)}
+            onClick={() => setMobileOpen((o) => !o)}
             className="flex items-center justify-center gap-2 w-full h-12 text-slate-600 hover:bg-slate-100 active:bg-slate-100 transition-colors"
-            aria-label="Abrir menu"
+            aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={mobileOpen}
           >
-            <Menu className="size-5" />
-            <span className="text-sm font-medium">Menu</span>
+            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            <span className="text-sm font-medium">
+              {mobileOpen ? "Fechar" : "Menu"}
+            </span>
           </button>
         </div>
       </div>
