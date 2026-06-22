@@ -10,6 +10,12 @@ import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "./app.css";
 import App from "./App";
+import { isCapacitorIOS } from "./utils/platform";
+
+// No iOS nativo, ativa a marca/fonte específica (.native-ios vive no app.css).
+if (isCapacitorIOS()) {
+  document.documentElement.classList.add("native-ios");
+}
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element #root not found");

@@ -15,6 +15,7 @@ import {
 } from "@/utils/sessionStorage";
 import { api } from "@/utils/api";
 import { isMasterUser } from "@/utils/masterUsers";
+import { appRedirectBase } from "@/utils/platform";
 
 export type FarmRole = "owner" | "admin" | "member";
 
@@ -259,7 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phone: input.phone?.replace(/\D/g, "") || undefined,
             cpf: input.cpf?.replace(/\D/g, "") || undefined,
           },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: appRedirectBase(),
         },
       });
 
@@ -294,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestPasswordReset = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
+      redirectTo: appRedirectBase(),
     });
     if (error) {
       throw new Error(translateAuthError(error.message));

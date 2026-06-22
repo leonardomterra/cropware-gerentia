@@ -19,19 +19,75 @@ const A4_W = 595.28;
 const A4_H = 841.89;
 const MARGIN = 24;
 
+// Carrega a imagem: createImageBitmap quando disponível, senão <img> + objectURL
+// (fallback p/ WKWebView/iOS, onde createImageBitmap pode faltar).
+async function decodeImage(blob: Blob): Promise<{
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  cleanup: () => void;
+}> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bmp = await createImageBitmap(blob);
+      return { source: bmp, width: bmp.width, height: bmp.height, cleanup: () => bmp.close?.() };
+    } catch {
+      /* cai pro <img> */
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("falha ao carregar imagem"));
+    el.src = url;
+  });
+  return {
+    source: img,
+    width: img.naturalWidth,
+    height: img.naturalHeight,
+    cleanup: () => URL.revokeObjectURL(url),
+  };
+}
+
 // Converte qualquer imagem (webp/png/jpeg/...) em JPEG via canvas, já que o
 // pdf-lib só embute PNG/JPEG (e nossos uploads agora são WebP). Fundo branco
-// porque JPEG não tem transparência.
+// porque JPEG não tem transparência. Usa OffscreenCanvas quando há; senão cai
+// pra <canvas> (OffscreenCanvas pode faltar no WKWebView/iOS).
 async function imageToJpegBytes(bytes: ArrayBuffer): Promise<Uint8Array> {
-  const bmp = await createImageBitmap(new Blob([bytes]));
-  const canvas = new OffscreenCanvas(bmp.width, bmp.height);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas context indisponível");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, bmp.width, bmp.height);
-  ctx.drawImage(bmp, 0, 0);
-  const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.9 });
-  return new Uint8Array(await blob.arrayBuffer());
+  const { source, width, height, cleanup } = await decodeImage(new Blob([bytes]));
+  try {
+    if (typeof OffscreenCanvas !== "undefined") {
+      try {
+        const off = new OffscreenCanvas(width, height);
+        const octx = off.getContext("2d");
+        if (octx) {
+          octx.fillStyle = "#ffffff";
+          octx.fillRect(0, 0, width, height);
+          octx.drawImage(source, 0, 0);
+          const b = await off.convertToBlob({ type: "image/jpeg", quality: 0.9 });
+          return new Uint8Array(await b.arrayBuffer());
+        }
+      } catch {
+        /* cai pro <canvas> */
+      }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas context indisponível");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(source, 0, 0);
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", 0.9),
+    );
+    if (!blob) throw new Error("toBlob falhou");
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    cleanup();
+  }
 }
 
 // Encaixa (contain) um conteúdo de w×h dentro da área útil da A4, centralizado.

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Logo, LogoName } from "@/components/Logo";
 import { supabase } from "@/utils/supabase/client";
 import { api, ApiError } from "@/utils/api";
+import { appRedirectBase } from "@/utils/platform";
 import type { InviteLookup } from "../types";
 
 export default function JoinPage() {
@@ -66,7 +67,7 @@ export default function JoinPage() {
             farm_invite_code: code,
             full_name: form.name.trim(),
           },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: appRedirectBase(),
         },
       });
       if (error) {
