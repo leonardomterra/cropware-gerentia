@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import type { Receipt } from "../types";
 import { useAttachmentUrl } from "../hooks/useAttachmentUrl";
 import { transformImageUrl } from "@/utils/cloudflareImage";
@@ -29,6 +30,7 @@ export function AttachmentViewerDialog({
   open,
   onOpenChange,
 }: AttachmentViewerDialogProps) {
+  const isMobile = useIsMobile();
   const hasAttachment = !!receipt?.attachment_key;
   const { url, loading, error } = useAttachmentUrl(
     receipt?.id,
@@ -61,11 +63,26 @@ export function AttachmentViewerDialog({
               className="max-h-[70vh] w-full object-contain"
             />
           ) : url && isPdf ? (
-            <iframe
-              src={url}
-              title={title}
-              className="w-full h-[70vh] bg-white"
-            />
+            isMobile ? (
+              // WebView/mobile costuma renderizar <iframe> de PDF em branco —
+              // abre direto numa nova aba (anchor é mais confiável que window.open).
+              <div className="flex flex-col items-center gap-3 p-8 text-center">
+                <p className="text-sm text-slate-500">
+                  Pré-visualização de PDF indisponível no celular.
+                </p>
+                <Button asChild>
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    Abrir PDF
+                  </a>
+                </Button>
+              </div>
+            ) : (
+              <iframe
+                src={url}
+                title={title}
+                className="w-full h-[70vh] bg-white"
+              />
+            )
           ) : url ? (
             <p className="text-sm text-slate-500 p-8 text-center">
               Pré-visualização não disponível para este tipo de arquivo.

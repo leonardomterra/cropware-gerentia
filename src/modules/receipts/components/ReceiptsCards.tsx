@@ -145,10 +145,10 @@ export function ReceiptsCards({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 shrink-0 -mt-1"
+                className="size-9 shrink-0 -mt-1"
                 aria-label="Ações"
               >
-                <MoreVertical className="size-4" />
+                <MoreVertical className="size-5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

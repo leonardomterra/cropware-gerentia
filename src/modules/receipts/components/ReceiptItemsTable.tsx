@@ -62,7 +62,8 @@ export function ReceiptItemsTable({
 
   return (
     <div className="rounded-lg border border-slate-200 overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-md">
         <thead className="bg-slate-50 text-slate-600 text-xs">
           <tr>
             <th className="text-left px-3 py-2 font-medium">Descrição</th>
@@ -171,6 +172,7 @@ export function ReceiptItemsTable({
           </tr>
         </tfoot>
       </table>
+      </div>
 
       <ConfirmActionDialog
         open={pendingPromote !== null}

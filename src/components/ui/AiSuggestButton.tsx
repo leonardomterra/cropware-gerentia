@@ -50,7 +50,7 @@ export function AiSuggestButton({
               textTransform: "uppercase",
             }}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 min-h-[1.125rem]",
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 min-h-6",
               "text-[11px] font-normal leading-none tracking-wide",
               "transition-[filter,background-color,color] duration-200 ease-out",
               "disabled:pointer-events-none",

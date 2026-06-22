@@ -282,6 +282,7 @@ export default function RecurringPage() {
                 <label className="text-sm font-medium text-slate-700 block mb-1">Dia do Mês</label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   max={28}
                   value={form.day_of_month}
@@ -323,6 +324,7 @@ export default function RecurringPage() {
                   <label className="text-sm font-medium text-slate-700 block mb-1">Meses (1–120)</label>
                   <Input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     max={120}
                     placeholder="Ex.: 18"

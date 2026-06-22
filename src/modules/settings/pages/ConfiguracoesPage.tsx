@@ -24,14 +24,14 @@ export default function ConfiguracoesPage() {
     <div className="space-y-4">
       {/* Sub-tabs - pill underline estilo leve (nao confundir com a tab
           bar principal slate-600 do AppShell). */}
-      <div className="border-b border-slate-200 flex items-center gap-1">
+      <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto">
         {SUB_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setActive(t.id)}
             className={cn(
-              "relative px-3 py-2 text-sm transition-colors -mb-px",
+              "relative px-3 py-2 text-sm transition-colors -mb-px whitespace-nowrap shrink-0",
               active === t.id
                 ? "text-slate-900 font-medium"
                 : "text-slate-500 hover:text-slate-800",

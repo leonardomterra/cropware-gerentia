@@ -217,7 +217,7 @@ export function MonthSwitcher({
               type="button"
               aria-label="Ano anterior"
               onClick={() => setPickerYear((y) => y - 1)}
-              className="flex size-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -226,7 +226,7 @@ export function MonthSwitcher({
               type="button"
               aria-label="Próximo ano"
               onClick={() => setPickerYear((y) => y + 1)}
-              className="flex size-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
             >
               <ChevronRight className="size-4" />
             </button>

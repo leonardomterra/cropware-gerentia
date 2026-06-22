@@ -6,7 +6,7 @@ achados (por severidade) + correções. Status no topo de cada seção.
 - [x] **Etapa 1 — Segurança** ✅ FECHADA (correções deployadas + RLS endurecido + segredos rotacionados)
 - [x] **Etapa 2 — Robustez / pontos de erro** ✅ corrigida
 - [x] **Etapa 3 — Visual / UI + a11y** ✅ auditada + corrigida (alto + médios baratos)
-- [ ] **Etapa 4 — Mobile / responsividade**
+- [x] **Etapa 4 — Mobile / responsividade** ✅ auditada + corrigida (1 item adiado: H2)
 - [ ] **Etapa 5 — Capacitor (Android/iOS)**
 
 ---
@@ -154,15 +154,36 @@ títulos h1 consistentes; `tabular-nums` nos valores; `ActionIconButton` força 
 dialogs Radix (foco/Esc, sr-only no X); MonthSwitcher/kebab/nav com `aria-label`; PDF bem
 estruturado (`lang`/`title`); AttachmentViewer com os 4 estados; `index.html` com `lang=pt-BR`.
 
-## Etapa 4 — Mobile / responsividade  ⏳ pendente
+## Etapa 4 — Mobile / responsividade  ✅ auditada + corrigida
 
-Escopo:
-- Layouts em telas estreitas (lista→cards, dialogs, toolbars que já foram
-  ajustadas — revisar Relatórios, Anexos, Configurações, Admin).
-- Alvos de toque (≥40px), scroll horizontal acidental.
-- Safe areas (notch) — já há env(safe-area-*) no dialog; revisar telas.
-- Teclado virtual cobrindo inputs; inputs de data/valor no mobile.
-- Visualizador de anexo e impressão no mobile.
+Duas frentes (layout/overflow + toque/inputs/fluxos). `isMobile` = 768px
+(`use-mobile.ts`, alinha com `md:`). App já bem responsivo (cards no lugar de
+tabela <768, safe-areas no dialog/alert/dropdown, anti-zoom `text-base md:text-sm`,
+datas nativas, inputMode decimal no dinheiro).
+
+### 🔴 Alto — CORRIGIDO
+- [x] **X de fechar do dialog escondido no mobile** (`hidden sm:flex`) + clique-fora
+  desativado → beco sem saída. Removido o `hidden sm:flex` (X aparece sempre, 44px).
+- [x] **Viewer de PDF = `<iframe>` cru** (branco em WebView) → no mobile mostra card
+  "Abrir PDF" (anchor `target=_blank`, mais confiável que window.open).
+
+### 🟠 Médio — CORRIGIDO
+- [x] **Kebab dos cards 28px** (`size-7`, única ação por linha no mobile) → `size-9` + ícone `size-5`.
+- [x] **`ReceiptItemsTable` sem scroll** → envolto em `overflow-x-auto` + `min-w-md` (não estoura no dialog).
+- [x] **Abas de Configurações sem scroll** → `overflow-x-auto` + `whitespace-nowrap shrink-0`.
+- [x] **Botão "Sugerir" minúsculo** → bump sutil de toque (`py-1 min-h-6`) sem descaracterizar a marca.
+- [x] **Setas de ano do month picker 28px** → `size-9`.
+- [x] **`type=number` em Recorrências** (dia/meses) → + `inputMode="numeric"` (teclado certo).
+
+### 🟡 Adiado / aceito
+- **H2 — Imprimir/PDF dos Relatórios sem fallback de download no mobile**
+  (`openReportPage`/`handlePrintWithAttachments` usam `window.open`+`print()`; o merge de
+  anexos já tem fallback `<a download>`). Fallback real exige gerar PDF (pdf-lib) p/ baixar
+  em vez de imprimir no touch → fazer numa sub-fase (provável overlap com Etapa 5/Capacitor).
+- **TeamPage** tabela sem fallback mobile — Equipe está **desativada** (nav comentado);
+  só vira problema se reativar (modelo individual hoje). Anotado.
+- Tooltips de chart só hover (info redundante em KPIs/labels); dia/meses poderiam ser
+  `inputMode` puro (já melhorado).
 
 ## Etapa 5 — Capacitor (Android/iOS)  ⏳ pendente
 
