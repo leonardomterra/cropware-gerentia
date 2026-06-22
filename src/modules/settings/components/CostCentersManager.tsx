@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import {
@@ -179,35 +180,24 @@ export function CostCentersManager() {
                       <StarFilled className="size-5" />
                     </span>
                   ) : (
-                    <button
-                      type="button"
+                    <ActionIconButton
+                      icon={Star}
+                      label="Tornar padrão"
                       onClick={() => setPendingDefault(cc)}
-                      title="Tornar padrão"
-                      aria-label="Tornar padrão"
-                      className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                    >
-                      <Star className="size-5" />
-                    </button>
+                    />
                   )}
-                  <button
-                    type="button"
+                  <ActionIconButton
+                    icon={Pencil}
+                    label="Editar"
                     onClick={() => openEdit(cc)}
-                    title="Editar"
-                    aria-label="Editar"
-                    className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                  >
-                    <Pencil className="size-5" />
-                  </button>
+                  />
                   {!cc.is_default && (
-                    <button
-                      type="button"
+                    <ActionIconButton
+                      icon={Archive}
+                      label="Arquivar"
+                      tone="danger"
                       onClick={() => handleArchive(cc)}
-                      title="Arquivar"
-                      aria-label="Arquivar"
-                      className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-                    >
-                      <Archive className="size-5" />
-                    </button>
+                    />
                   )}
               </div>
             </div>

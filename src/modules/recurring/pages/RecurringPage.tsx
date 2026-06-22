@@ -27,6 +27,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecurring } from "../hooks/useRecurring";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
@@ -458,33 +459,18 @@ function Section({ title, items, faded, openEdit, handleToggleActive, handleRemo
               </div>
             )}
             <div className="flex items-center gap-1.5 border-t border-slate-100 -mx-4 px-4 pt-3">
-              <button
-                type="button"
-                onClick={() => openEdit(r)}
-                title="Editar"
-                aria-label="Editar"
-                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              >
-                <Pencil className="size-5" />
-              </button>
-              <button
-                type="button"
+              <ActionIconButton icon={Pencil} label="Editar" onClick={() => openEdit(r)} />
+              <ActionIconButton
+                icon={r.active ? Pause : Play}
+                label={r.active ? "Pausar" : "Reativar"}
                 onClick={() => handleToggleActive(r)}
-                title={r.active ? "Pausar" : "Reativar"}
-                aria-label={r.active ? "Pausar" : "Reativar"}
-                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              >
-                {r.active ? <Pause className="size-5" /> : <Play className="size-5" />}
-              </button>
-              <button
-                type="button"
+              />
+              <ActionIconButton
+                icon={Trash2}
+                label="Remover"
+                tone="danger"
                 onClick={() => handleRemove(r)}
-                title="Remover"
-                aria-label="Remover"
-                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-              >
-                <Trash2 className="size-5" />
-              </button>
+              />
             </div>
           </div>
           );

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import {
   Dialog,
   DialogContent,
@@ -238,39 +239,24 @@ export function CategoriesManager({
                         >
                           {isCustom ? (
                             <>
-                              <button
-                                type="button"
+                              <ActionIconButton
+                                icon={Pencil}
+                                label="Editar"
                                 onClick={() => openEdit(cat)}
-                                title="Editar"
-                                aria-label="Editar"
-                                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                              >
-                                <Pencil className="size-5" />
-                              </button>
-                              <button
-                                type="button"
+                              />
+                              <ActionIconButton
+                                icon={Trash2}
+                                label="Excluir"
+                                tone="danger"
                                 onClick={() => setPendingDelete(cat)}
-                                title="Excluir"
-                                aria-label="Excluir"
-                                className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-                              >
-                                <Trash2 className="size-5" />
-                              </button>
+                              />
                             </>
                           ) : (
-                            <button
-                              type="button"
+                            <ActionIconButton
+                              icon={cat.hidden ? Eye : EyeOff}
+                              label={cat.hidden ? "Reativar" : "Ocultar"}
                               onClick={() => handleToggleHidden(cat)}
-                              title={cat.hidden ? "Reativar" : "Ocultar"}
-                              aria-label={cat.hidden ? "Reativar" : "Ocultar"}
-                              className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                            >
-                              {cat.hidden ? (
-                                <Eye className="size-5" />
-                              ) : (
-                                <EyeOff className="size-5" />
-                              )}
-                            </button>
+                            />
                           )}
                         </div>
                       )}
