@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecurring } from "../hooks/useRecurring";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
@@ -89,6 +90,8 @@ export default function RecurringPage() {
   const [editing, setEditing] = useState<Recurring | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<Recurring | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const { categories: allCategories } = useCategories();
   const showCC = ccs.length > 1;
@@ -187,10 +190,20 @@ export default function RecurringPage() {
     if (ok) toast.success(r.active ? "Pausada" : "Reativada");
   }
 
-  async function handleRemove(r: Recurring) {
-    if (!confirm(`Remover "${r.name}"? Os lançamentos previstos futuros serão apagados; os já confirmados ou passados continuam.`)) return;
-    const ok = await remove(r.id);
-    if (ok) toast.success("Removida");
+  function handleRemove(r: Recurring) {
+    setPendingRemove(r);
+  }
+
+  async function confirmRemove() {
+    if (!pendingRemove) return;
+    setRemoving(true);
+    try {
+      const ok = await remove(pendingRemove.id);
+      if (ok) toast.success("Removida");
+      setPendingRemove(null);
+    } finally {
+      setRemoving(false);
+    }
   }
 
   const active = items.filter((i) => i.active);
@@ -370,6 +383,24 @@ export default function RecurringPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={pendingRemove !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingRemove(null);
+        }}
+        title="Remover Recorrência"
+        description={
+          pendingRemove
+            ? `Remover "${pendingRemove.name}"? Os lançamentos previstos futuros serão apagados; os já confirmados ou passados continuam.`
+            : ""
+        }
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        loading={removing}
+        loadingLabel="Removendo..."
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }

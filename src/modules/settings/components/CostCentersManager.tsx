@@ -43,6 +43,8 @@ export function CostCentersManager() {
   const [saving, setSaving] = useState(false);
   const [pendingDefault, setPendingDefault] = useState<CostCenter | null>(null);
   const [settingDefault, setSettingDefault] = useState(false);
+  const [pendingArchive, setPendingArchive] = useState<CostCenter | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   // CC padrão sempre primeiro na lista (resto preserva a ordem do hook).
   const ordered = [...costCenters].sort(
@@ -98,21 +100,26 @@ export function CostCentersManager() {
     setPendingDefault(null);
   }
 
-  async function handleArchive(cc: CostCenter) {
+  function handleArchive(cc: CostCenter) {
     if (cc.is_default) {
       toast.error(
         "Não dá pra arquivar o centro padrão. Marque outro como padrão primeiro.",
       );
       return;
     }
-    if (
-      !confirm(
-        `Arquivar "${cc.name}"? Lançamentos existentes continuam lá, mas você não poderá mais criar novos nele.`,
-      )
-    )
-      return;
-    const ok = await archive(cc.id);
-    if (ok) toast.success("Centro arquivado");
+    setPendingArchive(cc);
+  }
+
+  async function confirmArchive() {
+    if (!pendingArchive) return;
+    setArchiving(true);
+    try {
+      const ok = await archive(pendingArchive.id);
+      if (ok) toast.success("Centro arquivado");
+      setPendingArchive(null);
+    } finally {
+      setArchiving(false);
+    }
   }
 
   return (
@@ -312,6 +319,24 @@ export function CostCentersManager() {
         loading={settingDefault}
         loadingLabel="Salvando..."
         onConfirm={confirmSetDefault}
+      />
+
+      <ConfirmActionDialog
+        open={pendingArchive !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingArchive(null);
+        }}
+        title="Arquivar Centro de Custo"
+        description={
+          pendingArchive
+            ? `Arquivar "${pendingArchive.name}"? Lançamentos existentes continuam lá, mas você não poderá mais criar novos nele.`
+            : ""
+        }
+        confirmLabel="Arquivar"
+        cancelLabel="Cancelar"
+        loading={archiving}
+        loadingLabel="Arquivando..."
+        onConfirm={confirmArchive}
       />
     </div>
   );

@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import type { AdminUser } from "../types";
 
@@ -87,6 +88,30 @@ export default function AdminUsersPage() {
 
   const [sortBy, setSortBy] = useState<SortBy>("name");
   const [filterStatus, setFilterStatus] = useState<FilterStatus | null>(null);
+
+  // Confirmação genérica (reset/excluir/impersonar) — substitui confirm() nativo.
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    loadingLabel: string;
+    errorLabel: string;
+    run: () => Promise<void>;
+  } | null>(null);
+  const [confirmRunning, setConfirmRunning] = useState(false);
+
+  async function runConfirm() {
+    if (!confirmState) return;
+    setConfirmRunning(true);
+    try {
+      await confirmState.run();
+      setConfirmState(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : confirmState.errorLabel);
+    } finally {
+      setConfirmRunning(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -236,18 +261,19 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handleReset(u: AdminUser) {
-    if (!confirm(`Resetar a senha de ${u.email}?`)) return;
-    setEditPending(true);
-    try {
-      const r = await resetPassword(u.id);
-      await navigator.clipboard.writeText(r.password).catch(() => {});
-      toast.success(`Nova senha: ${r.password} (copiada)`, { duration: 12000 });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao resetar senha");
-    } finally {
-      setEditPending(false);
-    }
+  function askReset(u: AdminUser) {
+    setConfirmState({
+      title: "Resetar Senha",
+      description: `Resetar a senha de ${u.email}? Uma nova senha será gerada e copiada.`,
+      confirmLabel: "Resetar",
+      loadingLabel: "Resetando...",
+      errorLabel: "Erro ao resetar senha",
+      run: async () => {
+        const r = await resetPassword(u.id);
+        await navigator.clipboard.writeText(r.password).catch(() => {});
+        toast.success(`Nova senha: ${r.password} (copiada)`, { duration: 12000 });
+      },
+    });
   }
 
   async function handleSuspend(u: AdminUser) {
@@ -260,35 +286,37 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handleDelete(u: AdminUser) {
-    if (!confirm(`Excluir ${u.email}? Esta ação não pode ser desfeita.`)) return;
-    try {
-      await deleteUser(u.id);
-      toast.success("Usuário excluído");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao excluir");
-    }
+  function askDelete(u: AdminUser) {
+    setConfirmState({
+      title: "Excluir Usuário",
+      description: `Excluir ${u.email}? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      loadingLabel: "Excluindo...",
+      errorLabel: "Erro ao excluir",
+      run: async () => {
+        await deleteUser(u.id);
+        toast.success("Usuário excluído");
+      },
+    });
   }
 
-  async function handleImpersonate(u: AdminUser) {
-    if (
-      !confirm(
-        `Entrar como ${u.email}? Você verá o app na conta dele; um aviso fica no topo pra você voltar.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      const r = await impersonate(u.id);
-      const { startImpersonation } = await import("@/utils/impersonate");
-      await startImpersonation({
-        hashedToken: r.hashed_token,
-        targetEmail: r.target_email,
-        targetName: r.target_name,
-      });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao impersonar");
-    }
+  function askImpersonate(u: AdminUser) {
+    setConfirmState({
+      title: "Entrar como Usuário",
+      description: `Entrar como ${u.email}? Você verá o app na conta dele; um aviso fica no topo pra você voltar.`,
+      confirmLabel: "Entrar",
+      loadingLabel: "Entrando...",
+      errorLabel: "Erro ao impersonar",
+      run: async () => {
+        const r = await impersonate(u.id);
+        const { startImpersonation } = await import("@/utils/impersonate");
+        await startImpersonation({
+          hashedToken: r.hashed_token,
+          targetEmail: r.target_email,
+          targetName: r.target_name,
+        });
+      },
+    });
   }
 
   return (
@@ -668,7 +696,7 @@ export default function AdminUsersPage() {
                       variant="outline"
                       className="flex-1 min-w-[calc(50%-4px)]"
                       disabled={editPending}
-                      onClick={() => { handleImpersonate(editing!); setEditing(null); }}
+                      onClick={() => { askImpersonate(editing!); setEditing(null); }}
                     >
                       <LoginIcon className="size-4 mr-1.5" />
                       Entrar
@@ -678,7 +706,7 @@ export default function AdminUsersPage() {
                       variant="outline"
                       className="flex-1 min-w-[calc(50%-4px)]"
                       disabled={editPending}
-                      onClick={() => { handleReset(editing!); }}
+                      onClick={() => { askReset(editing!); setEditing(null); }}
                     >
                       <KeyIcon className="size-4 mr-1.5" />
                       Resetar
@@ -701,7 +729,7 @@ export default function AdminUsersPage() {
                       variant="outline"
                       className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                       disabled={editPending}
-                      onClick={() => { handleDelete(editing!); setEditing(null); }}
+                      onClick={() => { askDelete(editing!); setEditing(null); }}
                     >
                       <Trash2 className="size-4 mr-1.5" />
                       Excluir
@@ -814,6 +842,20 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={confirmState !== null}
+        onOpenChange={(o) => {
+          if (!o) setConfirmState(null);
+        }}
+        title={confirmState?.title}
+        description={confirmState?.description ?? ""}
+        confirmLabel={confirmState?.confirmLabel}
+        cancelLabel="Cancelar"
+        loading={confirmRunning}
+        loadingLabel={confirmState?.loadingLabel}
+        onConfirm={runConfirm}
+      />
     </div>
   );
 }
