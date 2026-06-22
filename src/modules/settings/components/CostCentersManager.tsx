@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { LoadingState } from "@/components/ui/LoadingState";
 import {
   Dialog,
   DialogContent,
@@ -144,9 +146,9 @@ export function CostCentersManager() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <LoadingState />
       ) : costCenters.length === 0 ? (
-        <p className="text-sm text-slate-500">Nenhum centro de custo ainda.</p>
+        <EmptyStateCard title="Nenhum centro de custo ainda" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ordered.map((cc) => (

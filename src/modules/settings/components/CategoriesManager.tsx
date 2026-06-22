@@ -9,6 +9,8 @@ import ChevronRight from "~icons/material-symbols-light/keyboard-arrow-right";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { LoadingState } from "@/components/ui/LoadingState";
 import {
   Dialog,
   DialogContent,
@@ -177,9 +179,9 @@ export function CategoriesManager({
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <LoadingState />
       ) : groups.length === 0 ? (
-        <p className="text-sm text-slate-500">Nenhuma categoria encontrada.</p>
+        <EmptyStateCard title="Nenhuma categoria encontrada" />
       ) : (
         <div className="space-y-2">
           {groups.map((group) => {

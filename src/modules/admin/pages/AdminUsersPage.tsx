@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import type { AdminUser } from "../types";
 
@@ -416,7 +417,7 @@ export default function AdminUsersPage() {
 
       <section className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {loading ? (
-          <p className="text-sm text-slate-500 p-4">Carregando...</p>
+          <LoadingState />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-600 text-xs">

@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecurring } from "../hooks/useRecurring";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
@@ -225,15 +227,13 @@ export default function RecurringPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <LoadingState />
       ) : items.length === 0 ? (
-        <div className="bg-slate-50 border border-slate-200 rounded p-6 text-center">
-          <Repeat className="size-8 text-slate-400 mx-auto mb-2" />
-          <p className="text-sm text-slate-600">Nenhuma recorrencia ainda.</p>
-          <p className="text-xs text-slate-500 mt-1">
-            Crie uma pra que ela gere lancamentos todo mes automaticamente.
-          </p>
-        </div>
+        <EmptyStateCard
+          icon={Repeat}
+          title="Nenhuma recorrência ainda"
+          description="crie uma pra gerar lançamentos todo mês automaticamente"
+        />
       ) : (
         <>
           <Section title="Ativas" items={active} {...{ openEdit, handleToggleActive, handleRemove, showCC, ccs, categories: allCategories }} />

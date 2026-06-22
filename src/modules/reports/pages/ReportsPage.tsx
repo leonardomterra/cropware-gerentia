@@ -5,6 +5,8 @@ import Print from "~icons/material-symbols-light/print-outline";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { LoadingState } from "@/components/ui/LoadingState";
 import {
   Select,
   SelectContent,
@@ -367,9 +369,11 @@ export default function ReportsPage() {
 
       {/* Tabelas */}
       {noData ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-400">
-          {loading ? "Carregando..." : "Sem dados para este período."}
-        </div>
+        loading ? (
+          <LoadingState />
+        ) : (
+          <EmptyStateCard title="Sem dados para este período" />
+        )
       ) : (
         <div className="space-y-4">
           {doc.tables.map((t, i) => (
