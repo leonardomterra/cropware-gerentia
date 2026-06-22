@@ -47,7 +47,7 @@ import {
   type ReportKind,
   type ReportTable,
 } from "../reportBuilders";
-import { downloadReportCsv, openReportPage, reportPageHtml } from "../reportExport";
+import { downloadReportCsv, openReportPage } from "../reportExport";
 import { attachmentsToPagesHtml } from "../reportAttachments";
 import { apiGetArrayBuffer } from "@/utils/api";
 
@@ -167,14 +167,6 @@ export default function ReportsPage() {
   // clique (gesto) e preenchida após montar os anexos.
   const handlePrintWithAttachments = async () => {
     const docs = receipts.filter((r) => !!r.attachment_key);
-    const win = window.open("", "_blank");
-    if (!win) {
-      toast.error("Permita pop-ups para gerar o PDF.");
-      return;
-    }
-    win.document.write(
-      "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando relatório…</p>",
-    );
     setPrinting(true);
     const toastId = toast.loading(
       docs.length
@@ -189,19 +181,14 @@ export default function ReportsPage() {
         })),
       );
       const { html: attHtml, failed } = await attachmentsToPagesHtml(items);
-      if (win) {
-        win.document.open();
-        win.document.write(reportPageHtml(doc, attHtml));
-        win.document.close();
-        win.focus();
-      }
+      // Abre em nova aba ou, se o popup for bloqueado (mobile), baixa o arquivo.
+      openReportPage(doc, attHtml);
       if (failed > 0) {
         toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, { id: toastId });
       } else {
         toast.dismiss(toastId);
       }
     } catch {
-      win?.close();
       toast.error("Erro ao gerar o relatório.", { id: toastId });
     } finally {
       setPrinting(false);

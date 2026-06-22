@@ -165,14 +165,29 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
 </body></html>`;
 }
 
-/** Abre o relatório numa aba nova (HTML vetorial) com barra de ações no rodapé. */
-export function openReportPage(doc: ReportDoc): void {
-  const w = window.open("", "_blank");
-  if (!w) {
-    alert("Permita pop-ups para abrir o relatório.");
-    return;
+function reportFileName(doc: ReportDoc): string {
+  const base = (doc.title || "relatorio").replace(/[\\/:*?"<>|]+/g, "-").trim();
+  return `${base} — ${doc.periodLabel}.html`.replace(/\s+/g, " ");
+}
+
+/**
+ * Abre o relatório (HTML vetorial, com barra de ações) numa aba nova via Blob URL
+ * — mais confiável que `document.write` num popup. Se o popup for bloqueado
+ * (comum no mobile/WebView), cai pra DOWNLOAD do arquivo, que abre no navegador
+ * e tem o botão "Imprimir / Salvar PDF". `attachmentsHtml` embute os anexos.
+ */
+export function openReportPage(doc: ReportDoc, attachmentsHtml = ""): void {
+  const html = reportPageHtml(doc, attachmentsHtml);
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  const win = window.open(url, "_blank");
+  if (!win) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = reportFileName(doc);
+    a.rel = "noopener";
+    a.click();
+  } else {
+    win.focus();
   }
-  w.document.write(reportPageHtml(doc));
-  w.document.close();
-  w.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
