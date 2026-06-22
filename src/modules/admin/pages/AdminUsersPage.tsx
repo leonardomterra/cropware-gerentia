@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { cn } from "@/components/ui/utils";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import type { AdminUser } from "../types";
 
@@ -339,11 +341,11 @@ export default function AdminUsersPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md transition-colors text-sm shadow-sm focus-visible:outline-none ${
-                  filterStatus
-                    ? "bg-slate-800 text-white hover:bg-slate-700"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
+                className={cn(
+                  TOOLBAR_TRIGGER_CLASS,
+                  "w-full sm:w-auto justify-between",
+                  filterStatus && "bg-slate-800 text-white hover:bg-slate-700",
+                )}
               >
                 {filterStatus === "suspended" && "Suspensos"}
                 {filterStatus === "trial_expired" && "Expirado"}
@@ -372,7 +374,7 @@ export default function AdminUsersPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm shadow-sm focus-visible:outline-none"
+                className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:w-auto justify-between")}
               >
                 {sortBy === "name" && "Nome"}
                 {sortBy === "last_access" && "Acesso"}

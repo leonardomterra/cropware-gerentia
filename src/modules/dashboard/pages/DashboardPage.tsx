@@ -13,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/utils";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import {
   Dialog,
   DialogClose,
@@ -474,7 +476,7 @@ export default function DashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-9 w-full sm:w-[210px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                  className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:w-[210px]")}
                 >
                   {activeCC !== "all" ? (
                     <CostCenterChip

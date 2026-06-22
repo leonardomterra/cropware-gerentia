@@ -36,6 +36,7 @@ import {
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { ReceiptFiltersBar } from "./ReceiptFiltersBar";
 import { ReceiptsTable } from "./ReceiptsTable";
 import { ReceiptsCards } from "./ReceiptsCards";
@@ -499,7 +500,7 @@ export function ReceiptsListPage({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-9 flex-1 min-w-0 lg:min-w-[150px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                className={cn(TOOLBAR_TRIGGER_CLASS, "flex-1 min-w-0 lg:min-w-[150px]")}
               >
                 {activeCCId !== "all" ? (
                   <CostCenterChip
@@ -552,7 +553,7 @@ export function ReceiptsListPage({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="h-9 flex-1 inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              className={cn(TOOLBAR_TRIGGER_CLASS, "flex-1")}
             >
               {sortBy === "recent" && <ClockArrowDown className="size-4 shrink-0" />}
               {sortBy === "old" && <ClockArrowUp className="size-4 shrink-0" />}

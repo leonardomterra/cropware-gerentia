@@ -3,6 +3,7 @@ import ChevronRight from "~icons/material-symbols-light/chevron-right";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import Calendar from "~icons/material-symbols-light/calendar-month-outline";
 import { cn } from "@/components/ui/utils";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -167,10 +168,7 @@ export function PeriodModeSelect({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(
-            "h-9 w-[180px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
-            className,
-          )}
+          className={cn(TOOLBAR_TRIGGER_CLASS, "w-[180px]", className)}
         >
           <Calendar className="size-5 text-slate-500 shrink-0" />
           <span className="flex-1 text-left truncate">

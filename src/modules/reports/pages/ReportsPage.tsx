@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import {
   Select,
   SelectContent,
@@ -253,7 +254,7 @@ export default function ReportsPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-9 w-full lg:flex-1 inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                className={cn(TOOLBAR_TRIGGER_CLASS, "w-full lg:flex-1")}
               >
                 {activeCC ? (
                   <CostCenterChip icon={activeCC.icon} color={activeCC.color} className="size-6" />

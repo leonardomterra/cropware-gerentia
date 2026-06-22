@@ -4,6 +4,7 @@ import ChevronRight from "~icons/material-symbols-light/chevron-right";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import Calendar from "~icons/material-symbols-light/calendar-month-outline";
 import { cn } from "@/components/ui/utils";
+import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import {
   Popover,
@@ -188,10 +189,8 @@ export function MonthSwitcher({
             type="button"
             title="Escolher mês"
             className={cn(
-              "h-9 inline-flex items-center gap-1.5 px-3 rounded-md text-sm bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm",
-              variant === "picker"
-                ? "w-full text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-                : "ml-1 shrink-0 text-slate-600",
+              TOOLBAR_TRIGGER_CLASS,
+              variant === "picker" ? "w-full" : "ml-1 shrink-0 text-slate-600",
             )}
           >
             <Calendar className="size-4 text-slate-500 shrink-0" />
