@@ -3,6 +3,7 @@ import {
   useMemo,
   useState,
   type ComponentType,
+  type CSSProperties,
 } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LayoutDashboard from "~icons/material-symbols-light/space-dashboard-outline";
@@ -375,8 +376,11 @@ export function AppShell() {
             minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
           }}
         >
-          <div className="flex items-center gap-1.5">
-            <Logo className="h-7 w-auto opacity-80" />
+          <div
+            className="flex items-center gap-2"
+            style={{ ["--logo-size" as string]: "20px" } as CSSProperties}
+          >
+            <Logo className="h-8 w-auto opacity-80" />
             <LogoWordmark animate={false} className="text-slate-500/80" />
           </div>
         </div>
