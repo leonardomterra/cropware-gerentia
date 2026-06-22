@@ -51,7 +51,7 @@ export function DiscardChangesDialog({
                 </AlertDialogHeader>
                 <AlertDialogFooter className="flex flex-row gap-2 w-full sm:space-x-0 mt-2">
                     <AlertDialogCancel
-                        className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 flex-1 rounded-md text-sm font-normal shadow-none transition-colors mt-0"
+                        className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 flex-1 rounded-md text-sm font-normal transition-colors mt-0"
                         onClick={() => onOpenChange(false)}
                     >
                         {cancelLabel}
@@ -61,7 +61,7 @@ export function DiscardChangesDialog({
                             e.preventDefault();
                             onDiscard();
                         }}
-                        className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 flex-1 rounded-md text-sm font-normal shadow-none transition-colors"
+                        className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 flex-1 rounded-md text-sm font-normal transition-colors"
                     >
                         {discardLabel}
                     </AlertDialogAction>

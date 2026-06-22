@@ -22,15 +22,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-slate-900 text-white hover:bg-slate-800",
+          "bg-slate-900 text-white hover:bg-slate-800 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
         secondary:
-          "bg-slate-100 text-slate-900 hover:bg-slate-200",
+          "bg-slate-100 text-slate-900 hover:bg-slate-200 shadow-sm",
         outline:
-          "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50",
+          "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         ghost:
           "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700",
+          "bg-red-600 text-white hover:bg-red-700 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
         link:
           "text-slate-700 underline-offset-2 hover:underline hover:text-slate-900",
       },

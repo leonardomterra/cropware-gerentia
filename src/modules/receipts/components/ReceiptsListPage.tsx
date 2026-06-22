@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/material-symbols-light/arrow-downward";
 import ArrowUpNarrowWide from "~icons/material-symbols-light/arrow-upward";
@@ -197,14 +197,6 @@ export function ReceiptsListPage({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // TESTE: sombra externa nos botões da toolbar SÓ em /lancamentos.
-  // Cinzas (slate-100) levam shadow-sm; brancos (outline) uma sombra mais
-  // discreta (sobre branco a mesma sombra pesa mais).
-  const location = useLocation();
-  const onLanc = location.pathname === "/lancamentos";
-  const btnShadow = onLanc ? "shadow-sm" : "";
-  const btnShadowSoft = onLanc ? "shadow-[0_1px_2px_rgba(0,0,0,0.04)]" : "";
 
   // Mês é o escopo primário de data: define from/to (transaction_date).
   const monthRange = useMemo(() => monthRangeISO(month), [month]);
@@ -456,12 +448,12 @@ export function ReceiptsListPage({
   return (
     <div>
       <div className="mb-3">
-        <ReceiptFiltersBar value={filters} onChange={setFilters} triggerClassName={btnShadowSoft} />
+        <ReceiptFiltersBar value={filters} onChange={setFilters} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
         {showCreate && (
-          <Button variant="outline" onClick={openCreate} className={cn("gap-1.5 flex-1 min-w-0 lg:min-w-[150px]", btnShadowSoft)}>
+          <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
             <Plus className="size-4 shrink-0" />
             <span className="flex-1 text-left truncate sm:hidden">{createLabelShort}</span>
             <span className="flex-1 text-left truncate hidden sm:inline">{createLabel}</span>
@@ -471,7 +463,7 @@ export function ReceiptsListPage({
           <Button
             variant="outline"
             onClick={() => setCaptureOpen(true)}
-            className={cn("gap-1.5 flex-1 min-w-0 lg:min-w-[150px]", btnShadowSoft)}
+            className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
           >
             <Camera className="size-4 shrink-0" />
             <span className="flex-1 text-left truncate sm:hidden">Capturar</span>
@@ -483,7 +475,7 @@ export function ReceiptsListPage({
             <Button
               variant="outline"
               disabled={receipts.length === 0}
-              className={cn("gap-1.5 flex-1 min-w-0 lg:min-w-[150px]", btnShadowSoft)}
+              className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
             >
               <Download className="size-4 text-slate-500 shrink-0" />
               <span className="flex-1 text-left truncate">Exportar</span>
@@ -507,7 +499,7 @@ export function ReceiptsListPage({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={cn("h-9 flex-1 min-w-0 lg:min-w-[150px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300", btnShadow)}
+                className="h-9 flex-1 min-w-0 lg:min-w-[150px] inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
               >
                 {activeCCId !== "all" ? (
                   <CostCenterChip
@@ -560,7 +552,7 @@ export function ReceiptsListPage({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className={cn("h-9 flex-1 inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300", btnShadow)}
+              className="h-9 flex-1 inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
             >
               {sortBy === "recent" && <ClockArrowDown className="size-4 shrink-0" />}
               {sortBy === "old" && <ClockArrowUp className="size-4 shrink-0" />}
@@ -612,7 +604,6 @@ export function ReceiptsListPage({
           onChange={setMonth}
           variant="picker"
           className="flex-1 min-w-0 lg:min-w-[150px]"
-          triggerClassName={btnShadow}
         />
       </div>
 

@@ -131,7 +131,7 @@ function AlertDialogAction({
   return (
     <AlertDialogPrimitive.Action
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 px-4 py-2",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 px-4 py-2 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
         className
       )}
       {...props}
@@ -146,7 +146,7 @@ function AlertDialogCancel({
   return (
     <AlertDialogPrimitive.Cancel
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-all disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 px-4 py-2 mt-0",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-all disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 px-4 py-2 mt-0 shadow-sm",
         className
       )}
       {...props}

@@ -986,12 +986,7 @@ export function ReceiptFormDialog({
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              variant="default"
-              disabled={submitting}
-              className="shadow-[0_2px_4px_rgba(0,0,0,0.18)]"
-            >
+            <Button type="submit" variant="default" disabled={submitting}>
               {submitting ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>

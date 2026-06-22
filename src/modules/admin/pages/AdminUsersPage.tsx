@@ -310,7 +310,7 @@ export default function AdminUsersPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md transition-colors text-sm focus-visible:outline-none ${
+                className={`h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md transition-colors text-sm shadow-sm focus-visible:outline-none ${
                   filterStatus
                     ? "bg-slate-800 text-white hover:bg-slate-700"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -343,7 +343,7 @@ export default function AdminUsersPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm focus-visible:outline-none"
+                className="h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm shadow-sm focus-visible:outline-none"
               >
                 {sortBy === "name" && "Nome"}
                 {sortBy === "last_access" && "Acesso"}

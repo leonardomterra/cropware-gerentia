@@ -34,8 +34,6 @@ interface ReceiptFiltersBarProps {
   /** Conteudo extra rendered no final da row de filtros (ex: dropdown
    *  de Centro de Custo). Fica na mesma flex line dos campos. */
   trailing?: React.ReactNode;
-  /** Classe extra no botão "Filtrar" (ex.: sombra no teste de Lançamentos). */
-  triggerClassName?: string;
 }
 
 const STATUS_OPTIONS: ReceiptStatus[] = [
@@ -52,7 +50,7 @@ const STATUS_OPTIONS: ReceiptStatus[] = [
  * categorias moram num popover atras do botao "Filtrar" (com badge de
  * contagem quando ha filtro ativo). Menos caixas na tela.
  */
-export function ReceiptFiltersBar({ value, onChange, trailing, triggerClassName }: ReceiptFiltersBarProps) {
+export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersBarProps) {
   const { categories } = useCategories();
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -114,10 +112,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing, triggerClassName 
         <PopoverTrigger asChild>
           <button
             type="button"
-            className={cn(
-              "h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded border border-slate-300 bg-white text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
-              triggerClassName,
-            )}
+            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded border border-slate-300 bg-white text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
             <FilterList className="size-4 shrink-0" />
             Filtrar
