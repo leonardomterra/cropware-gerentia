@@ -7,7 +7,7 @@ achados (por severidade) + correções. Status no topo de cada seção.
 - [x] **Etapa 2 — Robustez / pontos de erro** ✅ corrigida
 - [x] **Etapa 3 — Visual / UI + a11y** ✅ auditada + corrigida (alto + médios baratos)
 - [x] **Etapa 4 — Mobile / responsividade** ✅ auditada + corrigida (1 item adiado: H2)
-- [ ] **Etapa 5 — Capacitor (Android/iOS)**
+- [x] **Etapa 5 — Capacitor (Android/iOS)** ✅ auditada (roadmap de build — execução é projeto à parte)
 
 ---
 
@@ -192,14 +192,56 @@ datas nativas, inputMode decimal no dinheiro).
   Restantes a avaliar caso a caso (confirmar escopo antes): tabelas de Relatórios
   (preview), AdminUsers (já progressiva c/ colunas ocultas), TeamPage (desativada).
 
-## Etapa 5 — Capacitor (Android/iOS)  ⏳ pendente
+## Etapa 5 — Capacitor (Android/iOS)  ✅ auditada (roadmap)
 
-Escopo:
-- Existe config Capacitor? (capacitor.config, plugins, projetos android/ios). Hoje
-  o app é web puro — mapear o que falta.
-- Câmera/galeria nativa (hoje usa input file + compressão WebP no browser).
-- Storage/arquivos, share, abrir PDF (window.open/print no WebView).
-- Deep links / OAuth redirect / Supabase auth no WebView.
-- Safe areas, status bar, splash, ícones, permissões.
-- Impressão/Salvar PDF no WebView (window.print pode não existir) — alternativa.
-- Build/assinatura, variáveis de ambiente no app nativo.
+Não é "corrigir agora": é o plano pra empacotar o app web como nativo. Parte exige
+tooling externo (Android Studio; iOS exige macOS + Xcode + Universal Links + assinatura).
+
+### ✅ JÁ PRONTO (native-ready)
+- Deps `@capacitor/core` + `@capacitor/preferences` (package.json).
+- **Detecção de plataforma**: `src/utils/platform.ts` (`isNativeCapacitorApp`, `isCapacitorIOS`).
+- **Storage nativo**: `appStorage.ts` usa Preferences no native / localStorage no web (migra ao gravar).
+- **Auth persistente nativa** (a parte mais pronta): `supabase/client.ts` desliga a persistência do
+  SDK (`persistSession:false`…) e dirige a sessão à mão via `ensureSession`/`setSession` →
+  tokens em `sessionStorage.ts` → `appStorage` (Preferences no native).
+- **Safe areas**: `viewport-fit=cover` + `env(safe-area-inset-*)` no AppShell/dialogs.
+- **PDF mobile-aware**: AttachmentViewer já evita o `<iframe>` cego no mobile.
+- **Env/creds**: Supabase URL/anonKey hardcoded em `supabase/info.ts` (anon é público) + base da API
+  em `api.ts` — empacotam limpo, sem URLs de dev/localhost.
+
+### ❌ FALTA
+- **Config/projetos**: criar `capacitor.config.ts` (`appId`, `appName`, `webDir:"build"`); `npx cap add android/ios`.
+- **Plugins** (nenhum instalado): `@capacitor/app` (deep links + back), `status-bar`, `splash-screen`,
+  `share`, `filesystem`, `browser`, `camera`.
+- **Câmera/galeria**: hoje é `<input type=file capture>` (ReceiptCaptureDialog) + compressão WebP no browser.
+  Costuma funcionar no WebView, mas adotar `@capacitor/camera` p/ confiabilidade.
+- **PDF/print/share/download**: trocar `window.open`/`window.print`/`<iframe>`/`a.click()[download]` por
+  **Filesystem + Share** (ou Browser.open). Call sites: `reportExport.ts`, `mergeAttachmentsPdf.ts`,
+  `ReportsPage.tsx`, `ReceiptsListPage.tsx`, `AttachmentViewerDialog.tsx`, `csv.ts`.
+- **Deep links/redirect de e-mail**: recovery/invite leem o hash em `AuthContext.tsx` (135-175), mas
+  `emailRedirectTo`/`redirectTo` usam `window.location.origin` (= `capacitor://localhost` no native) →
+  precisa de scheme/Universal Link + listener `appUrlOpen` (@capacitor/app) + redirect na allowlist do Supabase.
+  (Também em JoinPage/TeamPage.)
+- **Status bar/splash/ícones/permissões**: aplicar `.native-ios` (existe no CSS mas **nunca é ativada** —
+  add no `main.tsx`); StatusBar overlay; SplashScreen; ícones; iOS `NSCameraUsageDescription`/
+  `NSPhotoLibraryUsageDescription`; Android `CAMERA`/mídia no Manifest.
+
+### ⚠️ RISCOS no WKWebView (iOS)
+- **OffscreenCanvas/createImageBitmap** (imageCompression.ts, mergeAttachmentsPdf.ts): histórico de
+  ausência no WKWebView. A compressão tem guard (`supportsWebP`), mas `imageToJpegBytes` (merge) **não** →
+  anexos-imagem falhariam no PDF. Precisa de fallback `HTMLCanvasElement`.
+- `window.print()`, popups `window.open("","_blank")+document.write`, `<iframe src=PDF>`, downloads via
+  `a.click()` — todos não confiáveis/no-op no WebView.
+- Redirects de e-mail apontando p/ `origin` não abrem no app.
+
+### Ordem sugerida (fases)
+- **Fase 0 (scaffold)**: `capacitor.config.ts` + instalar plugins + `npx cap add android` + `vite build`→`cap sync`.
+- **Fase 1 (1º build Android: boot+auth)**: ativar `.native-ios`/StatusBar/Splash; smoke-test sessão
+  (já nativa); App Links + `appUrlOpen` → handler de recovery/invite; permissões câmera; testar input de captura.
+- **Fase 2 (features hostis ao WebView, Android)**: Filesystem+Share no lugar de download/print/popup;
+  fallback de canvas no merge de PDF.
+- **Fase 3 (iOS)**: `cap add ios` + Info.plist (permissões) + Universal Links; revalidar OffscreenCanvas/WebP
+  e todos os fluxos de print/share/PDF no WKWebView.
+
+**Decisão pendente**: começar a Fase 0 + os ajustes de código seguros (fallback de canvas, ativar
+`.native-ios`, parar de usar `origin` nos redirects) agora, ou deixar como plano até iniciar o build nativo.
