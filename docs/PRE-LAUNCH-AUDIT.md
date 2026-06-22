@@ -133,7 +133,10 @@ Duas frentes (consistência/estados + acessibilidade). App já bem polido no ger
 - [x] **Título da aba não mudava por rota** → `document.title` por rota no AppShell.
 - [x] **KPI de Relatórios sem truncate** → `truncate`/`min-w-0` (não estoura com valor grande).
 
-### 🟡 Adiado (refactor / baixo valor) — para depois
+### 🟡 Adiado (refactor / baixo valor)
+> **FEITOS (jun/2026):** EmptyStateCard+LoadingState, confirm()→ConfirmActionDialog,
+> TOOLBAR_TRIGGER_CLASS + ActionIconButton nos managers, e CostCentersPage deletado.
+> **Restam:** associar labels aos Selects (a11y) e os nits.
 - Adotar `EmptyStateCard` + skeleton **app-wide** (hoje 5 tratamentos de vazio/loading divergentes;
   uns mostram `<p>Carregando...</p>` cru).
 - **Associar labels** a todos os Select/SearchableSelect/MultiSelect (leitor de tela não anuncia o
@@ -179,10 +182,10 @@ datas nativas, inputMode decimal no dinheiro).
 - [x] **`type=number` em Recorrências** (dia/meses) → + `inputMode="numeric"` (teclado certo).
 
 ### 🟡 Adiado / aceito
-- **H2 — Imprimir/PDF dos Relatórios sem fallback de download no mobile**
-  (`openReportPage`/`handlePrintWithAttachments` usam `window.open`+`print()`; o merge de
-  anexos já tem fallback `<a download>`). Fallback real exige gerar PDF (pdf-lib) p/ baixar
-  em vez de imprimir no touch → fazer numa sub-fase (provável overlap com Etapa 5/Capacitor).
+- [x] **H2 — Imprimir/PDF dos Relatórios sem fallback no mobile** ✅ FEITO (jun/2026):
+  `openReportPage` agora gera o HTML num Blob URL e abre em nova aba; se o popup for
+  bloqueado (mobile/WebView), **baixa o arquivo** (que abre no navegador com o botão
+  Imprimir/Salvar PDF). O "com anexos" usa o mesmo caminho (sem popup em branco).
 - **TeamPage** tabela sem fallback mobile — Equipe está **desativada** (nav comentado);
   só vira problema se reativar (modelo individual hoje). Anotado.
 - Tooltips de chart só hover (info redundante em KPIs/labels); dia/meses poderiam ser

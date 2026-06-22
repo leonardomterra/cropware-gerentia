@@ -5,6 +5,13 @@ refactors de baixo risco que ficaram fora da Etapa 3 (Visual/UI + a11y).
 Contexto completo em [PRE-LAUNCH-AUDIT.md](PRE-LAUNCH-AUDIT.md) → seção
 "Etapa 3 → 🟡 Adiado".
 
+> **Status (jun/2026):** já FEITOS os itens **2** (EmptyStateCard + LoadingState),
+> **3** (confirm() → ConfirmActionDialog), **4** (TOOLBAR_TRIGGER_CLASS +
+> ActionIconButton nos managers) e **6** (deletar CostCentersPage). Também o
+> **H2 da Etapa 4** (fallback de download do PDF dos Relatórios no mobile).
+> **Restam:** item **1** (associar labels aos Selects — a11y) e item **5** (nits:
+> ellipsis, spacing de ícone, contraste, accessibilityLayer, skip-link, PDF `<dl>`).
+
 ---
 
 ```
