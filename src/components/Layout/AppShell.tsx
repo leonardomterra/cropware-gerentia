@@ -385,13 +385,9 @@ export function AppShell() {
           </div>
         </div>
 
-        {/* MOBILE: sub-cabeçalho com o título da página à esquerda (uppercase
-            via inline — a utility .uppercase é neutralizada globalmente). */}
+        {/* MOBILE: sub-cabeçalho com o título da página à esquerda */}
         <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2.5 bg-slate-100">
-          <span
-            className="text-base font-medium tracking-wide text-slate-600"
-            style={{ textTransform: "uppercase" }}
-          >
+          <span className="text-[16px] font-medium text-slate-700">
             {breadcrumbSegments[breadcrumbSegments.length - 1] ?? ""}
           </span>
         </div>
