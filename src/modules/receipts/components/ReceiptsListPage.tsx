@@ -101,6 +101,8 @@ export interface ReceiptsListPageProps {
   viewOnly?: boolean;
   /** Rótulo do botão de criar. Default "Novo Lançamento". */
   createLabel?: string;
+  /** Rótulo curto do botão de criar (mobile). Default "Novo". */
+  createLabelShort?: string;
   /** Texto quando não há registros. */
   emptyLabel?: string;
   /** Substantivo da contagem ("Mostrando N ___"). Default lançamento(s). */
@@ -167,6 +169,7 @@ export function ReceiptsListPage({
   showCreate = true,
   viewOnly = false,
   createLabel = "Novo Lançamento",
+  createLabelShort = "Novo",
   emptyLabel = "Sem lançamentos",
   countNoun = { one: "lançamento", many: "lançamentos" },
   titleNew,
@@ -452,7 +455,8 @@ export function ReceiptsListPage({
         {showCreate && (
           <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
             <Plus className="size-4 shrink-0" />
-            <span className="flex-1 text-left">{createLabel}</span>
+            <span className="flex-1 text-left truncate sm:hidden">{createLabelShort}</span>
+            <span className="flex-1 text-left truncate hidden sm:inline">{createLabel}</span>
           </Button>
         )}
         {showCapture && (
@@ -462,7 +466,8 @@ export function ReceiptsListPage({
             className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
           >
             <Camera className="size-4 shrink-0" />
-            <span className="flex-1 text-left">Capturar Recibo</span>
+            <span className="flex-1 text-left truncate sm:hidden">Capturar</span>
+            <span className="flex-1 text-left truncate hidden sm:inline">Capturar Recibo</span>
           </Button>
         )}
         <DropdownMenu>
@@ -473,7 +478,7 @@ export function ReceiptsListPage({
               className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
             >
               <Download className="size-4 text-slate-500 shrink-0" />
-              <span className="flex-1 text-left">Exportar</span>
+              <span className="flex-1 text-left truncate">Exportar</span>
               <ChevronDown className="size-4 text-slate-500 shrink-0" />
             </Button>
           </DropdownMenuTrigger>

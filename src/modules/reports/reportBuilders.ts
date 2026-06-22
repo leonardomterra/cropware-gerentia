@@ -63,6 +63,7 @@ interface RLine {
   vendor: string;
 }
 
+// Nome completo — usado no TÍTULO do PDF/relatório impresso.
 const REPORT_LABEL: Record<ReportKind, string> = {
   resumo: "Resumo do período",
   categoria: "Detalhado por categoria",
@@ -70,9 +71,17 @@ const REPORT_LABEL: Record<ReportKind, string> = {
   contas: "Contas a pagar / receber",
 };
 
+// Nome curto — usado SÓ no seletor (cabe melhor no mobile). O PDF segue completo.
+const REPORT_SHORT_LABEL: Record<ReportKind, string> = {
+  resumo: "Resumo",
+  categoria: "Por categoria",
+  centro: "Por centro de custo",
+  contas: "A pagar / receber",
+};
+
 export const REPORT_OPTIONS: { value: ReportKind; label: string }[] = (
   Object.keys(REPORT_LABEL) as ReportKind[]
-).map((value) => ({ value, label: REPORT_LABEL[value] }));
+).map((value) => ({ value, label: REPORT_SHORT_LABEL[value] }));
 
 // Expande lançamentos em linhas (itens desmembrados já são excluídos por
 // receiptLines), enriquecendo com vendor/vencimento/labels.

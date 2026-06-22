@@ -125,7 +125,8 @@ export function CostCentersManager() {
           className="gap-1 shrink-0"
         >
           <Plus className="size-4" />
-          Novo Centro de Custo
+          <span className="sm:hidden">Novo Centro</span>
+          <span className="hidden sm:inline">Novo Centro de Custo</span>
         </Button>
       </header>
 

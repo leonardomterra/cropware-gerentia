@@ -239,7 +239,7 @@ export default function ReportsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Entradas e saídas</SelectItem>
+              <SelectItem value="all">Tudo</SelectItem>
               <SelectItem value="expense">Só saídas</SelectItem>
               <SelectItem value="income">Só entradas</SelectItem>
             </SelectContent>
@@ -262,7 +262,14 @@ export default function ReportsPage() {
                   className="flex-1 text-left truncate"
                   style={activeCC ? { color: ccTextColor(activeCC.color) } : undefined}
                 >
-                  {activeCC ? activeCC.name : "Todos os Centros"}
+                  {activeCC ? (
+                    activeCC.name
+                  ) : (
+                    <>
+                      <span className="sm:hidden">Centros</span>
+                      <span className="hidden sm:inline">Todos os Centros</span>
+                    </>
+                  )}
                 </span>
                 <ChevronDown className="size-4 text-slate-500 shrink-0" />
               </button>
@@ -297,7 +304,8 @@ export default function ReportsPage() {
             onClick={() => downloadReportCsv(doc, csvName)}
           >
             <Download className="size-4" />
-            Baixar CSV
+            <span className="sm:hidden">CSV</span>
+            <span className="hidden sm:inline">Baixar CSV</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -307,7 +315,14 @@ export default function ReportsPage() {
                 disabled={noData || printing}
               >
                 <Print className="size-4" />
-                {printing ? "Gerando…" : "Imprimir / PDF"}
+                {printing ? (
+                  "Gerando…"
+                ) : (
+                  <>
+                    <span className="sm:hidden">Imprimir</span>
+                    <span className="hidden sm:inline">Imprimir / PDF</span>
+                  </>
+                )}
                 <ChevronDown className="size-4 text-slate-500" />
               </Button>
             </DropdownMenuTrigger>

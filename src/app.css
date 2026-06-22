@@ -205,6 +205,25 @@ body {
   }
 }
 
+/* Bump tipografico no mobile/app: sobe as fontes principais (~+1-2px) p/ leitura
+   melhor no celular, SEM mexer em espacamento/altura. O Tailwind v4 gera as
+   utilities a partir de var(--text-*), entao redefinir os tokens aqui reescala
+   .text-xs/.text-sm/.text-base/.text-lg no mobile. Line-heights ficam no default
+   (evita estourar componentes de altura fixa: badges, botoes h-9). Tamanhos
+   hardcoded (text-[11px], displays de codigo/OTP) NAO seguem - sao intencionais.
+   Inputs continuam 16px via a regra de anti-zoom acima. */
+@media (max-width: 768px) {
+  :root {
+    --text-xs: 14px;        /* 13 -> 14 */
+    --text-sm: 1rem;        /* 14 -> 16 (a principal) */
+    --text-base: 1.0625rem; /* 16 -> 17 */
+    --text-lg: 1.1875rem;   /* 18 -> 19 */
+  }
+  body {
+    font-size: 16px; /* texto sem classe de tamanho (era 14px) */
+  }
+}
+
 /* Scroll stability: evita layout-shift quando Radix (Select/Dialog/etc)
    abre. CAUSA RAIZ do squeeze: forcar `overflow-y: scroll` no html cria
    uma scrollbar de DOCUMENTO de ~15px. react-remove-scroll le

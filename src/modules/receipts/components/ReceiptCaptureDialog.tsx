@@ -200,7 +200,7 @@ export function ReceiptCaptureDialog({
               variant="default"
               onClick={handleContinueAnyway}
             >
-              Continuar e Preencher
+              Continuar
             </Button>
           ) : (
             <Button

@@ -317,8 +317,8 @@ export default function AdminUsersPage() {
                 }`}
               >
                 {filterStatus === "suspended" && "Suspensos"}
-                {filterStatus === "trial_expired" && "Trial Expirado"}
-                {filterStatus === "pending_invite" && "Aguardando Convite"}
+                {filterStatus === "trial_expired" && "Expirado"}
+                {filterStatus === "pending_invite" && "Pendentes"}
                 {!filterStatus && "Filtrar"}
                 <ChevronDown className="size-4 opacity-60" />
               </button>
@@ -346,7 +346,7 @@ export default function AdminUsersPage() {
                 className="h-9 w-full sm:w-auto inline-flex items-center justify-between gap-1.5 px-3 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-sm focus-visible:outline-none"
               >
                 {sortBy === "name" && "Nome"}
-                {sortBy === "last_access" && "Último Acesso"}
+                {sortBy === "last_access" && "Acesso"}
                 {sortBy === "trial" && "Trial"}
                 <ChevronDown className="size-4 text-slate-500" />
               </button>
@@ -660,7 +660,7 @@ export default function AdminUsersPage() {
                         }}
                       >
                         <MailIcon className="size-4 mr-1.5" />
-                        Enviar Convite
+                        Convidar
                       </Button>
                     )}
                     <Button
@@ -671,8 +671,7 @@ export default function AdminUsersPage() {
                       onClick={() => { handleImpersonate(editing!); setEditing(null); }}
                     >
                       <LoginIcon className="size-4 mr-1.5" />
-                      Entrar Como
-
+                      Entrar
                     </Button>
                     <Button
                       type="button"
@@ -682,7 +681,7 @@ export default function AdminUsersPage() {
                       onClick={() => { handleReset(editing!); }}
                     >
                       <KeyIcon className="size-4 mr-1.5" />
-                      Resetar Senha
+                      Resetar
                     </Button>
                     <Button
                       type="button"

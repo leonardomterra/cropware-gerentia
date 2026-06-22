@@ -14,6 +14,7 @@ export default function FaturasPage() {
       defaultDocType="fatura"
       showCapture={false}
       createLabel="Nova Fatura"
+      createLabelShort="Nova"
       emptyLabel="Sem faturas"
       countNoun={{ one: "fatura", many: "faturas" }}
       titleNew="Nova Fatura"

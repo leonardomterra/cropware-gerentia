@@ -20,6 +20,7 @@ export default function NotasRecibosPage() {
       defaultDocType="nota_fiscal"
       showCapture={false}
       createLabel="Nova Nota / Recibo"
+      createLabelShort="Novo"
       emptyLabel="Sem notas ou recibos"
       countNoun={{ one: "documento", many: "documentos" }}
       titleNew="Nova Nota / Recibo"

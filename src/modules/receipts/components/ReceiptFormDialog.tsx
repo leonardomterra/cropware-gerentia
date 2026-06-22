@@ -845,7 +845,7 @@ export function ReceiptFormDialog({
                   className="gap-1"
                 >
                   <Plus className="size-4" />
-                  Adicionar item
+                  Adicionar
                 </Button>
               </div>
 
