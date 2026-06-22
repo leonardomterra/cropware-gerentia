@@ -689,7 +689,7 @@ export function ReceiptFormDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="transaction_date">Data do Lançamento</Label>
               <Input
@@ -896,7 +896,7 @@ export function ReceiptFormDialog({
                         </div>
                         <div>
                           <Label className="text-xs text-slate-500">
-                            Valor unit.
+                            Unit.
                           </Label>
                           <Input
                             value={it.unit_value}

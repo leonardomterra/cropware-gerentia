@@ -245,7 +245,7 @@ export default function RecurringPage() {
                 maxLength={80}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Tipo</label>
                 <Select
@@ -277,7 +277,7 @@ export default function RecurringPage() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Dia do Mês</label>
                 <Input
@@ -301,7 +301,7 @@ export default function RecurringPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Duração</label>
                 <Select
