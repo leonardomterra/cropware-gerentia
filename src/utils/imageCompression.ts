@@ -86,11 +86,6 @@ export async function compressImage(
   const compressionRatio =
     originalSize > 0 ? Math.round((1 - blob.size / originalSize) * 100) : 0;
 
-  console.log(
-    `📸 Imagem comprimida: ${(originalSize / 1024).toFixed(0)}KB → ${(blob.size / 1024).toFixed(0)}KB ` +
-      `(${compressionRatio}% menor, ${width}×${height}, qualidade ${(quality * 100).toFixed(0)}%, ${format === "image/webp" ? "WebP" : "JPEG"})`,
-  );
-
   return {
     blob,
     file,

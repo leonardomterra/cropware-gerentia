@@ -54,10 +54,23 @@ function DialogContent({
   children,
   hideCloseButton,
   onAnimationStart,
+  description,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   hideCloseButton?: boolean;
+  /** Descrição p/ leitores de tela (sr-only). Sem ela, o aviso do Radix é
+   *  suprimido (a maioria dos nossos dialogs não tem descrição visível). */
+  description?: React.ReactNode;
 }) {
+  // Com `description`, deixa o Radix vincular a <Description>. Sem ela (e sem um
+  // aria-describedby explícito), passa undefined p/ silenciar o warning.
+  const describedBy =
+    description != null
+      ? ariaDescribedBy != null
+        ? { "aria-describedby": ariaDescribedBy }
+        : {}
+      : { "aria-describedby": ariaDescribedBy };
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -84,7 +97,13 @@ function DialogContent({
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           {...props}
+          {...describedBy}
         >
+          {description != null && (
+            <DialogPrimitive.Description className="sr-only">
+              {description}
+            </DialogPrimitive.Description>
+          )}
           <ModalScopeProvider>{children}</ModalScopeProvider>
           {!hideCloseButton && (
             <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 p-2 min-w-[44px] min-h-[44px] hidden sm:flex items-center justify-center">
