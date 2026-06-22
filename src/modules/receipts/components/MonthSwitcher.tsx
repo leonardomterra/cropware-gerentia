@@ -66,6 +66,7 @@ export function MonthSwitcher({
   className,
   compact = false,
   variant = "full",
+  triggerClassName,
 }: {
   value: YearMonth;
   onChange: (next: YearMonth) => void;
@@ -74,6 +75,8 @@ export function MonthSwitcher({
   compact?: boolean;
   /** "full" = chips + seletor; "chips" = só ◀ meses ▶; "picker" = só o 📅. */
   variant?: "full" | "chips" | "picker";
+  /** Classe extra no botão do seletor (ex.: sombra no teste de Lançamentos). */
+  triggerClassName?: string;
 }) {
   const isMobile = useIsMobile();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -192,6 +195,7 @@ export function MonthSwitcher({
               variant === "picker"
                 ? "w-full text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 : "ml-1 shrink-0 text-slate-600",
+              triggerClassName,
             )}
           >
             <Calendar className="size-4 text-slate-500 shrink-0" />
