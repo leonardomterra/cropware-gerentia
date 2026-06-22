@@ -278,7 +278,13 @@ export function AppShell() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+          <div
+            className="absolute inset-y-0 left-0 w-64 shadow-xl bg-slate-100"
+            style={{
+              paddingTop: "env(safe-area-inset-top, 0px)",
+              paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            }}
+          >
             {renderSidebar(true)}
           </div>
         </div>
@@ -287,8 +293,15 @@ export function AppShell() {
       {/* COLUNA DE CONTEUDO */}
       <div className="flex flex-col flex-1 min-w-0">
         <ImpersonationBanner />
-        {/* Topbar fina: toggle (desktop) / menu (mobile) + breadcrumb */}
-        <div className="flex items-center h-13 shrink-0 border-b border-slate-200 px-2 sm:px-3 gap-1">
+        {/* Topbar: desktop = toggle + breadcrumb; mobile = logo + título.
+            paddingTop reserva o notch/dynamic island (safe-area). */}
+        <div
+          className="flex items-center shrink-0 border-b border-slate-200 px-2 sm:px-3 gap-2"
+          style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
           {/* Desktop: colapsar/expandir */}
           <button
             type="button"
@@ -302,15 +315,11 @@ export function AppShell() {
               <PanelLeftClose className="size-5" />
             )}
           </button>
-          {/* Mobile: abrir drawer */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="md:hidden inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100"
-            aria-label="Abrir menu"
-          >
-            <Menu className="size-4" />
-          </button>
+          {/* Mobile: marca (logo + wordmark estático, sem animação) */}
+          <div className="md:hidden flex items-center gap-1.5 shrink-0">
+            <Logo className="h-7 w-auto opacity-80" />
+            <LogoWordmark animate={false} className="text-slate-500/80" />
+          </div>
 
           <div className="flex-1 min-w-0">
             <PageBreadcrumb segments={breadcrumbSegments} embedded />
@@ -331,6 +340,23 @@ export function AppShell() {
             <Outlet />
           </div>
         </main>
+
+        {/* BOTTOM BAR MOBILE: só o botão de abrir o menu (drawer). paddingBottom
+            reserva o home indicator (safe-area). */}
+        <div
+          className="md:hidden shrink-0 border-t border-slate-200 bg-white"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        >
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="flex items-center justify-center gap-2 w-full h-12 text-slate-600 hover:bg-slate-100 active:bg-slate-100 transition-colors"
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-5" />
+            <span className="text-sm font-medium">Menu</span>
+          </button>
+        </div>
       </div>
     </div>
   );

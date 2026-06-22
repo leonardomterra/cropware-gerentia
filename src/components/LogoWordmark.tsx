@@ -22,8 +22,15 @@ import { cn } from "@/components/ui/utils";
  */
 let played = false;
 
-export function LogoWordmark({ className }: { className?: string }) {
-  const [animate] = useState(() => !played);
+export function LogoWordmark({
+  className,
+  animate = true,
+}: {
+  className?: string;
+  /** desliga a animação typewriter (ex.: cabeçalho do mobile). */
+  animate?: boolean;
+}) {
+  const [doAnim] = useState(() => animate && !played);
   useEffect(() => {
     played = true;
   }, []);
@@ -32,7 +39,7 @@ export function LogoWordmark({ className }: { className?: string }) {
     <span
       className={cn(
         "logo-wordmark",
-        animate && "logo-wordmark-anim",
+        doAnim && "logo-wordmark-anim",
         className,
       )}
       aria-label="gerentia.app"
