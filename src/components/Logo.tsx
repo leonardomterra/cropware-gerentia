@@ -2,13 +2,14 @@ import type { ImgHTMLAttributes } from "react";
 import { cn } from "@/components/ui/utils";
 
 /**
- * Simbolo do gerentia.app - PNG (logo-farm-01.png, 136x144 @3x pra
- * exibicao a 48px). Exportado do Affinity em sRGB + Lanczos transparente.
+ * Simbolo do gerentia.app - SVG monocromatico (gerentia-symbol.svg), o mesmo
+ * usado nos posts do Cropware Studio. viewBox ja cropado no bounding box justo
+ * (aspecto ~1.728:1, mais largo que alto). Um unico <path>; cor nativa escura
+ * (path preto). Em fundo escuro usar prop `white` (filter brightness/invert);
+ * aqui o default e' escuro, pros fundos claros do app.
  *
- * Por que PNG e nao SVG inline: o desenho e' detalhado demais e serrilhava
- * como vetor em tamanho pequeno; o downscale Lanczos do PNG @3x rende
- * melhor nesse tamanho fixo de header. Cor nativa preta/#111827; em fundo
- * escuro (se voltar) usar prop `white` (filter brightness/invert).
+ * (Substitui o antigo /icon.png - o simbolo "rosto" da fase Diretor IA. Marca
+ * unica Gerentia; ver docs/GERENTIA-BRAND.md.)
  */
 export function Logo({
   className,
@@ -18,7 +19,7 @@ export function Logo({
 }: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
   return (
     <img
-      src="/icon.png"
+      src="/gerentia-symbol.svg"
       alt={alt}
       className={cn("w-auto object-contain", className)}
       style={white ? { filter: "brightness(0) invert(1)" } : undefined}

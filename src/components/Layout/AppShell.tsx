@@ -174,11 +174,11 @@ export function AppShell() {
           )}
         >
           {isCollapsed ? (
-            <Logo className="h-7 w-auto opacity-80" />
+            <Logo className="h-6 w-auto opacity-80" />
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <Logo className="h-7 w-auto shrink-0 opacity-80" />
-              <LogoWordmark className="text-slate-500/80 ml-1" />
+              <Logo className="h-5 w-auto shrink-0 opacity-80" />
+              <LogoWordmark className="text-slate-500/80 [--logo-size:19px]" />
             </div>
           )}
           {inDrawer && (
@@ -378,9 +378,9 @@ export function AppShell() {
         >
           <div
             className="flex items-center gap-2"
-            style={{ ["--logo-size" as string]: "20px" } as CSSProperties}
+            style={{ ["--logo-size" as string]: "22px" } as CSSProperties}
           >
-            <Logo className="h-8 w-auto opacity-80" />
+            <Logo className="h-6 w-auto opacity-80" />
             <LogoWordmark animate={false} className="text-slate-500/80" />
           </div>
         </div>

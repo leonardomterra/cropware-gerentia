@@ -115,8 +115,8 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   .sheet { padding: 40px; }
   .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 18px; }
   .brand img { height: 30px; width: auto; }
-  .brand .wm { font-size: 17px; font-weight: 600; }
-  .brand .wm .dot { color: #64748b; }
+  .brand .wm { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+  .brand .wm .lt { font-weight: 300; }
   h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
   .sub { color: #64748b; font-size: 13px; margin: 0 0 18px; }
   .kpis { display: flex; gap: 12px; margin-bottom: 22px; }
@@ -148,8 +148,8 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
 </style></head><body>
   <div class="sheet">
     <div class="brand">
-      <img src="${origin}/icon.png" alt="" />
-      <span class="wm">gerentia<span class="dot">.app</span></span>
+      <img src="${origin}/gerentia-symbol.svg" alt="" />
+      <span class="wm">gerent<span class="lt">ia.app</span></span>
     </div>
     <h1>${esc(doc.title)}</h1>
     <p class="sub">${esc(doc.periodLabel)} — ${esc(doc.ccLabel)}</p>
