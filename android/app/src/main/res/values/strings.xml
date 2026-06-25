@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gerentia</string>
+    <string name="title_activity_main">Gerentia</string>
+    <string name="package_name">app.gerentia</string>
+    <string name="custom_url_scheme">app.gerentia</string>
+</resources>

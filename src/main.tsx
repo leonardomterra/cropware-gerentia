@@ -10,11 +10,23 @@ import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "./app.css";
 import App from "./App";
-import { isCapacitorIOS } from "./utils/platform";
+import { isCapacitorIOS, isNativeCapacitorApp } from "./utils/platform";
 
 // No iOS nativo, ativa a marca/fonte específica (.native-ios vive no app.css).
 if (isCapacitorIOS()) {
   document.documentElement.classList.add("native-ios");
+}
+
+// App nativo (iOS/Android): status bar combinando com o header (zinc-600), ícones
+// claros sobre fundo escuro. Import dinâmico — o plugin só existe no app nativo.
+if (isNativeCapacitorApp()) {
+  import("@capacitor/status-bar")
+    .then(({ StatusBar, Style }) => {
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: "#52525b" }).catch(() => {});
+    })
+    .catch(() => {});
 }
 
 const rootElement = document.getElementById("root");
