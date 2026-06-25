@@ -50,14 +50,16 @@ A **Play proíbe** pagamento externo (Mercado Pago) dentro do app pra bens digit
 - ✅ Já feito: no app nativo, o checkout do MP fica **escondido**
   ([SubscriptionCard.tsx](../src/modules/account/components/SubscriptionCard.tsx) via
   `isNativeCapacitorApp()`) — mostra só status + "assinaturas pelo app em breve".
-- ⏳ **Pra vender no app:** integrar **RevenueCat** (encapsula Google Play Billing).
-  Web continua no Mercado Pago (~5%); app usa a loja (15%). Passos quando for ativar:
-  1. `npm i @revenuecat/purchases-capacitor`.
-  2. Criar `src/lib/revenuecat.ts` (init, identify no login, getOfferings, purchase, restore).
-  3. Boot no `main.tsx` (guardado por `isNativeCapacitorApp()`), API key via `VITE_REVENUECAT_ANDROID_KEY`.
-  4. Play Console: criar produtos `gerentia_pro_monthly` / `gerentia_pro_yearly` (mesmos preços).
-  5. RevenueCat dashboard: mapear os produtos + webhook → `/gerentia-api/webhook/revenuecat`.
-  Ver blueprint §10.5 (escrito p/ iOS, mesma lógica no Android).
+- ✅ **RevenueCat já scaffoldado** (encapsula Google Play Billing): `@revenuecat/purchases-capacitor`
+  instalado, `src/lib/revenuecat.ts` (init/identify/offerings/purchase/restore, tudo guardado),
+  boot no `main.tsx`, identidade no `AppShell`, e UI de compra no `SubscriptionCard` (mostra as
+  ofertas quando existirem; senão "em breve"). **Inerte** sem chave/produtos — não afeta o build atual.
+- ⏳ **Pra ATIVAR a venda no app** (web segue no Mercado Pago ~5%; app usa a loja ~15%):
+  1. Play Console: criar produtos de assinatura `gerentia_pro_monthly` / `gerentia_pro_yearly`.
+  2. RevenueCat dashboard: mapear os produtos + webhook → `/gerentia-api/webhook/revenuecat`
+     (handler ainda é 501 — implementar a reconciliação).
+  3. Setar `VITE_REVENUECAT_ANDROID_KEY` (e `VITE_REVENUECAT_IOS_KEY`) no `.env` do build.
+  4. Mudar a declaração da Play de "sem compras" para "com compras no app".
 
 ---
 

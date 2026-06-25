@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 import { isNativeCapacitorApp } from "@/utils/platform";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  isRevenueCatConfigured,
+  loadOfferingPackages,
+  purchasePackage as rcPurchase,
+  restorePurchases as rcRestore,
+  type RcPackage,
+} from "@/lib/revenuecat";
 import { useBilling, type Plan } from "../hooks/useBilling";
 
 function formatBRL(cents: number): string {
@@ -31,8 +39,59 @@ function formatDate(iso: string | null): string {
  */
 export function SubscriptionCard({ className }: { className?: string }) {
   const { info, plans, loading, error, checkout, refresh } = useBilling();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const returnedRef = useRef(false);
+
+  // RevenueCat (app nativo): ofertas + estado de compra/restauração.
+  const [rcPackages, setRcPackages] = useState<RcPackage[]>([]);
+  const [rcBusy, setRcBusy] = useState<string | null>(null);
+  const [rcRestoring, setRcRestoring] = useState(false);
+
+  useEffect(() => {
+    if (!isNativeCapacitorApp() || !isRevenueCatConfigured() || !user?.id) return;
+    let cancelled = false;
+    loadOfferingPackages()
+      .then((pkgs) => {
+        if (!cancelled) setRcPackages(pkgs);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  async function handleRcPurchase(pkg: RcPackage) {
+    setRcBusy(pkg.id);
+    try {
+      const { active } = await rcPurchase(pkg.raw);
+      if (active) {
+        toast.success("Assinatura ativada!");
+        await refresh();
+      }
+    } catch {
+      /* cancelado pelo usuário ou erro — silencioso */
+    } finally {
+      setRcBusy(null);
+    }
+  }
+
+  async function handleRcRestore() {
+    setRcRestoring(true);
+    try {
+      const { active } = await rcRestore();
+      if (active) {
+        toast.success("Compras restauradas.");
+        await refresh();
+      } else {
+        toast.info("Nenhuma assinatura encontrada.");
+      }
+    } catch {
+      toast.error("Não foi possível restaurar agora.");
+    } finally {
+      setRcRestoring(false);
+    }
+  }
 
   // Retorno do checkout do MP: reconcilia uma vez e limpa a query.
   useEffect(() => {
@@ -116,16 +175,52 @@ export function SubscriptionCard({ className }: { className?: string }) {
           </p>
         </div>
       ) : isNative ? (
-        // App nativo: sem checkout externo (regra da loja). Só status + aviso.
-        <div className="space-y-2">
+        // App nativo: compra via loja (RevenueCat). Nunca checkout externo (regra
+        // da Play/App Store). Sem produtos configurados, cai no aviso "em breve".
+        <div className="space-y-3">
           <p className="text-sm text-slate-600">
             {trialActive
               ? `Seu período de teste termina em ${formatDate(info?.trial_ends_at ?? null)}.`
               : "Você ainda não tem uma assinatura ativa."}
           </p>
-          <p className="text-xs text-slate-400">
-            Assinaturas pelo app chegam em breve.
-          </p>
+          {rcPackages.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {rcPackages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className="rounded-lg border border-slate-200 p-4 flex flex-col gap-2"
+                  >
+                    <span className="text-sm font-medium text-slate-900">
+                      {pkg.title}
+                    </span>
+                    <span className="text-base font-medium text-slate-900">
+                      {pkg.priceString}
+                    </span>
+                    <Button
+                      className="mt-1"
+                      onClick={() => handleRcPurchase(pkg)}
+                      disabled={rcBusy !== null}
+                    >
+                      {rcBusy === pkg.id ? "Processando..." : "Assinar"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleRcRestore}
+                disabled={rcRestoring}
+                className="text-xs text-slate-500 hover:text-slate-700"
+              >
+                {rcRestoring ? "Restaurando..." : "Restaurar compras"}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-slate-400">
+              Assinaturas pelo app chegam em breve.
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

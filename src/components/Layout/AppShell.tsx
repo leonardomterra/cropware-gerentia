@@ -137,6 +137,15 @@ export function AppShell() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // RevenueCat: liga a assinatura ao usuário logado. No-op fora do app nativo ou
+  // sem a API key (ver src/lib/revenuecat.ts). Import dinâmico p/ não pesar o web.
+  useEffect(() => {
+    if (!user?.id) return;
+    import("@/lib/revenuecat")
+      .then((m) => m.identifyRevenueCatUser(user.id).catch(() => {}))
+      .catch(() => {});
+  }, [user?.id]);
+
   const navItems: NavItem[] = [
     ...NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin),
     ...(isMaster ? MASTER_NAV_ITEMS : []),

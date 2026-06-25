@@ -50,14 +50,14 @@ Fontes em `assets/` (mesmas do Android). Já estão gerados; só rode se mudar a
   qualquer link/menção a pagamento externo (Mercado Pago, site, preço de fora) na UI iOS —
   **rejeição automática**.
 - ✅ Já coberto: o checkout do MP fica **escondido no nativo**.
-- ⏳ Pra vender no app: **RevenueCat** (encapsula StoreKit). Passos (mesmo do blueprint §10.5):
-  1. `npm i @revenuecat/purchases-capacitor`.
-  2. `src/lib/revenuecat.ts` (init, identify no login, getOfferings, purchase, restore).
-  3. Boot no `main.tsx` (guardado por `isNativeCapacitorApp()`), key via `VITE_REVENUECAT_IOS_KEY`.
-  4. App Store Connect: criar **produtos de assinatura** (`gerentia_pro_monthly` / `_yearly`)
-     num Subscription Group.
-  5. RevenueCat dashboard: mapear os produtos + webhook → `/gerentia-api/webhook/revenuecat`.
-  6. Tela de conta iOS **sem** links externos (a Apple policia isso).
+- ✅ **RevenueCat já scaffoldado** (mesmo código do Android): `@revenuecat/purchases-capacitor`
+  instalado, `src/lib/revenuecat.ts`, boot no `main.tsx`, identidade no `AppShell`, UI de compra +
+  **botão "Restaurar compras"** no `SubscriptionCard` (a Apple exige o restore). Inerte sem chave/produtos.
+- ⏳ Pra **ativar** a venda no app:
+  1. App Store Connect: criar **produtos de assinatura** (`gerentia_pro_monthly` / `_yearly`) num Subscription Group.
+  2. RevenueCat dashboard: mapear os produtos + webhook → `/gerentia-api/webhook/revenuecat` (handler é 501).
+  3. Setar `VITE_REVENUECAT_IOS_KEY` no build.
+  > A tela de conta no nativo já é **sem links externos** (o checkout MP fica escondido) — Apple policia isso.
 
 ## 5. Publicar na App Store (passo a passo)
 1. **App Store Connect** (appstoreconnect.apple.com) → **My Apps → +** → novo app,

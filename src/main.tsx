@@ -27,6 +27,12 @@ if (isNativeCapacitorApp()) {
       StatusBar.setBackgroundColor({ color: "#52525b" }).catch(() => {});
     })
     .catch(() => {});
+
+  // RevenueCat (compra in-app). No-op sem a API key configurada — ver
+  // src/lib/revenuecat.ts. A identidade do usuário é ligada no login (AppShell).
+  import("./lib/revenuecat")
+    .then((m) => m.initRevenueCat().catch(() => {}))
+    .catch(() => {});
 }
 
 const rootElement = document.getElementById("root");
