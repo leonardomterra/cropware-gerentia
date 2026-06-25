@@ -2,7 +2,6 @@ import { useState, type ComponentType, type ReactNode } from "react";
 import { toast } from "sonner";
 import Person from "~icons/material-symbols-light/person-outline";
 import Lock from "~icons/material-symbols-light/lock-outline";
-import Premium from "~icons/material-symbols-light/workspace-premium-outline";
 import Shield from "~icons/material-symbols-light/verified-user-outline";
 import Warning from "~icons/material-symbols-light/warning-outline";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { cn } from "@/components/ui/utils";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
+import { SubscriptionCard } from "../components/SubscriptionCard";
 
 // "Função"/"Organização" ocultas no app individual (sem conceito de equipe).
 // Reativar junto com a aba Equipe quando existir o app multi-usuario.
@@ -81,16 +81,6 @@ function Section({
   );
 }
 
-/** Campo só-leitura (label em cima, valor embaixo). */
-function ReadOnlyField({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <div className="text-sm text-slate-900 mt-1">{children}</div>
-    </div>
-  );
-}
-
 export default function AccountPage() {
   const { user, updateProfile, updateEmail, updatePassword } = useAuth();
 
@@ -116,10 +106,6 @@ export default function AccountPage() {
   if (!user) return null;
 
   const profileDirty = fullName.trim() !== user.fullName || phone !== user.phone;
-
-  const trial = user.trialEndsAt
-    ? new Date(user.trialEndsAt).toLocaleDateString("pt-BR")
-    : "—";
 
   async function handleSaveProfile() {
     if (!profileDirty) return;
@@ -234,19 +220,7 @@ export default function AccountPage() {
             </div>
           </Section>
 
-          <Section
-            icon={Premium}
-            title="Assinatura"
-            description="Seu plano atual."
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ReadOnlyField label="Plano">{user.planCode ?? "Trial"}</ReadOnlyField>
-              <ReadOnlyField label="Trial termina">{trial}</ReadOnlyField>
-            </div>
-            <p className="text-xs text-slate-400 mt-4">
-              Cobrança (Mercado Pago + RevenueCat) entra em um commit futuro.
-            </p>
-          </Section>
+          <SubscriptionCard />
 
           <Section
             icon={Lock}
