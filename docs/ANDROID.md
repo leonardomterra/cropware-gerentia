@@ -61,50 +61,58 @@ A **Play proíbe** pagamento externo (Mercado Pago) dentro do app pra bens digit
 
 ---
 
-## 5. Build de release (AAB pra Play)
+## 5. Build de release (AAB pra Play) — JÁ FEITO
 
-### 5.1 Gerar o keystore de produção (uma vez) — CRÍTICO
+- **Keystore de upload (gerado):** `C:\Cropware\gerentia-secrets\gerentia-upload.jks`
+  (FORA do repo), alias `upload`. SHA-256: `4F:B2:65:21:2B:1A:1B:09:0D:9E:51:99:BF:3B:06:57:FE:22:DC:98:0C:3C:F9:46:AD:5A:C9:F9:5D:04:A2:23`.
+- **`android/keystore.properties`** (gitignored) já aponta pra ele com a senha. O
+  [build.gradle](../android/app/build.gradle) assina o release com esse keystore.
+- **AAB pronto:** `android/app/build/outputs/bundle/release/app-release.aab`.
 
-> ⚠️ **Guarde o keystore + as senhas pra sempre.** Se perder, **nunca mais** consegue
-> atualizar o app na Play. Faça backup em 2 lugares (gerenciador de senhas + nuvem privada).
+> ⚠️ **Backup do keystore + senha.** Estão em `C:\Cropware\gerentia-secrets\` e em
+> `android/keystore.properties`. Copie pra um gerenciador de senhas + nuvem privada. Com
+> **Play App Signing** (padrão), o upload key é **recuperável** via Google se perder — mas
+> faça backup mesmo assim.
 
-Jeito mais seguro (Android Studio): **Build → Generate Signed App Bundle → Create new…** —
-o wizard cria o `.jks`, define senhas e alias, e já gera o AAB assinado.
-
-Ou por linha de comando (keytool vem com o JDK do Android Studio):
-```bash
-keytool -genkey -v -keystore gerentia-release.jks -alias gerentia \
-  -keyalg RSA -keysize 2048 -validity 10000
-```
-
-### 5.2 Apontar o build pro keystore
-
-Crie `android/keystore.properties` (já é **gitignored**):
-```properties
-storeFile=../gerentia-release.jks   # caminho relativo à pasta android/ (guarde o .jks FORA do repo)
-storePassword=<sua-senha>
-keyAlias=gerentia
-keyPassword=<sua-senha>
-```
-O [android/app/build.gradle](../android/app/build.gradle) já lê esse arquivo: se existir,
-assina o release com ele; se não, cai no debug (não quebra o build).
-
-### 5.3 Gerar o AAB
-
+**Regerar o AAB** (após qualquer mudança):
 ```bash
 npm run build && npx cap sync android
 cd android && ./gradlew bundleRelease
-# saída: android/app/build/outputs/bundle/release/app-release.aab
 ```
+> Subiu de versão? Antes, incremente `versionCode` (e `versionName`) em
+> [android/app/build.gradle](../android/app/build.gradle) — a Play recusa o mesmo `versionCode` duas vezes.
 
-## 6. Publicar na Play (checklist)
+### Assets de loja (gerados em `store/`)
+- **Ícone 512×512:** [store/icon-512.png](../store/icon-512.png)
+- **Feature graphic 1024×500:** [store/feature-graphic-1024x500.png](../store/feature-graphic-1024x500.png) (placeholder simples — dá pra caprichar no Canva)
+- **Política de Privacidade:** [public/privacidade.html](../public/privacidade.html) → publicada em `https://gerentia.app/privacidade.html`
+- **Screenshots:** tirar no tablet (Power + Volume↓) nas telas Dashboard / Lançamentos / Conta (mín. 2).
 
-- [ ] Conta **Google Play Console** (taxa única US$25).
-- [ ] Criar o app (package `app.gerentia`).
-- [ ] Subir o **app-release.aab** (trilha interna primeiro pra testar).
-- [ ] Ficha da loja: nome, descrição, ícone (512×512), screenshots, **Política de Privacidade** (URL).
-- [ ] Questionário de conteúdo + Data Safety (conta individual, sem venda de dados).
-- [ ] **Billing:** se for vender no app, configurar Play Billing + RevenueCat (§4) antes.
+## 6. Publicar na Play — passo a passo
+
+Tudo no [Google Play Console](https://play.google.com/console). Você precisa de uma conta
+de desenvolvedor (taxa única **US$25**).
+
+1. **Criar app:** *Criar app* → nome **Gerentia**, idioma padrão Português (Brasil), tipo
+   **App**, **Gratuito**. Aceitar as políticas.
+2. **Play App Signing:** deixe ativado (padrão) — você sobe o AAB assinado com o *upload key*
+   e o Google gerencia a chave final.
+3. **Trilha de teste interna (recomendado primeiro):** *Testes → Teste interno* → *Criar
+   versão* → subir `app-release.aab` → adicionar seu e-mail como testador → publicar.
+   Instala via link no seu celular/tablet, valida, e só depois promove pra Produção.
+4. **Ficha da loja** (*Crescer → Presença na loja → Ficha principal*):
+   - Nome: **Gerentia**
+   - Descrição curta + completa (foco: "gestão financeira por foto no WhatsApp — zero planilha").
+   - **Ícone:** `store/icon-512.png` · **Feature graphic:** `store/feature-graphic-1024x500.png`
+   - **Screenshots:** as do tablet (mín. 2).
+5. **Política de Privacidade:** colar `https://gerentia.app/privacidade.html`.
+6. **Conteúdo do app** (*Política → Conteúdo do app*): classificação indicativa,
+   **Data Safety** (coleta e-mail/nome/telefone + dados financeiros que o usuário cria; uso
+   = funcionamento do app; **sem venda de dados**; criptografia em trânsito; permite excluir
+   conta), público-alvo (adultos), anúncios = não.
+7. **Billing:** o app **não vende nada por enquanto** (checkout MP escondido no nativo) —
+   declare **sem compras no app**. Quando ativar RevenueCat (§4), atualize isso.
+8. **Enviar para revisão.** Primeira revisão costuma levar de horas a alguns dias.
 
 ---
 
