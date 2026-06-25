@@ -102,3 +102,8 @@ app/src/main/res/xml/config.xml
 
 # IDE
 /.idea
+
+# Release signing (NUNCA commitar)
+keystore.properties
+*.keystore
+*.jks

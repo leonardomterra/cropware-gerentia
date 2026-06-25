@@ -4,6 +4,7 @@ import Premium from "~icons/material-symbols-light/workspace-premium-outline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
+import { isNativeCapacitorApp } from "@/utils/platform";
 import { useBilling, type Plan } from "../hooks/useBilling";
 
 function formatBRL(cents: number): string {
@@ -65,6 +66,10 @@ export function SubscriptionCard({ className }: { className?: string }) {
 
   const isActive = info?.subscription?.status === "active";
   const trialActive = info?.trial_active ?? false;
+  // Regra dura da Play/App Store: o app nativo NÃO pode oferecer pagamento
+  // externo (Mercado Pago). No nativo, mostramos só o status; a compra entra
+  // via loja (RevenueCat) quando os produtos estiverem configurados.
+  const isNative = isNativeCapacitorApp();
 
   return (
     <section
@@ -108,6 +113,18 @@ export function SubscriptionCard({ className }: { className?: string }) {
           </div>
           <p className="text-xs text-slate-400 sm:col-span-2">
             Para cancelar, acesse sua assinatura no Mercado Pago.
+          </p>
+        </div>
+      ) : isNative ? (
+        // App nativo: sem checkout externo (regra da loja). Só status + aviso.
+        <div className="space-y-2">
+          <p className="text-sm text-slate-600">
+            {trialActive
+              ? `Seu período de teste termina em ${formatDate(info?.trial_ends_at ?? null)}.`
+              : "Você ainda não tem uma assinatura ativa."}
+          </p>
+          <p className="text-xs text-slate-400">
+            Assinaturas pelo app chegam em breve.
           </p>
         </div>
       ) : (
