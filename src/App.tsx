@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -6,6 +6,7 @@ import {
   Routes,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { isNativeCapacitorApp } from "@/utils/platform";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { SignUpScreen } from "@/components/auth/SignUpScreen";
 import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
@@ -88,6 +89,18 @@ function LoadingScreen() {
 function RootRoutes() {
   const { user, loading, isResettingPassword, resetError, isAdmin, isMaster } =
     useAuth();
+
+  // App nativo: status bar branca na tela de login (deslogado) e slate-100
+  // (cor do cabeçalho) quando logado — consistência visual com o AppShell.
+  useEffect(() => {
+    if (!isNativeCapacitorApp()) return;
+    const color = user ? "#f1f5f9" : "#ffffff";
+    import("@capacitor/status-bar")
+      .then(({ StatusBar }) =>
+        StatusBar.setBackgroundColor({ color }).catch(() => {}),
+      )
+      .catch(() => {});
+  }, [user]);
 
   if (loading) return <LoadingScreen />;
   if (isResettingPassword || resetError) return <ResetPasswordScreen />;

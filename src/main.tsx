@@ -24,7 +24,9 @@ if (isNativeCapacitorApp()) {
     .then(({ StatusBar, Style }) => {
       StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
       StatusBar.setStyle({ style: Style.Light }).catch(() => {}); // Style.Light = texto/ícones escuros (p/ fundo claro)
-      StatusBar.setBackgroundColor({ color: "#f1f5f9" }).catch(() => {}); // slate-100 = cor do cabeçalho (AppShell bg-slate-100)
+      // Cor inicial branca = tela de login (primeiro paint, deslogado). Depois a
+      // cor é dirigida pelo estado de auth em RootRoutes (login branco / app slate-100).
+      StatusBar.setBackgroundColor({ color: "#ffffff" }).catch(() => {});
     })
     .catch(() => {});
 
