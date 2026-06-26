@@ -17,14 +17,14 @@ if (isCapacitorIOS()) {
   document.documentElement.classList.add("native-ios");
 }
 
-// App nativo (iOS/Android): status bar combinando com o header (zinc-600), ícones
-// claros sobre fundo escuro. Import dinâmico — o plugin só existe no app nativo.
+// App nativo (iOS/Android): status bar combinando com a UI clara (header bg-slate-100),
+// ícones escuros sobre fundo branco. Import dinâmico — o plugin só existe no app nativo.
 if (isNativeCapacitorApp()) {
   import("@capacitor/status-bar")
     .then(({ StatusBar, Style }) => {
       StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-      StatusBar.setBackgroundColor({ color: "#52525b" }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {}); // Style.Light = texto/ícones escuros (p/ fundo claro)
+      StatusBar.setBackgroundColor({ color: "#f1f5f9" }).catch(() => {}); // slate-100 = cor do cabeçalho (AppShell bg-slate-100)
     })
     .catch(() => {});
 

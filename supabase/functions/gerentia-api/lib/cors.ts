@@ -27,10 +27,12 @@ export function corsMiddleware() {
       if (!origin) return null;
       const o = origin.replace(/\/$/, "");
       if (allowed.includes(o)) return origin;
-      // Dev local: libera qualquer porta de localhost/127.0.0.1. Sem risco de
+      // Dev local + apps nativos (Capacitor): libera localhost/127.0.0.1 em
+      // qualquer porta e nos schemes http(s) (web/Android) e capacitor/ionic
+      // (iOS usa capacitor://localhost; Android https://localhost). Sem risco de
       // CSRF aqui porque a API usa Bearer token (não cookie) — uma página
       // localhost não consegue ler o token do app em gerentia.app.
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return origin;
+      if (/^(https?|capacitor|ionic):\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return origin;
       return null;
     },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
