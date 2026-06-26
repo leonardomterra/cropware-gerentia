@@ -2,14 +2,11 @@ import { useState, type ComponentType, type ReactNode } from "react";
 import { toast } from "sonner";
 import Person from "~icons/material-symbols-light/person-outline";
 import Lock from "~icons/material-symbols-light/lock-outline";
-import Shield from "~icons/material-symbols-light/verified-user-outline";
 import Warning from "~icons/material-symbols-light/warning-outline";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { cn } from "@/components/ui/utils";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
@@ -231,7 +228,7 @@ export default function AccountPage() {
               {/* E-mail */}
               <div className="pb-4">
                 {!editingEmail ? (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
                       <p className="text-xs text-slate-500">E-mail</p>
                       <p className="text-sm text-slate-900 truncate mt-0.5">
@@ -242,6 +239,7 @@ export default function AccountPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingEmail(true)}
+                      className="self-start sm:self-auto"
                     >
                       Alterar
                     </Button>
@@ -282,9 +280,9 @@ export default function AccountPage() {
               </div>
 
               {/* Senha */}
-              <div className="py-4">
+              <div className="pt-4">
                 {!editingPassword ? (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <div className="min-w-0">
                       <p className="text-xs text-slate-500">Senha</p>
                       <p className="text-sm text-slate-900 mt-0.5">••••••••</p>
@@ -293,6 +291,7 @@ export default function AccountPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingPassword(true)}
+                      className="self-start sm:self-auto"
                     >
                       Alterar
                     </Button>
@@ -347,27 +346,6 @@ export default function AccountPage() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* 2FA (visual por enquanto) */}
-              <div className="pt-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Shield className="size-5 text-slate-400 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-slate-900">
-                          Verificação em Duas Etapas
-                        </p>
-                        <Badge>Em breve</Badge>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Camada extra de segurança no login com um código no celular.
-                      </p>
-                    </div>
-                  </div>
-                  <Switch disabled aria-label="Verificação em duas etapas" />
-                </div>
               </div>
             </div>
           </Section>
