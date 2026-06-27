@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isNativeCapacitorApp } from "@/utils/platform";
+import { PaywallGate } from "@/components/billing/PaywallGate";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { SignUpScreen } from "@/components/auth/SignUpScreen";
 import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
@@ -125,7 +126,8 @@ function RootRoutes() {
   if (!user) return <AuthFlow />;
 
   return (
-    <Routes>
+    <PaywallGate>
+      <Routes>
       {/* DEV-only: preview da tela de erro em tela cheia (fora do AppShell),
           igual ao erro real. Acesse /erro. */}
       {import.meta.env.DEV && (
@@ -261,7 +263,8 @@ function RootRoutes() {
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-    </Routes>
+      </Routes>
+    </PaywallGate>
   );
 }
 

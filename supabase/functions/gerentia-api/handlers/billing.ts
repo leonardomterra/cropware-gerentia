@@ -110,6 +110,29 @@ async function reconcile(
   return { status, periodEnd };
 }
 
+/**
+ * Mapeia um evento do RevenueCat (tipo + expiração) pro nosso SubStatus.
+ * RevenueCat manda o estado já resolvido por evento; access = entitlement não expirado.
+ */
+function mapRcEvent(
+  type: string,
+  expirationAtMs: number | null,
+): { status: SubStatus; cancelAtPeriodEnd: boolean } {
+  const now = Date.now();
+  const hasAccess = expirationAtMs != null && expirationAtMs > now;
+  const t = (type || "").toUpperCase();
+  if (t === "EXPIRATION") return { status: "expired", cancelAtPeriodEnd: false };
+  if (t === "SUBSCRIPTION_PAUSED") return { status: "paused", cancelAtPeriodEnd: false };
+  if (t === "BILLING_ISSUE")
+    return { status: hasAccess ? "past_due" : "expired", cancelAtPeriodEnd: false };
+  if (t === "CANCELLATION")
+    // Auto-renew desligado: segue ativo até expirar (cancela no fim do período).
+    return { status: hasAccess ? "active" : "expired", cancelAtPeriodEnd: true };
+  // INITIAL_PURCHASE, RENEWAL, UNCANCELLATION, PRODUCT_CHANGE, SUBSCRIPTION_EXTENDED,
+  // NON_RENEWING_PURCHASE, TRANSFER -> ativo enquanto não expirado.
+  return { status: hasAccess ? "active" : "expired", cancelAtPeriodEnd: false };
+}
+
 export function mountBillingRoutes(app: Hono) {
   // -------------------------------------------------------------------------
   // GET /billing/plans — catálogo de planos ativos
@@ -467,9 +490,181 @@ export function mountBillingRoutes(app: Hono) {
   });
 
   // -------------------------------------------------------------------------
-  // POST /webhook/revenuecat — iOS/Android IAP (implementar com os apps)
+  // POST /webhook/revenuecat — iOS (StoreKit) + Android (Play Billing) via RevenueCat.
+  // Público (--no-verify-jwt); validação por header Authorization configurado no
+  // painel do RevenueCat (env REVENUECAT_WEBHOOK_AUTH). app_user_id = user.id
+  // (setado no identify do AppShell). Fonte de verdade do estado de assinatura IAP.
   // -------------------------------------------------------------------------
-  app.post("/webhook/revenuecat", (c) =>
-    c.json({ error: "not_implemented", todo: "revenuecat_with_apps" }, 501),
-  );
+  app.post("/webhook/revenuecat", async (c) => {
+    try {
+      // 1. Auth do webhook (header configurado no RevenueCat).
+      const expectedAuth = Deno.env.get("REVENUECAT_WEBHOOK_AUTH")?.trim();
+      const gotAuth = c.req.header("authorization")?.trim();
+      if (expectedAuth) {
+        if (gotAuth !== expectedAuth) return c.json({ error: "invalid_auth" }, 401);
+      } else {
+        console.warn(
+          "[revenuecat] REVENUECAT_WEBHOOK_AUTH ausente — aceitando sem validar. Configure pra proteger.",
+        );
+      }
+
+      const raw = await c.req.raw.clone().text().catch(() => "");
+      const body = tryParseJson(raw) ?? {};
+      const event = (body as Record<string, unknown>).event as
+        | Record<string, unknown>
+        | undefined;
+      if (!event) return c.json({ ok: true, ignored: true, reason: "no_event" });
+
+      const type = String(event.type ?? "unknown");
+      if (type.toUpperCase() === "TEST") return c.json({ ok: true, test: true });
+
+      const appUserId = event.app_user_id ? String(event.app_user_id) : null;
+      const productId = event.product_id ? String(event.product_id) : null;
+      const expRaw = event.expiration_at_ms;
+      const expirationAtMs =
+        typeof expRaw === "number" ? expRaw : expRaw ? Number(expRaw) : null;
+      const eventId = String(
+        event.id ?? `${type}:${appUserId ?? "?"}:${event.event_timestamp_ms ?? ""}`,
+      );
+
+      const admin = getSupabaseAdmin();
+
+      // 2. Idempotência.
+      const { data: existing } = await admin
+        .from("billing_events")
+        .select("id, processed")
+        .eq("provider", "revenuecat")
+        .eq("provider_event_id", eventId)
+        .maybeSingle();
+      if (existing?.processed) return c.json({ ok: true, duplicate: true });
+
+      const { data: eventRow, error: evErr } = await admin
+        .from("billing_events")
+        .upsert(
+          {
+            provider: "revenuecat",
+            event_type: type,
+            provider_event_id: eventId,
+            payload: { body },
+            processed: false,
+          },
+          { onConflict: "provider,provider_event_id" },
+        )
+        .select("id")
+        .single();
+      if (evErr) return c.json({ error: "event_persist_failed" }, 500);
+
+      const markProcessed = (error: string | null = null) =>
+        admin
+          .from("billing_events")
+          .update({ processed: !error, processed_at: new Date().toISOString(), error })
+          .eq("id", eventRow.id);
+
+      // 3. Resolve org + um user (created_by) via app_user_id (= user.id do identify).
+      if (!appUserId) {
+        await markProcessed();
+        return c.json({ ok: true, ignored: true, reason: "no_app_user_id" });
+      }
+      let orgId: string | null = null;
+      let createdBy: string | null = null;
+      const { data: meta } = await admin
+        .from("users_meta")
+        .select("organization_id, user_id")
+        .eq("user_id", appUserId)
+        .maybeSingle();
+      if (meta?.organization_id) {
+        orgId = meta.organization_id as string;
+        createdBy = meta.user_id as string;
+      } else {
+        // Fallback: app_user_id pode ser o organization_id direto.
+        const { data: org } = await admin
+          .from("organizations")
+          .select("id")
+          .eq("id", appUserId)
+          .maybeSingle();
+        if (org?.id) {
+          orgId = org.id as string;
+          const { data: owner } = await admin
+            .from("users_meta")
+            .select("user_id")
+            .eq("organization_id", orgId)
+            .eq("role", "owner")
+            .limit(1)
+            .maybeSingle();
+          createdBy = (owner?.user_id as string | undefined) ?? null;
+        }
+      }
+      if (!orgId || !createdBy) {
+        await markProcessed(`org_or_user_not_found for app_user_id ${appUserId}`);
+        return c.json({ ok: false, error: "org_not_found" }, 404);
+      }
+
+      // 4. Status + plano (product_id == plan_code: gerentia_pro_monthly/_yearly).
+      const { status, cancelAtPeriodEnd } = mapRcEvent(type, expirationAtMs);
+      const planCode = productId;
+      const periodEnd = expirationAtMs
+        ? new Date(expirationAtMs).toISOString()
+        : null;
+      const store = event.store ? String(event.store) : "app_store";
+      const provider = "revenuecat"; // um provider pros dois stores (store fica no metadata)
+
+      // 5. Upsert da subscription (acha por org+revenuecat; update senão insert).
+      const { data: sub } = await admin
+        .from("subscriptions")
+        .select("id, metadata")
+        .eq("organization_id", orgId)
+        .eq("provider", provider)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const metadata = {
+        ...((sub?.metadata as Record<string, unknown> | null) || {}),
+        provider_status_raw: type,
+        rc_store: store,
+        rc_event: event,
+        last_webhook: {
+          event_type: type,
+          provider_event_id: eventId,
+          received_at: new Date().toISOString(),
+        },
+      };
+
+      const fields = {
+        plan_code: planCode,
+        status,
+        current_period_end: periodEnd,
+        cancel_at_period_end: cancelAtPeriodEnd,
+        provider_subscription_id: appUserId,
+        last_event_at: new Date().toISOString(),
+        metadata,
+      };
+
+      if (sub) {
+        await admin.from("subscriptions").update(fields).eq("id", sub.id);
+      } else {
+        await admin.from("subscriptions").insert({
+          organization_id: orgId,
+          created_by: createdBy,
+          provider,
+          ...fields,
+        });
+      }
+
+      // 6. Reflete na org pro gating rápido.
+      const orgPatch: Record<string, unknown> = {
+        subscription_status: status,
+        subscription_current_period_end: periodEnd,
+      };
+      if (isAccessEnabled(status) && planCode) orgPatch.plan_code = planCode;
+      await admin.from("organizations").update(orgPatch).eq("id", orgId);
+
+      await markProcessed();
+      return c.json({ ok: true, status, provider });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      console.error("[billing] revenuecat webhook error:", resp);
+      return c.json({ error: "webhook_failed" }, 500);
+    }
+  });
 }
