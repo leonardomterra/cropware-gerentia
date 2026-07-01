@@ -4,6 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 import Icons from "unplugin-icons/vite";
 import path from "path";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig({
   // Icons (unplugin-icons): icones offline tree-shaken via `~icons/<set>/<nome>`.
   // Sets instalados: material-symbols-light (estaticos), line-md + svg-spinners
@@ -17,6 +19,7 @@ export default defineConfig({
     tailwindcss(),
     react(),
     Icons({ compiler: "jsx", jsx: "react", scale: 1.2 }),
+    cloudflare()
   ],
   resolve: {
     alias: {
