@@ -67,7 +67,29 @@ export interface RcPackage {
   id: string;
   title: string;
   priceString: string;
+  /** Duração legível ("/mês", "/ano", …) — exigida pela Apple no fluxo de compra. */
+  period: string;
   raw: PurchasesPackage;
+}
+
+/** Rótulo de duração a partir do tipo de pacote do RevenueCat. */
+function periodLabel(packageType: string): string {
+  switch (packageType) {
+    case "MONTHLY":
+      return "/mês";
+    case "ANNUAL":
+      return "/ano";
+    case "WEEKLY":
+      return "/semana";
+    case "SIX_MONTH":
+      return "/6 meses";
+    case "THREE_MONTH":
+      return "/3 meses";
+    case "TWO_MONTH":
+      return "/2 meses";
+    default:
+      return "";
+  }
 }
 
 /** Pacotes da oferta atual (vazio se não houver produtos configurados). */
@@ -79,6 +101,7 @@ export async function loadOfferingPackages(): Promise<RcPackage[]> {
     id: p.identifier,
     title: p.product.title,
     priceString: p.product.priceString,
+    period: periodLabel(String(p.packageType)),
     raw: p,
   }));
 }

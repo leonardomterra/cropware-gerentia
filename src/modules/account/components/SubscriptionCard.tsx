@@ -31,6 +31,37 @@ function formatDate(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
 }
 
+const PRIVACY_URL = "https://gerentia.app/privacidade.html";
+// EULA padrão da Apple (exigido no fluxo de compra de assinaturas — guideline 3.1.2).
+const TERMS_URL =
+  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+
+/** Divulgação de renovação automática + links obrigatórios (Termos de Uso / Privacidade). */
+function SubscriptionLegal() {
+  return (
+    <p className="text-xs text-slate-400 leading-relaxed">
+      A assinatura renova automaticamente pelo mesmo período até ser cancelada.{" "}
+      <a
+        href={TERMS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-slate-600"
+      >
+        Termos de Uso
+      </a>{" "}
+      ·{" "}
+      <a
+        href={PRIVACY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-slate-600"
+      >
+        Política de Privacidade
+      </a>
+    </p>
+  );
+}
+
 /**
  * Card de Assinatura na tela de Conta. Mostra o estado atual (ativa ou trial) e,
  * quando não há assinatura ativa, lista os planos com botão "Assinar" que cria o
@@ -196,6 +227,11 @@ export function SubscriptionCard({ className }: { className?: string }) {
                     </span>
                     <span className="text-base font-medium text-slate-900">
                       {pkg.priceString}
+                      {pkg.period ? (
+                        <span className="text-xs font-normal text-slate-500">
+                          {pkg.period}
+                        </span>
+                      ) : null}
                     </span>
                     <Button
                       className="mt-1"
@@ -215,6 +251,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
               >
                 {rcRestoring ? "Restaurando..." : "Restaurar compras"}
               </button>
+              <SubscriptionLegal />
             </>
           ) : (
             <p className="text-xs text-slate-400">
@@ -268,6 +305,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
               );
             })}
           </div>
+          <SubscriptionLegal />
         </div>
       )}
     </section>
