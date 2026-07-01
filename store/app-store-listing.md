@@ -48,6 +48,10 @@ POR QUE GERENTIA
 - Seus dados são seus: conta individual e exclusão de conta quando quiser.
 
 Comece com uma foto. Experimente grátis por 14 dias.
+
+A assinatura Gerentia Pro renova automaticamente pelo mesmo período até ser cancelada, gerenciável na sua conta da App Store.
+Termos de Uso (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Política de Privacidade: https://gerentia.app/privacidade.html
 ```
 
 ## Keywords  *(máx. 100, separadas por vírgula, sem espaço após vírgula)*
