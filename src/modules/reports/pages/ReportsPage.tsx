@@ -49,8 +49,11 @@ import {
   type ReportTable,
 } from "../reportBuilders";
 import { downloadReportCsv, openReportPage } from "../reportExport";
+import { reportToPdf } from "../reportPdf";
 import { attachmentsToPagesHtml } from "../reportAttachments";
 import { apiGetArrayBuffer } from "@/utils/api";
+import { exportFile } from "@/utils/nativeExport";
+import { isNativeCapacitorApp } from "@/utils/platform";
 
 function cellText(v: ReportCell, col: ReportColumn): string {
   if (col.money && typeof v === "number" && Number.isFinite(v)) return formatBRL(v);
@@ -297,27 +300,41 @@ export default function ReportsPage() {
   const activeCC = userCCs.find((c) => c.id === activeCCId);
   const [printing, setPrinting] = useState(false);
 
-  // Com anexos: mesma página do "sem anexos", com os arquivos (PDFs rasterizados
-  // + imagens) embutidos como páginas logo após o relatório. A janela é aberta no
-  // clique (gesto) e preenchida após montar os anexos.
-  const handlePrintWithAttachments = async () => {
-    const docs = receipts.filter((r) => !!r.attachment_key);
+  // Gera o relatório (com/sem anexos). No app nativo (iOS/Android) o WKWebView não
+  // abre aba de impressão — então gera um PDF real (pdf-lib) e abre a folha de
+  // compartilhamento. No web mantém a página HTML (abre em aba com botão imprimir).
+  const runPrint = async (withAttachments: boolean) => {
+    const native = isNativeCapacitorApp();
+    const docs = withAttachments ? receipts.filter((r) => !!r.attachment_key) : [];
     setPrinting(true);
     const toastId = toast.loading(
-      docs.length
+      withAttachments && docs.length
         ? `Gerando relatório + ${docs.length} anexo${docs.length === 1 ? "" : "s"}…`
         : "Gerando relatório…",
     );
     try {
-      const items = await Promise.all(
-        docs.map(async (r) => ({
-          receipt: r,
-          bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
-        })),
-      );
-      const { html: attHtml, failed } = await attachmentsToPagesHtml(items);
-      // Abre em nova aba ou, se o popup for bloqueado (mobile), baixa o arquivo.
-      openReportPage(doc, attHtml);
+      const items = docs.length
+        ? await Promise.all(
+            docs.map(async (r) => ({
+              receipt: r,
+              bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
+            })),
+          )
+        : [];
+      let failed = 0;
+      if (native) {
+        const res = await reportToPdf(doc, items);
+        failed = res.failed;
+        const name = `relatorio_${kind}_${month.year}-${String(month.month).padStart(2, "0")}.pdf`;
+        await exportFile(name, res.blob, "application/pdf");
+      } else {
+        const att = items.length
+          ? await attachmentsToPagesHtml(items)
+          : { html: "", failed: 0 };
+        failed = att.failed;
+        // Abre em nova aba ou, se o popup for bloqueado, baixa o arquivo.
+        await openReportPage(doc, att.html);
+      }
       if (failed > 0) {
         toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, { id: toastId });
       } else {
@@ -452,10 +469,10 @@ export default function ReportsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => openReportPage(doc)}>
+              <DropdownMenuItem onClick={() => runPrint(false)}>
                 Sem anexos
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePrintWithAttachments}>
+              <DropdownMenuItem onClick={() => runPrint(true)}>
                 Com anexos
               </DropdownMenuItem>
             </DropdownMenuContent>
