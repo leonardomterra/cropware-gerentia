@@ -497,15 +497,19 @@ export function mountBillingRoutes(app: Hono) {
   // -------------------------------------------------------------------------
   app.post("/webhook/revenuecat", async (c) => {
     try {
-      // 1. Auth do webhook (header configurado no RevenueCat).
+      // 1. Auth do webhook (header configurado no RevenueCat). FAIL-CLOSED: sem o
+      // segredo configurado, rejeita — nunca aceita eventos não autenticados
+      // (evita que um evento forjado conceda assinatura). Alinha com o webhook do MP.
       const expectedAuth = Deno.env.get("REVENUECAT_WEBHOOK_AUTH")?.trim();
       const gotAuth = c.req.header("authorization")?.trim();
-      if (expectedAuth) {
-        if (gotAuth !== expectedAuth) return c.json({ error: "invalid_auth" }, 401);
-      } else {
-        console.warn(
-          "[revenuecat] REVENUECAT_WEBHOOK_AUTH ausente — aceitando sem validar. Configure pra proteger.",
+      if (!expectedAuth) {
+        console.error(
+          "[revenuecat] REVENUECAT_WEBHOOK_AUTH não configurado — webhook rejeitado.",
         );
+        return c.json({ error: "webhook_not_configured" }, 503);
+      }
+      if (gotAuth !== expectedAuth) {
+        return c.json({ error: "invalid_auth" }, 401);
       }
 
       const raw = await c.req.raw.clone().text().catch(() => "");
