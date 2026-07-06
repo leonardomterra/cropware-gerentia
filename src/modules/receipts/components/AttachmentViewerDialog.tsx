@@ -12,6 +12,7 @@ import { useIsMobile } from "@/components/ui/use-mobile";
 import type { Receipt } from "../types";
 import { useAttachmentUrl } from "../hooks/useAttachmentUrl";
 import { transformImageUrl } from "@/utils/cloudflareImage";
+import { openExternalUrl } from "@/utils/nativeExport";
 
 interface AttachmentViewerDialogProps {
   receipt: Receipt | null;
@@ -90,7 +91,7 @@ export function AttachmentViewerDialog({
             <Button variant="outline">Fechar</Button>
           </DialogClose>
           <Button
-            onClick={() => url && window.open(url, "_blank", "noopener")}
+            onClick={() => url && openExternalUrl(url)}
             disabled={!url}
           >
             {isPdf ? "Abrir em nova aba" : "Baixar"}

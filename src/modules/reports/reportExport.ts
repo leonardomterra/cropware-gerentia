@@ -1,4 +1,6 @@
 import { downloadCsv } from "@/utils/csv";
+import { openReportHtml } from "@/utils/nativeExport";
+import { appRedirectBase } from "@/utils/platform";
 import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import type { ReportCell, ReportColumn, ReportDoc } from "./reportBuilders";
 // Fonte padrão do app (Mozilla Text) bundlada — embutida via @font-face pra
@@ -86,7 +88,9 @@ function tableHtml(t: ReportDoc["tables"][number]): string {
 // via @import (Inter Tight — funciona em janela nova), e uma barra fixa no rodapé
 // com "Imprimir / Salvar PDF" + "Cancelar" (escondida na impressão via .no-print).
 export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
-  const origin = window.location.origin;
+  // No app nativo a origin é capacitor://localhost — inacessível quando o .html
+  // é aberto no Safari. Aponta assets (logo/fonte) pro domínio público.
+  const origin = appRedirectBase();
   const meta = doc.meta
     .map(
       (m) =>
@@ -171,23 +175,13 @@ function reportFileName(doc: ReportDoc): string {
 }
 
 /**
- * Abre o relatório (HTML vetorial, com barra de ações) numa aba nova via Blob URL
- * — mais confiável que `document.write` num popup. Se o popup for bloqueado
- * (comum no mobile/WebView), cai pra DOWNLOAD do arquivo, que abre no navegador
- * e tem o botão "Imprimir / Salvar PDF". `attachmentsHtml` embute os anexos.
+ * Abre o relatório (HTML vetorial, com barra de ações).
+ * Web: aba nova via Blob URL (com botão "Imprimir / Salvar PDF"); se o popup for
+ * bloqueado, cai pra download do .html.
+ * Nativo (iOS/Android): compartilha o .html — o usuário abre no Safari e usa
+ * Compartilhar → Imprimir → Salvar em PDF. `attachmentsHtml` embute os anexos.
  */
-export function openReportPage(doc: ReportDoc, attachmentsHtml = ""): void {
+export function openReportPage(doc: ReportDoc, attachmentsHtml = ""): Promise<void> {
   const html = reportPageHtml(doc, attachmentsHtml);
-  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  const win = window.open(url, "_blank");
-  if (!win) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = reportFileName(doc);
-    a.rel = "noopener";
-    a.click();
-  } else {
-    win.focus();
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return openReportHtml(reportFileName(doc), html);
 }

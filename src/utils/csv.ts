@@ -3,6 +3,8 @@
  * sem precisar mudar regional). UTF-8 com BOM pra Excel reconhecer acentos.
  */
 
+import { exportFile } from "./nativeExport";
+
 function csvCell(v: unknown): string {
   if (v === null || v === undefined) return "";
   const s = String(v);
@@ -18,14 +20,7 @@ export function rowsToCsv(headers: string[], rows: unknown[][]): string {
   return "﻿" + lines.join("\r\n"); // BOM + CRLF
 }
 
-export function downloadCsv(filename: string, csv: string): void {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function downloadCsv(filename: string, csv: string): Promise<void> {
+  // Web = download; iOS/Android = grava e abre a folha de compartilhamento.
+  return exportFile(filename, csv, "text/csv;charset=utf-8");
 }

@@ -64,6 +64,8 @@ import type {
 import { formatBRL, todayISO } from "../utils/receiptFormatters";
 import { STATUSES_BY_DIRECTION } from "../constants";
 import { downloadCsv, rowsToCsv } from "@/utils/csv";
+import { exportFile } from "@/utils/nativeExport";
+import { isNativeCapacitorApp } from "@/utils/platform";
 import { receiptLines } from "../utils/receiptLines";
 
 interface PrefillFromScan {
@@ -296,7 +298,10 @@ export function ReceiptsListPage({
       toast.error("Nenhum anexo selecionado.");
       return;
     }
-    const win = window.open("", "_blank");
+    const native = isNativeCapacitorApp();
+    // Web: abre a aba já no gesto do clique (escapa do bloqueador de pop-up); o
+    // conteúdo entra após o merge. No nativo não há aba — compartilha o PDF.
+    const win = native ? null : window.open("", "_blank");
     if (win) {
       win.document.write(
         "<p style='font-family:sans-serif;color:#475569;padding:24px'>Gerando PDF…</p>",
@@ -314,20 +319,25 @@ export function ReceiptsListPage({
         }),
       );
       const { blob, failed } = await mergeAttachmentsToPdf(items);
-      const url = URL.createObjectURL(blob);
       const filename = `anexos_${month.year}-${String(month.month).padStart(2, "0")}.pdf`;
-      if (win) {
-        win.document.open();
-        win.document.write(pdfViewerHtml(url, filename));
-        win.document.close();
+      if (native) {
+        // iOS/Android: grava e abre a folha de compartilhamento.
+        await exportFile(filename, blob, "application/pdf");
       } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
+        const url = URL.createObjectURL(blob);
+        if (win) {
+          win.document.open();
+          win.document.write(pdfViewerHtml(url, filename));
+          win.document.close();
+        } else {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+        }
+        // Libera o blob depois (a aba/iframe já carregou) — evita vazamento.
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       }
-      // Libera o blob depois (a aba/iframe já carregou) — evita vazamento.
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
       if (failed > 0) {
         toast.warning(
           `${failed} arquivo(s) não puderam ser incluídos.`,
