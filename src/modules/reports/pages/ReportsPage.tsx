@@ -36,6 +36,7 @@ import {
 } from "@/modules/receipts/components/MonthSwitcher";
 import { useReceipts } from "@/modules/receipts/hooks/useReceipts";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import {
   buildReport,
@@ -66,15 +67,14 @@ function ReportTableView({ table }: { table: ReportTable }) {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm table-fixed">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200">
               {table.columns.map((c, i) => (
                 <th
                   key={i}
-                  style={c.width ? { width: c.width } : undefined}
                   className={cn(
-                    "py-2.5 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide truncate",
+                    "py-2.5 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide whitespace-nowrap",
                     c.align === "right" ? "text-right" : "text-left",
                   )}
                 >
@@ -90,7 +90,7 @@ function ReportTableView({ table }: { table: ReportTable }) {
                   <td
                     key={ci}
                     className={cn(
-                      "py-2 px-4 text-slate-700 truncate",
+                      "py-2 px-4 text-slate-700 whitespace-nowrap",
                       table.columns[ci].align === "right" && "text-right tabular-nums",
                     )}
                   >
@@ -105,7 +105,7 @@ function ReportTableView({ table }: { table: ReportTable }) {
                   <td
                     key={ci}
                     className={cn(
-                      "py-2 px-4 font-semibold text-slate-900 truncate",
+                      "py-2 px-4 font-semibold text-slate-900 whitespace-nowrap",
                       table.columns[ci].align === "right" && "text-right tabular-nums",
                     )}
                   >
@@ -121,10 +121,145 @@ function ReportTableView({ table }: { table: ReportTable }) {
   );
 }
 
+/** Detecta as tabelas de participação (Categoria | Valor | %). */
+function isPctTable(t: ReportTable): boolean {
+  return t.columns.length === 3 && t.columns[2].label === "%";
+}
+
+/** Tabela de transações (tem coluna "Origem" + uma coluna monetária). */
+function isTxTable(t: ReportTable): boolean {
+  return (
+    t.columns.some((c) => c.label === "Origem") &&
+    t.columns.some((c) => c.money)
+  );
+}
+
+/**
+ * Versão mobile das tabelas de transação (por categoria/centro, a pagar/receber):
+ * cada linha vira um item compacto — Origem + valor em cima, o resto (data,
+ * categoria/centro, status) como subtítulo. Não corta nem exige rolar de lado.
+ */
+function ReportRowsList({ table }: { table: ReportTable }) {
+  const iVal = table.columns.findIndex((c) => c.money);
+  const iOrigem = table.columns.findIndex((c) => c.label === "Origem");
+  const totalValue =
+    table.total && iVal >= 0 && typeof table.total[iVal] === "number"
+      ? (table.total[iVal] as number)
+      : undefined;
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      {table.title && (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
+          <span className="text-sm font-medium text-slate-700">
+            {table.title}
+          </span>
+          {totalValue != null && (
+            <span className="text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">
+              {formatBRL(totalValue)}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="divide-y divide-slate-100">
+        {table.rows.map((row, i) => {
+          const origem = iOrigem >= 0 ? String(row[iOrigem] ?? "") : "";
+          const value =
+            iVal >= 0 && typeof row[iVal] === "number"
+              ? (row[iVal] as number)
+              : 0;
+          const sub = row
+            .map((cell, k) =>
+              k === iVal || k === iOrigem ? null : String(cell ?? "").trim(),
+            )
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <div key={i} className="px-4 py-2.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-sm text-slate-800">
+                  {origem || "—"}
+                </span>
+                <span className="text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">
+                  {formatBRL(value)}
+                </span>
+              </div>
+              {sub ? (
+                <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Lista com barra de proporção — substitui a tabela apertada nos detalhamentos
+ * "por categoria/centro" (Entradas/Saídas). Cada linha: nome + valor por extenso
+ * e uma barra fina com o % de participação. Lê bem no mobile e não corta nada.
+ */
+function ReportPctList({ table }: { table: ReportTable }) {
+  const totalValue =
+    typeof table.total?.[1] === "number"
+      ? (table.total[1] as number)
+      : table.rows.reduce(
+          (s, r) => s + (typeof r[1] === "number" ? r[1] : 0),
+          0,
+        );
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      {table.title && (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
+          <span className="text-sm font-medium text-slate-700">
+            {table.title}
+          </span>
+          {typeof table.total?.[1] === "number" && (
+            <span className="text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">
+              {formatBRL(table.total[1] as number)}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="divide-y divide-slate-100">
+        {table.rows.map((row, i) => {
+          const name = String(row[0] ?? "");
+          const value = typeof row[1] === "number" ? row[1] : 0;
+          const pctLabel = String(row[2] ?? "");
+          const share =
+            totalValue > 0 ? Math.min(100, (value / totalValue) * 100) : 0;
+          return (
+            <div key={i} className="px-4 py-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-sm text-slate-700">{name}</span>
+                <span className="text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">
+                  {formatBRL(value)}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2.5">
+                <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-slate-400"
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right text-base tabular-nums text-slate-500">
+                  {pctLabel}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const { user } = useAuth();
   const userCCs = user?.costCenters ?? [];
   const { categories } = useCategories();
+  const isMobile = useIsMobile();
 
   const [kind, setKind] = useState<ReportKind>("resumo");
   const [month, setMonth] = useState<YearMonth>(currentYearMonth);
@@ -364,9 +499,15 @@ export default function ReportsPage() {
         )
       ) : (
         <div className="space-y-4">
-          {doc.tables.map((t, i) => (
-            <ReportTableView key={i} table={t} />
-          ))}
+          {doc.tables.map((t, i) =>
+            isPctTable(t) ? (
+              <ReportPctList key={i} table={t} />
+            ) : isMobile && isTxTable(t) ? (
+              <ReportRowsList key={i} table={t} />
+            ) : (
+              <ReportTableView key={i} table={t} />
+            ),
+          )}
         </div>
       )}
     </div>

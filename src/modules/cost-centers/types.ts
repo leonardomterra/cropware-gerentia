@@ -23,7 +23,7 @@ export const CC_COLORS = [
   "#34d399", // emerald
   "#60a5fa", // blue
   "#a78bfa", // violet
-  "#f472b6", // pink
+  "#fb923c", // orange
   "#f87171", // red
   "#2dd4bf", // teal
 ];

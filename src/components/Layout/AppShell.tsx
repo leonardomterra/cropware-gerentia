@@ -242,21 +242,30 @@ export function AppShell() {
               side="top"
               align="start"
               sideOffset={6}
-              className="w-56"
+              className="w-56 rounded-2xl border-zinc-800 bg-zinc-900 p-1.5 text-white shadow-lg"
             >
               {/* Rotulo da org escondido (app individual): o nome da org = nome
                   do usuario, redundante com o botao. Reativar com app multi-user. */}
-              <DropdownMenuItem onSelect={() => navigate("/conta")}>
-                <UserCircle className="size-4" />
+              <DropdownMenuItem
+                onSelect={() => navigate("/conta")}
+                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
+              >
+                <UserCircle className="size-4 text-zinc-400" />
                 Conta
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => {}}>
-                <HelpCircle className="size-4" />
+              <DropdownMenuItem
+                onSelect={() => {}}
+                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
+              >
+                <HelpCircle className="size-4 text-zinc-400" />
                 Ajuda
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => void signOut()}>
-                <LogOut className="size-4" />
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                onSelect={() => void signOut()}
+                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
+              >
+                <LogOut className="size-4 text-zinc-400" />
                 Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
