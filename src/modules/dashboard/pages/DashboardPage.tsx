@@ -457,10 +457,10 @@ export default function DashboardPage() {
                     <CostCenterChip
                       icon={ccs.find((c) => c.id === activeCC)?.icon}
                       color={ccs.find((c) => c.id === activeCC)?.color}
-                      className="size-6"
+                      className="size-[18px]"
                     />
                   ) : (
-                    <AllCentersChip className="size-6" />
+                    <AllCentersChip className="size-[18px]" />
                   )}
                   <span
                     className="flex-1 text-left truncate"

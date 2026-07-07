@@ -519,10 +519,10 @@ export function ReceiptsListPage({
                   <CostCenterChip
                     icon={userCCs.find((c) => c.id === activeCCId)?.icon}
                     color={userCCs.find((c) => c.id === activeCCId)?.color}
-                    className="size-6"
+                    className="size-[18px]"
                   />
                 ) : (
-                  <AllCentersChip className="size-6" />
+                  <AllCentersChip className="size-[18px]" />
                 )}
                 <span
                   className="flex-1 text-left truncate"

@@ -392,9 +392,9 @@ export default function ReportsPage() {
                 className={cn(TOOLBAR_TRIGGER_CLASS, "w-full lg:flex-1")}
               >
                 {activeCC ? (
-                  <CostCenterChip icon={activeCC.icon} color={activeCC.color} className="size-6" />
+                  <CostCenterChip icon={activeCC.icon} color={activeCC.color} className="size-[18px]" />
                 ) : (
-                  <AllCentersChip className="size-6" />
+                  <AllCentersChip className="size-[18px]" />
                 )}
                 <span
                   className="flex-1 text-left truncate"
