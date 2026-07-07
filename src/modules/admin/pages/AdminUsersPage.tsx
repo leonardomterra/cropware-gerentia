@@ -354,7 +354,7 @@ export default function AdminUsersPage() {
                 <ChevronDown className="size-4 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-40">
+            <DropdownMenuContent align="start" className="w-64">
               <DropdownMenuItem onClick={() => setFilterStatus(null)} className={!filterStatus ? "bg-white/10 font-medium" : ""}>
                 Todos
               </DropdownMenuItem>
@@ -382,7 +382,7 @@ export default function AdminUsersPage() {
                 <ChevronDown className="size-4 text-slate-500" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-40">
+            <DropdownMenuContent align="start" className="w-64">
               <DropdownMenuItem onClick={() => setSortBy("name")} className={sortBy === "name" ? "bg-white/10 font-medium" : ""}>
                 Nome
               </DropdownMenuItem>

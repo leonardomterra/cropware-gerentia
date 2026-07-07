@@ -540,13 +540,13 @@ export function ReceiptsListPage({
                 <ChevronDown className="size-4 text-slate-500 shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
+            <DropdownMenuContent align="start" className="w-64">
               <DropdownMenuItem
                 onClick={() => setActiveCCId("all")}
                 className={activeCCId === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
               >
                 <AllCentersChip className="size-6" />
-                <span>Todos os Centros</span>
+                <span className="min-w-0 flex-1 truncate">Todos</span>
               </DropdownMenuItem>
               {userCCs.map((cc) => (
                 <DropdownMenuItem
@@ -555,7 +555,7 @@ export function ReceiptsListPage({
                   className={activeCCId === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
                 >
                   <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span style={{ color: cc.color ?? undefined }}>{cc.name}</span>
+                  <span className="min-w-0 flex-1 truncate" style={{ color: cc.color ?? undefined }}>{cc.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -581,7 +581,7 @@ export function ReceiptsListPage({
               <ChevronDown className="size-4 text-slate-500 shrink-0" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
+          <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem
               onClick={() => setSortBy("recent")}
               className={sortBy === "recent" ? "bg-white/10 font-medium gap-2" : "gap-2"}

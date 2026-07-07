@@ -177,7 +177,7 @@ export function PeriodModeSelect({
           <ChevronDown className="size-4 text-slate-500 shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
+      <DropdownMenuContent align="start" className="w-64">
         {MODES.map(([mode, label]) => (
           <DropdownMenuItem
             key={mode}
