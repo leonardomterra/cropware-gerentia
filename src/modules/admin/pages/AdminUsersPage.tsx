@@ -354,17 +354,17 @@ export default function AdminUsersPage() {
                 <ChevronDown className="size-4 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-40">
-              <DropdownMenuItem onClick={() => setFilterStatus(null)} className={!filterStatus ? "bg-slate-100 font-medium" : ""}>
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-40">
+              <DropdownMenuItem onClick={() => setFilterStatus(null)} className={!filterStatus ? "bg-white/10 font-medium" : ""}>
                 Todos
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("suspended")} className={filterStatus === "suspended" ? "bg-slate-100 font-medium" : ""}>
+              <DropdownMenuItem onClick={() => setFilterStatus("suspended")} className={filterStatus === "suspended" ? "bg-white/10 font-medium" : ""}>
                 Suspensos
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("trial_expired")} className={filterStatus === "trial_expired" ? "bg-slate-100 font-medium" : ""}>
+              <DropdownMenuItem onClick={() => setFilterStatus("trial_expired")} className={filterStatus === "trial_expired" ? "bg-white/10 font-medium" : ""}>
                 Trial Expirado
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("pending_invite")} className={filterStatus === "pending_invite" ? "bg-slate-100 font-medium" : ""}>
+              <DropdownMenuItem onClick={() => setFilterStatus("pending_invite")} className={filterStatus === "pending_invite" ? "bg-white/10 font-medium" : ""}>
                 Aguardando Convite
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -382,14 +382,14 @@ export default function AdminUsersPage() {
                 <ChevronDown className="size-4 text-slate-500" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-40">
-              <DropdownMenuItem onClick={() => setSortBy("name")} className={sortBy === "name" ? "bg-slate-100 font-medium" : ""}>
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-40">
+              <DropdownMenuItem onClick={() => setSortBy("name")} className={sortBy === "name" ? "bg-white/10 font-medium" : ""}>
                 Nome
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("last_access")} className={sortBy === "last_access" ? "bg-slate-100 font-medium" : ""}>
+              <DropdownMenuItem onClick={() => setSortBy("last_access")} className={sortBy === "last_access" ? "bg-white/10 font-medium" : ""}>
                 Último Acesso
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("trial")} className={sortBy === "trial" ? "bg-slate-100 font-medium" : ""}>
+              <DropdownMenuItem onClick={() => setSortBy("trial")} className={sortBy === "trial" ? "bg-white/10 font-medium" : ""}>
                 Trial
               </DropdownMenuItem>
             </DropdownMenuContent>

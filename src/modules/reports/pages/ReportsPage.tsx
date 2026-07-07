@@ -412,10 +412,10 @@ export default function ReportsPage() {
                 <ChevronDown className="size-4 text-slate-500 shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[180px]">
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
               <DropdownMenuItem
                 onClick={() => setActiveCCId("all")}
-                className={activeCCId === "all" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                className={activeCCId === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
               >
                 <AllCentersChip className="size-6" />
                 <span>Todos os Centros</span>
@@ -424,10 +424,10 @@ export default function ReportsPage() {
                 <DropdownMenuItem
                   key={cc.id}
                   onClick={() => setActiveCCId(cc.id)}
-                  className={activeCCId === cc.id ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                  className={activeCCId === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
                 >
                   <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span style={{ color: ccTextColor(cc.color) }}>{cc.name}</span>
+                  <span style={{ color: cc.color ?? undefined }}>{cc.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -466,17 +466,15 @@ export default function ReportsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="min-w-[11rem] rounded-2xl border-zinc-800 bg-zinc-900 p-1.5 text-white shadow-lg"
+              className="min-w-[11rem]"
             >
               <DropdownMenuItem
                 onClick={() => runPrint(false)}
-                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
               >
                 Sem anexos
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => runPrint(true)}
-                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
               >
                 Com anexos
               </DropdownMenuItem>

@@ -152,26 +152,20 @@ export function ReceiptsCards({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="min-w-[11rem] rounded-2xl border-zinc-800 bg-zinc-900 p-1.5 text-white shadow-lg"
+              className="min-w-[11rem]"
             >
-              <DropdownMenuItem
-                onSelect={() => onView(r)}
-                className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
-              >
+              <DropdownMenuItem onSelect={() => onView(r)}>
                 Ver detalhes
               </DropdownMenuItem>
               {!viewOnly && (
-                <DropdownMenuItem
-                  onSelect={() => onEdit(r)}
-                  className="rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
-                >
+                <DropdownMenuItem onSelect={() => onEdit(r)}>
                   Editar
                 </DropdownMenuItem>
               )}
               {!viewOnly && (
                 <DropdownMenuItem
                   onSelect={() => onDelete(r)}
-                  className="rounded-xl px-3 py-2.5 text-red-400 focus:bg-red-500/15 focus:text-red-300"
+                  variant="destructive"
                 >
                   Excluir
                 </DropdownMenuItem>

@@ -495,11 +495,11 @@ export function ReceiptsListPage({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
-            className="min-w-[11rem] rounded-2xl border-zinc-800 bg-zinc-900 p-1.5 text-white shadow-lg"
+            className="min-w-[11rem]"
           >
             <DropdownMenuItem
               onClick={handleExportCsv}
-              className="gap-2 rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
+              className="gap-2"
               title="Lançamentos filtrados em CSV (abre no Excel)"
             >
               <FileText className="size-4 text-zinc-400" />
@@ -540,10 +540,10 @@ export function ReceiptsListPage({
                 <ChevronDown className="size-4 text-slate-500 shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
               <DropdownMenuItem
                 onClick={() => setActiveCCId("all")}
-                className={activeCCId === "all" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                className={activeCCId === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
               >
                 <AllCentersChip className="size-6" />
                 <span>Todos os Centros</span>
@@ -552,10 +552,10 @@ export function ReceiptsListPage({
                 <DropdownMenuItem
                   key={cc.id}
                   onClick={() => setActiveCCId(cc.id)}
-                  className={activeCCId === cc.id ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+                  className={activeCCId === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
                 >
                   <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span style={{ color: ccTextColor(cc.color) }}>{cc.name}</span>
+                  <span style={{ color: cc.color ?? undefined }}>{cc.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -581,31 +581,31 @@ export function ReceiptsListPage({
               <ChevronDown className="size-4 text-slate-500 shrink-0" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[180px]">
+          <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[180px]">
             <DropdownMenuItem
               onClick={() => setSortBy("recent")}
-              className={sortBy === "recent" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              className={sortBy === "recent" ? "bg-white/10 font-medium gap-2" : "gap-2"}
             >
               <ClockArrowDown className="size-4" />
               Mais recentes
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setSortBy("old")}
-              className={sortBy === "old" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              className={sortBy === "old" ? "bg-white/10 font-medium gap-2" : "gap-2"}
             >
               <ClockArrowUp className="size-4" />
               Mais antigos
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setSortBy("value_desc")}
-              className={sortBy === "value_desc" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              className={sortBy === "value_desc" ? "bg-white/10 font-medium gap-2" : "gap-2"}
             >
               <ArrowDownNarrowWide className="size-4" />
               Maior valor
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setSortBy("value_asc")}
-              className={sortBy === "value_asc" ? "bg-slate-100 font-medium gap-2" : "gap-2"}
+              className={sortBy === "value_asc" ? "bg-white/10 font-medium gap-2" : "gap-2"}
             >
               <ArrowUpNarrowWide className="size-4" />
               Menor valor

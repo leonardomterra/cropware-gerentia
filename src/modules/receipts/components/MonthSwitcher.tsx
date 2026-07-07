@@ -212,22 +212,25 @@ export function MonthSwitcher({
             )}
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-64 p-3">
-          <div className="flex items-center justify-between mb-3">
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[15rem] p-2 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg"
+        >
+          <div className="flex items-center justify-between mb-2">
             <button
               type="button"
               aria-label="Ano anterior"
               onClick={() => setPickerYear((y) => y - 1)}
-              className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              className="flex size-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="text-sm font-medium text-slate-900">{pickerYear}</span>
+            <span className="text-sm font-medium text-zinc-100">{pickerYear}</span>
             <button
               type="button"
               aria-label="Próximo ano"
               onClick={() => setPickerYear((y) => y + 1)}
-              className="flex size-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              className="flex size-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -244,10 +247,10 @@ export function MonthSwitcher({
                     setPickerOpen(false);
                   }}
                   className={cn(
-                    "h-9 rounded-md text-sm capitalize transition-colors",
+                    "h-9 rounded-lg text-sm capitalize transition-colors",
                     selected
-                      ? "bg-zinc-800 text-white font-medium"
-                      : "text-slate-700 hover:bg-slate-100",
+                      ? "bg-white/10 text-white font-medium"
+                      : "text-zinc-100 hover:bg-white/10",
                   )}
                 >
                   {label}
@@ -262,7 +265,7 @@ export function MonthSwitcher({
                 onChange(today);
                 setPickerOpen(false);
               }}
-              className="mt-3 w-full h-9 rounded-md text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+              className="mt-2 w-full h-9 rounded-lg text-sm text-zinc-300 hover:bg-white/10 transition-colors"
             >
               Ir para o mês atual
             </button>
