@@ -413,7 +413,13 @@ export function ReceiptsListPage({
     const csv = rowsToCsv(headers, rows);
     const today = todayISO();
     const tag = activeCCId !== "all" ? `_${(userCCs.find((c) => c.id === activeCCId)?.name || "cc").replace(/\s+/g, "-").toLowerCase()}` : "";
-    downloadCsv(`lancamentos${tag}_${today}.csv`, csv);
+    // Nome contextual por página (faturas_, notas-e-recibos_, lancamentos_...).
+    const nounSlug = countNoun.many
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    downloadCsv(`${nounSlug}${tag}_${today}.csv`, csv);
     toast.success(`${rows.length} linha(s) exportada(s)`);
   };
 
