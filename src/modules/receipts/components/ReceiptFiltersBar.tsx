@@ -101,7 +101,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             }
             placeholder="Buscar por origem ou descrição..."
             className={cn(
-              "pl-8 h-9 bg-slate-50 border-slate-200 shadow-none",
+              "pl-8 h-9 bg-white border-slate-200 shadow-none",
               fieldText,
             )}
           />
