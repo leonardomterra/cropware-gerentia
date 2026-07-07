@@ -101,7 +101,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             }
             placeholder="Buscar por origem ou descrição..."
             className={cn(
-              "pl-8 h-9 bg-white border-slate-300 shadow-[inset_0_1px_3px_rgba(0,0,0,0.07)]",
+              "pl-8 h-9 bg-slate-50 border-slate-200 shadow-none",
               fieldText,
             )}
           />
@@ -112,7 +112,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded border border-slate-300 bg-white text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-slate-200 bg-slate-50 text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
             <FilterList className="size-4 shrink-0" />
             Filtrar
