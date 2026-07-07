@@ -1,6 +1,7 @@
 import Eye from "~icons/material-symbols-light/visibility-outline";
 import Pencil from "~icons/material-symbols-light/edit-outline";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
+import Download from "~icons/material-symbols-light/download";
 import Notes from "~icons/material-symbols-light/notes";
 import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
 import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
@@ -45,6 +46,8 @@ interface ReceiptsTableProps {
   onView: (r: Receipt) => void;
   onEdit: (r: Receipt) => void;
   onDelete: (r: Receipt) => void;
+  /** Exporta esta linha em CSV. */
+  onExport?: (r: Receipt) => void;
   /** IDs selecionados (Set pra lookup O(1)). */
   selectedIds: Set<string>;
   onToggleOne: (id: string) => void;
@@ -67,6 +70,7 @@ export function ReceiptsTable({
   onView,
   onEdit,
   onDelete,
+  onExport,
   selectedIds,
   onToggleOne,
   onToggleAll,
@@ -284,6 +288,13 @@ export function ReceiptsTable({
                         icon={Pencil}
                         label="Editar"
                         onClick={() => onEdit(r)}
+                      />
+                    )}
+                    {onExport && (
+                      <ActionIconButton
+                        icon={Download}
+                        label="Exportar CSV"
+                        onClick={() => onExport(r)}
                       />
                     )}
                     {!viewOnly && (

@@ -4,11 +4,9 @@ import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/material-symbols-light/arrow-downward";
 import ArrowUpNarrowWide from "~icons/material-symbols-light/arrow-upward";
 import Camera from "~icons/material-symbols-light/photo-camera-outline";
-import Download from "~icons/material-symbols-light/download";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import ClockArrowDown from "~icons/material-symbols-light/vertical-align-bottom";
 import ClockArrowUp from "~icons/material-symbols-light/vertical-align-top";
-import FileText from "~icons/material-symbols-light/description-outline";
 import Loader2 from "~icons/svg-spinners/ring-resize";
 import Plus from "~icons/material-symbols-light/add";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
@@ -379,8 +377,9 @@ export function ReceiptsListPage({
     setFormOpen(true);
   };
 
-  const handleExportCsv = () => {
-    if (receipts.length === 0) return;
+  // Exporta UM lançamento/fatura em CSV (uma linha por item). Acionado pelo menu
+  // de ações do card/linha.
+  const handleExportOne = (r: Receipt) => {
     const ccName = (id: string | null) =>
       id ? (userCCs.find((c) => c.id === id)?.name || "") : "";
     const headers = [
@@ -389,37 +388,35 @@ export function ReceiptsListPage({
       "pago em", "descricao", "observacoes", "contabilizado",
     ];
     const rows: string[][] = [];
-    for (const r of receipts) {
-      for (const ln of receiptLines(r)) {
-        rows.push([
-          ln.date || "",
-          r.direction === "income" ? "receita" : "despesa",
-          ln.value.toFixed(2).replace(".", ","),
-          ln.category || "",
-          ccName(ln.cost_center_id),
-          ln.item_description || "",
-          r.vendor || "",
-          r.invoice_number || "",
-          r.payment_method || "",
-          r.status,
-          r.due_date || "",
-          r.paid_date || "",
-          r.description || "",
-          r.notes || "",
-          r.counts_in_total === false ? "nao" : "sim",
-        ]);
-      }
+    for (const ln of receiptLines(r)) {
+      rows.push([
+        ln.date || "",
+        r.direction === "income" ? "receita" : "despesa",
+        ln.value.toFixed(2).replace(".", ","),
+        ln.category || "",
+        ccName(ln.cost_center_id),
+        ln.item_description || "",
+        r.vendor || "",
+        r.invoice_number || "",
+        r.payment_method || "",
+        r.status,
+        r.due_date || "",
+        r.paid_date || "",
+        r.description || "",
+        r.notes || "",
+        r.counts_in_total === false ? "nao" : "sim",
+      ]);
     }
     const csv = rowsToCsv(headers, rows);
     const today = todayISO();
-    const tag = activeCCId !== "all" ? `_${(userCCs.find((c) => c.id === activeCCId)?.name || "cc").replace(/\s+/g, "-").toLowerCase()}` : "";
-    // Nome contextual por página (faturas_, notas-e-recibos_, lancamentos_...).
-    const nounSlug = countNoun.many
+    // Nome do arquivo: origem/descrição + data.
+    const base = (r.vendor || r.description || countNoun.one)
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "-")
-      .toLowerCase();
-    downloadCsv(`${nounSlug}${tag}_${today}.csv`, csv);
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase() || countNoun.one;
+    downloadCsv(`${base}_${today}.csv`, csv);
     toast.success(`${rows.length} linha(s) exportada(s)`);
   };
 
@@ -487,32 +484,6 @@ export function ReceiptsListPage({
             <span className="flex-1 text-left truncate hidden sm:inline">Capturar Recibo</span>
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              disabled={receipts.length === 0}
-              className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
-            >
-              <Download className="size-[18px] text-slate-500 shrink-0" />
-              <span className="flex-1 text-left truncate">Exportar</span>
-              <ChevronDown className="size-[18px] text-slate-500 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="min-w-[11rem]"
-          >
-            <DropdownMenuItem
-              onClick={handleExportCsv}
-              className="gap-2"
-              title="Lançamentos filtrados em CSV (abre no Excel)"
-            >
-              <FileText className="size-4 text-zinc-400" />
-              CSV
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         {showTabs && (
           <DropdownMenu>
@@ -701,6 +672,7 @@ export function ReceiptsListPage({
               onView={openView}
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
+              onExport={handleExportOne}
               viewOnly={viewOnly}
               emptyLabel={emptyLabel}
             />
@@ -710,6 +682,7 @@ export function ReceiptsListPage({
               onView={openView}
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
+              onExport={handleExportOne}
               selectedIds={selectedIds}
               onToggleOne={toggleOne}
               onToggleAll={toggleAll}

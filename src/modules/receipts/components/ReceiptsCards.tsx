@@ -34,6 +34,8 @@ interface ReceiptsCardsProps {
   onView: (r: Receipt) => void;
   onEdit: (r: Receipt) => void;
   onDelete: (r: Receipt) => void;
+  /** Exporta este lançamento/fatura em CSV. */
+  onExport?: (r: Receipt) => void;
   /** Só a ação "Ver detalhes" (sem editar/excluir). */
   viewOnly?: boolean;
   /** Mensagem quando não há registros. */
@@ -45,6 +47,7 @@ export function ReceiptsCards({
   onView,
   onEdit,
   onDelete,
+  onExport,
   viewOnly = false,
   emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsCardsProps) {
@@ -160,6 +163,11 @@ export function ReceiptsCards({
               {!viewOnly && (
                 <DropdownMenuItem onSelect={() => onEdit(r)}>
                   Editar
+                </DropdownMenuItem>
+              )}
+              {onExport && (
+                <DropdownMenuItem onSelect={() => onExport(r)}>
+                  Exportar CSV
                 </DropdownMenuItem>
               )}
               {!viewOnly && (
