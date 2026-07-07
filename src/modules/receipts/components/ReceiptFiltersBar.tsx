@@ -135,7 +135,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
                 set("direction", v === "all" ? undefined : (v as ReceiptDirection))
               }
             >
-              <SelectTrigger className="h-9 bg-white/5 border-white/10 text-zinc-100 shadow-none hover:bg-white/10">
+              <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

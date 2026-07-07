@@ -102,13 +102,13 @@ export function MultiSearchableSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-9 w-full inline-flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-base md:text-sm text-zinc-300 transition-colors hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20",
+            "h-9 w-full inline-flex items-center justify-between gap-2 rounded border border-slate-100 bg-white px-3 text-base md:text-sm text-slate-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
             triggerClassName,
           )}
         >
           <span className="truncate text-left flex-1">{triggerLabel}</span>
-          <ChevronDown className="size-4 shrink-0 text-zinc-400" />
+          <ChevronDown className="size-4 shrink-0 text-slate-400" />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -116,12 +116,12 @@ export function MultiSearchableSelect({
         side="bottom"
         avoidCollisions={false}
         className={cn(
-          "p-0 w-[var(--radix-popover-trigger-width)] min-w-[240px] bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg [&_[data-slot=command-input-wrapper]]:border-white/10",
+          "p-0 w-[var(--radix-popover-trigger-width)] min-w-[240px]",
           contentClassName,
         )}
       >
-        <Command className="bg-transparent text-zinc-100">
-          <CommandInput placeholder={searchPlaceholder} className="h-9 text-zinc-100 placeholder:text-zinc-500" />
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList className="max-h-[280px]">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             {groups.map((g, gi) => (
@@ -130,7 +130,7 @@ export function MultiSearchableSelect({
                 heading={g.name}
                 className={
                   g.name
-                    ? "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-zinc-400 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
+                    ? "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-slate-500 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
                     : undefined
                 }
               >
@@ -141,7 +141,7 @@ export function MultiSearchableSelect({
                       key={opt.value}
                       value={`${opt.label} ${opt.value}`}
                       onSelect={() => toggle(opt.value)}
-                      className="gap-2 rounded-lg data-[selected=true]:bg-white/10 data-[selected=true]:text-white"
+                      className="gap-2"
                     >
                       <Checkbox
                         checked={checked}
