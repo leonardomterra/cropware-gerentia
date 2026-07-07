@@ -112,7 +112,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-slate-200 bg-slate-50 text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-zinc-200 bg-zinc-100 text-base md:text-sm text-slate-900 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
             <FilterList className="size-4 shrink-0" />
             Filtrar
@@ -128,8 +128,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           className="p-3 space-y-3 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg"
           style={isMobile ? { width: "var(--radix-popover-trigger-width)" } : undefined}
         >
-          <div className="space-y-1.5">
-            <p className="text-xs text-zinc-400">Tipo</p>
+          <div>
             <Select
               value={value.direction ?? "all"}
               onValueChange={(v) =>
@@ -147,8 +146,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <p className="text-xs text-zinc-400">Status</p>
+          <div>
             <MultiSearchableSelect
               options={statusOptions}
               value={value.status ?? []}
@@ -161,8 +159,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             />
           </div>
 
-          <div className="space-y-1.5">
-            <p className="text-xs text-zinc-400">Categoria</p>
+          <div>
             <MultiSearchableSelect
               options={categoryOptions}
               value={value.category ?? []}
