@@ -436,14 +436,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap sm:justify-end">
-          <PeriodModeSelect value={period} onChange={setPeriod} className="w-full sm:w-[180px]" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <PeriodModeSelect value={period} onChange={setPeriod} className="w-full sm:flex-1" />
           {period.mode === "month" && (
             <MonthSwitcher
               value={period.month}
               onChange={(month) => setPeriod({ ...period, month })}
               variant="picker"
-              className="w-full sm:w-[185px]"
+              className="w-full sm:flex-1"
             />
           )}
           {showCCFilter && (
@@ -451,7 +451,7 @@ export default function DashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:w-[210px]")}
+                  className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:flex-1")}
                 >
                   {activeCC !== "all" ? (
                     <CostCenterChip
