@@ -124,19 +124,19 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           </button>
         </PopoverTrigger>
         <PopoverContent
-          align="end"
-          className="p-3 space-y-3"
+          align="start"
+          className="p-3 space-y-3 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg"
           style={isMobile ? { width: "var(--radix-popover-trigger-width)" } : undefined}
         >
           <div className="space-y-1.5">
-            <p className="text-xs text-slate-500">Tipo</p>
+            <p className="text-xs text-zinc-400">Tipo</p>
             <Select
               value={value.direction ?? "all"}
               onValueChange={(v) =>
                 set("direction", v === "all" ? undefined : (v as ReceiptDirection))
               }
             >
-              <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
+              <SelectTrigger className="h-9 bg-white/5 border-white/10 text-zinc-100 shadow-none hover:bg-white/10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -148,7 +148,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-slate-500">Status</p>
+            <p className="text-xs text-zinc-400">Status</p>
             <MultiSearchableSelect
               options={statusOptions}
               value={value.status ?? []}
@@ -162,7 +162,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-slate-500">Categoria</p>
+            <p className="text-xs text-zinc-400">Categoria</p>
             <MultiSearchableSelect
               options={categoryOptions}
               value={value.category ?? []}
@@ -180,7 +180,7 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="w-full text-slate-500 h-8"
+              className="w-full text-zinc-400 hover:bg-white/10 hover:text-zinc-100 h-8"
             >
               <X className="size-4 mr-1" />
               Limpar filtros
