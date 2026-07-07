@@ -493,13 +493,16 @@ export function ReceiptsListPage({
               <ChevronDown className="size-4 text-slate-500 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[180px]">
+          <DropdownMenuContent
+            align="start"
+            className="min-w-[11rem] rounded-2xl border-zinc-800 bg-zinc-900 p-1.5 text-white shadow-lg"
+          >
             <DropdownMenuItem
               onClick={handleExportCsv}
-              className="gap-2"
+              className="gap-2 rounded-xl px-3 py-2.5 text-zinc-100 focus:bg-white/10 focus:text-white"
               title="Lançamentos filtrados em CSV (abre no Excel)"
             >
-              <FileText className="size-4" />
+              <FileText className="size-4 text-zinc-400" />
               CSV
             </DropdownMenuItem>
           </DropdownMenuContent>
