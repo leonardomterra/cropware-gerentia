@@ -79,6 +79,8 @@ export function MonthSwitcher({
   const isMobile = useIsMobile();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(value.year);
+  const today = currentYearMonth();
+  const isCurrentMonth = sameMonth(value, today);
 
   // Janela de chips centrada no selecionado (3 no compact/mobile, 5 no desktop).
   const half = compact || isMobile ? 1 : 2;
@@ -253,6 +255,18 @@ export function MonthSwitcher({
               );
             })}
           </div>
+          {!isCurrentMonth && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(today);
+                setPickerOpen(false);
+              }}
+              className="mt-3 w-full h-9 rounded-md text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              Ir para o mês atual
+            </button>
+          )}
         </PopoverContent>
       </Popover>
       )}
