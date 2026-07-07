@@ -132,7 +132,7 @@ export function CostCentersManager() {
           variant="outline"
           onClick={openNew}
           disabled={!canCreate}
-          className="gap-1 shrink-0"
+          className="gap-1 w-full sm:w-auto"
         >
           <Plus className="size-4" />
           <span className="sm:hidden">Novo Centro</span>
