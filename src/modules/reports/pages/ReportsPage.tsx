@@ -352,7 +352,7 @@ export default function ReportsPage() {
       {/* Controles — ocupam a largura: filtros flex-1, ações à direita. */}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
-          <SelectTrigger className="w-full lg:flex-1">
+          <SelectTrigger className="w-full lg:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-none rounded-md">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -373,7 +373,7 @@ export default function ReportsPage() {
 
         {showDirection && (
           <Select value={direction} onValueChange={(v) => setDirection(v as DirectionFilter)}>
-            <SelectTrigger className="w-full lg:flex-1">
+            <SelectTrigger className="w-full lg:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-none rounded-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
