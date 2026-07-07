@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import Download from "~icons/material-symbols-light/download";
 import Print from "~icons/material-symbols-light/print-outline";
+import Summarize from "~icons/material-symbols-light/summarize-outline";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
@@ -353,7 +354,10 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
           <SelectTrigger className="w-full lg:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-none rounded-md">
-            <SelectValue />
+            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Summarize className="size-[18px] shrink-0 text-slate-500" />
+              <SelectValue />
+            </span>
           </SelectTrigger>
           <SelectContent>
             {REPORT_OPTIONS.map((o) => (
@@ -442,8 +446,10 @@ export default function ReportsPage() {
             onClick={() => downloadReportCsv(doc, csvName)}
           >
             <Download className="size-[18px]" />
-            <span className="sm:hidden">CSV</span>
-            <span className="hidden sm:inline">Baixar CSV</span>
+            <span className="flex-1 text-left truncate">
+              <span className="sm:hidden">CSV</span>
+              <span className="hidden sm:inline">Baixar CSV</span>
+            </span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
