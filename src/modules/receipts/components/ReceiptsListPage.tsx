@@ -465,7 +465,7 @@ export function ReceiptsListPage({
       <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
         {showCreate && (
           <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
-            <Plus className="size-4 shrink-0" />
+            <Plus className="size-[18px] shrink-0" />
             <span className="flex-1 text-left truncate sm:hidden">{createLabelShort}</span>
             <span className="flex-1 text-left truncate hidden sm:inline">{createLabel}</span>
           </Button>
@@ -476,7 +476,7 @@ export function ReceiptsListPage({
             onClick={() => setCaptureOpen(true)}
             className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
           >
-            <Camera className="size-4 shrink-0" />
+            <Camera className="size-[18px] shrink-0" />
             <span className="flex-1 text-left truncate sm:hidden">Capturar</span>
             <span className="flex-1 text-left truncate hidden sm:inline">Capturar Recibo</span>
           </Button>
