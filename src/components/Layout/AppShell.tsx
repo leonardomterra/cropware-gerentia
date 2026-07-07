@@ -403,10 +403,8 @@ export function AppShell() {
           </div>
         </div>
 
-        {/* MOBILE: sub-cabeçalho com o título da página à esquerda (fundo branco,
-            ícone de painel igual ao breadcrumb do desktop). */}
-        <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2.5 flex items-center gap-1.5">
-          <PanelLeftClose className="size-5 shrink-0 text-slate-400" />
+        {/* MOBILE: sub-cabeçalho com o título da página à esquerda (fundo branco). */}
+        <div className="md:hidden shrink-0 border-b border-slate-200 px-4 py-2.5 flex items-center">
           <span className="text-[16px] font-medium text-slate-500">
             {breadcrumbSegments[breadcrumbSegments.length - 1] ?? ""}
           </span>
