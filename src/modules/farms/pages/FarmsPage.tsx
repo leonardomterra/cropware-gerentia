@@ -7,8 +7,7 @@ export default function FarmsPage() {
   return (
     <div>
       <header className="mb-6">
-        <h1 className="text-base font-medium text-slate-900">Fazendas</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <p className="text-sm text-slate-500">
           Cadastro das fazendas vinculadas a sua conta.
         </p>
       </header>

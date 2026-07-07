@@ -349,10 +349,6 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-base font-medium text-slate-900">Relatórios</h1>
-      </div>
-
       {/* Controles — ocupam a largura: filtros flex-1, ações à direita. */}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>

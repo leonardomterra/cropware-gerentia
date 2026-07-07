@@ -163,10 +163,6 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-base font-medium text-slate-900">Conta</h1>
-      </header>
-
       {/* Cada card em uma linha (coluna unica), largura cheia. */}
       <div className="grid grid-cols-1 gap-4">
           <Section
