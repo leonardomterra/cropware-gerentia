@@ -441,7 +441,7 @@ export default function ReportsPage() {
             disabled={noData}
             onClick={() => downloadReportCsv(doc, csvName)}
           >
-            <Download className="size-4" />
+            <Download className="size-[18px]" />
             <span className="sm:hidden">CSV</span>
             <span className="hidden sm:inline">Baixar CSV</span>
           </Button>
@@ -452,16 +452,18 @@ export default function ReportsPage() {
                 className="gap-1.5 flex-1 lg:flex-none"
                 disabled={noData || printing}
               >
-                <Print className="size-4" />
-                {printing ? (
-                  "Gerando…"
-                ) : (
-                  <>
-                    <span className="sm:hidden">Imprimir</span>
-                    <span className="hidden sm:inline">Imprimir / PDF</span>
-                  </>
-                )}
-                <ChevronDown className="size-4 text-slate-500" />
+                <Print className="size-[18px]" />
+                <span className="flex-1 text-left truncate">
+                  {printing ? (
+                    "Gerando…"
+                  ) : (
+                    <>
+                      <span className="sm:hidden">Imprimir</span>
+                      <span className="hidden sm:inline">Imprimir / PDF</span>
+                    </>
+                  )}
+                </span>
+                <ChevronDown className="size-[18px] text-slate-500" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

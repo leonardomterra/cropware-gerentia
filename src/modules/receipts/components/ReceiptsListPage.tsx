@@ -488,9 +488,9 @@ export function ReceiptsListPage({
               disabled={receipts.length === 0}
               className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
             >
-              <Download className="size-4 text-slate-500 shrink-0" />
+              <Download className="size-[18px] text-slate-500 shrink-0" />
               <span className="flex-1 text-left truncate">Exportar</span>
-              <ChevronDown className="size-4 text-slate-500 shrink-0" />
+              <ChevronDown className="size-[18px] text-slate-500 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
