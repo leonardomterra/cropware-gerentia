@@ -35,6 +35,13 @@ import { api } from "@/utils/api";
 import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
+import { toast } from "sonner";
+import Download from "~icons/material-symbols-light/download";
+import { reportToPdf } from "@/modules/reports/reportPdf";
+import { openReportPage } from "@/modules/reports/reportExport";
+import type { ReportDoc } from "@/modules/reports/reportBuilders";
+import { exportFile } from "@/utils/nativeExport";
+import { isNativeCapacitorApp } from "@/utils/platform";
 import { MonthSwitcher, monthRangeISO, type YearMonth } from "@/modules/receipts/components/MonthSwitcher";
 import {
   PeriodSwitcher,
@@ -434,8 +441,125 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, fromKey, toKey]);
 
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  // Monta o mesmo ReportDoc dos Relatórios a partir do dashboard, reusando o PDF
+  // vetorial já testado (reportToPdf no nativo / openReportPage no web).
+  const buildDashboardDoc = (): ReportDoc => {
+    const ccLabel =
+      activeCC === "all"
+        ? "Todos os Centros"
+        : ccs.find((c) => c.id === activeCC)?.name || "Centro";
+    const catTotal = topCategories.reduce((s, c) => s + c.total, 0);
+    const pct = (v: number) =>
+      catTotal > 0 ? `${((v / catTotal) * 100).toFixed(1).replace(".", ",")}%` : "—";
+
+    const tables: ReportDoc["tables"] = [
+      {
+        title: "Pendências",
+        columns: [
+          { label: "Situação", width: "60%" },
+          { label: "Valor", money: true, align: "right", width: "40%" },
+        ],
+        rows: [
+          ["A pagar", pending.aPagar],
+          ["A receber", pending.aReceber],
+          ["Vencido", pending.vencido],
+        ],
+      },
+      {
+        title: "Entradas × Saídas por mês",
+        columns: [
+          { label: "Mês", width: "40%" },
+          { label: "Entradas", money: true, align: "right", width: "30%" },
+          { label: "Saídas", money: true, align: "right", width: "30%" },
+        ],
+        rows: chartData.map((d) => [
+          d.previsto ? `${d.mes} (prev.)` : d.mes,
+          d.entradas,
+          d.saidas,
+        ]),
+      },
+    ];
+    if (topCategories.length) {
+      tables.push({
+        title: "Onde mais saiu (categorias)",
+        columns: [
+          { label: "Categoria", width: "56%" },
+          { label: "Valor", money: true, align: "right", width: "28%" },
+          { label: "%", align: "right", width: "16%" },
+        ],
+        rows: topCategories.map((c) => [
+          getCategoryLabel(c.cat, categories),
+          c.total,
+          pct(c.total),
+        ]),
+        total: ["Total", catTotal, ""],
+      });
+    }
+    if (ccSpend.length) {
+      tables.push({
+        title: "Gastos por centro",
+        columns: [
+          { label: "Centro", width: "70%" },
+          { label: "Valor", money: true, align: "right", width: "30%" },
+        ],
+        rows: ccSpend.map((c) => [c.name, c.total]),
+        total: ["Total", ccSpend.reduce((s, c) => s + c.total, 0)],
+      });
+    }
+
+    return {
+      title: "Dashboard",
+      periodLabel: periodLabel(period),
+      ccLabel,
+      meta: [
+        { label: "Entradas", value: fmtBRLfull(monthKpis.income), tone: "in" },
+        { label: "Saídas", value: fmtBRLfull(monthKpis.expense) },
+        {
+          label: "Saldo",
+          value: fmtBRLfull(monthKpis.balance),
+          tone: monthKpis.balance >= 0 ? "in" : undefined,
+        },
+      ],
+      tables,
+    };
+  };
+
+  // Exporta o dashboard em PDF — mesmo fluxo dos Relatórios.
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    const toastId = toast.loading("Gerando PDF…");
+    try {
+      const doc = buildDashboardDoc();
+      if (isNativeCapacitorApp()) {
+        const { blob } = await reportToPdf(doc);
+        await exportFile(`dashboard_${todayISO()}.pdf`, blob, "application/pdf");
+      } else {
+        await openReportPage(doc);
+      }
+      toast.dismiss(toastId);
+    } catch {
+      toast.error("Erro ao gerar o PDF.", { id: toastId });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportPdf}
+          disabled={exportingPdf || loading}
+          className="gap-1.5"
+        >
+          <Download className="size-[18px]" />
+          {exportingPdf ? "Gerando…" : "Exportar PDF"}
+        </Button>
+      </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <PeriodModeSelect value={period} onChange={setPeriod} className="w-full sm:flex-1" />
           {period.mode === "month" && (
