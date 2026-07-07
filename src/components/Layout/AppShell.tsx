@@ -318,7 +318,7 @@ export function AppShell() {
                     cn(
                       "flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm transition-colors",
                       isActive
-                        ? "bg-white text-slate-900 font-medium shadow-sm"
+                        ? "text-slate-900 font-semibold"
                         : "text-slate-600 hover:bg-slate-200",
                     )
                   }
