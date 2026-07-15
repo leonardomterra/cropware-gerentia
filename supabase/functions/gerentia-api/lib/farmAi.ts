@@ -815,7 +815,7 @@ async function execListTasks(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const onlyOpen = args.only_open !== false;
   let q = admin
     .from("farm_tasks")
-    .select("title, due_date, done, priority")
+    .select("title, due_date, done, priority, total_value")
     .eq("organization_id", linked.organization_id)
     .eq("created_by", linked.user_id)
     .order("done", { ascending: true })
@@ -826,7 +826,13 @@ async function execListTasks(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const { data, error } = await q;
   if (error) { console.error("[farmAi] list_tasks:", error); return { error: "query_failed" }; }
   // deno-lint-ignore no-explicit-any
-  const tasks = (data || []).map((t: any) => ({ title: t.title, due_date: t.due_date, done: t.done, priority: t.priority }));
+  const tasks = (data || []).map((t: any) => ({
+    title: t.title,
+    due_date: t.due_date,
+    done: t.done,
+    priority: t.priority,
+    total_value: t.total_value,
+  }));
   return { count: tasks.length, tasks };
 }
 
