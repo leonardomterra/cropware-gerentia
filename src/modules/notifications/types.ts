@@ -16,7 +16,7 @@ export interface AppNotification {
   kind: string;
   title: string;
   body: string | null;
-  /** Origem: uma das duas (conta OU tarefa). */
+  /** Origem: uma das duas (conta OU lembrete). */
   receipt_id: string | null;
   task_id: string | null;
   read_at: string | null;

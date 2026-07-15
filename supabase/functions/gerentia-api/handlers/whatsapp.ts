@@ -1040,11 +1040,11 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
           .maybeSingle();
         await clearPending(admin, from);
         if (!row) {
-          await sendText(from, "Essa tarefa sumiu — talvez tenha sido apagada. Tenta de novo.");
+          await sendText(from, "Esse lembrete sumiu — talvez tenha sido apagado. Tenta de novo.");
           return;
         }
         if (row.done) {
-          await sendText(from, "Essa tarefa ja estava concluida. 👍");
+          await sendText(from, "Esse lembrete ja estava resolvido. 👍");
           return;
         }
         await admin.from("farm_tasks").update({ done: true }).eq("id", row.id);

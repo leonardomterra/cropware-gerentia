@@ -6,7 +6,6 @@ import Checklist from "~icons/material-symbols-light/checklist";
 import Search from "~icons/material-symbols-light/search";
 import FilterList from "~icons/material-symbols-light/filter-list";
 import X from "~icons/material-symbols-light/close";
-import Check from "~icons/material-symbols-light/check";
 import CheckCircle from "~icons/material-symbols-light/check-circle-outline";
 import Undo from "~icons/material-symbols-light/undo";
 import Archive from "~icons/material-symbols-light/archive-outline";
@@ -42,7 +41,7 @@ import { useTasks } from "../hooks/useTasks";
 import type { Task, TaskInput, TaskPriority } from "../types";
 import { useReceipts, updateReceipt } from "@/modules/receipts/hooks/useReceipts";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
-import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
+import { getCategoryLabel, formatBRLInput, parseBRLInput } from "@/modules/receipts/utils/receiptFormatters";
 import { ReceiptFormDialog, type FormState } from "@/modules/receipts/components/ReceiptFormDialog";
 import type { Receipt } from "@/modules/receipts/types";
 
@@ -53,7 +52,7 @@ const PRIORITY_CLASS: Record<TaskPriority, string> = {
   high: "text-amber-600 font-medium",
 };
 
-// Altura fixa única p/ TODOS os cards (tarefa e financeiro, ativos e vazios)
+// Altura fixa única p/ TODOS os cards (lembrete e financeiro, ativos e vazios)
 // ficarem do mesmo tamanho nas 3 colunas.
 const CARD_H = "min-h-[12rem]";
 const TASK_CARD_H = CARD_H;
@@ -83,14 +82,21 @@ function fmtBRL(v: number): string {
 
 const isPaid = (r: Receipt) => r.status === "pago" || r.status === "recebido";
 
+// Radix Select nao aceita value="" — sentinela p/ "sem centro".
+const NO_CC = "__none__";
+
 interface FormStateTask {
   title: string;
   due_date: string;
   priority: TaskPriority;
   notes: string;
+  total_value: string;   // mascarado (formatBRLInput), igual ao form de lançamento
+  cost_center_id: string;
 }
 
-const EMPTY_FORM: FormStateTask = { title: "", due_date: "", priority: "normal", notes: "" };
+const EMPTY_FORM: FormStateTask = {
+  title: "", due_date: "", priority: "normal", notes: "", total_value: "", cost_center_id: NO_CC,
+};
 
 export default function PendenciasPage() {
   const { user } = useAuth();
@@ -117,7 +123,7 @@ export default function PendenciasPage() {
   const [pendingRemove, setPendingRemove] = useState<Task | null>(null);
   const [removing, setRemoving] = useState(false);
   const [finConfirm, setFinConfirm] = useState<{ r: Receipt; action: "pay" | "archive" } | null>(null);
-  // Conversão tarefa -> lançamento (abre o form pré-preenchido).
+  // Conversão lembrete -> lançamento (abre o form pré-preenchido).
   const [convert, setConvert] = useState<{ task: Task; seed: Partial<FormState> } | null>(null);
 
   const activeFilters = (hideDone ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0);
@@ -125,23 +131,34 @@ export default function PendenciasPage() {
   function openNew() { setEditing(null); setForm(EMPTY_FORM); setDialogOpen(true); }
   function openEdit(t: Task) {
     setEditing(t);
-    setForm({ title: t.title, due_date: t.due_date || "", priority: t.priority, notes: t.notes || "" });
+    setForm({
+      title: t.title,
+      due_date: t.due_date || "",
+      priority: t.priority,
+      notes: t.notes || "",
+      // Centavos -> mascara, do mesmo jeito que o form de lançamento semeia.
+      total_value: t.total_value ? formatBRLInput(String(Math.round(t.total_value * 100))) : "",
+      cost_center_id: t.cost_center_id || NO_CC,
+    });
     setDialogOpen(true);
   }
 
   async function handleSubmit() {
     const title = form.title.trim();
-    if (!title) { toast.error("Escreva o que fazer"); return; }
+    if (!title) { toast.error("Escreva o que resolver"); return; }
     setSaving(true);
+    const v = parseBRLInput(form.total_value);
     const payload: TaskInput = {
       title: title.toUpperCase(),
       due_date: form.due_date || null,
       priority: form.priority,
       notes: form.notes.trim() || null,
+      total_value: Number.isFinite(v) && v > 0 ? v : null,
+      cost_center_id: form.cost_center_id === NO_CC ? null : form.cost_center_id,
     };
     const ok = editing ? await update(editing.id, payload) : !!(await create(payload));
     setSaving(false);
-    if (ok) { toast.success(editing ? "Tarefa atualizada" : "Tarefa criada"); setDialogOpen(false); }
+    if (ok) { toast.success(editing ? "Lembrete atualizado" : "Lembrete criado"); setDialogOpen(false); }
     else toast.error("Não consegui salvar");
   }
 
@@ -150,15 +167,17 @@ export default function PendenciasPage() {
     setRemoving(true);
     try {
       const ok = await remove(pendingRemove.id);
-      if (ok) toast.success("Removida");
+      if (ok) toast.success("Removido");
       setPendingRemove(null);
     } finally { setRemoving(false); }
   }
 
-  // Converter tarefa -> lançamento: semeia o form (título vira origem, data vira
-  // vencimento) e abre pré-preenchido.
+  // Converter lembrete -> lançamento: semeia o form (título vira origem, data
+  // vira vencimento, valor e centro passam adiante) e abre pré-preenchido.
   function openConvert(t: Task, kind: ConvertKind) {
     const base: Partial<FormState> = { vendor: t.title.toUpperCase() };
+    if (t.total_value) base.total_value = formatBRLInput(String(Math.round(t.total_value * 100)));
+    if (t.cost_center_id) base.cost_center_id = t.cost_center_id;
     let seed: Partial<FormState>;
     if (kind === "a_pagar") seed = { ...base, direction: "expense", status: "a_pagar", due_date: t.due_date ?? "" };
     else if (kind === "a_receber") seed = { ...base, direction: "income", status: "a_receber", due_date: t.due_date ?? "" };
@@ -169,7 +188,7 @@ export default function PendenciasPage() {
   async function onConvertSaved() {
     const t = convert?.task;
     setConvert(null);
-    if (t && !t.done) await toggleDone(t); // marca a tarefa como resolvida
+    if (t && !t.done) await toggleDone(t); // vira lançamento => o lembrete se resolve
     await refetchFin();                     // traz o novo lançamento pra coluna
     toast.success("Convertido em lançamento");
   }
@@ -219,6 +238,8 @@ export default function PendenciasPage() {
   const aPagar = fin.filter((r) => r.direction === "expense" && finMatch(r)).sort(byResolvedThenDue);
   const aReceber = fin.filter((r) => r.direction === "income" && finMatch(r)).sort(byResolvedThenDue);
 
+  const ccs = user?.costCenters ?? [];
+
   const renderFin = (r: Receipt) => (
     <FinancialCard
       key={r.id}
@@ -233,7 +254,7 @@ export default function PendenciasPage() {
 
   return (
     <div className="space-y-4">
-      {/* Barra: nova tarefa + busca + filtros (estilo Lançamentos) */}
+      {/* Barra: novo lembrete + busca + filtros (estilo Lançamentos) */}
       <header className="space-y-2">
         {/* Linha 1: busca + filtros */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -243,7 +264,7 @@ export default function PendenciasPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por tarefa, origem ou descrição..."
+              placeholder="Buscar por lembrete, origem ou descrição..."
               className="pl-8 h-9 bg-white border-slate-200 shadow-none text-slate-500"
             />
           </div>
@@ -266,10 +287,10 @@ export default function PendenciasPage() {
           <PopoverContent align="end" className="p-3 space-y-3 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg">
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <Checkbox checked={hideDone} onCheckedChange={(v) => setHideDone(!!v)} />
-              Ocultar concluídas
+              Ocultar resolvidos
             </label>
             <div className="space-y-1">
-              <span className="text-xs text-zinc-400">Prioridade (tarefas)</span>
+              <span className="text-xs text-zinc-400">Prioridade (lembretes)</span>
               <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as "all" | TaskPriority)}>
                 <SelectTrigger className="h-9 bg-white text-slate-500"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -294,25 +315,26 @@ export default function PendenciasPage() {
           </PopoverContent>
         </Popover>
         </div>
-        {/* Linha 2: nova tarefa */}
+        {/* Linha 2: novo lembrete */}
         <Button variant="outline" onClick={openNew} className="w-full sm:w-auto">
           <Plus className="size-4 mr-1" />
-          Nova Tarefa
+          Novo Lembrete
         </Button>
       </header>
 
       {/* 3 colunas no desktop; empilha no mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-        <Column title="Tarefas" count={visibleTasks.length}>
+        <Column title="Lembretes" count={visibleTasks.length}>
           {loading ? (
             <LoadingState />
           ) : visibleTasks.length === 0 ? (
-            <EmptyCol minH={TASK_CARD_H} icon={<Checklist className="size-8 text-slate-300" />} text="Nenhuma tarefa" />
+            <EmptyCol minH={TASK_CARD_H} icon={<Checklist className="size-8 text-slate-300" />} text="Nenhum lembrete" />
           ) : (
             visibleTasks.map((t) => (
               <TaskCard
                 key={t.id}
                 t={t}
+                cc={t.cost_center_id ? ccById.get(t.cost_center_id) ?? null : null}
                 onToggleDone={() => void toggleDone(t)}
                 onEdit={() => openEdit(t)}
                 onRemove={() => setPendingRemove(t)}
@@ -322,30 +344,30 @@ export default function PendenciasPage() {
           )}
         </Column>
 
-        <Column title="A pagar" count={aPagar.length}>
+        <Column title="Pagar" count={aPagar.length}>
           {finLoading ? <LoadingState /> : aPagar.length === 0 ? (
             <EmptyCol minH={FIN_CARD_H} text="Nada a pagar" />
           ) : aPagar.map(renderFin)}
         </Column>
 
-        <Column title="A receber" count={aReceber.length}>
+        <Column title="Receber" count={aReceber.length}>
           {finLoading ? <LoadingState /> : aReceber.length === 0 ? (
             <EmptyCol minH={FIN_CARD_H} text="Nada a receber" />
           ) : aReceber.map(renderFin)}
         </Column>
       </div>
 
-      {/* Dialog criar/editar tarefa */}
+      {/* Dialog criar/editar lembrete */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar Tarefa" : "Nova Tarefa"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar Lembrete" : "Novo Lembrete"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">O que fazer</label>
+              <label className="text-sm font-medium text-slate-700 block mb-1">O que resolver</label>
               <Input
-                placeholder="Ex.: agendar vistoria do carro"
+                placeholder="Ex.: pagar o contador"
                 value={form.title}
                 onChange={(e) => setForm((s) => ({ ...s, title: e.target.value.toUpperCase() }))}
                 maxLength={120}
@@ -357,6 +379,33 @@ export default function PendenciasPage() {
                 <label className="text-sm font-medium text-slate-700 block mb-1">Data (opcional)</label>
                 <Input type="date" value={form.due_date} onChange={(e) => setForm((s) => ({ ...s, due_date: e.target.value }))} />
               </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Valor R$ (opcional)</label>
+                <Input
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form.total_value}
+                  onChange={(e) => setForm((s) => ({ ...s, total_value: formatBRLInput(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ccs.length > 1 && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700 block mb-1">Centro de Custo (opcional)</label>
+                  <Select value={form.cost_center_id} onValueChange={(v) => setForm((s) => ({ ...s, cost_center_id: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CC}>Sem centro</SelectItem>
+                      {ccs.map((cc) => (
+                        <SelectItem key={cc.id} value={cc.id}>
+                          {cc.name}{cc.is_default ? " (Padrão)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Prioridade</label>
                 <Select value={form.priority} onValueChange={(v) => setForm((s) => ({ ...s, priority: v as TaskPriority }))}>
@@ -389,7 +438,7 @@ export default function PendenciasPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Form de lançamento pré-preenchido (conversão de tarefa) */}
+      {/* Form de lançamento pré-preenchido (conversão de lembrete) */}
       <ReceiptFormDialog
         open={convert !== null}
         onOpenChange={(o) => { if (!o) setConvert(null); }}
@@ -399,11 +448,11 @@ export default function PendenciasPage() {
         titleNew="Converter em Lançamento"
       />
 
-      {/* Confirmar exclusão/remoção de tarefa */}
+      {/* Confirmar exclusão/remoção de lembrete */}
       <ConfirmActionDialog
         open={pendingRemove !== null}
         onOpenChange={(o) => { if (!o) setPendingRemove(null); }}
-        title={pendingRemove?.done ? "Tirar da Lista" : "Excluir Tarefa"}
+        title={pendingRemove?.done ? "Tirar da Lista" : "Excluir Lembrete"}
         description={pendingRemove ? `Remover "${pendingRemove.title.toUpperCase()}"?` : ""}
         confirmLabel={pendingRemove?.done ? "Tirar" : "Excluir"}
         cancelLabel="Cancelar"
@@ -469,13 +518,20 @@ function ConvertMenuItem({ label, onClick }: { label: string; onClick: () => voi
   );
 }
 
-// Card de tarefa no mesmo padrão dos financeiros. Ativo: Concluir / Converter /
-// Editar / Excluir. Concluído (ou convertido): disabled + Reativar / Tirar.
-function TaskCard({ t, onToggleDone, onEdit, onRemove, onConvert }: {
-  t: Task; onToggleDone: () => void; onEdit: () => void; onRemove: () => void; onConvert: (kind: ConvertKind) => void;
+// Card de lembrete no mesmo padrão dos financeiros. Ativo: Converter / Editar /
+// Excluir. Resolvido (= virou lançamento): disabled + Reativar / Tirar.
+//
+// NÃO tem "Concluir" avulso: todo lembrete é financeiro, então resolver um é
+// convertê-lo em lançamento — um "concluir" que não gera lançamento só some com
+// o compromisso sem registrar o dinheiro (decisão 15/07).
+function TaskCard({ t, cc, onToggleDone, onEdit, onRemove, onConvert }: {
+  t: Task; cc: CostCenter | null;
+  onToggleDone: () => void; onEdit: () => void; onRemove: () => void; onConvert: (kind: ConvertKind) => void;
 }) {
   const [convOpen, setConvOpen] = useState(false);
   const overdue = !!t.due_date && !t.done && t.due_date < todayISO();
+  // Valor é opcional (lembrete nasce de "anota: X"): sem valor, cinza.
+  const hasValue = t.total_value !== null && t.total_value > 0;
   return (
     <div className={cn("bg-white rounded-lg border border-slate-200 p-3 flex flex-col gap-2", TASK_CARD_H, t.done && "opacity-60")}>
       <div className="flex items-center gap-2 min-w-0">
@@ -486,8 +542,13 @@ function TaskCard({ t, onToggleDone, onEdit, onRemove, onConvert }: {
           <span className={cn("text-xs shrink-0", PRIORITY_CLASS[t.priority])}>{PRIORITY_LABEL[t.priority]}</span>
         )}
       </div>
-      <div className="font-medium text-slate-400">{fmtBRL(0)}</div>
-      <div className="text-sm text-slate-400 truncate">Sem centro</div>
+      <div className={cn("font-medium", hasValue && !t.done ? "text-slate-900" : "text-slate-400")}>
+        {fmtBRL(t.total_value ?? 0)}
+      </div>
+      <div className="flex items-center gap-1.5 text-sm text-slate-500 min-w-0">
+        {cc && <CostCenterChip icon={cc.icon} color={cc.color} className="size-5 shrink-0" />}
+        <span className={cn("truncate", !cc && "text-slate-400")}>{cc ? cc.name : "Sem centro"}</span>
+      </div>
       <div className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}>
         {t.due_date ? fmtDate(t.due_date) : "sem data"}
       </div>
@@ -499,7 +560,6 @@ function TaskCard({ t, onToggleDone, onEdit, onRemove, onConvert }: {
           </>
         ) : (
           <>
-            <ActionIconButton icon={Check} label="Concluir" onClick={onToggleDone} />
             <Popover open={convOpen} onOpenChange={setConvOpen}>
               <PopoverTrigger asChild>
                 <button type="button" title="Converter em lançamento" aria-label="Converter em lançamento" className={ICON_BTN}>

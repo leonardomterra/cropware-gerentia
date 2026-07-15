@@ -17,7 +17,7 @@ export function useTasks() {
       const r = await api<ListResponse>("/tasks", { method: "GET" });
       setTasks(r.tasks || []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar tarefas");
+      setError(e instanceof Error ? e.message : "Erro ao carregar lembretes");
     } finally {
       setLoading(false);
     }
@@ -31,7 +31,7 @@ export function useTasks() {
       await refresh();
       return r.task;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar tarefa");
+      setError(e instanceof Error ? e.message : "Erro ao criar lembrete");
       return null;
     }
   }, [refresh]);

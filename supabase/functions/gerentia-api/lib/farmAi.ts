@@ -769,30 +769,46 @@ function execListMyCostCenters(ctx: ToolCtx): ToolResult {
   };
 }
 
-// ---------- tarefas / pendências (módulo To-Do) ----------
+// ---------- lembretes / pendências (escopo financeiro) ----------
 
-/** Cria uma tarefa (to-do). Insere direto — sem wizard (title + due_date opcional). */
+/** Cria um lembrete. Insere direto — sem wizard (só title é obrigatório). */
 // deno-lint-ignore no-explicit-any
 async function execCreateTask(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const { admin, linked } = ctx;
   // Uppercase igual aos lançamentos (convenção do app: grava e exibe em
-  // maiúsculas). Sem isso, tarefa criada por "anota: X" fica minúscula no banco
+  // maiúsculas). Sem isso, lembrete criado por "anota: X" fica minúsculo no banco
   // e no eco do bot, destoando das criadas pelo app.
   const title = String(args.title || "").trim().slice(0, 120).toUpperCase();
   if (!title) return { error: "missing_title" };
   const due_date = typeof args.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.due_date)
     ? args.due_date
     : null;
+  // Valor e' OPCIONAL: o lembrete nasce de um "anota: X" onde o usuario muitas
+  // vezes ainda nao sabe quanto e'.
+  const v = Number(args.total_value);
+  const total_value = Number.isFinite(v) && v > 0 ? v : null;
   const { data, error } = await admin
     .from("farm_tasks")
-    .insert({ organization_id: linked.organization_id, created_by: linked.user_id, title, due_date })
-    .select("id, title, due_date")
+    .insert({
+      organization_id: linked.organization_id,
+      created_by: linked.user_id,
+      title,
+      due_date,
+      total_value,
+    })
+    .select("id, title, due_date, total_value")
     .single();
   if (error || !data) { console.error("[farmAi] create_task:", error); return { error: "create_failed" }; }
-  return { created: true, id: data.id, title: data.title, due_date: data.due_date };
+  return {
+    created: true,
+    id: data.id,
+    title: data.title,
+    due_date: data.due_date,
+    total_value: data.total_value,
+  };
 }
 
-/** Lista as tarefas do usuário (default: só as em aberto). */
+/** Lista os lembretes do usuário (default: só os em aberto). */
 // deno-lint-ignore no-explicit-any
 async function execListTasks(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const { admin, linked } = ctx;
@@ -814,7 +830,7 @@ async function execListTasks(args: any, ctx: ToolCtx): Promise<ToolResult> {
   return { count: tasks.length, tasks };
 }
 
-/** Conclui uma tarefa por match de título. Espelha execMarkPaid (desambiguação). */
+/** Resolve um lembrete por match de título. Espelha execMarkPaid (desambiguação). */
 // deno-lint-ignore no-explicit-any
 async function execCompleteTask(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const { admin, linked, from } = ctx;
@@ -976,19 +992,20 @@ function toolDeclarations() {
       },
       {
         name: "create_task",
-        description: "Cria uma TAREFA/lembrete (to-do), NÃO é lançamento financeiro. Use pra 'anota X', 'preciso fazer Y', 'me lembra de Z'. Ex: 'anota: renovar o seguro', 'me lembra dia 30 de pagar o contador'.",
+        description: "Cria um LEMBRETE: compromisso financeiro que o usuário AINDA VAI resolver e que ainda não virou lançamento. Use pra 'anota X', 'me lembra de Y', 'preciso pagar Z'. Ex: 'me lembra dia 30 de pagar o contador 800'. NÃO use se o dinheiro já saiu/entrou (isso é create_receipt).",
         parameters: {
           type: "object",
           properties: {
-            title: { type: "string", description: "o que fazer (curto)" },
+            title: { type: "string", description: "o que resolver (curto)" },
             due_date: { type: "string", description: "YYYY-MM-DD, só se o usuário citar quando ('amanhã', 'dia 30'); senão omita" },
+            total_value: { type: "number", description: "valor em reais, só se o usuário citar; senão omita" },
           },
           required: ["title"],
         },
       },
       {
         name: "list_tasks",
-        description: "Lista as tarefas/pendências do usuário (to-do). Use pra 'o que tenho pra fazer', 'minhas pendências', 'minhas tarefas'.",
+        description: "Lista os lembretes/pendências do usuário. Use pra 'o que tenho pra resolver', 'minhas pendências', 'meus lembretes'.",
         parameters: {
           type: "object",
           properties: {
@@ -998,11 +1015,11 @@ function toolDeclarations() {
       },
       {
         name: "complete_task",
-        description: "Marca uma TAREFA como concluída. Use pra 'já fiz X', 'concluí Y', 'resolvi Z'. NÃO é pra contas (isso é mark_receipt_paid).",
+        description: "Marca um LEMBRETE como resolvido. Use pra 'já resolvi X', 'já paguei aquele lembrete do Y'. NÃO é pra contas já lançadas (isso é mark_receipt_paid).",
         parameters: {
           type: "object",
           properties: {
-            query: { type: "string", description: "trecho do título da tarefa" },
+            query: { type: "string", description: "trecho do título do lembrete" },
           },
           required: ["query"],
         },

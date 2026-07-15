@@ -74,7 +74,7 @@ interface ReceiptFormDialogProps {
   onOpenChange: (open: boolean) => void;
   receipt?: Receipt | null;
   prefill?: PrefillFromScan | null;
-  /** Valores iniciais ao CRIAR (sem anexo) — ex.: converter uma tarefa em
+  /** Valores iniciais ao CRIAR (sem anexo) — ex.: converter um lembrete em
    *  lançamento pré-preenchido. Ignorado no modo edição. */
   seed?: Partial<FormState> | null;
   onSaved: () => void;

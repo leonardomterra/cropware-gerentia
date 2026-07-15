@@ -211,7 +211,7 @@ export function mountCronRoutes(app: Hono) {
     // schedule novo. `reminded_at` fica intocado (e' gancho do push futuro).
     const { data: dueTasks, error: taskErr } = await admin
       .from("farm_tasks")
-      .select("id, organization_id, created_by, title, due_date")
+      .select("id, organization_id, created_by, title, due_date, total_value")
       .eq("done", false)
       .not("due_date", "is", null)
       .lte("due_date", horizonDate)
@@ -223,12 +223,16 @@ export function mountCronRoutes(app: Hono) {
       const { kind, label } = relativeDay(t.due_date as string, today);
       const userId = t.created_by as string | null;
       if (!userId) continue; // created_by e' not null no schema; defensivo
+      // Com valor, o corpo fica igual ao das contas ("R$ 500,00 — vence amanha").
+      // Sem valor (o lembrete e' opcionalmente valorado), cai no rotulo generico.
+      const v = Number(t.total_value);
+      const prefix = Number.isFinite(v) && v > 0 ? `R$ ${fmtBR(v)}` : "Lembrete";
       const created = await upsertNotification(admin, {
         organization_id: t.organization_id,
         user_id: userId,
         kind,
-        title: String(t.title || "tarefa").toUpperCase(),
-        body: kind === "overdue" ? `Tarefa — ${label}` : `Tarefa — vence ${label}`,
+        title: String(t.title || "lembrete").toUpperCase(),
+        body: kind === "overdue" ? `${prefix} — ${label}` : `${prefix} — vence ${label}`,
         task_id: t.id,
       }, "user_id,task_id,kind");
       if (created) notified++;

@@ -65,7 +65,7 @@ export default function NotificacoesPage() {
         <EmptyStateCard
           icon={NotificationsIcon}
           title="Nenhuma notificação"
-          description="Avisos de contas e tarefas a vencer aparecem aqui."
+          description="Avisos de contas e lembretes a vencer aparecem aqui."
         />
       ) : (
         <div className="space-y-2">
