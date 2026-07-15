@@ -24,7 +24,8 @@ export type ReceiptPaymentMethod =
   | "cartao_debito"
   | "boleto"
   | "dinheiro"
-  | "transferencia"
+  | "transferencia" // inclui depósito — contabilmente é o mesmo dinheiro caindo na conta
+  | "debito_automatico"
   | null;
 
 export type ReceiptSource =

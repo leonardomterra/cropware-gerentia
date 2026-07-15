@@ -96,7 +96,10 @@ export const PAYMENT_METHOD_LABEL: Record<
   cartao_debito: "Cartão de débito",
   boleto: "Boleto",
   dinheiro: "Dinheiro",
-  transferencia: "Transferência",
+  // Depósito entra aqui em vez de virar valor próprio: contabilmente é o mesmo
+  // dinheiro caindo na conta, e separar só picotaria o relatório.
+  transferencia: "Transferência / Depósito",
+  debito_automatico: "Débito automático",
 };
 
 // Lista selecionável nos forms (o "cartao" genérico fica só pra exibir legado).
@@ -107,6 +110,7 @@ export const PAYMENT_METHODS: NonNullable<ReceiptPaymentMethod>[] = [
   "boleto",
   "dinheiro",
   "transferencia",
+  "debito_automatico",
 ];
 
 /** É cartão de crédito? (o tipo que pode duplicar com a fatura.) */

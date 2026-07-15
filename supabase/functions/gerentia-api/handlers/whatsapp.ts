@@ -214,7 +214,7 @@ function receiptSummary(e: any, ccName: string | null, showCC: boolean): string 
     // Com itens, a categoria vem por item (mostrada no bloco abaixo).
     !itemized && e.category ? "Categoria: " + e.category : null,
     e.transaction_date ? "Data: " + e.transaction_date : null,
-    e.payment_method ? "Pagamento: " + (PAY_LABEL[e.payment_method] || e.payment_method) : null,
+    e.payment_method ? `${payLabelField(e.direction)}: ` + (PAY_LABEL[e.payment_method] || e.payment_method) : null,
     e.invoice_number ? "Documento: " + e.invoice_number : null,
     e.description ? "Descricao: " + e.description : null,
     showCC && ccName ? "Centro: " + ccName : null,
@@ -265,27 +265,57 @@ const PAY_LABEL: Record<string, string> = {
   boleto: "Boleto",
   dinheiro: "Dinheiro",
   transferencia: "Transferência",
+  debito_automatico: "Débito automático",
 };
 
-// Perguntado quando a forma de pagamento de uma despesa não é identificada
-// (ajuda a marcar cartão de crédito p/ anti-duplicidade com a fatura).
-const PHOTO_PAY_BUTTONS = [
-  { id: "cw_pay:cartao_credito", title: "Crédito" },
-  { id: "cw_pay:cartao_debito", title: "Débito" },
-  { id: "cw_pay:pix", title: "Pix" },
-  { id: "cw_pay:dinheiro", title: "Dinheiro" },
-  { id: "cw_pay:boleto", title: "Boleto" },
-];
+// Subtítulo da linha na lista (a Meta corta o TÍTULO em 24 chars — "Transferência
+// / Depósito" tem 26 e sairia cortado; aqui cabem 72). Só onde esclarece.
+const PAY_HINT: Record<string, string> = {
+  transferencia: "Inclui depósito, TED e DOC",
+  debito_automatico: "Debitado direto na conta",
+  cartao_credito: "Vai fechar na fatura",
+};
 
-// Mesma pergunta no wizard de texto/voz (ids próprios "cw_wpay:" + opção Pular).
-const WIZ_PAY_BUTTONS = [
-  { id: "cw_wpay:cartao_credito", title: "Crédito" },
-  { id: "cw_wpay:cartao_debito", title: "Débito" },
-  { id: "cw_wpay:pix", title: "Pix" },
-  { id: "cw_wpay:dinheiro", title: "Dinheiro" },
-  { id: "cw_wpay:boleto", title: "Boleto" },
-  { id: "cw_wpay:skip", title: "Pular" },
+/**
+ * Meios oferecidos por direção.
+ *
+ * VIA LISTA, não botões: `sendButtons` corta em 3 (limite da Meta) e o step de
+ * pagamento não aceita texto — com 6 opções o usuário via só Crédito/Débito/Pix
+ * e ficava sem saída se tivesse pago em dinheiro. `sendList` aceita 10 linhas.
+ *
+ * Receita não oferece crédito/débito: cartão é como se PAGA, não como se recebe.
+ */
+const PAY_ROWS_EXPENSE = [
+  "cartao_credito",
+  "cartao_debito",
+  "pix",
+  "dinheiro",
+  "boleto",
+  "transferencia",
+  "debito_automatico",
 ];
+const PAY_ROWS_INCOME = ["pix", "transferencia", "dinheiro", "boleto"];
+
+function payRows(direction: string | undefined, prefix: string, withSkip: boolean) {
+  const keys = direction === "income" ? PAY_ROWS_INCOME : PAY_ROWS_EXPENSE;
+  const rows: Array<{ id: string; title: string; description?: string }> = keys.map((k) => ({
+    id: `${prefix}:${k}`,
+    title: PAY_LABEL[k],
+    ...(PAY_HINT[k] ? { description: PAY_HINT[k] } : {}),
+  }));
+  if (withSkip) rows.push({ id: `${prefix}:skip`, title: "Pular", description: "Não sei / prefiro não informar" });
+  return [{ rows }];
+}
+
+/** "Como foi pago?" / "Como foi recebido?" — a palavra muda com a direção. */
+function payQuestion(direction: string | undefined): string {
+  return direction === "income" ? "Como foi recebido? 💰" : "Como foi pago? 💳";
+}
+
+/** Rótulo do campo nos resumos: "Pagamento" não serve pra dinheiro entrando. */
+function payLabelField(direction: string | undefined): string {
+  return direction === "income" ? "Recebimento" : "Pagamento";
+}
 
 // ---------- Wizard de criação guiado (categoria -> status -> centro -> data -> confirmar) ----------
 
@@ -310,9 +340,10 @@ async function startCreateWizard(admin: any, linked: LinkedUser, from: string, d
   steps.push("category");
   if (!draft.status) steps.push("status");
   if (!draft.cost_center_id && linked.cost_centers.length > 1) steps.push("cost_center");
-  // Camada extra (anti-duplicidade cartão): pergunta a forma de pagamento numa
-  // DESPESA quando a IA não captou do texto. Receita não precisa.
-  if (draft.direction !== "income" && !draft.payment_method) steps.push("payment");
+  // Forma de pagamento quando a IA não captou do texto. Na despesa serve de
+  // camada anti-duplicidade (marca cartão de crédito, que sai via fatura); na
+  // receita é só registro — por isso a lista de receita não tem crédito/débito.
+  if (!draft.payment_method) steps.push("payment");
   // Data de LANÇAMENTO = hoje (automática), nunca perguntada. Já o VENCIMENTO
   // (due_date) só faz sentido em conta a pagar/receber: pergunta se não veio no
   // texto. Quando o status ainda é desconhecido, incluímos e pulamos depois se
@@ -372,14 +403,18 @@ async function sendWizardStep(_admin: any, linked: LinkedUser, from: string, wiz
     return;
   }
   if (step === "vencimento") {
-    await sendButtons(from, "Quando?", [
+    // "Sem vencimento" existe porque a mensagem de erro do parser já o prometia
+    // e não havia saída do step sem digitar data válida. São 3 — o teto da Meta.
+    const q = d.direction === "income" ? "Quando você recebe?" : "Quando vence?";
+    await sendButtons(from, q, [
       { id: "cw_venc:hoje", title: "Hoje" },
       { id: "cw_venc:custom", title: "Outra data" },
+      { id: "cw_venc:none", title: "Sem vencimento" },
     ]);
     return;
   }
   if (step === "payment") {
-    await sendButtons(from, "Como foi pago? 💳", WIZ_PAY_BUTTONS);
+    await sendList(from, payQuestion(d.direction), "Formas", payRows(d.direction, "cw_wpay", true));
     return;
   }
   if (step === "origem") {
@@ -414,7 +449,7 @@ function formatLaunch(title: string, d: WizardDraft, linked: LinkedUser, status:
     (d.due_date && open) ? "*Vence:* " + fmtDateBR(d.due_date) : null,
     (ccName && linked.cost_centers.length > 1) ? "*Centro:* " + ccName : null,
     d.vendor ? "*Origem:* " + d.vendor : null,
-    d.payment_method ? "*Pagamento:* " + (PAY_LABEL[d.payment_method] || d.payment_method) : null,
+    d.payment_method ? `*${payLabelField(d.direction)}:* ` + (PAY_LABEL[d.payment_method] || d.payment_method) : null,
     d.notes ? "*Obs:* " + d.notes : null,
   ].filter(Boolean);
   return lines.join("\n");
@@ -510,7 +545,9 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
   const pm = e.payment_method;
   const isCredit = pm === "cartao_credito" || pm === "cartao";
   const proofByDoc = e.doc_type === "pix" || e.doc_type === "recibo";
-  const proofByMethod = pm === "pix" || pm === "dinheiro" || pm === "transferencia" || pm === "cartao_debito";
+  // debito_automatico entra: se foi debitado em conta, o dinheiro já saiu.
+  const proofByMethod = pm === "pix" || pm === "dinheiro" || pm === "transferencia" ||
+    pm === "cartao_debito" || pm === "debito_automatico";
   const isProof = !isCredit && (proofByDoc || proofByMethod);
   const finalDate = dateOverride ?? e.transaction_date ?? null;
   const status = isProof
@@ -591,13 +628,13 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
 async function promptReceiptConfirm(admin: any, from: string, linked: LinkedUser, pendingData: any): Promise<void> {
   const e = pendingData.extracted;
   const showCC = linked.cost_centers.length > 1;
-  const needPay =
-    e.direction !== "income" &&
-    e.doc_type !== "fatura" &&
-    (!e.payment_method || e.payment_method === "cartao");
+  // Fatura não tem meio (paga-se depois). Fora isso, pergunta sempre que a OCR
+  // não achou — inclusive em receita: a resposta realimenta o isProof, então um
+  // comprovante de recebimento nasce `recebido` em vez de `a_receber`.
+  const needPay = e.doc_type !== "fatura" && (!e.payment_method || e.payment_method === "cartao");
   if (needPay) {
     await setPending(admin, from, "photo_payment_method", pendingData);
-    await sendButtons(from, "Como foi pago? 💳", PHOTO_PAY_BUTTONS);
+    await sendList(from, payQuestion(e.direction), "Formas", payRows(e.direction, "cw_pay", false));
     return;
   }
   await setPending(admin, from, "receipt_confirm", pendingData);
@@ -857,7 +894,7 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
           await sendText(from, "Me diz a data. Ex: amanhã, dia 30, 10/06, próxima sexta...");
           return; // segue na etapa; o que digitar vira o vencimento
         }
-        wiz.draft.due_date = todayBR();
+        wiz.draft.due_date = which === "none" ? null : todayBR();
         await advanceWizard(admin, linked, from, wiz);
         return;
       }

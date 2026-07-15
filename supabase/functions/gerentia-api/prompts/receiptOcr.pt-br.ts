@@ -17,7 +17,7 @@ Analise a imagem e retorne APENAS um objeto JSON valido com os campos:
   "total_value": number | null,       // valor total em reais (ex: 287.50). Na fatura: o total a pagar
   "transaction_date": string | null,  // data no formato YYYY-MM-DD. Na fatura: a data de vencimento
   "doc_type": "cupom" | "nota_fiscal" | "recibo" | "fatura" | "pix" | "boleto" | "outro",
-  "payment_method": "pix" | "cartao_credito" | "cartao_debito" | "cartao" | "boleto" | "dinheiro" | "transferencia" | null,
+  "payment_method": "pix" | "cartao_credito" | "cartao_debito" | "cartao" | "boleto" | "dinheiro" | "transferencia" | "debito_automatico" | null,
   "invoice_number": string | null,    // numero da NF/cupom se visivel
   "category": string,                 // slug de UMA das categorias abaixo
   "description": string | null,       // descricao curta (max 100 chars) do que foi comprado/recebido

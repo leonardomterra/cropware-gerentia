@@ -31,6 +31,7 @@ export interface ReceiptExtraction {
     | "boleto"
     | "dinheiro"
     | "transferencia"
+    | "debito_automatico"
     | null;
   invoice_number: string | null;
   category: string;
