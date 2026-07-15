@@ -447,7 +447,7 @@ function Section({ title, items, faded, openEdit, handleToggleActive, handleRemo
                 <div className="text-sm text-slate-500 mt-1">
                   Projetado até: <span className="font-medium text-slate-700">{fmtDate(r.next_run_date)}</span>
                   {r.end_date && (
-                    <span className="text-slate-400"> · termina {fmtDate(r.end_date)}</span>
+                    <span className="text-slate-400"> - termina {fmtDate(r.end_date)}</span>
                   )}
                 </div>
               </div>

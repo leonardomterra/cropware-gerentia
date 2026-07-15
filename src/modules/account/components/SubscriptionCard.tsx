@@ -49,7 +49,7 @@ function SubscriptionLegal() {
       >
         Termos de Uso
       </a>{" "}
-      ·{" "}
+      -{" "}
       <a
         href={PRIVACY_URL}
         target="_blank"

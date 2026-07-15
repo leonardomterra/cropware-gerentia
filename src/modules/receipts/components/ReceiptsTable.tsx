@@ -227,7 +227,14 @@ export function ReceiptsTable({
                   ) : cc ? (
                     <div className="flex items-center gap-2 min-w-0">
                       <CostCenterChip icon={cc.icon} color={cc.color} className="size-5 shrink-0" />
-                      <span className="text-sm text-slate-600 truncate">{cc.name}</span>
+                      {/* O nome trunca: tooltip pra ler completo (o chip em si
+                          não precisa — o nome dele já está aqui do lado). */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-sm text-slate-600 truncate">{cc.name}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{cc.name}</TooltipContent>
+                      </Tooltip>
                     </div>
                   ) : (
                     <span className="text-sm text-slate-400">—</span>

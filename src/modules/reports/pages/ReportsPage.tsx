@@ -176,7 +176,7 @@ function ReportRowsList({ table }: { table: ReportTable }) {
               k === iVal || k === iOrigem ? null : String(cell ?? "").trim(),
             )
             .filter(Boolean)
-            .join(" · ");
+            .join(" - ");
           return (
             <div key={i} className="px-4 py-2.5">
               <div className="flex items-baseline justify-between gap-3">

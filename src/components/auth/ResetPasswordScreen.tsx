@@ -20,7 +20,7 @@ export function ResetPasswordScreen() {
 
   if (resetError) {
     return (
-      <AuthLayout title="Link invalido" subtitle={resetError}>
+      <AuthLayout title="Link Inválido" subtitle={resetError}>
         <Button
           type="button"
           variant="default"
@@ -60,7 +60,7 @@ export function ResetPasswordScreen() {
   if (success) {
     return (
       <AuthLayout
-        title="Senha atualizada"
+        title="Senha Atualizada"
         subtitle="Pronto. Você já pode entrar com a nova senha."
       >
         <Button
