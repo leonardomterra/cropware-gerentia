@@ -155,6 +155,42 @@ async function clearPending(admin: any, phone: string) {
   await admin.from("farm_wa_pending").delete().eq("phone_number", phone);
 }
 
+/**
+ * Consome o pending de forma ATÔMICA: DELETE ... RETURNING. Só um processamento
+ * leva a linha; os demais recebem null.
+ *
+ * Existe porque `getPending` (ler) e `clearPending` (limpar) são dois passos, e
+ * a mesma mensagem pode ser processada 2x — o dedup de message id é um Map em
+ * memória, que não sobrevive a cold start nem é compartilhado entre isolates.
+ * Entre o ler e o limpar, dois processamentos inseriam o MESMO lançamento duas
+ * vezes. Aqui o Postgres arbitra: quem deletar a linha, ganha.
+ */
+// deno-lint-ignore no-explicit-any
+async function claimPending(admin: any, phone: string, kind: string): Promise<any | null> {
+  const { data } = await admin
+    .from("farm_wa_pending")
+    .delete()
+    .eq("phone_number", phone)
+    .eq("kind", kind)
+    .gt("expires_at", new Date().toISOString()) // mesmo TTL que getPending respeita
+    .select("data")
+    .maybeSingle();
+  return data?.data ?? null;
+}
+
+// Nomes próprios vêm como o usuário digitou ("joão", "AGRO LOJA"). Os outros
+// campos do resumo são rótulos nossos, já em Title Case — então a origem
+// destoava. Partículas ficam minúsculas ("João da Silva", não "João Da Silva").
+const TC_KEEP_LOWER = new Set([
+  "de", "da", "do", "das", "dos", "e", "em", "no", "na", "nos", "nas",
+  "a", "o", "as", "os", "para", "por", "com",
+]);
+function titleCaseBR(s: string): string {
+  return s.trim().toLowerCase().split(/\s+/).map((w, i) =>
+    i > 0 && TC_KEEP_LOWER.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)
+  ).join(" ");
+}
+
 // deno-lint-ignore no-explicit-any
 async function tryLinkByCode(admin: any, phone: string, code: string): Promise<LinkedUser | null> {
   const { data: row } = await admin
@@ -210,7 +246,7 @@ function receiptSummary(e: any, ccName: string | null, showCC: boolean): string 
 
   const lines = [
     "*" + (e.direction === "income" ? "Receita" : "Despesa") + "* - " + fmtBRL(total),
-    e.vendor ? "Origem: " + e.vendor : null,
+    e.vendor ? "Origem: " + titleCaseBR(e.vendor) : null,
     // Com itens, a categoria vem por item (mostrada no bloco abaixo).
     !itemized && e.category ? "Categoria: " + e.category : null,
     e.transaction_date ? "Data: " + e.transaction_date : null,
@@ -448,7 +484,7 @@ function formatLaunch(title: string, d: WizardDraft, linked: LinkedUser, status:
     "*Data:* " + fmtDateBR(date),
     (d.due_date && open) ? "*Vence:* " + fmtDateBR(d.due_date) : null,
     (ccName && linked.cost_centers.length > 1) ? "*Centro:* " + ccName : null,
-    d.vendor ? "*Origem:* " + d.vendor : null,
+    d.vendor ? "*Origem:* " + titleCaseBR(d.vendor) : null,
     d.payment_method ? `*${payLabelField(d.direction)}:* ` + (PAY_LABEL[d.payment_method] || d.payment_method) : null,
     d.notes ? "*Obs:* " + d.notes : null,
   ].filter(Boolean);
@@ -856,6 +892,27 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
     // ----- Wizard de criação: categoria -> status -> centro -> data -> confirmar -----
     if (actionId.startsWith("cw_")) {
       if (!linked) return;
+
+      // Confirmar GRAVA — precisa de claim atômico, e antes do guard abaixo. A
+      // mesma mensagem já chegou 2x em produção: a 1ª gravava e limpava, a 2ª
+      // caía no guard e dizia "expirou. Manda de novo" DEPOIS do "Lançado:" —
+      // falso (estava salvo) e perigoso (obedecer duplicaria o lançamento).
+      // Agora quem perde a corrida sai calado: o usuário já viu o "Lançado:".
+      if (actionId === "cw_confirm") {
+        const claimed = await claimPending(admin, from, "create_wizard");
+        if (claimed) { await finalizeWizard(admin, linked, from, claimed as WizState); return; }
+        // Perdeu o claim por um de dois motivos, e eles pedem respostas opostas:
+        // a linha SUMIU (outro processamento finalizou) -> calar, já foi salvo;
+        // a linha EXISTE mas venceu o TTL -> aí "expirou" é verdade.
+        const { data: stale } = await admin
+          .from("farm_wa_pending").select("kind").eq("phone_number", from).maybeSingle();
+        if (stale?.kind === "create_wizard") {
+          await clearPending(admin, from);
+          await sendText(from, "Esse cadastro expirou. Manda de novo.");
+        }
+        return;
+      }
+
       const pending = await getPending(admin, from);
       if (!pending || pending.kind !== "create_wizard") {
         await sendText(from, "Esse cadastro expirou. Manda de novo.");
@@ -864,7 +921,6 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       const wiz = pending.data as WizState;
 
       if (actionId === "cw_cancel") { await clearPending(admin, from); await sendText(from, "Cancelado."); return; }
-      if (actionId === "cw_confirm") { await finalizeWizard(admin, linked, from, wiz); return; }
 
       if (actionId.startsWith("cw_cat:")) {
         const v = actionId.slice("cw_cat:".length);
