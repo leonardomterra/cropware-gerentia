@@ -26,6 +26,41 @@ export function formatDateBR(
   return d.toLocaleDateString("pt-BR");
 }
 
+/**
+ * Valor SEM o simbolo da moeda ("1.234,56"). A unidade vai no cabecalho da
+ * coluna ("Valor R$") — economiza largura em tabela. Dimensionado pra ate 6
+ * casas + 2 decimais ("100.000,00").
+ */
+export function formatAmountBR(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "-";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n)) return "-";
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Data curta pra tabela: "15/07" no ano corrente; "15/07/26" em outros anos
+ * (so' gasta largura com o ano quando ele e' ambiguo).
+ */
+export function formatDateShortBR(
+  iso: string | null | undefined,
+  fallback = "-",
+): string {
+  if (!iso) return fallback;
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = dateOnly ? new Date(`${iso}T12:00:00`) : new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const y = d.getFullYear();
+  return y === new Date().getFullYear()
+    ? `${dd}/${mm}`
+    : `${dd}/${mm}/${String(y).slice(2)}`;
+}
+
 export function todayISO(): string {
   const d = new Date();
   const y = d.getFullYear();

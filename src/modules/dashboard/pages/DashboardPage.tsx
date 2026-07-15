@@ -820,7 +820,7 @@ export default function DashboardPage() {
                 >
                   <span className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}>{dueLabel(days)}</span>
                   <span className="flex-1 min-w-0 truncate text-slate-700">
-                    {r.vendor || (r.category ? getCategoryLabel(r.category, categories) : (income ? "A receber" : "A pagar"))}
+                    {r.vendor ? r.vendor.toUpperCase() : (r.category ? getCategoryLabel(r.category, categories) : (income ? "A receber" : "A pagar"))}
                     {cc && showCCFilter ? <span className="text-slate-400"> — {cc.name}</span> : null}
                     {r.is_estimated ? <span className="text-slate-400"> — Previsto</span> : null}
                   </span>
@@ -868,7 +868,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
                   <dt className="text-slate-500">Origem</dt>
-                  <dd className="text-slate-900 break-words">{r.vendor || "—"}</dd>
+                  <dd className="text-slate-900 break-words">{r.vendor ? r.vendor.toUpperCase() : "—"}</dd>
                 </div>
                 <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
                   <dt className="text-slate-500">Categoria</dt>

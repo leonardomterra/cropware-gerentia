@@ -16,6 +16,8 @@ import { mountCostCenterRoutes } from "./handlers/costCenters.ts";
 import { mountMemberRoutes } from "./handlers/members.ts";
 import { mountInviteRoutes } from "./handlers/invites.ts";
 import { mountRecurringRoutes } from "./handlers/recurring.ts";
+import { mountTaskRoutes } from "./handlers/tasks.ts";
+import { mountNotificationRoutes } from "./handlers/notifications.ts";
 import { mountAdminRoutes } from "./handlers/admin.ts";
 
 const app = new Hono().basePath("/gerentia-api");
@@ -42,6 +44,8 @@ mountCostCenterRoutes(app);
 mountMemberRoutes(app);
 mountInviteRoutes(app);
 mountRecurringRoutes(app);
+mountTaskRoutes(app);
+mountNotificationRoutes(app);
 mountAdminRoutes(app);
 
 app.onError((err, c) => {

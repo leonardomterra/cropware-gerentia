@@ -7,6 +7,8 @@ import { secret } from "../lib/env.ts";
 
 const TEMPLATE_DUE = "farm_alerta_vencimento";
 const TEMPLATE_SUMMARY = "farm_resumo_semanal";
+// Lembrete de tarefa (to-do). Pre-submetido aqui; o cron que usa fica na Etapa 2b.
+const TEMPLATE_TASK = "farm_lembrete_tarefa";
 const TEMPLATE_LANG = "pt_BR";
 
 /** Pequeno helper pra moeda BR. Templates Meta nao aceitam "R$ " no parametro
@@ -26,7 +28,7 @@ function relativeDay(dueDate: string, todayDate: string): { kind: "due_today" | 
   const diff = Math.round((due - today) / 86400000);
   if (diff < 0) return { kind: "overdue", label: `venceu em ${ddmm(dueDate)}` };
   if (diff === 0) return { kind: "due_today", label: "hoje" };
-  if (diff === 1) return { kind: "due_in_1d", label: "amanha" };
+  if (diff === 1) return { kind: "due_in_1d", label: "amanhã" };
   return { kind: "due_in_3d", label: `em ${diff} dias` };
 }
 
@@ -47,6 +49,77 @@ export function mountCronRoutes(app: Hono) {
    *   -> envia Meta template
    *   -> insere farm_alert_log row.
    */
+  /**
+   * Resolve QUEM recebe. Devolve dois alvos distintos de proposito:
+   *
+   * - notifyUserId: dono do item (created_by). So' cai pro owner da org quando
+   *   nao ha' created_by. Notificacao in-app nao depende de telefone, entao ela
+   *   deve ir pra quem criou — nao pro owner.
+   * - phone/phoneUserId: telefone do criador; se ele nao tiver WhatsApp, cai pro
+   *   owner. Preserva EXATAMENTE o comportamento historico do alerta WhatsApp.
+   *
+   * O owner so' e' buscado quando faz falta (evita 1 query extra por item).
+   */
+  async function resolveTarget(
+    // deno-lint-ignore no-explicit-any
+    admin: any,
+    createdBy: string | null,
+    organizationId: string,
+  ): Promise<{ notifyUserId: string | null; phone: string | null; phoneUserId: string | null }> {
+    // deno-lint-ignore no-explicit-any
+    const phoneOf = async (uid: string): Promise<string | null> => {
+      const { data: link } = await admin
+        .from("farm_whatsapp_links")
+        .select("phone_number, is_active")
+        .eq("user_id", uid)
+        .eq("is_active", true)
+        .maybeSingle();
+      return (link?.phone_number as string | undefined) ?? null;
+    };
+
+    let notifyUserId = createdBy;
+    let phoneUserId = createdBy;
+    let phone = createdBy ? await phoneOf(createdBy) : null;
+
+    if (!phone || !notifyUserId) {
+      const { data: owner } = await admin
+        .from("users_meta")
+        .select("user_id")
+        .eq("organization_id", organizationId)
+        .eq("role", "owner")
+        .maybeSingle();
+      const ownerId = (owner?.user_id as string | undefined) ?? null;
+      if (!notifyUserId) notifyUserId = ownerId;
+      if (!phone && ownerId) {
+        phone = await phoneOf(ownerId);
+        phoneUserId = ownerId;
+      }
+    }
+    return { notifyUserId, phone, phoneUserId };
+  }
+
+  /**
+   * Insere a notificacao de forma IDEMPOTENTE — o cron roda todo dia e reveria o
+   * mesmo vencimento. Dedup pelo unique (user_id, receipt_id|task_id, kind).
+   * Retorna true so' quando criou de fato.
+   */
+  async function upsertNotification(
+    // deno-lint-ignore no-explicit-any
+    admin: any,
+    row: Record<string, unknown>,
+    onConflict: string,
+  ): Promise<boolean> {
+    const { data, error } = await admin
+      .from("farm_notifications")
+      .upsert(row, { onConflict, ignoreDuplicates: true })
+      .select("id");
+    if (error) {
+      console.error("[cron alerts] notify insert:", error);
+      return false;
+    }
+    return (data?.length ?? 0) > 0;
+  }
+
   app.post("/cron/process-alerts", async (c) => {
     const denied = requireCronSecret(c);
     if (denied) return denied;
@@ -54,6 +127,8 @@ export function mountCronRoutes(app: Hono) {
     const admin = getSupabaseAdmin();
     const today = new Date().toISOString().slice(0, 10);
     const horizonDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    // Janela: de 7 dias atras (pra ainda avisar vencido) ate 3 dias a frente.
+    const backDate = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
     // Pega despesas a_pagar/vencido com due_date no horizonte. Receitas a_receber
     // tambem entram (avisa que esta proxima do vencimento da entrada).
@@ -64,18 +139,46 @@ export function mountCronRoutes(app: Hono) {
       .eq("is_estimated", false)
       .not("due_date", "is", null)
       .lte("due_date", horizonDate)
-      .gte("due_date", new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10))
+      .gte("due_date", backDate)
       .limit(500);
     if (error) {
       console.error("[cron alerts] query:", error);
       return c.json({ error: error.message }, 500);
     }
 
-    let sent = 0, skipped = 0, failed = 0;
+    let sent = 0, skipped = 0, failed = 0, notified = 0;
     for (const r of due || []) {
       const { kind, label } = relativeDay(r.due_date as string, today);
+      const vendor = r.vendor || r.description || r.category || "lancamento";
+      const valor = fmtBR(Number(r.total_value) || 0);
 
-      // Ja alertado nesse kind?
+      // 1) Resolve o alvo ANTES de qualquer dedup de canal. Isso e' o que torna
+      //    os canais independentes: antes, o dedup do WhatsApp e o "sem
+      //    telefone -> continue" rodavam primeiro, entao quem NAO tem WhatsApp
+      //    vinculado era descartado e nunca recebia nada — justamente quem so'
+      //    tem o canal in-app.
+      const { notifyUserId, phone, phoneUserId } = await resolveTarget(
+        admin,
+        r.created_by as string | null,
+        r.organization_id as string,
+      );
+
+      // 2) Notificacao in-app: independe de telefone e de alert_log.
+      if (notifyUserId) {
+        const created = await upsertNotification(admin, {
+          organization_id: r.organization_id,
+          user_id: notifyUserId,
+          kind,
+          title: String(vendor).toUpperCase(),
+          body: kind === "overdue" ? `R$ ${valor} — ${label}` : `R$ ${valor} — vence ${label}`,
+          receipt_id: r.id,
+        }, "user_id,receipt_id,kind");
+        if (created) notified++;
+      }
+
+      // 3) WhatsApp: comportamento INALTERADO — so' com telefone e so' se ainda
+      //    nao houve alerta pra (receipt, kind).
+      if (!phone || !phoneUserId) { skipped++; continue; }
       const { data: existing } = await admin
         .from("farm_alert_log")
         .select("id")
@@ -83,41 +186,6 @@ export function mountCronRoutes(app: Hono) {
         .eq("alert_kind", kind)
         .maybeSingle();
       if (existing) { skipped++; continue; }
-
-      // Acha telefone vinculado (created_by). Fallback: owner da org.
-      let phone: string | null = null;
-      let userId = r.created_by as string | null;
-      if (userId) {
-        const { data: link } = await admin
-          .from("farm_whatsapp_links")
-          .select("phone_number, is_active")
-          .eq("user_id", userId)
-          .eq("is_active", true)
-          .maybeSingle();
-        phone = (link?.phone_number as string | undefined) ?? null;
-      }
-      if (!phone) {
-        const { data: owner } = await admin
-          .from("users_meta")
-          .select("user_id")
-          .eq("organization_id", r.organization_id)
-          .eq("role", "owner")
-          .maybeSingle();
-        if (owner) {
-          userId = owner.user_id as string;
-          const { data: link } = await admin
-            .from("farm_whatsapp_links")
-            .select("phone_number, is_active")
-            .eq("user_id", userId)
-            .eq("is_active", true)
-            .maybeSingle();
-          phone = (link?.phone_number as string | undefined) ?? null;
-        }
-      }
-      if (!phone || !userId) { skipped++; continue; }
-
-      const vendor = r.vendor || r.description || r.category || "lancamento";
-      const valor = fmtBR(Number(r.total_value) || 0);
 
       let errMsg: string | null = null;
       try {
@@ -131,14 +199,50 @@ export function mountCronRoutes(app: Hono) {
 
       await admin.from("farm_alert_log").insert({
         receipt_id: r.id,
-        user_id: userId,
+        user_id: phoneUserId,
         phone_number: phone,
         alert_kind: kind,
         error: errMsg,
       });
     }
 
-    return c.json({ ok: true, sent, skipped, failed, processed: (due || []).length });
+    // ---- Tarefas: so' notificacao in-app (sem WhatsApp — os lembretes por
+    // template estao parados, ver docs/FUTURAS-FEATURES.md). Mesmo cron, sem
+    // schedule novo. `reminded_at` fica intocado (e' gancho do push futuro).
+    const { data: dueTasks, error: taskErr } = await admin
+      .from("farm_tasks")
+      .select("id, organization_id, created_by, title, due_date")
+      .eq("done", false)
+      .not("due_date", "is", null)
+      .lte("due_date", horizonDate)
+      .gte("due_date", backDate)
+      .limit(500);
+    if (taskErr) console.error("[cron alerts] task query:", taskErr);
+
+    for (const t of dueTasks || []) {
+      const { kind, label } = relativeDay(t.due_date as string, today);
+      const userId = t.created_by as string | null;
+      if (!userId) continue; // created_by e' not null no schema; defensivo
+      const created = await upsertNotification(admin, {
+        organization_id: t.organization_id,
+        user_id: userId,
+        kind,
+        title: String(t.title || "tarefa").toUpperCase(),
+        body: kind === "overdue" ? `Tarefa — ${label}` : `Tarefa — vence ${label}`,
+        task_id: t.id,
+      }, "user_id,task_id,kind");
+      if (created) notified++;
+    }
+
+    return c.json({
+      ok: true,
+      sent,
+      skipped,
+      failed,
+      notified,
+      processed: (due || []).length,
+      tasksProcessed: (dueTasks || []).length,
+    });
   });
 
   /**
@@ -246,6 +350,24 @@ export function mountCronRoutes(app: Hono) {
       results.push({ name: TEMPLATE_SUMMARY, status: r.status });
     } catch (e) {
       results.push({ name: TEMPLATE_SUMMARY, status: "error", error: e instanceof Error ? e.message : String(e) });
+    }
+
+    // Lembrete de tarefa (to-do) — pre-submissao p/ o cron da Etapa 2b.
+    const taskTpl = {
+      name: TEMPLATE_TASK,
+      language: TEMPLATE_LANG,
+      category: "UTILITY",
+      components: [{
+        type: "BODY",
+        text: "🔔 gerentia.app\n\nLembrete: {{1}} vence {{2}}.\n\nDetalhes no app.",
+        example: { body_text: [["renovar o seguro", "amanhã"]] },
+      }],
+    };
+    try {
+      const r = await submitTemplate(taskTpl);
+      results.push({ name: TEMPLATE_TASK, status: r.status });
+    } catch (e) {
+      results.push({ name: TEMPLATE_TASK, status: "error", error: e instanceof Error ? e.message : String(e) });
     }
 
     return c.json({ ok: true, results });

@@ -5,7 +5,7 @@ import { extractReceiptFromImage, transcribeAudio } from "../lib/gemini.ts";
 import { uploadToR2 } from "../lib/r2.ts";
 import { secret } from "../lib/env.ts";
 import { verifyMetaSignature } from "../lib/security.ts";
-import { applyMarkPaid, fmtDateBR, parseDateBR, runFarmAi, todayBR, yesterdayBR, type LinkedUser, type WizardDraft } from "../lib/farmAi.ts";
+import { applyMarkPaid, findReconcileCandidates, fmtDateBR, parseDateBR, runFarmAi, settleReceiptWithReceipt, todayBR, yesterdayBR, type LinkedUser, type ReconcileCandidate, type WizardDraft } from "../lib/farmAi.ts";
 import { listVisibleCategories, snapCategory } from "../lib/categories.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
 import {
@@ -503,15 +503,30 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     ? ocrItemsTotal(items)
     : (Number.isFinite(e.total_value) ? e.total_value : 0);
 
+  // "Prova de pagamento": o documento atesta que o valor JÁ saiu/entrou, então
+  // nasce pago/recebido (não a_pagar). Crédito NÃO conta — sai via fatura, é o
+  // que o ramo needPay protege. Sem match de reconciliação, é aqui que um
+  // comprovante avulso vira lançamento já quitado.
+  const pm = e.payment_method;
+  const isCredit = pm === "cartao_credito" || pm === "cartao";
+  const proofByDoc = e.doc_type === "pix" || e.doc_type === "recibo";
+  const proofByMethod = pm === "pix" || pm === "dinheiro" || pm === "transferencia" || pm === "cartao_debito";
+  const isProof = !isCredit && (proofByDoc || proofByMethod);
+  const finalDate = dateOverride ?? e.transaction_date ?? null;
+  const status = isProof
+    ? (direction === "income" ? "recebido" : "pago")
+    : (direction === "income" ? "a_receber" : "a_pagar");
+
   const { data: inserted, error } = await admin.from("farm_receipts").insert({
     organization_id: p.organization_id,
     created_by: p.user_id,
     doc_type: e.doc_type || "outro",
     direction,
-    status: direction === "income" ? "a_receber" : "a_pagar",
+    status,
     total_value: total,
     currency: "BRL",
-    transaction_date: dateOverride ?? e.transaction_date ?? null,
+    transaction_date: finalDate,
+    paid_date: isProof ? (finalDate ?? todayBR()) : null,
     vendor: e.vendor ?? null,
     vendor_cnpj: e.vendor_cnpj ?? null,
     payment_method: e.payment_method ?? null,
@@ -557,13 +572,78 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
 
   const ccTail = p.cost_center_name && (linked?.cost_centers.length ?? 0) > 1
     ? "\nCentro: " + p.cost_center_name : "";
-  const finalDate = dateOverride ?? e.transaction_date ?? null;
   const dateTail = finalDate ? "\nData: " + fmtDateBR(finalDate) : "";
+  const statusTail = "\nStatus: " + (STATUS_LABEL[status] ?? status) + (isProof ? " ✅" : "");
   const head = itemized
     ? items.length + " itens"
     : (e.category || e.doc_type);
   return "Lançamento salvo.\n" + fmtBRL(total) + " - " +
-    head + ccTail + dateTail + "\n\nVer no app: " + APP_URL;
+    head + ccTail + dateTail + statusTail + "\n\nVer no app: " + APP_URL;
+}
+
+/**
+ * Pede confirmação do recibo (fluxo padrão da foto): se a forma de pagamento de
+ * uma DESPESA não veio, pergunta antes (anti-duplicidade com fatura de cartão);
+ * senão vai direto pro receipt_confirm + resumo. Extraído pra ser reusado quando
+ * o usuário recusa a reconciliação ("É outro") e cai no fluxo normal.
+ */
+// deno-lint-ignore no-explicit-any
+async function promptReceiptConfirm(admin: any, from: string, linked: LinkedUser, pendingData: any): Promise<void> {
+  const e = pendingData.extracted;
+  const showCC = linked.cost_centers.length > 1;
+  const needPay =
+    e.direction !== "income" &&
+    e.doc_type !== "fatura" &&
+    (!e.payment_method || e.payment_method === "cartao");
+  if (needPay) {
+    await setPending(admin, from, "photo_payment_method", pendingData);
+    await sendButtons(from, "Como foi pago? 💳", PHOTO_PAY_BUTTONS);
+    return;
+  }
+  await setPending(admin, from, "receipt_confirm", pendingData);
+  await sendButtons(
+    from,
+    receiptSummary(e, pendingData.cost_center_name, showCC),
+    confirmButtons(showCC),
+  );
+}
+
+/**
+ * Pergunta se o comprovante quita uma conta em aberto. 1 candidato -> botões;
+ * 2+ -> lista. A opção rcpt_new ("é outro") cai no fluxo normal de lançamento.
+ */
+// deno-lint-ignore no-explicit-any
+async function sendReconcilePrompt(from: string, e: any, candidates: ReconcileCandidate[]): Promise<void> {
+  const ocrValue = Number.isFinite(e.total_value) ? Number(e.total_value) : null;
+  if (candidates.length === 1) {
+    const c = candidates[0];
+    const who = c.vendor || c.description || c.category || "conta";
+    const due = c.due_date ? " • vence " + fmtDateBR(c.due_date) : "";
+    const delta = (ocrValue !== null && Math.abs(c.total_value - ocrValue) >= 0.01)
+      ? "\n_(conta " + fmtBRL(c.total_value) + ", comprovante " + fmtBRL(ocrValue) + ")_"
+      : "";
+    await sendButtons(
+      from,
+      "Achei uma conta em aberto que parece ser essa:\n\n*" + who + "* — " + fmtBRL(c.total_value) + due + delta +
+        "\n\nEsse comprovante é o pagamento dela?",
+      [
+        { id: "rcpt_settle:" + c.id, title: "Dar baixa" },
+        { id: "rcpt_new", title: "É outro" },
+        { id: "rcpt_edit", title: "Editar no app" },
+      ],
+    );
+    return;
+  }
+  const rows = candidates.map((c) => ({
+    id: "rcpt_settle:" + c.id,
+    title: (c.vendor || c.category || "conta").slice(0, 24),
+    description: (fmtBRL(c.total_value) + (c.due_date ? " • vence " + fmtDateBR(c.due_date) : "")).slice(0, 72),
+  }));
+  rows.push({ id: "rcpt_new", title: "Nenhuma — lançar", description: "Criar um novo lançamento" });
+  const header = ocrValue !== null
+    ? "Esse comprovante de " + fmtBRL(ocrValue) + " pode quitar uma destas contas. Qual delas?"
+    : "Esse comprovante pode quitar uma destas contas. Qual delas?";
+  await sendList(from, header, "Escolher conta", [{ rows }]);
 }
 
 // ---------- mensagem -> ação ----------
@@ -692,6 +772,47 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         receiptSummary(pending.data.extracted, cc.name, true),
         confirmButtons(true),
       );
+      return;
+    }
+
+    // ----- Reconciliação: dar baixa numa conta em aberto com o comprovante -----
+    if (actionId.startsWith("rcpt_settle:")) {
+      const receiptId = actionId.slice("rcpt_settle:".length);
+      const pending = await getPending(admin, from);
+      if (!pending || pending.kind !== "receipt_reconcile" || !linked) {
+        await sendText(from, "⏳ Esse comprovante expirou. Manda de novo.");
+        return;
+      }
+      const ids: string[] = Array.isArray(pending.data?.candidate_ids) ? pending.data.candidate_ids : [];
+      if (!ids.includes(receiptId)) {
+        await sendText(from, "Essa opção não vale mais. Manda o comprovante de novo.");
+        return;
+      }
+      const p = pending.data;
+      const res = await settleReceiptWithReceipt(
+        admin,
+        linked,
+        receiptId,
+        {
+          total_value: Number.isFinite(p.extracted?.total_value) ? p.extracted.total_value : null,
+          payment_method: p.extracted?.payment_method ?? null,
+          transaction_date: p.extracted?.transaction_date ?? null,
+        },
+        { key: p.attachment_key ?? null, mime: p.attachment_mime ?? null },
+      );
+      await clearPending(admin, from);
+      await sendText(from, res.message);
+      return;
+    }
+
+    // Reconciliação recusada ("É outro" / "Nenhuma"): cai no fluxo normal.
+    if (actionId === "rcpt_new") {
+      const pending = await getPending(admin, from);
+      if (!pending || pending.kind !== "receipt_reconcile" || !linked) {
+        await sendText(from, "⏳ Esse comprovante expirou. Manda de novo.");
+        return;
+      }
+      await promptReceiptConfirm(admin, from, linked, pending.data);
       return;
     }
 
@@ -904,6 +1025,32 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         await sendText(from, reply);
         return;
       }
+      // Desambiguacao de complete_task (pending kind='task_select').
+      if (pending?.kind === "task_select") {
+        const ids: string[] = Array.isArray(pending.data?.ids) ? pending.data.ids : [];
+        const idx = numericMatch - 1;
+        if (idx < 0 || idx >= ids.length) {
+          await sendText(from, "Numero fora do intervalo. Manda outro, ou 'cancelar'.");
+          return;
+        }
+        const { data: row } = await admin
+          .from("farm_tasks")
+          .select("id, title, done")
+          .eq("id", ids[idx])
+          .maybeSingle();
+        await clearPending(admin, from);
+        if (!row) {
+          await sendText(from, "Essa tarefa sumiu — talvez tenha sido apagada. Tenta de novo.");
+          return;
+        }
+        if (row.done) {
+          await sendText(from, "Essa tarefa ja estava concluida. 👍");
+          return;
+        }
+        await admin.from("farm_tasks").update({ done: true }).eq("id", row.id);
+        await sendText(from, "Feito: " + row.title + ".");
+        return;
+      }
     }
 
     const reply = await runFarmAi(admin, linked, text, from);
@@ -976,27 +1123,23 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
       cost_center_id: defaultCC.id,
       cost_center_name: defaultCC.name,
     };
-    const showCC = linked.cost_centers.length > 1;
 
-    // Forma de pagamento não identificada numa DESPESA (não-fatura): pergunta
-    // antes de confirmar. Ajuda a marcar cartão de crédito (anti-duplicidade
-    // com a fatura). Se o OCR já soube, ou se for fatura/receita, vai direto.
-    const needPay =
-      e.direction !== "income" &&
-      e.doc_type !== "fatura" &&
-      (!e.payment_method || e.payment_method === "cartao");
-    if (needPay) {
-      await setPending(admin, from, "photo_payment_method", pendingData);
-      await sendButtons(from, "Como foi pago? 💳", PHOTO_PAY_BUTTONS);
+    // Reconciliação: esse comprovante quita uma conta em aberto? Se sim, oferece
+    // dar baixa (não duplica); senão segue pro fluxo normal de lançamento.
+    const candidates = await findReconcileCandidates(admin, linked, {
+      vendor: e.vendor ?? null,
+      vendor_cnpj: e.vendor_cnpj ?? null,
+      total_value: Number.isFinite(e.total_value) ? e.total_value : null,
+      transaction_date: e.transaction_date ?? null,
+      direction: e.direction === "income" ? "income" : "expense",
+    });
+    if (candidates.length > 0) {
+      await setPending(admin, from, "receipt_reconcile", { ...pendingData, candidate_ids: candidates.map((c) => c.id) });
+      await sendReconcilePrompt(from, e, candidates);
       return;
     }
 
-    await setPending(admin, from, "receipt_confirm", pendingData);
-    await sendButtons(
-      from,
-      receiptSummary(e, defaultCC.name, showCC),
-      confirmButtons(showCC),
-    );
+    await promptReceiptConfirm(admin, from, linked, pendingData);
     return;
   }
 

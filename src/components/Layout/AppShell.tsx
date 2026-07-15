@@ -14,6 +14,8 @@ import FolderOpen from "~icons/material-symbols-light/folder-open-outline";
 import Assessment from "~icons/material-symbols-light/summarize-outline";
 import SlidersHorizontal from "~icons/material-symbols-light/tune";
 import Repeat from "~icons/material-symbols-light/autorenew";
+import Checklist from "~icons/material-symbols-light/checklist";
+import NotificationsIcon from "~icons/material-symbols-light/notifications-outline";
 // import Users from "~icons/material-symbols-light/group-outline"; // Equipe desativada (app individual)
 import ManageAccounts from "~icons/material-symbols-light/manage-accounts-outline";
 import UserCircle from "~icons/material-symbols-light/account-circle-outline";
@@ -25,6 +27,7 @@ import PanelLeftOpen from "~icons/material-symbols-light/left-panel-open-outline
 import Menu from "~icons/material-symbols-light/menu";
 import X from "~icons/material-symbols-light/close";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
 import { LogoWordmark } from "@/components/LogoWordmark";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
@@ -45,6 +48,9 @@ interface NavItem {
   end?: boolean;
   /** Só pra admin (RBAC). No app individual o dono é admin, então aparecem. */
   adminOnly?: boolean;
+  /** Liga um contador dinâmico ao item. O array é constante de módulo, então o
+   *  número é resolvido no AppShell (via hook) e passado ao NavRow. */
+  badgeKey?: "notifications";
 }
 
 // Ordem única do menu. adminOnly marca os itens de gestão (Recorrências/
@@ -54,6 +60,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
   { to: "/recorrencias", label: "Recorrências", icon: Repeat, adminOnly: true },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/pendencias", label: "Pendências", icon: Checklist },
+  { to: "/notificacoes", label: "Notificações", icon: NotificationsIcon, badgeKey: "notifications" },
   { to: "/relatorios", label: "Relatórios", icon: Assessment },
   { to: "/anexos", label: "Anexos", icon: FolderOpen },
   { to: "/faturas", label: "Faturas", icon: CreditCard },
@@ -85,10 +93,12 @@ function NavRow({
   item,
   collapsed,
   onNavigate,
+  badge = 0,
 }: {
   item: NavItem;
   collapsed: boolean;
   onNavigate?: () => void;
+  badge?: number;
 }) {
   return (
     <NavLink
@@ -98,7 +108,7 @@ function NavRow({
       title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-2.5 h-9 rounded-md text-sm transition-colors",
+          "relative flex items-center gap-2.5 h-9 rounded-md text-sm transition-colors",
           collapsed ? "justify-center px-0 w-9 mx-auto" : "px-2.5",
           isActive
             ? "bg-white text-slate-900 font-medium shadow-sm"
@@ -108,12 +118,25 @@ function NavRow({
     >
       <item.icon className="size-4 shrink-0" />
       {!collapsed && <span className="truncate">{item.label}</span>}
+      {badge > 0 &&
+        (collapsed ? (
+          // Colapsada o row tem 36px e o label some: o contador nao cabe, entao
+          // vira um dot sobre o icone.
+          <span className="absolute top-1 right-1 size-2 rounded-full bg-red-500" />
+        ) : (
+          <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ))}
     </NavLink>
   );
 }
 
 export function AppShell() {
   const { user, signOut, isAdmin, isMaster } = useAuth();
+  // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
+  // mesmo estado que a página lê — marcar lida lá atualiza o badge aqui.
+  const { unread } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -210,6 +233,7 @@ export function AppShell() {
               item={item}
               collapsed={isCollapsed}
               onNavigate={inDrawer ? () => setMobileOpen(false) : undefined}
+              badge={item.badgeKey === "notifications" ? unread : 0}
             />
           ))}
         </nav>
@@ -322,6 +346,13 @@ export function AppShell() {
                 >
                   <item.icon className="size-5 shrink-0" />
                   <span>{item.label}</span>
+                  {/* Render mobile é duplicado (não usa o NavRow), então o badge
+                      precisa ser repetido aqui. */}
+                  {item.badgeKey === "notifications" && unread > 0 && (
+                    <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
                 </NavLink>
               ))}
               <div className="my-1 h-px bg-slate-100" />
@@ -440,7 +471,18 @@ export function AppShell() {
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {mobileOpen ? (
+              <X className="size-5" />
+            ) : (
+              // Dot de não-lidas: no mobile o badge do item vive dentro do
+              // sheet, que fica fechado — sem isso o aviso seria invisível.
+              <span className="relative inline-flex">
+                <Menu className="size-5" />
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-red-500" />
+                )}
+              </span>
+            )}
             <span className="text-sm font-medium">
               {mobileOpen ? "Fechar" : "Menu"}
             </span>

@@ -765,7 +765,7 @@ export default function AdminUsersPage() {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Alterar senha</DialogTitle>
+            <DialogTitle>Alterar Senha</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>

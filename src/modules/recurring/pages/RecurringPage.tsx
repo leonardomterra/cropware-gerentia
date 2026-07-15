@@ -165,12 +165,12 @@ export default function RecurringPage() {
     }
     setSaving(true);
     const payload: RecurringInput = {
-      name: form.name.trim(),
+      name: form.name.trim().toUpperCase(),
       direction: form.direction,
       total_value: total,
       day_of_month: day,
       category: form.category || null,
-      vendor: form.vendor.trim() || null,
+      vendor: form.vendor.trim().toUpperCase() || null,
       cost_center_id: form.cost_center_id || null,
       duration_months: durationMonths,
     };
@@ -255,7 +255,7 @@ export default function RecurringPage() {
               <Input
                 placeholder="Energia, Internet, Salario do Joao..."
                 value={form.name}
-                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value.toUpperCase() }))}
                 maxLength={80}
               />
             </div>
@@ -353,7 +353,7 @@ export default function RecurringPage() {
               <Input
                 placeholder="Cemig, Vivo, Joao Silva..."
                 value={form.vendor}
-                onChange={(e) => setForm((s) => ({ ...s, vendor: e.target.value }))}
+                onChange={(e) => setForm((s) => ({ ...s, vendor: e.target.value.toUpperCase() }))}
                 maxLength={80}
               />
             </div>
@@ -434,14 +434,14 @@ function Section({ title, items, faded, openEdit, handleToggleActive, handleRemo
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-slate-900 truncate flex-1 min-w-0">{r.name}</h3>
+                  <h3 className="font-medium text-slate-900 truncate flex-1 min-w-0">{r.name.toUpperCase()}</h3>
                   <Badge size="compact" colorScheme={r.direction === "income" ? "emerald" : "slate"}>
                     {r.direction === "income" ? "receita" : "despesa"}
                   </Badge>
                 </div>
                 <div className="text-sm text-slate-700 mt-1">{fmtBRL(r.total_value)} - dia {r.day_of_month}</div>
                 <div className="text-sm text-slate-500 mt-0.5">
-                  {r.vendor && <span>{r.vendor} - </span>}
+                  {r.vendor && <span>{r.vendor.toUpperCase()} - </span>}
                   {getCategoryLabel(r.category, categories)}
                 </div>
                 <div className="text-sm text-slate-500 mt-1">

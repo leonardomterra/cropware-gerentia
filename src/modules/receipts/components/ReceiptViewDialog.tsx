@@ -92,7 +92,7 @@ export function ReceiptViewDialog({
             </Badge>
           </Field>
 
-          <Field label="Origem" wide>{receipt.vendor || "—"}</Field>
+          <Field label="Origem" wide>{receipt.vendor ? receipt.vendor.toUpperCase() : "—"}</Field>
 
           <Field label="Valor">
             <span

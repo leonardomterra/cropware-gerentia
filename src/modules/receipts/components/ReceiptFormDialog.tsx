@@ -74,6 +74,9 @@ interface ReceiptFormDialogProps {
   onOpenChange: (open: boolean) => void;
   receipt?: Receipt | null;
   prefill?: PrefillFromScan | null;
+  /** Valores iniciais ao CRIAR (sem anexo) — ex.: converter uma tarefa em
+   *  lançamento pré-preenchido. Ignorado no modo edição. */
+  seed?: Partial<FormState> | null;
   onSaved: () => void;
   /** Habilita o editor de itens (split). Em Lançamentos = false (simples);
    *  nas páginas Notas e Recibos / Faturas = true. */
@@ -85,7 +88,7 @@ interface ReceiptFormDialogProps {
   titleEdit?: string;
 }
 
-interface FormState {
+export interface FormState {
   direction: ReceiptDirection;
   doc_type: ReceiptDocType;
   status: ReceiptStatus;
@@ -142,6 +145,7 @@ export function ReceiptFormDialog({
   onOpenChange,
   receipt,
   prefill,
+  seed,
   onSaved,
   allowItems = true,
   defaultDocType,
@@ -230,6 +234,14 @@ export function ReceiptFormDialog({
         counts_in_total: dt !== "fatura",
         items: allowItems ? prefill.values.items ?? [] : [],
       });
+    } else if (seed) {
+      setForm({
+        ...EMPTY,
+        cost_center_id: defaultCCId,
+        ...(defaultDocType ? { doc_type: defaultDocType } : {}),
+        ...seed,
+        items: allowItems ? [newItemRow()] : [],
+      });
     } else {
       const dt = defaultDocType ?? EMPTY.doc_type;
       setForm({
@@ -242,7 +254,7 @@ export function ReceiptFormDialog({
       });
     }
     setError(null);
-  }, [open, receipt, prefill, defaultCCId, allowItems, defaultDocType]);
+  }, [open, receipt, prefill, seed, defaultCCId, allowItems, defaultDocType]);
 
   const availableStatuses = useMemo(
     () => STATUSES_BY_DIRECTION[form.direction],

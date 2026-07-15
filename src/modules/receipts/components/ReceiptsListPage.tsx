@@ -774,7 +774,7 @@ export function ReceiptsListPage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Excluir {selectedIds.size} {selectedIds.size === 1 ? "lançamento" : "lançamentos"}?
+              Excluir {selectedIds.size} {selectedIds.size === 1 ? "Lançamento" : "Lançamentos"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Os lançamentos selecionados serão removidos permanentemente.

@@ -14,6 +14,7 @@ import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
 import { ResetPasswordScreen } from "@/components/auth/ResetPasswordScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppShell } from "@/components/Layout/AppShell";
+import { NotificationsProvider } from "@/modules/notifications/hooks/useNotifications";
 import { Toaster } from "@/components/ui/sonner";
 import { lazyWithRetry } from "@/utils/lazyWithRetry";
 
@@ -52,6 +53,12 @@ const JoinPage = lazyWithRetry(
 );
 const RecurringPage = lazyWithRetry(
   () => import("@/modules/recurring/pages/RecurringPage"),
+);
+const PendenciasPage = lazyWithRetry(
+  () => import("@/modules/tasks/pages/PendenciasPage"),
+);
+const NotificacoesPage = lazyWithRetry(
+  () => import("@/modules/notifications/pages/NotificacoesPage"),
 );
 const IconLabPage = lazyWithRetry(
   () => import("@/modules/dev/pages/IconLabPage"),
@@ -140,7 +147,15 @@ function RootRoutes() {
           }
         />
       )}
-      <Route element={<AppShell />}>
+      {/* NotificationsProvider envolve o AppShell: assim a sidebar (badge de
+          não-lidas) e o <Outlet/> (página) leem o MESMO estado. */}
+      <Route
+        element={
+          <NotificationsProvider>
+            <AppShell />
+          </NotificationsProvider>
+        }
+      >
         <Route
           index
           element={
@@ -154,6 +169,22 @@ function RootRoutes() {
           element={
             <Suspense fallback={<LoadingScreen />}>
               <ReceiptsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="pendencias"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <PendenciasPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="notificacoes"
+          element={
+            <Suspense fallback={<LoadingScreen />}>
+              <NotificacoesPage />
             </Suspense>
           }
         />

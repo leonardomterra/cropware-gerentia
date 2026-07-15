@@ -404,6 +404,190 @@ async function execMarkPaid(args: any, ctx: ToolCtx): Promise<ToolResult> {
   };
 }
 
+// ---------- reconciliação de comprovante (usada pelo fluxo de FOTO) ----------
+
+/** Candidato a conta em aberto que um comprovante pode quitar. */
+export interface ReconcileCandidate {
+  id: string;
+  direction: "expense" | "income";
+  vendor: string | null;
+  description: string | null;
+  category: string | null;
+  vendor_cnpj: string | null;
+  total_value: number;
+  due_date: string | null;
+  transaction_date: string | null;
+  status: string;
+  is_estimated: boolean;
+  attachment_key: string | null;
+  score: number;
+}
+
+/**
+ * Acha contas EM ABERTO do escopo (org + CCs) que "parecem" ser quitadas por
+ * este comprovante. Exige identidade (CNPJ ou fornecedor) — valor sozinho não
+ * cria candidato (juros/desconto divergem; e valor redondo casa demais). Inclui
+ * previstos de recorrência (is_estimated), mas só do MÊS do comprovante, pra não
+ * despejar as ~12 projeções quase idênticas. Nunca quita sozinho: o handler
+ * sempre confirma por toque.
+ */
+export async function findReconcileCandidates(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  linked: LinkedUser,
+  ocr: {
+    vendor: string | null;
+    vendor_cnpj: string | null;
+    total_value: number | null;
+    transaction_date: string | null;
+    direction: "expense" | "income";
+  },
+): Promise<ReconcileCandidate[]> {
+  const cnpjDigits = typeof ocr.vendor_cnpj === "string" ? ocr.vendor_cnpj.replace(/\D/g, "") : "";
+  const hasCnpj = cnpjDigits.length >= 11;
+  const vLower = typeof ocr.vendor === "string" ? ocr.vendor.trim().toLowerCase() : "";
+  const hasVendor = vLower.length >= 3;
+  const value = Number.isFinite(Number(ocr.total_value)) && Number(ocr.total_value) > 0 ? Number(ocr.total_value) : null;
+  // Sem identidade não dá pra casar com segurança.
+  if (!hasCnpj && !hasVendor) return [];
+
+  const openStatuses = ocr.direction === "income" ? ["a_receber", "vencido"] : ["a_pagar", "vencido"];
+  let q = admin
+    .from("farm_receipts")
+    .select("id, direction, vendor, description, category, vendor_cnpj, total_value, transaction_date, due_date, status, is_estimated, attachment_key, cost_center_id")
+    .eq("organization_id", linked.organization_id)
+    .eq("direction", ocr.direction)
+    .in("status", openStatuses)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .limit(80);
+  const allowed = ccFilterIds(linked);
+  if (allowed) q = q.in("cost_center_id", allowed);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] reconcile query:", error); return []; }
+  if (!data || data.length === 0) return [];
+
+  const refMonth = typeof ocr.transaction_date === "string" && ocr.transaction_date ? ocr.transaction_date.slice(0, 7) : null;
+  const scored: ReconcileCandidate[] = [];
+  // deno-lint-ignore no-explicit-any
+  for (const r of data as any[]) {
+    // Previsto (recorrência): só do mês do comprovante (senão descarta).
+    if (r.is_estimated) {
+      const rMonth = String(r.due_date || r.transaction_date || "").slice(0, 7);
+      if (!refMonth || rMonth !== refMonth) continue;
+    }
+    // Identidade: CNPJ (ouro) ou fornecedor (substring bidirecional).
+    let idScore = 0;
+    const rCnpj = typeof r.vendor_cnpj === "string" ? r.vendor_cnpj.replace(/\D/g, "") : "";
+    if (hasCnpj && rCnpj && rCnpj === cnpjDigits) idScore += 100;
+    if (hasVendor) {
+      const rv = (r.vendor || "").toLowerCase();
+      if (rv && (rv.includes(vLower) || vLower.includes(rv))) idScore += 40;
+    }
+    if (idScore === 0) continue; // sem identidade, ignora
+    // Valor: só bônus de ranqueamento.
+    let score = idScore;
+    if (value !== null) {
+      const rv = Number(r.total_value) || 0;
+      const diff = rv > 0 ? Math.abs(rv - value) / rv : 1;
+      if (diff <= 0.01) score += 30;
+      else if (diff <= 0.05) score += 20;
+      else if (diff <= 0.15) score += 10;
+    }
+    if (r.is_estimated) score += 15; // previsto do mês tende a ser o alvo certo
+    scored.push({
+      id: r.id,
+      direction: r.direction,
+      vendor: r.vendor ?? null,
+      description: r.description ?? null,
+      category: r.category ?? null,
+      vendor_cnpj: r.vendor_cnpj ?? null,
+      total_value: Number(r.total_value),
+      due_date: r.due_date ?? null,
+      transaction_date: r.transaction_date ?? null,
+      status: r.status,
+      is_estimated: !!r.is_estimated,
+      attachment_key: r.attachment_key ?? null,
+      score,
+    });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 5);
+}
+
+/**
+ * Dá baixa numa conta existente usando um comprovante (foto/PDF). Re-valida a
+ * linha (org + CC), protege de corrida (já paga), seta pago/recebido +
+ * paid_date + is_estimated=false (confirma o previsto, imune a resync/cleanup),
+ * anexa o comprovante só se o slot estiver vazio (senão preserva o boleto e
+ * guarda a chave no ai_raw). Se a conta era prevista, adota o valor real do OCR.
+ */
+export async function settleReceiptWithReceipt(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  linked: LinkedUser,
+  candidateId: string,
+  ocr: { total_value: number | null; payment_method: string | null; transaction_date: string | null },
+  attachment: { key: string | null; mime: string | null },
+  // deno-lint-ignore no-explicit-any
+): Promise<{ ok: boolean; alreadyPaid?: boolean; gone?: boolean; row?: any; message: string }> {
+  const { data: row } = await admin
+    .from("farm_receipts")
+    .select("id, direction, status, total_value, vendor, description, category, cost_center_id, is_estimated, attachment_key, attachment_mime, ai_raw")
+    .eq("id", candidateId)
+    .eq("organization_id", linked.organization_id)
+    .maybeSingle();
+  const goneMsg = "Essa conta sumiu — talvez tenha sido apagada. Tenta de novo.";
+  if (!row) return { ok: false, gone: true, message: goneMsg };
+  const allowed = ccFilterIds(linked);
+  if (allowed && row.cost_center_id && !allowed.includes(row.cost_center_id)) {
+    return { ok: false, gone: true, message: goneMsg };
+  }
+  if (row.status === "pago" || row.status === "recebido") {
+    return { ok: false, alreadyPaid: true, row, message: "Essa conta já estava como " + row.status + ". 😉" };
+  }
+
+  const newStatus = row.direction === "income" ? "recebido" : "pago";
+  // deno-lint-ignore no-explicit-any
+  const patch: Record<string, any> = {
+    status: newStatus,
+    paid_date: ocr.transaction_date || todayBR(),
+    is_estimated: false,
+  };
+  if (typeof ocr.payment_method === "string" && ocr.payment_method) patch.payment_method = ocr.payment_method;
+  // Previsto tem valor placeholder → adota o valor real do comprovante.
+  if (row.is_estimated && Number.isFinite(Number(ocr.total_value)) && Number(ocr.total_value) > 0) {
+    patch.total_value = Number(ocr.total_value);
+  }
+  // Anexo: só ocupa o slot se estiver vazio; senão preserva o original e guarda
+  // a chave do comprovante no ai_raw (auditoria, sem perda no R2).
+  let attached = false;
+  if (attachment.key) {
+    if (!row.attachment_key) {
+      patch.attachment_key = attachment.key;
+      patch.attachment_mime = attachment.mime;
+      attached = true;
+    } else {
+      const rawBase = (row.ai_raw && typeof row.ai_raw === "object") ? row.ai_raw : {};
+      patch.ai_raw = { ...rawBase, settlement_attachment_key: attachment.key, settlement_attachment_mime: attachment.mime };
+    }
+  }
+
+  const { error } = await admin.from("farm_receipts").update(patch).eq("id", row.id);
+  if (error) {
+    console.error("[farmAi] settle update error:", error);
+    return { ok: false, message: "Não consegui dar baixa na conta. Tenta de novo em instantes." };
+  }
+  const verb = newStatus === "recebido" ? "recebido" : "pago";
+  const who = row.vendor || row.description || row.category || "lançamento";
+  const finalValue = patch.total_value ?? Number(row.total_value);
+  const attachTail = attached ? " e anexei o comprovante" : "";
+  return {
+    ok: true,
+    row,
+    message: `✅ Baixa dada: ${fmtBRL(Number(finalValue))} — ${who}. Marquei como ${verb}${attachTail}.`,
+  };
+}
+
 // deno-lint-ignore no-explicit-any
 async function execSummary(args: any, ctx: ToolCtx): Promise<ToolResult> {
   const { admin, linked } = ctx;
@@ -585,6 +769,94 @@ function execListMyCostCenters(ctx: ToolCtx): ToolResult {
   };
 }
 
+// ---------- tarefas / pendências (módulo To-Do) ----------
+
+/** Cria uma tarefa (to-do). Insere direto — sem wizard (title + due_date opcional). */
+// deno-lint-ignore no-explicit-any
+async function execCreateTask(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  // Uppercase igual aos lançamentos (convenção do app: grava e exibe em
+  // maiúsculas). Sem isso, tarefa criada por "anota: X" fica minúscula no banco
+  // e no eco do bot, destoando das criadas pelo app.
+  const title = String(args.title || "").trim().slice(0, 120).toUpperCase();
+  if (!title) return { error: "missing_title" };
+  const due_date = typeof args.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.due_date)
+    ? args.due_date
+    : null;
+  const { data, error } = await admin
+    .from("farm_tasks")
+    .insert({ organization_id: linked.organization_id, created_by: linked.user_id, title, due_date })
+    .select("id, title, due_date")
+    .single();
+  if (error || !data) { console.error("[farmAi] create_task:", error); return { error: "create_failed" }; }
+  return { created: true, id: data.id, title: data.title, due_date: data.due_date };
+}
+
+/** Lista as tarefas do usuário (default: só as em aberto). */
+// deno-lint-ignore no-explicit-any
+async function execListTasks(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked } = ctx;
+  const onlyOpen = args.only_open !== false;
+  let q = admin
+    .from("farm_tasks")
+    .select("title, due_date, done, priority")
+    .eq("organization_id", linked.organization_id)
+    .eq("created_by", linked.user_id)
+    .order("done", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (onlyOpen) q = q.eq("done", false);
+  const { data, error } = await q;
+  if (error) { console.error("[farmAi] list_tasks:", error); return { error: "query_failed" }; }
+  // deno-lint-ignore no-explicit-any
+  const tasks = (data || []).map((t: any) => ({ title: t.title, due_date: t.due_date, done: t.done, priority: t.priority }));
+  return { count: tasks.length, tasks };
+}
+
+/** Conclui uma tarefa por match de título. Espelha execMarkPaid (desambiguação). */
+// deno-lint-ignore no-explicit-any
+async function execCompleteTask(args: any, ctx: ToolCtx): Promise<ToolResult> {
+  const { admin, linked, from } = ctx;
+  const query = String(args.query || "").trim();
+  if (!query) return { error: "missing_query" };
+
+  const { data, error } = await admin
+    .from("farm_tasks")
+    .select("id, title, due_date")
+    .eq("organization_id", linked.organization_id)
+    .eq("created_by", linked.user_id)
+    .eq("done", false)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .limit(50);
+  if (error) { console.error("[farmAi] complete_task query:", error); return { error: "query_failed" }; }
+  if (!data || data.length === 0) return { matched: 0, none_open: true };
+
+  const needle = query.toLowerCase();
+  // deno-lint-ignore no-explicit-any
+  const matches = (data as any[]).filter((t) => (t.title || "").toLowerCase().includes(needle));
+  if (matches.length === 0) return { matched: 0, query };
+  if (matches.length === 1) {
+    const m = matches[0];
+    const { error: upErr } = await admin.from("farm_tasks").update({ done: true }).eq("id", m.id);
+    if (upErr) { console.error("[farmAi] complete_task update:", upErr); return { error: "update_failed" }; }
+    return { completed: true, id: m.id, title: m.title };
+  }
+
+  // Várias: grava task_select (handler numérico em whatsapp.ts resolve "1","2"…).
+  const top = matches.slice(0, 9);
+  await admin.from("farm_wa_pending").upsert({
+    phone_number: from,
+    kind: "task_select",
+    data: { ids: top.map((t) => t.id) },
+    expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+  });
+  return {
+    ambiguous: true,
+    options: top.map((t, i) => ({ n: i + 1, title: t.title, due_date: t.due_date })),
+  };
+}
+
 // ---------- declarações + dispatch ----------
 
 function toolDeclarations() {
@@ -702,6 +974,39 @@ function toolDeclarations() {
         description: "Lista os centros de custo do usuário.",
         parameters: { type: "object", properties: {} },
       },
+      {
+        name: "create_task",
+        description: "Cria uma TAREFA/lembrete (to-do), NÃO é lançamento financeiro. Use pra 'anota X', 'preciso fazer Y', 'me lembra de Z'. Ex: 'anota: renovar o seguro', 'me lembra dia 30 de pagar o contador'.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "o que fazer (curto)" },
+            due_date: { type: "string", description: "YYYY-MM-DD, só se o usuário citar quando ('amanhã', 'dia 30'); senão omita" },
+          },
+          required: ["title"],
+        },
+      },
+      {
+        name: "list_tasks",
+        description: "Lista as tarefas/pendências do usuário (to-do). Use pra 'o que tenho pra fazer', 'minhas pendências', 'minhas tarefas'.",
+        parameters: {
+          type: "object",
+          properties: {
+            only_open: { type: "boolean", description: "true (default) = só as não concluídas" },
+          },
+        },
+      },
+      {
+        name: "complete_task",
+        description: "Marca uma TAREFA como concluída. Use pra 'já fiz X', 'concluí Y', 'resolvi Z'. NÃO é pra contas (isso é mark_receipt_paid).",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "trecho do título da tarefa" },
+          },
+          required: ["query"],
+        },
+      },
     ],
   }];
 }
@@ -718,6 +1023,9 @@ async function execTool(name: string, args: any, ctx: ToolCtx): Promise<ToolResu
     case "compare_periods": return await execComparePeriods(args, ctx);
     case "list_receipts": return await execListReceipts(args, ctx);
     case "list_my_cost_centers": return execListMyCostCenters(ctx);
+    case "create_task": return await execCreateTask(args, ctx);
+    case "list_tasks": return await execListTasks(args, ctx);
+    case "complete_task": return await execCompleteTask(args, ctx);
     default: return { error: "unknown_tool" };
   }
 }
@@ -879,8 +1187,8 @@ export async function runFarmAi(admin: any, linked: LinkedUser, userText: string
 
   const newHist: HistTurn[] = [
     ...history,
-    { role: "user", text: userText },
-    { role: "model", text: finalText },
+    { role: "user" as const, text: userText },
+    { role: "model" as const, text: finalText },
   ].slice(-HISTORY_MAX);
   await admin
     .from("farm_whatsapp_links")
