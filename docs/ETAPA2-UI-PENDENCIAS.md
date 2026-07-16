@@ -4,17 +4,19 @@
 
 ---
 
-## 1. 🐛 Bug conhecido, NÃO corrigido — dedup do webhook em memória
+## 1. ✅ Corrigido e em produção (16/07) — dedup do webhook agora é persistente
 
-**O maior débito aberto.** `seenMessageIds` é um `Map` em memória ([handlers/whatsapp.ts:41](../supabase/functions/gerentia-api/handlers/whatsapp.ts)) — o próprio comentário admite *"Meta retenta se a resposta demora"*, mas memória de isolate **não sobrevive a cold start nem é compartilhada entre isolates**. Deploy mata isolate, então mensagem reentregue passa batido pelo dedup.
+**Era o maior débito aberto.** `seenMessageIds` era um `Map` em memória ([handlers/whatsapp.ts](../supabase/functions/gerentia-api/handlers/whatsapp.ts)) — memória de isolate **não sobrevive a cold start nem é compartilhada entre isolates**. Deploy mata isolate, então mensagem reentregue pela Meta passava batido pelo dedup.
 
 Apareceu de verdade em 15/07: um tap em "Confirmar" foi processado 2x e o bot mandou *"Esse cadastro expirou. Manda de novo."* logo depois do "Lançado:" — falso e perigoso (obedecer duplicaria o lançamento).
 
-**O que já está protegido:** o caminho que grava dinheiro. `claimPending()` (`DELETE ... RETURNING`) faz o Postgres arbitrar quem finaliza o wizard — dois processamentos não inserem mais o mesmo lançamento.
+**O fix (16/07):** nova tabela `farm_wa_seen_messages(message_id text primary key, created_at)` — migration [`20260716120000_gerentia_wa_seen_messages.sql`](../supabase/migrations/20260716120000_gerentia_wa_seen_messages.sql), RLS ligada sem policies (só service_role), espelhando `farm_wa_pending`. `alreadyHandled()` virou `async`: faz `insert` do `message_id` e trata conflito de unique (`23505`) como duplicata → ignora. **Atômico e vale entre isolates.** O `Map` ficou só como fast-path (retry no mesmo isolate quente evita ida ao banco); não é mais a autoridade. Em erro transitório do banco → **fail-open** (processa): o caminho do dinheiro já é idempotente via `claimPending`, então o pior caso é repetir um passo não-terminal, nunca duplicar lançamento.
 
-**O que continua exposto:** passos não terminais. Um retry de `cw_cat:ok` avança 2 etapas; idem `cw_status:`, `cw_cc:`, `cw_wpay:`. Sintoma seria "pulou uma pergunta", difícil de atribuir.
+**Limpeza (TTL):** o cron `/cron/process-alerts` (06:00 BRT, **sem schedule novo**) apaga as linhas com mais de 24h — depois disso nenhum retry da Meta chega mais.
 
-**Fix certo:** tabela `farm_wa_seen_messages(message_id text primary key, created_at)`; insert com conflito = duplicata → ignora. Atômico e vale entre isolates. Aditivo, mas **pede migration** — por isso ficou pra decisão.
+**O que já estava protegido:** o caminho que grava dinheiro — `claimPending()` (`DELETE ... RETURNING`) faz o Postgres arbitrar quem finaliza o wizard. Agora os **passos não terminais** (`cw_cat:ok`, `cw_status:`, `cw_cc:`, `cw_wpay:`, `cw_venc:`) também estão cobertos: o retry nem chega a chamar `advanceWizard` 2x.
+
+**Deploy feito (16/07):** `npx supabase db push` aplicou a migration `20260716120000` (confirmado no `supabase migration list` — remote = local) e `npm run deploy:edge` subiu a `gerentia-api`. Produção já usa o dedup persistente.
 
 ## 2. 🧪 Testes que nunca foram feitos (agora possíveis)
 

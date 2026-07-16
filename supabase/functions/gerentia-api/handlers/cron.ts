@@ -238,6 +238,18 @@ export function mountCronRoutes(app: Hono) {
       if (created) notified++;
     }
 
+    // ---- Limpeza do dedup persistente do webhook (farm_wa_seen_messages). As
+    // linhas so' servem pra barrar a reentrega da Meta (janela de minutos/horas);
+    // depois de ~24h nenhum retry chega mais. Apaga as antigas pra tabela nao
+    // crescer sem limite. Mesmo cron (roda 1x/dia), SEM schedule novo. Best-effort:
+    // erro aqui nao afeta os alertas ja enviados.
+    const seenCutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { error: purgeErr } = await admin
+      .from("farm_wa_seen_messages")
+      .delete()
+      .lt("created_at", seenCutoff);
+    if (purgeErr) console.error("[cron alerts] purge seen messages:", purgeErr);
+
     return c.json({
       ok: true,
       sent,

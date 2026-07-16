@@ -37,15 +37,39 @@ const OCR_MIMES = new Set([
   "application/pdf",
 ]);
 
-// Dedup em memoria: Meta retenta se a resposta demora.
+// Dedup do webhook: a Meta reentrega se a resposta demora, e a mesma mensagem
+// pode cair 2x (inclusive em isolates diferentes, ex: durante um deploy).
+//
+// O Map em memoria e SO um fast-path: barra o retry que cai no MESMO isolate
+// quente sem ir ao banco. Ele NAO e' autoridade — nao sobrevive a cold start
+// nem e' compartilhado entre isolates, que e' justamente onde o bug aparecia.
+//
+// A AUTORIDADE e' a tabela farm_wa_seen_messages: um insert atomico do
+// message_id. Conflito de unique (23505) => duplicata. Isso vale entre isolates
+// e cold starts. Ver migration 20260716120000_gerentia_wa_seen_messages.sql.
 const seenMessageIds = new Map<string, number>();
 const DEDUP_TTL_MS = 5 * 60_000;
-function alreadyHandled(id: string): boolean {
+// deno-lint-ignore no-explicit-any
+async function alreadyHandled(admin: any, id: string): Promise<boolean> {
   const now = Date.now();
   for (const [k, ts] of seenMessageIds) {
     if (now - ts > DEDUP_TTL_MS) seenMessageIds.delete(k);
   }
   if (seenMessageIds.has(id)) return true;
+
+  const { error } = await admin.from("farm_wa_seen_messages").insert({ message_id: id });
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      seenMessageIds.set(id, now); // acelera proximos retries no mesmo isolate
+      return true;
+    }
+    // Erro transitorio do banco: FAIL-OPEN (processa). O caminho que grava
+    // dinheiro tem idempotencia propria (claimPending arbitra no Postgres),
+    // entao o pior caso aqui e' repetir um passo nao-terminal do wizard — nunca
+    // duplicar lancamento. Fail-closed descartaria uma 1a entrega legitima.
+    console.error("[wa dedup] insert falhou, seguindo sem dedup persistente:", error);
+    return false;
+  }
   seenMessageIds.set(id, now);
   return false;
 }
@@ -1342,19 +1366,22 @@ export function mountWhatsappRoutes(app: Hono) {
     if (myPnid && incomingPnid && incomingPnid !== myPnid) {
       return c.json({ ok: true, ignored: true, reason: "foreign_pnid" });
     }
+    // admin subido ANTES do dedup: alreadyHandled agora persiste o message_id no
+    // banco (autoridade entre isolates). Webhooks de status (sem `messages`) nao
+    // entram no loop, entao nao geram insert — so' o getSupabaseAdmin, que e' memoizado.
+    const admin = getSupabaseAdmin();
     // deno-lint-ignore no-explicit-any
     const messages: any[] = [];
     for (const entry of body.entry) {
       for (const change of entry.changes || []) {
         if (change.field !== "messages") continue;
         for (const m of change.value?.messages || []) {
-          if (m.id && alreadyHandled(m.id)) continue;
+          if (m.id && await alreadyHandled(admin, m.id)) continue;
           messages.push(m);
         }
       }
     }
     if (messages.length === 0) return c.json({ ok: true });
-    const admin = getSupabaseAdmin();
     const work = (async () => {
       for (const m of messages) {
         const rl = checkRate(m.from);
