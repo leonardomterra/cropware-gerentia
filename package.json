@@ -7,11 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "deploy:edge": "npx supabase functions deploy gerentia-api --no-verify-jwt --project-ref ttnsywnwjybrrtykoqxr"
+    "deploy:edge": "npx supabase functions deploy gerentia-api --no-verify-jwt --project-ref ttnsywnwjybrrtykoqxr",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
@@ -79,6 +80,7 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
+    "@cloudflare/vite-plugin": "^1.45.0",
     "@eslint/js": "^9.18.0",
     "@iconify-json/line-md": "^1.2.16",
     "@iconify-json/material-symbols": "^1.2.75",
@@ -102,6 +104,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.20.0",
     "unplugin-icons": "^23.0.1",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "wrangler": "^4.111.0"
   }
 }
