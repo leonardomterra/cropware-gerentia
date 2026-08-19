@@ -110,40 +110,40 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { size: A4 portrait; margin: 14mm; }
-  html, body { background: #fff; color: #0f172a; font-family: 'Mozilla Text Variable', 'Mozilla Text', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 13.5px; line-height: 1.5; }
+  html, body { background: #fff; color: #171717; font-family: 'Mozilla Text Variable', 'Mozilla Text', ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 13.5px; line-height: 1.5; }
   @media screen {
     body { background: #eef0f3; padding: 24px 0 96px; }
     /* Folha sempre A4 (mesmo tamanho independente do conteúdo) — consistência. */
     .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.06), 0 2px 16px rgba(15,23,42,.05); }
   }
   .sheet { padding: 40px; }
-  .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #e5e5e5; margin-bottom: 18px; }
   .brand img { height: 30px; width: auto; }
   .brand .wm { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
   .brand .wm .lt { font-weight: 300; }
   h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
-  .sub { color: #64748b; font-size: 13px; margin: 0 0 18px; }
+  .sub { color: #737373; font-size: 13px; margin: 0 0 18px; }
   .kpis { display: flex; gap: 12px; margin-bottom: 22px; }
-  .kpi { flex: 1 1 0; min-width: 0; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; }
-  .kpi .kl { display: block; color: #64748b; font-size: 12px; }
-  .kpi .kv { display: block; font-size: 18px; font-weight: 600; margin-top: 2px; color: #0f172a; }
+  .kpi { flex: 1 1 0; min-width: 0; border: 1px solid #e5e5e5; border-radius: 6px; padding: 10px 14px; }
+  .kpi .kl { display: block; color: #737373; font-size: 12px; }
+  .kpi .kv { display: block; font-size: 18px; font-weight: 600; margin-top: 2px; color: #171717; }
   .kpi.in .kv { color: #047857; }
-  .kpi.muted .kv { color: #475569; }
+  .kpi.muted .kv { color: #525252; }
   section { margin-bottom: 22px; page-break-inside: avoid; }
-  h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: #334155; }
+  h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: #404040; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #eef2f6; font-size: 13.5px; overflow-wrap: anywhere; }
-  th { color: #64748b; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
+  th { color: #737373; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
   td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  tr.tot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: none; color: #0f172a; }
-  .foot { margin-top: 24px; color: #94a3b8; font-size: 11px; }
+  tr.tot td { font-weight: 700; border-top: 2px solid #d4d4d4; border-bottom: none; color: #171717; }
+  .foot { margin-top: 24px; color: #a3a3a3; font-size: 11px; }
   .att { padding: 0; display: flex; align-items: center; justify-content: center; }
   .att .att-img { max-width: 100%; max-height: 265mm; object-fit: contain; display: block; }
   @media screen { .att { min-height: 297mm; } .sheet + .sheet { margin-top: 24px; } }
   @media print { .att { break-before: page; page-break-before: always; } }
-  .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e2e8f0; }
-  .btn { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
-  .btn.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e5e5e5; }
+  .btn { font: inherit; font-size: 13px; border: 1px solid #d4d4d4; background: #fff; color: #171717; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
+  .btn.primary { background: #171717; color: #fff; border-color: #171717; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .sheet { max-width: none; margin: 0; box-shadow: none; padding: 0; }

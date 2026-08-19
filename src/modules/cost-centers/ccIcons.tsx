@@ -133,9 +133,48 @@ export function AllCentersChip({ className }: { className?: string }) {
 function darken(hex: string, factor: number): string {
   const m = (hex || "").replace("#", "");
   if (m.length !== 6) return hex || "#52525b";
-  const ch = (i: number) => Math.round(parseInt(m.slice(i, i + 2), 16) * factor);
-  const h = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+  const ch = (i: number) =>
+    Math.round(parseInt(m.slice(i, i + 2), 16) * factor);
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
   return `#${h(ch(0))}${h(ch(2))}${h(ch(4))}`;
+}
+
+/** Clareia um hex aproximando os canais do branco (0..1). Espelho de darken. */
+function lighten(hex: string, factor: number): string {
+  const m = (hex || "").replace("#", "");
+  if (m.length !== 6) return hex || "#d4d4d8";
+  const ch = (i: number) => {
+    const v = parseInt(m.slice(i, i + 2), 16);
+    return Math.round(v + (255 - v) * factor);
+  };
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+  return `#${h(ch(0))}${h(ch(2))}${h(ch(4))}`;
+}
+
+/** Cada cor da paleta (Tailwind 400, ver CC_COLORS) -> o 300 da MESMA cor. */
+const CC_LIGHT: Record<string, string> = {
+  "#a1a1aa": "#d4d4d8", // zinc (cinza)
+  "#fbbf24": "#fcd34d", // amber
+  "#34d399": "#6ee7b7", // emerald
+  "#60a5fa": "#93c5fd", // blue
+  "#a78bfa": "#c4b5fd", // violet
+  "#fb923c": "#fdba74", // orange
+  "#f472b6": "#f9a8d4", // pink
+  "#f87171": "#fca5a5", // red
+  "#2dd4bf": "#5eead4", // teal
+};
+
+/**
+ * Versao CLARA (Tailwind 300) da cor do CC. Usada nas AREAS GRANDES - hoje as
+ * fatias do grafico de gastos por centro -, onde o 400 pesa. Nao vale para
+ * texto nem para o tint do icone: la a cor precisa do peso que tem. Cor custom
+ * fora da paleta e clareada em direcao ao branco.
+ */
+export function ccChartColor(color: string | null | undefined): string {
+  if (!color) return "#d4d4d8";
+  return CC_LIGHT[color.toLowerCase()] || lighten(color, 0.4);
 }
 
 /** Cada cor da paleta (Tailwind 400, ver CC_COLORS) -> o 700 da MESMA cor. */

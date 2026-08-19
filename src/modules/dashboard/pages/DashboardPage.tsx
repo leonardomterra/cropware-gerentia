@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
+  Customized,
+  Text as TextoSVG,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/components/ui/use-mobile";
@@ -38,6 +40,7 @@ import { api } from "@/utils/api";
 import {
   AllCentersChip,
   CostCenterChip,
+  ccChartColor,
   ccTextColor,
 } from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
@@ -166,8 +169,65 @@ const MONTH_LABELS = [
 
 // Cores de entrada/saída alinhadas à paleta dos centros de custo (CC_COLORS):
 // preenchimentos (barras/legenda) nos tons 400; texto num tom legível da mesma família.
+/* Cores do gráfico Entradas × Saídas.
+ *
+ * Tons claros por escolha visual (testados escuros em 19/08 e revertidos): a
+ * barra convive com opacidade 0,3 nos meses fora do foco, e com base escura o
+ * conjunto pesava demais para um gráfico de fundo.
+ *
+ * Barra não é texto — a régua de 4,5:1 vale para o rótulo, não para o
+ * preenchimento —, e o número exato está no tooltip e nos KPIs acima. */
+/** Barra fora de foco: mês previsto, ou (no modo mês) um mês que não é o
+ *  selecionado. Uma função só porque as duas séries precisam da MESMA regra —
+ *  duplicada, uma delas divergiria no primeiro ajuste. */
+function esmaecida(d: { previsto?: boolean; sel?: boolean }, modo?: string) {
+  if (d.previsto) return true;
+  if (modo !== "month") return false;
+  return !d.sel;
+}
+
+/** Rodapé da moldura: cantos de baixo arredondados para acompanhar a moldura,
+ *  cantos de cima retos para encostar no divisor. <rect rx> arredonda os quatro
+ *  de uma vez — daí o path. */
+function caminhoDeRodape(
+  x: number,
+  y: number,
+  largura: number,
+  altura: number,
+  raio: number,
+) {
+  const r = Math.max(0, Math.min(raio, largura / 2, altura));
+  return [
+    `M${x},${y}`,
+    `H${x + largura}`,
+    `V${y + altura - r}`,
+    r && `A${r},${r} 0 0 1 ${x + largura - r},${y + altura}`,
+    `H${x + r}`,
+    r && `A${r},${r} 0 0 1 ${x},${y + altura - r}`,
+    "Z",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Fundo da faixa do mês na moldura em foco. É o MESMO vidro do mês ativo no
+ *  seletor de meses (`bg-slate-900/65`): os dois falam de "mês selecionado", e
+ *  cores
+ *  diferentes fariam parecer que falam de coisas diferentes. Em `fill` +
+ *  `fillOpacity` em vez do #686868 já composto para continuar certo se o fundo
+ *  do card mudar. */
+const FOCO_FUNDO = "#171717"; // slate-900 do app
+const FOCO_OPACIDADE = 0.65;
+
+/** Altura da faixa do mês, abaixo da base das barras. O rótulo é centrado nela
+ *  (`tickSize=0` + `tickMargin` na metade, e `verticalAnchor="middle"`), em vez
+ *  de pendurado no deslocamento padrão do recharts: aquele encostava o texto no
+ *  fundo da faixa — 8px em cima, ~1px embaixo. Centrado, a folga não depende de
+ *  adivinhar a altura da fonte. */
+const RODAPE_ALTURA = 34;
+
 const COLOR_IN = "#34D399"; // emerald-400
-const COLOR_OUT = "#a3a3a3"; // slate-400 (gráfico Entradas×Saídas)
+const COLOR_OUT = "#a3a3a3"; // neutral-400
 
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -490,7 +550,14 @@ export default function DashboardPage() {
         return {
           id,
           name: cc?.name || "Sem centro",
-          color: cc?.color || "#94a3b8",
+          // Um tom acima da cor do centro (400 -> 300): na rosca a área é
+          // grande e o 400 pesava. O chip do CC continua no 400 — a cor de
+          // identidade não muda, só o uso dela aqui.
+          //
+          // Sem cor definida no centro de custo, cai no cinza DO APP. Era o
+          // slate-400 azulado do Tailwind (resto da paleta antiga), e no
+          // gráfico ele destoava de todos os outros cinzas da tela.
+          color: ccChartColor(cc?.color || "#a3a3a3"),
           total,
         };
       })
@@ -641,15 +708,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Mesma anatomia da barra de Lançamentos: os campos que se consultam
-          toda hora esticam à esquerda, a ação encosta à direita. O "Exportar
-          PDF" tinha uma faixa só pra ele. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md. */}
+      {/* DOIS conjuntos de metade cada: à esquerda "quando" (período + mês),
+          à direita "o quê" (centro + exportar).
+          Antes eram três colunas de largura igual, e o botão do mês media pelo
+          próprio rótulo — sobrava um vão no meio da barra, dentro da célula
+          dele. Aqui o vão não existe: em cada metade o CAMPO estica
+          (`flex-1 min-w-0`, então conteúdo longo não o alarga) e o botão fica
+          com a largura que precisa. */}
       <div className="flex flex-wrap items-center gap-2 w-full">
-        <div className="grid flex-1 min-w-0 gap-2 grid-cols-1 sm:grid-cols-3">
+        <div className="flex basis-full sm:basis-0 sm:flex-1 min-w-0 items-center gap-2">
           <PeriodModeSelect
             value={period}
             onChange={setPeriod}
-            className="w-full"
+            className="flex-1 min-w-0"
           />
           {period.mode === "month" && (
             <MonthSwitcher
@@ -658,10 +729,16 @@ export default function DashboardPage() {
               variant="picker"
             />
           )}
+        </div>
+
+        <div className="flex basis-full sm:basis-0 sm:flex-1 min-w-0 items-center gap-2">
           {showCCFilter && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className={CAMPO_BARRA}>
+                <button
+                  type="button"
+                  className={cn(CAMPO_BARRA, "flex-1 min-w-0")}
+                >
                   {activeCC !== "all" ? (
                     <CostCenterChip
                       icon={ccs.find((c) => c.id === activeCC)?.icon}
@@ -728,16 +805,16 @@ export default function DashboardPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
 
-        <Button
-          onClick={handleExportPdf}
-          disabled={exportingPdf || loading}
-          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
-        >
-          <Download className="size-[18px]" />
-          {exportingPdf ? "Gerando…" : "Exportar PDF"}
-        </Button>
+          <Button
+            onClick={handleExportPdf}
+            disabled={exportingPdf || loading}
+            className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto shrink-0")}
+          >
+            <Download className="size-[18px]" />
+            {exportingPdf ? "Gerando…" : "Exportar PDF"}
+          </Button>
+        </div>
       </div>
 
       {/* Controles do modo selecionado (régua de meses / semestre / ano / datas).
@@ -791,7 +868,11 @@ export default function DashboardPage() {
         <KpiCard
           label={period.mode === "month" ? "A pagar (mês)" : "A pagar"}
           value={pending.aPagar}
-          color="text-amber-600"
+          // Cinza: "a pagar" é despesa, e no app despesa é neutra — o vermelho
+          // fica só para ALERTA (Vencido, saldo negativo). Chegou a ser âmbar
+          // (que lia como pendência e reprovava no contraste, 3,19:1) e azul
+          // (a convenção de "agendado"); o neutro ganhou no olho.
+          color="text-slate-900"
           loading={loading}
         />
         <KpiCard
@@ -814,10 +895,10 @@ export default function DashboardPage() {
           tooltip, legenda em dots discretos no título. */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <div className="mb-4 space-y-2">
-          <h2 className="text-xs font-medium text-slate-500">
+          <h2 className="text-sm font-medium text-slate-500">
             Entradas × Saídas
           </h2>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-[#34D399]" />
               Entradas
@@ -841,19 +922,172 @@ export default function DashboardPage() {
               margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
               barGap={4}
             >
+              {/* MOLDURA do mês em foco — envolve as barras E o rótulo do mês.
+                  Antes o mês selecionado se distinguia só pela opacidade das
+                  barras, o que some num print em preto e branco e é difícil de
+                  achar quando o mês tem valores pequenos.
+
+                  `Customized` recebe o estado interno do gráfico (xAxisMap e
+                  offset), que é de onde sai a geometria da FAIXA: `scale(mes)`
+                  dá o início e `bandwidth()` a largura. Sem isso seria chute —
+                  ReferenceArea num eixo de categoria fecha com largura zero.
+
+                  Falha em silêncio (retorna null) se o formato interno mudar
+                  numa atualização do recharts: some a moldura, não o gráfico. */}
+              <Customized
+                component={(props: unknown) => {
+                  const p = props as {
+                    xAxisMap?: Record<
+                      string,
+                      {
+                        scale?: (v: string) => number | undefined;
+                        bandSize?: number;
+                      }
+                    >;
+                    offset?: { top?: number; height?: number };
+                  };
+                  const eixo = p.xAxisMap?.[0];
+                  const off = p.offset;
+                  if (!eixo?.scale || off?.top == null || !off.height) {
+                    return <g />;
+                  }
+                  const escala = eixo.scale as ((
+                    v: string,
+                  ) => number | undefined) & {
+                    bandwidth?: () => number;
+                  };
+                  const largura = escala.bandwidth?.() ?? eixo.bandSize ?? 0;
+                  const topo = off.top;
+                  const altura = off.height;
+                  if (!largura) return <g />;
+
+                  // Uma moldura por mês. A do mês em foco é sólida; as
+                  // demais ficam recuadas — só o contorno, sem fundo. Elas
+                  // existem para dar a RÉGUA: com uma moldura só, não se
+                  // enxergava onde um mês termina e o outro começa, e a do mês
+                  // ativo parecia flutuar.
+                  //
+                  // A folga sai de dentro da banda (metade de cada lado), não
+                  // do espaço entre elas: assim a moldura continua centrada nas
+                  // barras daquele mês e no rótulo do eixo.
+                  const folga = Math.min(6, largura / 4);
+                  // Base das barras: a faixa do mês vai daqui para baixo.
+                  const base = topo + altura;
+                  return (
+                    <g>
+                      {chartData.map((d) => {
+                        const x = escala(d.mes);
+                        if (x == null) return null;
+                        const esq = x + folga / 2;
+                        const largMoldura = largura - folga;
+                        const alturaMoldura = altura + RODAPE_ALTURA;
+
+                        // Fora de foco: só o contorno, sem fundo, com um
+                        // divisor separando as barras do nome do mês.
+                        if (!d.sel) {
+                          return (
+                            <g key={d.mes}>
+                              <rect
+                                x={esq}
+                                y={topo}
+                                width={largMoldura}
+                                height={alturaMoldura}
+                                rx={8}
+                                fill="none"
+                                stroke="#f5f5f5"
+                                strokeWidth={1}
+                              />
+                              <line
+                                x1={esq}
+                                y1={base}
+                                x2={esq + largMoldura}
+                                y2={base}
+                                stroke="#f5f5f5"
+                                strokeWidth={1}
+                              />
+                            </g>
+                          );
+                        }
+
+                        // Em foco: fundo claro atrás das barras (o escuro
+                        // apagaria as duas séries) e o vidro escuro só na faixa
+                        // do mês. O contorno vem por último, senão o rodapé
+                        // comeria a metade de dentro da linha de baixo.
+                        return (
+                          <g key={d.mes}>
+                            <rect
+                              x={esq}
+                              y={topo}
+                              width={largMoldura}
+                              height={alturaMoldura}
+                              rx={8}
+                              fill="#fafafa"
+                            />
+                            <path
+                              d={caminhoDeRodape(
+                                esq,
+                                base,
+                                largMoldura,
+                                RODAPE_ALTURA,
+                                8,
+                              )}
+                              fill={FOCO_FUNDO}
+                              fillOpacity={FOCO_OPACIDADE}
+                            />
+                            <rect
+                              x={esq}
+                              y={topo}
+                              width={largMoldura}
+                              height={alturaMoldura}
+                              rx={8}
+                              fill="none"
+                              stroke="#d4d4d4"
+                              strokeWidth={1}
+                            />
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                }}
+              />
               <XAxis
                 dataKey="mes"
                 stroke="#a3a3a3"
-                fontSize={12}
+                fontSize={14}
                 tickLine={false}
                 axisLine={false}
+                // +6 de sobra para o contorno da moldura não ser cortado pelo
+                // limite do svg.
+                height={RODAPE_ALTURA + 6}
+                tickSize={0}
+                tickMargin={RODAPE_ALTURA / 2}
                 interval={isMobile ? 0 : undefined}
-                tickFormatter={
-                  isMobile
-                    ? (_value: string, index: number) =>
-                        chartData[index]?.mesNum ?? ""
-                    : undefined
-                }
+                /* Rótulo desenhado à mão só por causa da cor: o do mês em foco
+                   cai dentro do bloco escuro, e no cinza padrão ficaria em
+                   1,7:1 — sumia, que foi o problema de duas rodadas atrás.
+                   Como o tick já é custom, o recorte do mobile (número no lugar
+                   do nome) vem junto, no lugar do tickFormatter. */
+                tick={(props: unknown) => {
+                  const { x, y, payload } = props as {
+                    x: number;
+                    y: number;
+                    payload: { value: string; index: number };
+                  };
+                  const d = chartData[payload.index];
+                  return (
+                    <TextoSVG
+                      x={x}
+                      y={y}
+                      textAnchor="middle"
+                      verticalAnchor="middle"
+                      fontSize={14}
+                      fill={d?.sel ? "#ffffff" : "#a3a3a3"}
+                    >
+                      {isMobile ? (d?.mesNum ?? "") : payload.value}
+                    </TextoSVG>
+                  );
+                }}
               />
               <Tooltip
                 cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -861,7 +1095,7 @@ export default function DashboardPage() {
                   background: "white",
                   border: "1px solid #e5e5e5",
                   borderRadius: 6,
-                  fontSize: 12,
+                  fontSize: 14,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
                 formatter={(value: number) => fmtBRLfull(value)}
@@ -871,15 +1105,7 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_IN}
-                    fillOpacity={
-                      d.previsto
-                        ? 0.4
-                        : period.mode !== "month"
-                          ? 1
-                          : d.sel
-                            ? 1
-                            : 0.3
-                    }
+                    fillOpacity={esmaecida(d, period.mode) ? 0.3 : 1}
                   />
                 ))}
               </Bar>
@@ -888,15 +1114,7 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_OUT}
-                    fillOpacity={
-                      d.previsto
-                        ? 0.4
-                        : period.mode !== "month"
-                          ? 1
-                          : d.sel
-                            ? 1
-                            : 0.3
-                    }
+                    fillOpacity={esmaecida(d, period.mode) ? 0.3 : 1}
                   />
                 ))}
               </Bar>
@@ -909,7 +1127,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Onde mais saiu — por categoria */}
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <h2 className="text-xs font-medium text-slate-500 mb-3">
+          <h2 className="text-sm font-medium text-slate-500 mb-3">
             Onde Mais Saiu — {periodLabel(period)}
           </h2>
           {topCategories.length === 0 ? (
@@ -947,7 +1165,7 @@ export default function DashboardPage() {
         {/* Gastos por Centro de Custo — donut (só com mais de um centro) */}
         {showCCFilter && (
           <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <h2 className="text-xs font-medium text-slate-500 mb-3">
+            <h2 className="text-sm font-medium text-slate-500 mb-3">
               Gastos por Centro — {periodLabel(period)}
             </h2>
             {ccSpend.length === 0 ? (
@@ -978,7 +1196,7 @@ export default function DashboardPage() {
                           background: "white",
                           border: "1px solid #e5e5e5",
                           borderRadius: 6,
-                          fontSize: 12,
+                          fontSize: 14,
                           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                         }}
                       />
@@ -1000,7 +1218,7 @@ export default function DashboardPage() {
                         <span className="text-slate-700 truncate flex-1 min-w-0">
                           {c.name}
                         </span>
-                        <span className="text-slate-400 tabular-nums">
+                        <span className="text-slate-500 tabular-nums">
                           {total ? Math.round((c.total / total) * 100) : 0}%
                         </span>
                         <span className="text-slate-700 tabular-nums w-20 text-right">
@@ -1019,7 +1237,7 @@ export default function DashboardPage() {
       {/* (B) Próximos vencimentos — contas a pagar/receber de hoje em diante */}
       {dueSoon.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <h2 className="text-xs font-medium text-slate-500 mb-3">
+          <h2 className="text-sm font-medium text-slate-500 mb-3">
             Próximos vencimentos
           </h2>
           <ul className="divide-y divide-slate-100">
@@ -1055,10 +1273,10 @@ export default function DashboardPage() {
                           ? "A receber"
                           : "A pagar"}
                     {cc && showCCFilter ? (
-                      <span className="text-slate-400"> — {cc.name}</span>
+                      <span className="text-slate-500"> — {cc.name}</span>
                     ) : null}
                     {r.is_estimated ? (
-                      <span className="text-slate-400"> — Previsto</span>
+                      <span className="text-slate-500"> — Previsto</span>
                     ) : null}
                   </span>
                   <span
@@ -1106,7 +1324,7 @@ export default function DashboardPage() {
                         {STATUS_LABEL[statusKey] ?? r.status}
                       </Badge>
                       {r.is_estimated ? (
-                        <span className="text-slate-400 ml-2">Previsto</span>
+                        <span className="text-slate-500 ml-2">Previsto</span>
                       ) : null}
                     </dd>
                   </div>
@@ -1204,12 +1422,13 @@ function KpiCard({
       </p>
       {!loading && delta && delta.pct !== null ? (
         <p
-          className={`text-xs mt-1 tabular-nums ${delta.good ? "text-emerald-600" : "text-red-600"}`}
+          // emerald-600 dá 3,77:1 no branco; o 700 dá 5,48:1.
+          className={`text-sm mt-1 tabular-nums ${delta.good ? "text-emerald-700" : "text-red-600"}`}
         >
           <span className="whitespace-nowrap">
             {delta.up ? "▲" : "▼"} {delta.pct}%
           </span>{" "}
-          <span className="block text-slate-400">vs mês passado</span>
+          <span className="block text-slate-500">vs mês passado</span>
         </p>
       ) : null}
     </div>

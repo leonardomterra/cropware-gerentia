@@ -309,10 +309,15 @@ export function AppShell() {
     <div className="flex overflow-hidden bg-white" style={{ height: "100dvh" }}>
       {/* TRILHO DESKTOP — coluna de ícones, sem recolher (ver AppSidebar). */}
       <aside className="hidden md:flex flex-col shrink-0 w-16 h-full min-h-0 border-r border-slate-200 bg-white">
-        <div className="flex items-center justify-center h-13 shrink-0">
+        {/* A divisória é a BORDA deste bloco, e não uma div à parte, para
+            fechar na mesma linha do topbar ao lado.
+            Antes: h-13 (52px) + uma div de 1px = 53px, enquanto o topbar tem
+            h-13 COM a borda por dentro (box-border) = 52px. A régua da esquerda
+            ficava 1px abaixo da da direita — e ainda em outro tom
+            (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
+        <div className="flex items-center justify-center h-13 shrink-0 border-b border-slate-200">
           <Logo className="h-6 w-auto opacity-80" />
         </div>
-        <div aria-hidden className="h-px shrink-0 bg-slate-100" />
         <AppSidebar itens={railItens} footer={accountTrigger} />
       </aside>
 

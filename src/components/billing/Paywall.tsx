@@ -26,7 +26,7 @@ export function Paywall({ onRecheck }: { onRecheck: () => void }) {
   // slate-100 do app ao desmontar (ex.: assinou e voltou pro app).
   useEffect(() => {
     setStatusBarColor("#ffffff");
-    return () => setStatusBarColor("#f1f5f9");
+    return () => setStatusBarColor("#f5f5f5");
   }, []);
 
   return (

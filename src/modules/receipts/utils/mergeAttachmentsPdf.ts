@@ -173,10 +173,10 @@ export function pdfViewerHtml(pdfUrl: string, filename: string): string {
 <style>
   html, body { margin: 0; height: 100%; }
   body { display: flex; flex-direction: column; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; background: #fff; }
-  .bar .t { font-size: 14px; font-weight: 600; color: #0f172a; margin-right: auto; }
-  .btn { font: inherit; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 6px; padding: 7px 14px; cursor: pointer; text-decoration: none; }
-  .btn.primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #e5e5e5; background: #fff; }
+  .bar .t { font-size: 14px; font-weight: 600; color: #171717; margin-right: auto; }
+  .btn { font: inherit; font-size: 13px; border: 1px solid #d4d4d4; background: #fff; color: #171717; border-radius: 6px; padding: 7px 14px; cursor: pointer; text-decoration: none; }
+  .btn.primary { background: #171717; color: #fff; border-color: #171717; }
   iframe { flex: 1; width: 100%; border: 0; }
 </style></head><body>
   <div class="bar">

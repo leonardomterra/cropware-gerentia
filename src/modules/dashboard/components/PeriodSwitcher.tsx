@@ -281,7 +281,7 @@ export function PeriodSwitcher({
               className="flex-1 sm:w-[170px] sm:flex-none"
             />
           </div>
-          <span className="text-xs text-slate-400">máx. 12 meses</span>
+          <span className="text-sm text-slate-500">máx. 12 meses</span>
         </div>
       )}
     </div>
