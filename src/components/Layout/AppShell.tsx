@@ -19,6 +19,22 @@ import NotificationsIcon from "~icons/ph/bell";
 import Users from "~icons/ph/users";
 import ManageAccounts from "~icons/ph/user-gear";
 import Domain from "~icons/ph/buildings";
+// Duotone, um por página, no trilho do desktop. Duotone e não sólido: o segundo
+// tom entra a 20% de opacidade, então a coluna lê como glifo colorido sobre
+// lavagem clara — sólidos, 13 matizes empilhados virariam confete.
+import RailDashboard from "~icons/ph/squares-four-duotone";
+import RailLancamentos from "~icons/ph/arrows-left-right-duotone";
+import RailNotas from "~icons/ph/receipt-duotone";
+import RailFaturas from "~icons/ph/credit-card-duotone";
+import RailRecorrencias from "~icons/ph/arrows-clockwise-duotone";
+import RailRelatorios from "~icons/ph/file-text-duotone";
+import RailAnexos from "~icons/ph/folder-open-duotone";
+import RailPendencias from "~icons/ph/list-checks-duotone";
+import RailNotificacoes from "~icons/ph/bell-duotone";
+import RailConfiguracoes from "~icons/ph/sliders-horizontal-duotone";
+import RailEquipe from "~icons/ph/users-duotone";
+import RailUsuarios from "~icons/ph/user-gear-duotone";
+import RailOrganizacoes from "~icons/ph/buildings-duotone";
 import UserCircle from "~icons/ph/user-circle";
 // Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
 // trilho que não leva a uma tela de trabalho — leva a você. O segundo tom e o
@@ -30,7 +46,7 @@ import HelpCircle from "~icons/ph/question";
 import Menu from "~icons/ph/list";
 import X from "~icons/ph/x";
 import { ROLE_LABELS, useAuth } from "@/contexts/AuthContext";
-import { AppSidebar, type RailGroup } from "./AppSidebar";
+import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
 import { LogoWordmark } from "@/components/LogoWordmark";
@@ -117,48 +133,46 @@ const ACCOUNT_NAV_ITEM: NavItem = {
 };
 
 /**
- * Os grupos do TRILHO de ícones (desktop). Onze itens soltos numa coluna sem
- * rótulo seriam piores que a lateral com nomes que havia antes — sem rótulo, o
- * ícone só funciona quando o conjunto é pequeno o bastante pra virar memória de
- * posição. Cada grupo abre o painel com a lista inteira.
+ * O trilho do desktop: **um ícone por página**, com cor e tooltip próprios.
  *
- * Este array É o botão de ajuste: rearranjar grupos não mexe em componente
- * nenhum. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa F.
+ * Este mapa é o botão de ajuste — ordem e cor se editam aqui, sem tocar em
+ * componente nenhum. Rota fora do mapa não entra no trilho.
  *
- * A gaveta do celular continua com a lista plana de NAV_ITEMS — lá o espaço não
- * é o problema, e agrupar cobraria um toque a mais.
+ * Sobre a paleta: cada página tem seu matiz, e nenhum se repete no bloco de
+ * cima. Os do master ficam abaixo de uma divisória. A cor é APOIO, nunca o
+ * código — quem diz o nome é o tooltip.
  */
-const RAIL_GROUPS: {
-  label: string;
-  icon: NavItem["icon"];
-  rotas: string[];
-}[] = [
-  // Dashboard tem ícone PRÓPRIO: é a tela de abertura e um destino só. Ficar
-  // dentro de um grupo cobrava um passo pra chegar no que já é a home.
-  { label: "Dashboard", icon: LayoutDashboard, rotas: ["/"] },
-  {
-    label: "Movimento",
-    icon: ArrowLeftRight,
-    rotas: ["/lancamentos", "/notas", "/faturas", "/recorrencias"],
-  },
-  // Anexos vive aqui, e não em Movimento: o arquivo não é um lançamento novo —
-  // é o que se CONSULTA depois, junto do relatório.
-  { label: "Relatórios", icon: Assessment, rotas: ["/relatorios", "/anexos"] },
-  {
-    label: "A fazer",
-    icon: Checklist,
-    rotas: ["/pendencias", "/notificacoes"],
-  },
-  {
-    label: "Organização",
-    icon: SlidersHorizontal,
-    rotas: ["/configuracoes", "/equipe"],
-  },
-  {
-    label: "Plataforma",
-    icon: ManageAccounts,
-    rotas: ["/admin", "/admin/organizacoes"],
-  },
+const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
+  "/": { Icon: RailDashboard, cor: "text-sky-600" },
+  "/lancamentos": { Icon: RailLancamentos, cor: "text-indigo-600" },
+  "/notas": { Icon: RailNotas, cor: "text-amber-600" },
+  "/faturas": { Icon: RailFaturas, cor: "text-violet-600" },
+  "/recorrencias": { Icon: RailRecorrencias, cor: "text-cyan-600" },
+  "/relatorios": { Icon: RailRelatorios, cor: "text-blue-600" },
+  "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
+  "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
+  "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
+  "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
+  "/equipe": { Icon: RailEquipe, cor: "text-purple-600" },
+  "/admin": { Icon: RailUsuarios, cor: "text-fuchsia-600" },
+  "/admin/organizacoes": { Icon: RailOrganizacoes, cor: "text-stone-600" },
+};
+
+/** Ordem do trilho. */
+const RAIL_ORDEM = [
+  "/",
+  "/lancamentos",
+  "/notas",
+  "/faturas",
+  "/recorrencias",
+  "/relatorios",
+  "/anexos",
+  "/pendencias",
+  "/notificacoes",
+  "/configuracoes",
+  "/equipe",
+  "/admin",
+  "/admin/organizacoes",
 ];
 
 /** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
@@ -229,9 +243,11 @@ export function AppShell() {
         <button
           type="button"
           title={user?.fullName || user?.email || "Conta"}
-          className="flex items-center justify-center size-9 rounded-md text-teal-600 hover:bg-slate-200 hover:text-teal-700 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          // Mesma medida dos itens do trilho (h-10 / ícone size-6): ele fecha
+          // a mesma coluna, e menor lia como um botão de outra categoria.
+          className="flex items-center justify-center size-10 rounded-md text-teal-600 hover:bg-slate-200 hover:text-teal-700 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <UserCircleDuotone className="size-5 shrink-0" />
+          <UserCircleDuotone className="size-6 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -256,39 +272,38 @@ export function AppShell() {
             <DropdownMenuSeparator className="bg-white/10" />
           </>
         )}
+        {/* Sem ícones: são três palavras curtas, e o ícone ali não distingue
+            nada — só repete o rótulo. (Nos menus de ORDENAR eles ficam, porque
+            lá separam critérios parecidos.) */}
         <DropdownMenuItem onSelect={() => navigate("/conta")}>
-          <UserCircle className="size-4 text-slate-400" />
           Conta
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => {}}>
-          <HelpCircle className="size-4 text-slate-400" />
-          Ajuda
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => {}}>Ajuda</DropdownMenuItem>
         <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem onSelect={() => void signOut()}>
-          <LogOut className="size-4 text-slate-400" />
           Sair
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  /** Grupos do trilho, montados a partir dos itens JÁ filtrados por papel:
-   *  grupo sem item visível não aparece (Plataforma some pra quem não é master,
-   *  Organização some pro usuário comum). */
-  const railGroups: RailGroup[] = RAIL_GROUPS.map((g) => ({
-    label: g.label,
-    Icon: g.icon,
-    items: g.rotas
-      .map((rota) => navItems.find((i) => i.to === rota))
-      .filter((i): i is NavItem => !!i)
-      .map((i) => ({
-        to: i.to,
-        label: i.label,
-        end: i.end,
-        badge: i.badgeKey === "notifications" ? unread : 0,
-      })),
-  })).filter((g) => g.items.length > 0);
+  /** Itens do trilho, na ordem do mapa e já filtrados por papel — página que o
+   *  usuário não pode ver não ganha ícone. */
+  const railItens: RailItem[] = RAIL_ORDEM.map<RailItem | null>((rota) => {
+    const item = navItems.find((i) => i.to === rota);
+    const visual = RAIL_ICONES[rota];
+    if (!item || !visual) return null;
+    return {
+      to: item.to,
+      label: item.label,
+      Icon: visual.Icon,
+      cor: visual.cor,
+      end: item.end,
+      badge: item.badgeKey === "notifications" ? unread : 0,
+      // Divisória separando o bloco do master do app do cliente.
+      separadorAntes: rota === "/admin",
+    };
+  }).filter((i): i is RailItem => !!i);
 
   return (
     <div className="flex overflow-hidden bg-white" style={{ height: "100dvh" }}>
@@ -298,7 +313,7 @@ export function AppShell() {
           <Logo className="h-6 w-auto opacity-80" />
         </div>
         <div aria-hidden className="h-px shrink-0 bg-slate-100" />
-        <AppSidebar groups={railGroups} footer={accountTrigger} />
+        <AppSidebar itens={railItens} footer={accountTrigger} />
       </aside>
 
       {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua
