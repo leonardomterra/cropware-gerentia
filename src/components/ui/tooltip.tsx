@@ -4,6 +4,7 @@ import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 import { cn } from "./utils";
+import { SUPERFICIE_TOOLTIP } from "@/lib/ui-tokens";
 import { Z_INDEX } from "../../lib/z-index";
 
 function TooltipProvider({
@@ -47,7 +48,11 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "bg-slate-800 text-white font-light shadow-sm animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-balance",
+          // Vidro quente — ver SUPERFICIE_TOOLTIP em src/lib/ui-tokens.ts.
+          // `font-normal` no lugar de `font-light`: 13px em peso fino sobre
+          // fundo translúcido perde definição nas bordas das letras.
+          SUPERFICIE_TOOLTIP,
+          "font-normal animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-fit origin-(--radix-tooltip-content-transform-origin) px-3 py-1.5 text-balance",
           className,
         )}
         style={{ fontSize: '13px', zIndex: Z_INDEX.tooltip, ...props.style }}

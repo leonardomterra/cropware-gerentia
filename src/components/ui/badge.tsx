@@ -6,9 +6,10 @@ import { cn, toSubtitleCase } from "./utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const badgeVariants = cva(
-  // Mesmas classes do simulador (/badges): sem sombra, sem transição, fonte via
-  // text-xs (não inline), padding por tamanho. Tom/cor vem de colorScheme.
-  "inline-flex items-center justify-center rounded border w-fit whitespace-nowrap shrink-0 font-medium [&>svg]:size-3.5 gap-1.5 [&>svg]:pointer-events-none",
+  // Anatomia do Flag Field: SEM borda, padding fixo, e tamanho/peso da fonte
+  // vindos do CSS global ([data-slot="badge"]) — não de classe por tamanho.
+  // Tom/cor vem de colorScheme.
+  "inline-flex items-center justify-center rounded px-2.5 py-0.5 w-fit whitespace-nowrap shrink-0 [&>svg]:size-3.5 gap-1.5 [&>svg]:pointer-events-none transition-all overflow-hidden",
   {
     variants: {
       variant: {
@@ -19,34 +20,39 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "bg-slate-100 text-slate-700 [a&]:hover:bg-slate-200",
       },
       size: {
-        default: "h-6 px-2.5 text-xs",
-        compact: "h-5 px-2 text-[11px]",
+        // Só a altura muda entre os tamanhos: a fonte é a mesma nos dois,
+        // definida uma vez no CSS.
+        default: "h-6",
+        compact: "h-5",
       },
       colorScheme: {
-        // Padrão "soft forte" (igual ao simulador): fundo claro (100) + texto
-        // escuro (800), SEM borda visível.
+        // Tonal médio: fundo 200 + texto 900, sem borda e sem sombra.
+        // Era 100/800 ("soft forte"); o Flag Field foi pro tom acima porque
+        // sobre card branco o 100 quase não se separava do fundo, e o selo
+        // precisa ser lido de relance numa lista.
+        // Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa B.
         // Semantic
-        slate: "bg-slate-100 text-slate-800 border-transparent",
-        amber: "bg-amber-100 text-amber-800 border-transparent",
-        emerald: "bg-emerald-100 text-emerald-800 border-transparent",
-        red: "bg-red-100 text-red-800 border-transparent",
-        blue: "bg-blue-100 text-blue-800 border-transparent",
+        slate: "bg-slate-200 text-slate-900",
+        amber: "bg-amber-200 text-amber-900",
+        emerald: "bg-emerald-200 text-emerald-900",
+        red: "bg-red-200 text-red-900",
+        blue: "bg-blue-200 text-blue-900",
         // Extended
-        green: "bg-green-100 text-green-800 border-transparent",
-        orange: "bg-orange-100 text-orange-800 border-transparent",
-        yellow: "bg-yellow-100 text-yellow-800 border-transparent",
-        purple: "bg-purple-100 text-purple-800 border-transparent",
-        cyan: "bg-cyan-100 text-cyan-800 border-transparent",
-        teal: "bg-teal-100 text-teal-800 border-transparent",
-        indigo: "bg-indigo-100 text-indigo-800 border-transparent",
-        pink: "bg-pink-100 text-pink-800 border-transparent",
-        rose: "bg-rose-100 text-rose-800 border-transparent",
-        sky: "bg-sky-100 text-sky-800 border-transparent",
-        lime: "bg-lime-100 text-lime-800 border-transparent",
-        gray: "bg-gray-100 text-gray-800 border-transparent",
+        green: "bg-green-200 text-green-900",
+        orange: "bg-orange-200 text-orange-900",
+        yellow: "bg-yellow-200 text-yellow-900",
+        purple: "bg-purple-200 text-purple-900",
+        cyan: "bg-cyan-200 text-cyan-900",
+        teal: "bg-teal-200 text-teal-900",
+        indigo: "bg-indigo-200 text-indigo-900",
+        pink: "bg-pink-200 text-pink-900",
+        rose: "bg-rose-200 text-rose-900",
+        sky: "bg-sky-200 text-sky-900",
+        lime: "bg-lime-200 text-lime-900",
+        gray: "bg-gray-200 text-gray-900 border-transparent",
         white: "bg-white text-slate-600 border-slate-200",
         // Nenhuma cor (para uso com className custom)
         none: "",

@@ -1,19 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import ArrowDownNarrowWide from "~icons/material-symbols-light/arrow-downward";
-import ArrowUpNarrowWide from "~icons/material-symbols-light/arrow-upward";
-import Camera from "~icons/material-symbols-light/photo-camera-outline";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
-import ClockArrowDown from "~icons/material-symbols-light/vertical-align-bottom";
-import ClockArrowUp from "~icons/material-symbols-light/vertical-align-top";
+import ArrowDownNarrowWide from "~icons/ph/arrow-down";
+import ArrowUpNarrowWide from "~icons/ph/arrow-up";
+import Camera from "~icons/ph/camera";
+import ChevronDown from "~icons/ph/caret-down";
+import X from "~icons/ph/x";
+import ArrowsDownUp from "~icons/ph/arrows-down-up";
+import ClockArrowDown from "~icons/ph/arrow-line-down";
+import ClockArrowUp from "~icons/ph/arrow-line-up";
 import Loader2 from "~icons/svg-spinners/ring-resize";
-import Plus from "~icons/material-symbols-light/add";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import Print from "~icons/material-symbols-light/print-outline";
+import Plus from "~icons/ph/plus";
+import Trash2 from "~icons/ph/trash";
+import Print from "~icons/ph/printer";
 import { cn } from "@/components/ui/utils";
 import { apiGetArrayBuffer } from "@/utils/api";
-import { mergeAttachmentsToPdf, pdfViewerHtml } from "../utils/mergeAttachmentsPdf";
+import {
+  mergeAttachmentsToPdf,
+  pdfViewerHtml,
+} from "../utils/mergeAttachmentsPdf";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -34,14 +39,25 @@ import {
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
-import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  CAMPO_BARRA,
+  BOTAO_LOTE_DESTRUTIVO,
+  ICONE_BOTAO_BARRA,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
+import { BatchActionBar } from "@/components/ui/BatchActionBar";
+import {
+  AllCentersChip,
+  CostCenterChip,
+  ccTextColor,
+} from "@/modules/cost-centers/ccIcons";
 import { ReceiptFiltersBar } from "./ReceiptFiltersBar";
 import { ReceiptsTable } from "./ReceiptsTable";
 import { ReceiptsCards } from "./ReceiptsCards";
 import { ReceiptFormDialog } from "./ReceiptFormDialog";
 import { ReceiptCaptureDialog } from "./ReceiptCaptureDialog";
-import { ReceiptViewDialog } from "./ReceiptViewDialog";
 import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
 import {
   MonthSwitcher,
@@ -62,10 +78,8 @@ import type {
 } from "../types";
 import { formatBRL, todayISO } from "../utils/receiptFormatters";
 import { STATUSES_BY_DIRECTION } from "../constants";
-import { downloadCsv, rowsToCsv } from "@/utils/csv";
 import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
-import { receiptLines } from "../utils/receiptLines";
 
 interface PrefillFromScan {
   values: {
@@ -108,7 +122,9 @@ export interface ReceiptsListPageProps {
   /** Texto quando não há registros. */
   emptyLabel?: string;
   /** Substantivo da contagem ("Mostrando N ___"). Default lançamento(s). */
-  countNoun?: { one: string; many: string };
+  /** Substantivo da aba. `genero` só é preciso onde ele é feminino ("fatura"):
+   *  sem ele a barra de seleção diria "1 fatura selecionado". */
+  countNoun?: { one: string; many: string; genero?: "m" | "f" };
   /** Títulos do dialog de criar/editar (por aba). */
   titleNew?: string;
   titleEdit?: string;
@@ -149,9 +165,7 @@ function scanToPrefill(scan: ScanResult): PrefillFromScan {
       doc_type: e?.doc_type ?? "cupom",
       status: defaultStatus,
       total_value:
-        e?.total_value != null
-          ? String(e.total_value).replace(".", ",")
-          : "",
+        e?.total_value != null ? String(e.total_value).replace(".", ",") : "",
       vendor: e?.vendor ?? "",
       category: e?.category ?? "",
       description: e?.description ?? "",
@@ -173,7 +187,7 @@ export function ReceiptsListPage({
   createLabel = "Novo Lançamento",
   createLabelShort = "Novo",
   emptyLabel = "Sem lançamentos",
-  countNoun = { one: "lançamento", many: "lançamentos" },
+  countNoun = { one: "lançamento", many: "lançamentos", genero: "m" },
   titleNew,
   titleEdit,
 }: ReceiptsListPageProps) {
@@ -195,8 +209,12 @@ export function ReceiptsListPage({
     "recent" | "old" | "value_desc" | "value_asc"
   >("recent");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [viewing, setViewing] = useState<Receipt | null>(null);
-  const [viewingAttachment, setViewingAttachment] = useState<Receipt | null>(null);
+  // `lendo` é o MODO do formulário, não um segundo diálogo: ver e editar são a
+  // mesma tela, e o botão do rodapé alterna entre os dois.
+  const [lendo, setLendo] = useState(false);
+  const [viewingAttachment, setViewingAttachment] = useState<Receipt | null>(
+    null,
+  );
   const [formOpen, setFormOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [editing, setEditing] = useState<Receipt | null>(null);
@@ -217,8 +235,12 @@ export function ReceiptsListPage({
     to: monthRange.to,
   };
 
-  const { receipts: allReceipts, loading, error, refetch } =
-    useReceipts(effectiveFilters);
+  const {
+    receipts: allReceipts,
+    loading,
+    error,
+    refetch,
+  } = useReceipts(effectiveFilters);
   const isMobile = useIsMobile();
 
   // Filtro client-side por doc_type/itens (páginas dedicadas).
@@ -240,9 +262,13 @@ export function ReceiptsListPage({
       case "old":
         return arr.sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
       case "value_desc":
-        return arr.sort((a, b) => Number(b.total_value) - Number(a.total_value));
+        return arr.sort(
+          (a, b) => Number(b.total_value) - Number(a.total_value),
+        );
       case "value_asc":
-        return arr.sort((a, b) => Number(a.total_value) - Number(b.total_value));
+        return arr.sort(
+          (a, b) => Number(a.total_value) - Number(b.total_value),
+        );
       default:
         return arr;
     }
@@ -262,12 +288,23 @@ export function ReceiptsListPage({
   const openEdit = (r: Receipt) => {
     setEditing(r);
     setPrefill(null);
+    setLendo(false);
     setFormOpen(true);
   };
 
-  // Em viewOnly (aba Anexos) o "olho" abre direto o arquivo; senão, os detalhes.
-  const openView = (r: Receipt) =>
-    viewOnly ? setViewingAttachment(r) : setViewing(r);
+  // Ver é a MESMA tela de editar, travada (Etapa D de
+  // docs/ADOCAO-DESIGN-FLAGFIELD.md). Em viewOnly (aba Anexos) o "olho" abre
+  // direto o arquivo, que é o assunto daquela aba.
+  const openView = (r: Receipt) => {
+    if (viewOnly) {
+      setViewingAttachment(r);
+      return;
+    }
+    setEditing(r);
+    setPrefill(null);
+    setLendo(true);
+    setFormOpen(true);
+  };
 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) => {
@@ -346,10 +383,9 @@ export function ReceiptsListPage({
         setTimeout(() => URL.revokeObjectURL(url), 60000);
       }
       if (failed > 0) {
-        toast.warning(
-          `${failed} arquivo(s) não puderam ser incluídos.`,
-          { id: toastId },
-        );
+        toast.warning(`${failed} arquivo(s) não puderam ser incluídos.`, {
+          id: toastId,
+        });
       } else {
         toast.success("PDF gerado.", { id: toastId });
       }
@@ -386,49 +422,6 @@ export function ReceiptsListPage({
     setFormOpen(true);
   };
 
-  // Exporta UM lançamento/fatura em CSV (uma linha por item). Acionado pelo menu
-  // de ações do card/linha.
-  const handleExportOne = (r: Receipt) => {
-    const ccName = (id: string | null) =>
-      id ? (userCCs.find((c) => c.id === id)?.name || "") : "";
-    const headers = [
-      "data", "tipo", "valor", "categoria", "centro de custo", "item",
-      "origem", "documento", "pagamento", "status", "vencimento",
-      "pago em", "descricao", "observacoes", "contabilizado",
-    ];
-    const rows: string[][] = [];
-    for (const ln of receiptLines(r)) {
-      rows.push([
-        ln.date || "",
-        r.direction === "income" ? "receita" : "despesa",
-        ln.value.toFixed(2).replace(".", ","),
-        ln.category || "",
-        ccName(ln.cost_center_id),
-        ln.item_description || "",
-        r.vendor || "",
-        r.invoice_number || "",
-        r.payment_method || "",
-        r.status,
-        r.due_date || "",
-        r.paid_date || "",
-        r.description || "",
-        r.notes || "",
-        r.counts_in_total === false ? "nao" : "sim",
-      ]);
-    }
-    const csv = rowsToCsv(headers, rows);
-    const today = todayISO();
-    // Nome do arquivo: origem/descrição + data.
-    const base = (r.vendor || r.description || countNoun.one)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .toLowerCase() || countNoun.one;
-    downloadCsv(`${base}_${today}.csv`, csv);
-    toast.success(`${rows.length} linha(s) exportada(s)`);
-  };
-
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     setDeleting(true);
@@ -445,6 +438,52 @@ export function ReceiptsListPage({
     }
   };
 
+  // Uma frase só, num nó de texto só: num flex-wrap, partir isto em pedaços
+  // faria a última palavra cair sozinha na linha de baixo.
+  /** "lançamentos" -> "Lançamentos". Só a primeira letra: `capitalize` do CSS
+   *  quebraria um substantivo de duas palavras ("Notas E Recibos"). */
+  const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+  /**
+   * UMA função de limpar, e ela zera TUDO que filtra — inclusive o que não está
+   * no painel (a busca, o centro de custo, o escopo da equipe). Duplicar a
+   * rotina dentro do painel foi o que o Flag Field desaconselha: as duas
+   * divergem, e a que ninguém testa é a que fica quebrada.
+   *
+   * O MÊS fica de fora de propósito: ele é o período em que se olha, não um
+   * filtro — não existe estado "sem mês".
+   */
+  const temFiltroAtivo =
+    !!filters.search ||
+    !!filters.direction ||
+    (filters.status?.length ?? 0) > 0 ||
+    (filters.category?.length ?? 0) > 0 ||
+    activeCCId !== "all" ||
+    onlyMine;
+
+  const limparFiltros = () => {
+    setFilters({});
+    setActiveCCId("all");
+    setOnlyMine(false);
+  };
+
+  const podeCriar = showCreate || showCapture;
+  const duasFormasDeCriar = showCreate && showCapture;
+
+  const rotuloDaSelecao = (() => {
+    const n = selectedIds.size;
+    const substantivo = n === 1 ? countNoun.one : countNoun.many;
+    const adjetivo =
+      countNoun.genero === "f"
+        ? n === 1
+          ? "selecionada"
+          : "selecionadas"
+        : n === 1
+          ? "selecionado"
+          : "selecionados";
+    return `${n} ${substantivo} ${adjetivo}`;
+  })();
+
   const confirmBulkDelete = async () => {
     // Só apaga o que é do próprio usuário. Sem este filtro, o gestor que
     // selecionasse a lista da equipe tomaria um "3 de 8 não foram excluídos",
@@ -460,7 +499,9 @@ export function ReceiptsListPage({
     }
     setBulkDeleting(true);
     try {
-      const results = await Promise.allSettled(ids.map((id) => deleteReceipt(id)));
+      const results = await Promise.allSettled(
+        ids.map((id) => deleteReceipt(id)),
+      );
       const failed = results.filter((r) => r.status === "rejected").length;
       setBulkOpen(false);
       clearSelection();
@@ -468,10 +509,14 @@ export function ReceiptsListPage({
       if (failed === 0) {
         toast.success(
           `${ids.length} ${ids.length === 1 ? "lançamento excluído" : "lançamentos excluídos"}` +
-            (skipped > 0 ? ` · ${skipped} de outras pessoas foram mantidos` : ""),
+            (skipped > 0
+              ? ` · ${skipped} de outras pessoas foram mantidos`
+              : ""),
         );
       } else {
-        toast.error(`${failed} de ${ids.length} não foram excluídos. Tente de novo.`);
+        toast.error(
+          `${failed} de ${ids.length} não foram excluídos. Tente de novo.`,
+        );
       }
     } catch (err) {
       console.error("[ReceiptsListPage] bulk delete failed:", err);
@@ -481,31 +526,277 @@ export function ReceiptsListPage({
     }
   };
 
+  /**
+   * PÁGINA, não diálogo: com o formulário aberto a lista dá lugar a ele no
+   * mesmo espaço.
+   *
+   * O diálogo custava caro justamente aqui — este formulário é longo, e no
+   * celular o teclado do iOS espremia o conteúdo enquanto a rolagem do modal
+   * brigava com a da tela atrás. Em página ele tem a largura toda e uma rolagem
+   * só.
+   *
+   * É troca de conteúdo, não rota nova: dar URL própria a cada lançamento exige
+   * um `GET /receipts/:id` que a API ainda não tem — sem ele, a página não
+   * sobreviveria a um F5. Fica anotado como próximo passo.
+   */
+  if (formOpen) {
+    return (
+      <ReceiptFormDialog
+        modo="pagina"
+        open={formOpen}
+        onOpenChange={(o) => {
+          setFormOpen(o);
+          if (!o) {
+            setPrefill(null);
+            setEditing(null);
+            setLendo(false);
+          }
+        }}
+        receipt={editing}
+        somenteLeitura={lendo}
+        aoEditar={
+          editing && canEdit(editing) ? () => setLendo(false) : undefined
+        }
+        prefill={prefill}
+        allowItems={formAllowItems}
+        defaultDocType={defaultDocType}
+        titleNew={titleNew}
+        titleEdit={titleEdit}
+        onSaved={() => {
+          void refetch();
+        }}
+      />
+    );
+  }
+
   return (
     <div>
-      <div className="mb-3">
-        <ReceiptFiltersBar value={filters} onChange={setFilters} />
+      {/* Linha 1 — filtros: o que se consulta toda hora fica à vista; o resto
+          mora no painel. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa C. */}
+      <div className="mb-2">
+        <ReceiptFiltersBar
+          value={filters}
+          onChange={setFilters}
+          campos={
+            showTabs ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={CAMPO_BARRA}>
+                    {activeCCId !== "all" ? (
+                      <CostCenterChip
+                        icon={userCCs.find((c) => c.id === activeCCId)?.icon}
+                        color={userCCs.find((c) => c.id === activeCCId)?.color}
+                        className="size-[18px]"
+                      />
+                    ) : (
+                      <AllCentersChip className="size-[18px]" />
+                    )}
+                    <span
+                      className="flex-1 text-left truncate"
+                      style={
+                        activeCCId !== "all"
+                          ? {
+                              color: ccTextColor(
+                                userCCs.find((c) => c.id === activeCCId)?.color,
+                              ),
+                            }
+                          : undefined
+                      }
+                    >
+                      {activeCCId === "all" ? (
+                        <>
+                          <span className="sm:hidden">Centros</span>
+                          <span className="hidden sm:inline">
+                            Todos os Centros
+                          </span>
+                        </>
+                      ) : (
+                        userCCs.find((c) => c.id === activeCCId)?.name ||
+                        "Centro"
+                      )}
+                    </span>
+                    <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem
+                    onClick={() => setActiveCCId("all")}
+                    className={
+                      activeCCId === "all"
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <AllCentersChip className="size-6" />
+                    <span className="min-w-0 flex-1 truncate">Todos</span>
+                  </DropdownMenuItem>
+                  {userCCs.map((cc) => (
+                    <DropdownMenuItem
+                      key={cc.id}
+                      onClick={() => setActiveCCId(cc.id)}
+                      className={
+                        activeCCId === cc.id
+                          ? "bg-white/10 font-medium gap-2"
+                          : "gap-2"
+                      }
+                    >
+                      <CostCenterChip
+                        icon={cc.icon}
+                        color={cc.color}
+                        className="size-6"
+                      />
+                      <span
+                        className="min-w-0 flex-1 truncate"
+                        style={{ color: cc.color ?? undefined }}
+                      >
+                        {cc.name}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : undefined
+          }
+          acoes={
+            <>
+              <MonthSwitcher
+                value={month}
+                onChange={setMonth}
+                variant="picker"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  {/* Rótulo FIXO: mostrar a opção ativa ("Maior valor" x "Recentes")
+                  fazia o botão mudar de largura a cada escolha, e ele é o vizinho
+                  da barra inteira. A opção ativa se lê abrindo o menu, onde ela
+                  aparece destacada. */}
+                  <button
+                    type="button"
+                    className={cn(
+                      BOTAO_BARRA,
+                      "inline-flex items-center rounded-md",
+                    )}
+                  >
+                    <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
+                    Ordenar
+                    <ChevronDown className={SETA_BOTAO_BARRA} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("recent")}
+                    className={
+                      sortBy === "recent"
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <ClockArrowDown className="size-4" />
+                    Mais recentes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("old")}
+                    className={
+                      sortBy === "old"
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <ClockArrowUp className="size-4" />
+                    Mais antigos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("value_desc")}
+                    className={
+                      sortBy === "value_desc"
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <ArrowDownNarrowWide className="size-4" />
+                    Maior valor
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("value_asc")}
+                    className={
+                      sortBy === "value_asc"
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <ArrowUpNarrowWide className="size-4" />
+                    Menor valor
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          }
+        />
       </div>
 
+      {/* Linha 2 — ações */}
       <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
-        {showCreate && !isViewer && (
-          <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
-            <Plus className="size-[18px] shrink-0" />
-            <span className="flex-1 text-left truncate sm:hidden">{createLabelShort}</span>
-            <span className="flex-1 text-left truncate hidden sm:inline">{createLabel}</span>
-          </Button>
-        )}
-        {showCapture && !isViewer && (
-          <Button
-            variant="outline"
-            onClick={() => setCaptureOpen(true)}
-            className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]"
-          >
-            <Camera className="size-[18px] shrink-0" />
-            <span className="flex-1 text-left truncate sm:hidden">Capturar</span>
-            <span className="flex-1 text-left truncate hidden sm:inline">Capturar Recibo</span>
-          </Button>
-        )}
+        {/* Criar é UMA porta, não duas.
+            "Novo Lançamento" e "Capturar Recibo" terminam no mesmo lugar — um
+            lançamento — e a diferença é só COMO se preenche: na mão ou pela
+            foto. Dois botões de mesmo peso lado a lado faziam a escolha parecer
+            maior do que é, e comiam a linha de ações no celular.
+
+            Com as DUAS formas disponíveis vira um botão com menu. Com uma só
+            (Notas e Faturas não capturam), volta a ser botão direto: menu de um
+            item é um clique a troco de nada. */}
+        {podeCriar &&
+          !isViewer &&
+          (duasFormasDeCriar ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {/* A ÚNICA ação de fundo escuro da barra. É o que separa
+                    "criar" das demais, todas em cinza — sem isso, tudo tem o
+                    mesmo peso e nada é a ação principal. Sem `flex-1`: ele
+                    mede pelo próprio rótulo, e não pela linha. */}
+                <Button
+                  variant="default"
+                  className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+                >
+                  <Plus className="size-[18px] shrink-0" />
+                  <span className="sm:hidden">{createLabelShort}</span>
+                  <span className="hidden sm:inline">{createLabel}</span>
+                  <ChevronDown className="size-4 shrink-0 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuItem onClick={openCreate} className="gap-2">
+                  <Plus className="size-4" />
+                  Lançamento Manual
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setCaptureOpen(true)}
+                  className="gap-2"
+                >
+                  <Camera className="size-4" />
+                  Capturar Recibo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="default"
+              onClick={showCreate ? openCreate : () => setCaptureOpen(true)}
+              className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+            >
+              {showCreate ? (
+                <Plus className="size-[18px] shrink-0" />
+              ) : (
+                <Camera className="size-[18px] shrink-0" />
+              )}
+              <span className="sm:hidden">
+                {showCreate ? createLabelShort : "Capturar"}
+              </span>
+              <span className="hidden sm:inline">
+                {showCreate ? createLabel : "Capturar Recibo"}
+              </span>
+            </Button>
+          ))}
 
         {isTeamOrg && canReadAll && (
           <div className="col-span-2 lg:col-span-1 flex rounded-md border border-slate-200 overflow-hidden lg:min-w-[190px]">
@@ -514,7 +805,9 @@ export function ReceiptsListPage({
               onClick={() => setOnlyMine(false)}
               className={cn(
                 "flex-1 px-3 py-2 text-sm transition-colors",
-                !onlyMine ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+                !onlyMine
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50",
               )}
             >
               Toda a equipe
@@ -524,174 +817,44 @@ export function ReceiptsListPage({
               onClick={() => setOnlyMine(true)}
               className={cn(
                 "flex-1 px-3 py-2 text-sm border-l border-slate-200 transition-colors",
-                onlyMine ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+                onlyMine
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50",
               )}
             >
               Só os meus
             </button>
           </div>
         )}
-
-        {showTabs && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(TOOLBAR_TRIGGER_CLASS, "flex-1 min-w-0 lg:min-w-[150px]")}
-              >
-                {activeCCId !== "all" ? (
-                  <CostCenterChip
-                    icon={userCCs.find((c) => c.id === activeCCId)?.icon}
-                    color={userCCs.find((c) => c.id === activeCCId)?.color}
-                    className="size-[18px]"
-                  />
-                ) : (
-                  <AllCentersChip className="size-[18px]" />
-                )}
-                <span
-                  className="flex-1 text-left truncate"
-                  style={activeCCId !== "all" ? { color: ccTextColor(userCCs.find((c) => c.id === activeCCId)?.color) } : undefined}
-                >
-                  {activeCCId === "all" ? (
-                    <>
-                      <span className="sm:hidden">Centros</span>
-                      <span className="hidden sm:inline">Todos os Centros</span>
-                    </>
-                  ) : (
-                    userCCs.find((c) => c.id === activeCCId)?.name || "Centro"
-                  )}
-                </span>
-                <ChevronDown className="size-4 text-slate-500 shrink-0" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem
-                onClick={() => setActiveCCId("all")}
-                className={activeCCId === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-              >
-                <AllCentersChip className="size-6" />
-                <span className="min-w-0 flex-1 truncate">Todos</span>
-              </DropdownMenuItem>
-              {userCCs.map((cc) => (
-                <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setActiveCCId(cc.id)}
-                  className={activeCCId === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
-                >
-                  <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span className="min-w-0 flex-1 truncate" style={{ color: cc.color ?? undefined }}>{cc.name}</span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className={cn(TOOLBAR_TRIGGER_CLASS, "flex-1")}
-            >
-              {sortBy === "recent" && <ClockArrowDown className="size-4 shrink-0" />}
-              {sortBy === "old" && <ClockArrowUp className="size-4 shrink-0" />}
-              {sortBy === "value_desc" && <ArrowDownNarrowWide className="size-4 shrink-0" />}
-              {sortBy === "value_asc" && <ArrowUpNarrowWide className="size-4 shrink-0" />}
-              <span className="flex-1 text-left truncate">
-                {sortBy === "recent" && "Recentes"}
-                {sortBy === "old" && "Antigos"}
-                {sortBy === "value_desc" && "Maior valor"}
-                {sortBy === "value_asc" && "Menor valor"}
-              </span>
-              <ChevronDown className="size-4 text-slate-500 shrink-0" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuItem
-              onClick={() => setSortBy("recent")}
-              className={sortBy === "recent" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-            >
-              <ClockArrowDown className="size-4" />
-              Mais recentes
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setSortBy("old")}
-              className={sortBy === "old" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-            >
-              <ClockArrowUp className="size-4" />
-              Mais antigos
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setSortBy("value_desc")}
-              className={sortBy === "value_desc" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-            >
-              <ArrowDownNarrowWide className="size-4" />
-              Maior valor
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setSortBy("value_asc")}
-              className={sortBy === "value_asc" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-            >
-              <ArrowUpNarrowWide className="size-4" />
-              Menor valor
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <MonthSwitcher
-          value={month}
-          onChange={setMonth}
-          variant="picker"
-          className="flex-1 min-w-0 lg:min-w-[150px]"
-        />
       </div>
 
+      {/* Contador e "Limpar Filtros" na própria linha, encostados à direita.
+          Chegaram a subir pra linha das ações; na tela ficou apertado — a linha
+          já carrega o botão de criar e o alternador da equipe. */}
       {!error && (
-        <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]">
+        <div className="flex items-center justify-end gap-1 mb-2 px-1 min-h-[28px]">
           <p className="text-sm text-slate-500 inline-flex items-center gap-2">
             {loading && receipts.length === 0
               ? "Carregando…"
               : receipts.length === 0
                 ? emptyLabel
-                : `Mostrando ${receipts.length} ${receipts.length === 1 ? countNoun.one : countNoun.many}`}
-            {isRefetching ? <Loader2 className="size-3 text-slate-400" /> : null}
+                : `Mostrando ${receipts.length} ${maiuscula(receipts.length === 1 ? countNoun.one : countNoun.many)}`}
+            {isRefetching ? (
+              <Loader2 className="size-3 text-slate-400" />
+            ) : null}
           </p>
-          {selectedIds.size > 0 ? (
-            <div className="inline-flex items-center gap-2 text-sm">
-              <span className="text-slate-700">
-                {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
-              </span>
-              {readOnly ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handlePrintSelected}
-                  disabled={printing}
-                  className="h-7 text-slate-700"
-                >
-                  <Print className="size-4 mr-1" />
-                  {printing ? "Gerando…" : "Imprimir"}
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setBulkOpen(true)}
-                  className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                >
-                  <Trash2 className="size-4 mr-1" />
-                  Excluir
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={clearSelection}
-                className="h-7 text-slate-600"
-              >
-                Limpar
-              </Button>
-            </div>
-          ) : null}
+          {temFiltroAtivo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={limparFiltros}
+              className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+              title="Limpar filtros"
+            >
+              <X className="size-4 mr-1.5" />
+              Limpar Filtros
+            </Button>
+          )}
         </div>
       )}
 
@@ -719,7 +882,6 @@ export function ReceiptsListPage({
               onView={openView}
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
-              onExport={handleExportOne}
               viewOnly={readOnly}
               emptyLabel={emptyLabel}
             />
@@ -729,7 +891,6 @@ export function ReceiptsListPage({
               onView={openView}
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
-              onExport={handleExportOne}
               selectedIds={selectedIds}
               onToggleOne={toggleOne}
               onToggleAll={toggleAll}
@@ -740,26 +901,6 @@ export function ReceiptsListPage({
         </div>
       )}
 
-      <ReceiptFormDialog
-        open={formOpen}
-        onOpenChange={(o) => {
-          setFormOpen(o);
-          if (!o) {
-            setPrefill(null);
-            setEditing(null);
-          }
-        }}
-        receipt={editing}
-        prefill={prefill}
-        allowItems={formAllowItems}
-        defaultDocType={defaultDocType}
-        titleNew={titleNew}
-        titleEdit={titleEdit}
-        onSaved={() => {
-          void refetch();
-        }}
-      />
-
       {showCapture && (
         <ReceiptCaptureDialog
           open={captureOpen}
@@ -768,15 +909,38 @@ export function ReceiptsListPage({
         />
       )}
 
-      <ReceiptViewDialog
-        receipt={viewing}
-        open={viewing !== null}
-        onOpenChange={(o) => {
-          if (!o) setViewing(null);
-        }}
-        onEdit={openEdit}
-        onChanged={() => void refetch()}
-      />
+      {/* Ações em lote: barra flutuante, não uma fileira de botões no
+          cabeçalho. Ela pousa sobre a lista onde o usuário acabou de marcar —
+          por isso o vidro, e não um fundo opaco. */}
+      {selectedIds.size > 0 && (
+        <BatchActionBar label={rotuloDaSelecao} onCancel={clearSelection}>
+          {readOnly ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handlePrintSelected}
+              disabled={printing}
+              className="h-8 px-4 shrink-0 font-normal text-sm text-white hover:bg-white/10"
+            >
+              <Print className="size-4 mr-1.5" />
+              {printing ? "Gerando…" : "Imprimir"}
+            </Button>
+          ) : (
+            /* Preenchimento sólido não funciona sobre o vidro: o vermelho cheio
+               compete com a lista atrás da barra. O que resolve é inverter a
+               proporção — a cor vira lavagem e vive no texto e na borda. */
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setBulkOpen(true)}
+              className={cn(BOTAO_LOTE_DESTRUTIVO, "shrink-0")}
+            >
+              <Trash2 className="size-4 mr-1.5" />
+              Excluir
+            </Button>
+          )}
+        </BatchActionBar>
+      )}
 
       <AttachmentViewerDialog
         receipt={viewingAttachment}
@@ -821,7 +985,8 @@ export function ReceiptsListPage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Excluir {selectedIds.size} {selectedIds.size === 1 ? "Lançamento" : "Lançamentos"}?
+              Excluir {selectedIds.size}{" "}
+              {selectedIds.size === 1 ? "Lançamento" : "Lançamentos"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Os lançamentos selecionados serão removidos permanentemente.
@@ -830,8 +995,13 @@ export function ReceiptsListPage({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkDelete} disabled={bulkDeleting}>
+            <AlertDialogCancel disabled={bulkDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+            >
               {bulkDeleting ? "Excluindo..." : `Excluir ${selectedIds.size}`}
             </AlertDialogAction>
           </AlertDialogFooter>

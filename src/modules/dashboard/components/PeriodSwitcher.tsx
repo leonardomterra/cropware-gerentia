@@ -1,9 +1,9 @@
-import ChevronLeft from "~icons/material-symbols-light/chevron-left";
-import ChevronRight from "~icons/material-symbols-light/chevron-right";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
-import Calendar from "~icons/material-symbols-light/calendar-month-outline";
+import ChevronLeft from "~icons/ph/caret-left";
+import ChevronRight from "~icons/ph/caret-right";
+import ChevronDown from "~icons/ph/caret-down";
+import Calendar from "~icons/ph/calendar-blank";
 import { cn } from "@/components/ui/utils";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import { CAMPO_BARRA } from "@/lib/ui-tokens";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -168,7 +168,7 @@ export function PeriodModeSelect({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(TOOLBAR_TRIGGER_CLASS, "w-[180px]", className)}
+          className={cn(CAMPO_BARRA, "w-[180px]", className)}
         >
           <Calendar className="size-5 text-slate-500 shrink-0" />
           <span className="flex-1 text-left truncate">
@@ -227,7 +227,7 @@ export function PeriodSwitcher({
               className={cn(
                 "h-9 flex-1 rounded-md text-sm transition-colors",
                 value.semester.half === half
-                  ? "bg-zinc-800 text-white font-medium"
+                  ? "bg-slate-800 text-white font-medium"
                   : "text-slate-600 hover:bg-slate-100",
               )}
             >

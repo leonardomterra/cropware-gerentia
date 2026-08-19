@@ -6,28 +6,31 @@ import {
   type CSSProperties,
 } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import LayoutDashboard from "~icons/material-symbols-light/space-dashboard-outline";
-import ArrowLeftRight from "~icons/material-symbols-light/swap-horiz";
-import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
-import CreditCard from "~icons/material-symbols-light/credit-card-outline";
-import FolderOpen from "~icons/material-symbols-light/folder-open-outline";
-import Assessment from "~icons/material-symbols-light/summarize-outline";
-import SlidersHorizontal from "~icons/material-symbols-light/tune";
-import Repeat from "~icons/material-symbols-light/autorenew";
-import Checklist from "~icons/material-symbols-light/checklist";
-import NotificationsIcon from "~icons/material-symbols-light/notifications-outline";
-import Users from "~icons/material-symbols-light/group-outline";
-import ManageAccounts from "~icons/material-symbols-light/manage-accounts-outline";
-import Domain from "~icons/material-symbols-light/domain";
-import UserCircle from "~icons/material-symbols-light/account-circle-outline";
-import LogOut from "~icons/material-symbols-light/logout";
-import HelpCircle from "~icons/material-symbols-light/help-outline";
-import UnfoldMore from "~icons/material-symbols-light/unfold-more";
-import PanelLeftClose from "~icons/material-symbols-light/left-panel-close-outline";
-import PanelLeftOpen from "~icons/material-symbols-light/left-panel-open-outline";
-import Menu from "~icons/material-symbols-light/menu";
-import X from "~icons/material-symbols-light/close";
+import LayoutDashboard from "~icons/ph/squares-four";
+import ArrowLeftRight from "~icons/ph/arrows-left-right";
+import ReceiptLong from "~icons/ph/receipt";
+import CreditCard from "~icons/ph/credit-card";
+import FolderOpen from "~icons/ph/folder-open";
+import Assessment from "~icons/ph/file-text";
+import SlidersHorizontal from "~icons/ph/sliders-horizontal";
+import Repeat from "~icons/ph/arrows-clockwise";
+import Checklist from "~icons/ph/list-checks";
+import NotificationsIcon from "~icons/ph/bell";
+import Users from "~icons/ph/users";
+import ManageAccounts from "~icons/ph/user-gear";
+import Domain from "~icons/ph/buildings";
+import UserCircle from "~icons/ph/user-circle";
+// Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
+// trilho que não leva a uma tela de trabalho — leva a você. O segundo tom e o
+// teal (que não é usado por nenhum estado do app) o separam da fileira de
+// ícones sem precisar de rótulo, que ali não cabe.
+import UserCircleDuotone from "~icons/ph/user-circle-duotone";
+import LogOut from "~icons/ph/sign-out";
+import HelpCircle from "~icons/ph/question";
+import Menu from "~icons/ph/list";
+import X from "~icons/ph/x";
 import { ROLE_LABELS, useAuth } from "@/contexts/AuthContext";
+import { AppSidebar, type RailGroup } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
 import { LogoWordmark } from "@/components/LogoWordmark";
@@ -54,7 +57,7 @@ interface NavItem {
   /** Some pro convidado (perfil somente-leitura). */
   hideForViewer?: boolean;
   /** Liga um contador dinâmico ao item. O array é constante de módulo, então o
-   *  número é resolvido no AppShell (via hook) e passado ao NavRow. */
+   *  número é resolvido no AppShell (via hook). */
   badgeKey?: "notifications";
 }
 
@@ -65,16 +68,37 @@ interface NavItem {
 // Ver docs/ORGANIZACOES-E-PERFIS.md §2.
 const NAV_ITEMS: NavItem[] = [
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
-  { to: "/recorrencias", label: "Recorrências", icon: Repeat, hideForViewer: true },
+  {
+    to: "/recorrencias",
+    label: "Recorrências",
+    icon: Repeat,
+    hideForViewer: true,
+  },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/pendencias", label: "Pendências", icon: Checklist },
-  { to: "/notificacoes", label: "Notificações", icon: NotificationsIcon, badgeKey: "notifications" },
+  {
+    to: "/notificacoes",
+    label: "Notificações",
+    icon: NotificationsIcon,
+    badgeKey: "notifications",
+  },
   { to: "/relatorios", label: "Relatórios", icon: Assessment },
   { to: "/anexos", label: "Anexos", icon: FolderOpen },
   { to: "/faturas", label: "Faturas", icon: CreditCard },
   { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
-  { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, adminOnly: true },
-  { to: "/equipe", label: "Equipe", icon: Users, adminOnly: true, teamOnly: true },
+  {
+    to: "/configuracoes",
+    label: "Configurações",
+    icon: SlidersHorizontal,
+    adminOnly: true,
+  },
+  {
+    to: "/equipe",
+    label: "Equipe",
+    icon: Users,
+    adminOnly: true,
+    teamOnly: true,
+  },
   // "Fazendas" escondido do menu (CRUD orfao); rota /fazendas segue válida via URL.
 ];
 
@@ -92,52 +116,52 @@ const ACCOUNT_NAV_ITEM: NavItem = {
   icon: UserCircle,
 };
 
-const COLLAPSED_KEY = "farm:sidebar:collapsed";
+/**
+ * Os grupos do TRILHO de ícones (desktop). Onze itens soltos numa coluna sem
+ * rótulo seriam piores que a lateral com nomes que havia antes — sem rótulo, o
+ * ícone só funciona quando o conjunto é pequeno o bastante pra virar memória de
+ * posição. Cada grupo abre o painel com a lista inteira.
+ *
+ * Este array É o botão de ajuste: rearranjar grupos não mexe em componente
+ * nenhum. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa F.
+ *
+ * A gaveta do celular continua com a lista plana de NAV_ITEMS — lá o espaço não
+ * é o problema, e agrupar cobraria um toque a mais.
+ */
+const RAIL_GROUPS: {
+  label: string;
+  icon: NavItem["icon"];
+  rotas: string[];
+}[] = [
+  // Dashboard tem ícone PRÓPRIO: é a tela de abertura e um destino só. Ficar
+  // dentro de um grupo cobrava um passo pra chegar no que já é a home.
+  { label: "Dashboard", icon: LayoutDashboard, rotas: ["/"] },
+  {
+    label: "Movimento",
+    icon: ArrowLeftRight,
+    rotas: ["/lancamentos", "/notas", "/faturas", "/recorrencias"],
+  },
+  // Anexos vive aqui, e não em Movimento: o arquivo não é um lançamento novo —
+  // é o que se CONSULTA depois, junto do relatório.
+  { label: "Relatórios", icon: Assessment, rotas: ["/relatorios", "/anexos"] },
+  {
+    label: "A fazer",
+    icon: Checklist,
+    rotas: ["/pendencias", "/notificacoes"],
+  },
+  {
+    label: "Organização",
+    icon: SlidersHorizontal,
+    rotas: ["/configuracoes", "/equipe"],
+  },
+  {
+    label: "Plataforma",
+    icon: ManageAccounts,
+    rotas: ["/admin", "/admin/organizacoes"],
+  },
+];
 
 /** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
-function NavRow({
-  item,
-  collapsed,
-  onNavigate,
-  badge = 0,
-}: {
-  item: NavItem;
-  collapsed: boolean;
-  onNavigate?: () => void;
-  badge?: number;
-}) {
-  return (
-    <NavLink
-      to={item.to}
-      end={item.end}
-      onClick={onNavigate}
-      title={collapsed ? item.label : undefined}
-      className={({ isActive }) =>
-        cn(
-          "relative flex items-center gap-2.5 h-9 rounded-md text-sm transition-colors",
-          collapsed ? "justify-center px-0 w-9 mx-auto" : "px-2.5",
-          isActive
-            ? "bg-white text-slate-900 font-medium shadow-sm"
-            : "text-slate-600 hover:bg-slate-200 hover:text-slate-900",
-        )
-      }
-    >
-      <item.icon className="size-4 shrink-0" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
-      {badge > 0 &&
-        (collapsed ? (
-          // Colapsada o row tem 36px e o label some: o contador nao cabe, entao
-          // vira um dot sobre o icone.
-          <span className="absolute top-1 right-1 size-2 rounded-full bg-red-500" />
-        ) : (
-          <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
-            {badge > 99 ? "99+" : badge}
-          </span>
-        ))}
-    </NavLink>
-  );
-}
-
 export function AppShell() {
   const { user, signOut, isAdmin, isMaster, isViewer, isTeamOrg } = useAuth();
   // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
@@ -147,19 +171,6 @@ export function AppShell() {
   const navigate = useNavigate();
 
   // Colapso (desktop) persistido. Drawer (mobile) e' estado efemero.
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof localStorage === "undefined") return false;
-    return localStorage.getItem(COLLAPSED_KEY) === "1";
-  });
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-  }, [collapsed]);
 
   // Fecha o drawer ao trocar de rota (mobile).
   useEffect(() => {
@@ -205,135 +216,89 @@ export function AppShell() {
 
   // Conteudo da sidebar (reusado no desktop fixo + drawer mobile).
   // `inDrawer` força full (nao colapsado) no mobile.
-  const renderSidebar = (inDrawer: boolean) => {
-    const isCollapsed = inDrawer ? false : collapsed;
-    return (
-      <div className="flex flex-col h-full bg-slate-100">
-        {/* Topo: logo */}
-        <div
-          className={cn(
-            "flex items-center h-13 shrink-0 border-b border-slate-100",
-            isCollapsed ? "justify-center px-2" : "px-3 gap-2",
-          )}
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  /**
+   * Gatilho da conta — o rodapé do trilho. Icone só: a coluna tem 64px, e o
+   * nome do usuário mora dentro do próprio menu (junto da organização e do
+   * perfil, que é o que explica ver ou não ver o dado dos colegas).
+   */
+  const accountTrigger = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={user?.fullName || user?.email || "Conta"}
+          className="flex items-center justify-center size-9 rounded-md text-teal-600 hover:bg-slate-200 hover:text-teal-700 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          {isCollapsed ? (
-            <Logo className="h-6 w-auto opacity-80" />
-          ) : (
-            <div className="flex items-center gap-2 min-w-0">
-              <Logo className="h-5 w-auto shrink-0 opacity-80" />
-              <LogoWordmark className="text-slate-500/80 [--logo-size:19px]" />
+          <UserCircleDuotone className="size-5 shrink-0" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="w-56"
+      >
+        {/* Em org com equipe o usuario precisa saber ONDE esta e COM QUE
+              perfil — e' o que explica ver (ou nao ver) o dado dos colegas.
+              No assinante avulso isso e' redundante e fica escondido. */}
+        {isTeamOrg && (
+          <>
+            <div className="px-2 py-1.5">
+              <p className="text-xs font-medium text-slate-900 truncate">
+                {user?.organizationName}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {user ? ROLE_LABELS[user.role] : ""}
+              </p>
             </div>
-          )}
-          {inDrawer && (
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              className="ml-auto inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-200"
-              aria-label="Fechar menu"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </div>
+            <DropdownMenuSeparator className="bg-white/10" />
+          </>
+        )}
+        <DropdownMenuItem onSelect={() => navigate("/conta")}>
+          <UserCircle className="size-4 text-slate-400" />
+          Conta
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => {}}>
+          <HelpCircle className="size-4 text-slate-400" />
+          Ajuda
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-white/10" />
+        <DropdownMenuItem onSelect={() => void signOut()}>
+          <LogOut className="size-4 text-slate-400" />
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
-        {/* Navegacao */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-          {navItems.map((item) => (
-            <NavRow
-              key={item.to}
-              item={item}
-              collapsed={isCollapsed}
-              onNavigate={inDrawer ? () => setMobileOpen(false) : undefined}
-              badge={item.badgeKey === "notifications" ? unread : 0}
-            />
-          ))}
-        </nav>
-
-        {/* Rodape: nome do usuario -> menu (Conta / Ajuda / Sair) */}
-        <div className="shrink-0 border-t border-slate-100 p-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                title={user?.fullName || user?.email || "Conta"}
-                className={cn(
-                  "flex items-center h-9 w-full rounded-md text-sm text-slate-700 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
-                  isCollapsed ? "justify-center" : "gap-2 px-2.5",
-                )}
-              >
-                {isCollapsed ? (
-                  <UserCircle className="size-5 shrink-0 text-slate-500" />
-                ) : (
-                  <>
-                    <span className="min-w-0 flex-1 truncate text-left font-medium">
-                      {user?.fullName || user?.email}
-                    </span>
-                    <UnfoldMore className="size-4 shrink-0 text-slate-400" />
-                  </>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              sideOffset={6}
-              className="w-56"
-            >
-              {/* Em org com equipe o usuario precisa saber ONDE esta e COM QUE
-                  perfil — e' o que explica ver (ou nao ver) o dado dos colegas.
-                  No assinante avulso isso e' redundante e fica escondido. */}
-              {isTeamOrg && (
-                <>
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-medium text-slate-900 truncate">
-                      {user?.organizationName}
-                    </p>
-                    <p className="text-[11px] text-slate-500">
-                      {user ? ROLE_LABELS[user.role] : ""}
-                    </p>
-                  </div>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                </>
-              )}
-              <DropdownMenuItem
-                onSelect={() => navigate("/conta")}
-              >
-                <UserCircle className="size-4 text-zinc-400" />
-                Conta
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {}}
-              >
-                <HelpCircle className="size-4 text-zinc-400" />
-                Ajuda
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem
-                onSelect={() => void signOut()}
-              >
-                <LogOut className="size-4 text-zinc-400" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    );
-  };
+  /** Grupos do trilho, montados a partir dos itens JÁ filtrados por papel:
+   *  grupo sem item visível não aparece (Plataforma some pra quem não é master,
+   *  Organização some pro usuário comum). */
+  const railGroups: RailGroup[] = RAIL_GROUPS.map((g) => ({
+    label: g.label,
+    Icon: g.icon,
+    items: g.rotas
+      .map((rota) => navItems.find((i) => i.to === rota))
+      .filter((i): i is NavItem => !!i)
+      .map((i) => ({
+        to: i.to,
+        label: i.label,
+        end: i.end,
+        badge: i.badgeKey === "notifications" ? unread : 0,
+      })),
+  })).filter((g) => g.items.length > 0);
 
   return (
-    <div
-      className="flex overflow-hidden bg-white"
-      style={{ height: "100dvh" }}
-    >
-      {/* SIDEBAR DESKTOP (fixa, colapsavel) */}
-      <aside
-        className={cn(
-          "hidden md:flex flex-col shrink-0 border-r border-slate-200 transition-[width] duration-200",
-          collapsed ? "w-16" : "w-60",
-        )}
-      >
-        {renderSidebar(false)}
+    <div className="flex overflow-hidden bg-white" style={{ height: "100dvh" }}>
+      {/* TRILHO DESKTOP — coluna de ícones, sem recolher (ver AppSidebar). */}
+      <aside className="hidden md:flex flex-col shrink-0 w-16 h-full min-h-0 border-r border-slate-200 bg-white">
+        <div className="flex items-center justify-center h-13 shrink-0">
+          <Logo className="h-6 w-auto opacity-80" />
+        </div>
+        <div aria-hidden className="h-px shrink-0 bg-slate-100" />
+        <AppSidebar groups={railGroups} footer={accountTrigger} />
       </aside>
 
       {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua
@@ -371,8 +336,7 @@ export function AppShell() {
                 >
                   <item.icon className="size-5 shrink-0" />
                   <span>{item.label}</span>
-                  {/* Render mobile é duplicado (não usa o NavRow), então o badge
-                      precisa ser repetido aqui. */}
+                  {/* A gaveta desenha o item com markup próprio. */}
                   {item.badgeKey === "notifications" && unread > 0 && (
                     <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
                       {unread > 99 ? "99+" : unread}
@@ -423,25 +387,14 @@ export function AppShell() {
         {/* Convidado: deixa claro por que nao existe botao de criar/editar. */}
         {isViewer && (
           <div className="shrink-0 bg-purple-50 border-b border-purple-200 px-4 py-2 text-center text-xs text-purple-900">
-            Você está como <strong>Convidado</strong> em {user?.organizationName} —
-            acesso de consulta, sem cadastrar ou alterar lançamentos.
+            Você está como <strong>Convidado</strong> em{" "}
+            {user?.organizationName} — acesso de consulta, sem cadastrar ou
+            alterar lançamentos.
           </div>
         )}
 
         {/* DESKTOP: topbar com toggle + breadcrumb */}
         <div className="hidden md:flex items-center h-13 shrink-0 border-b border-slate-200 px-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-            title={collapsed ? "Expandir menu" : "Recolher menu"}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="size-5" />
-            ) : (
-              <PanelLeftClose className="size-5" />
-            )}
-          </button>
           <div className="flex-1 min-w-0">
             <PageBreadcrumb segments={breadcrumbSegments} embedded />
           </div>

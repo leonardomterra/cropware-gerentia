@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import NotificationsIcon from "~icons/material-symbols-light/notifications-outline";
-import Check from "~icons/material-symbols-light/check";
-import DoneAll from "~icons/material-symbols-light/done-all";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
+import NotificationsIcon from "~icons/ph/bell";
+import Check from "~icons/ph/check";
+import DoneAll from "~icons/ph/checks";
+import Trash2 from "~icons/ph/trash";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";

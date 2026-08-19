@@ -14,7 +14,7 @@ import { useIsMobile } from "@/components/ui/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import { BOTAO_BARRA_PRIMARIO, CAMPO_BARRA } from "@/lib/ui-tokens";
 import {
   Dialog,
   DialogClose,
@@ -23,26 +23,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { STATUS_LABEL, STATUS_COLOR_SCHEME } from "@/modules/receipts/constants";
+import {
+  STATUS_LABEL,
+  STATUS_COLOR_SCHEME,
+} from "@/modules/receipts/constants";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import ChevronDown from "~icons/ph/caret-down";
 import { api } from "@/utils/api";
-import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
+import {
+  AllCentersChip,
+  CostCenterChip,
+  ccTextColor,
+} from "@/modules/cost-centers/ccIcons";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
 import { getCategoryLabel } from "@/modules/receipts/utils/receiptFormatters";
 import { toast } from "sonner";
-import Download from "~icons/material-symbols-light/download";
+import Download from "~icons/ph/download-simple";
 import { reportToPdf } from "@/modules/reports/reportPdf";
 import { openReportPage } from "@/modules/reports/reportExport";
 import type { ReportDoc } from "@/modules/reports/reportBuilders";
 import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
-import { MonthSwitcher, monthRangeISO, type YearMonth } from "@/modules/receipts/components/MonthSwitcher";
+import {
+  MonthSwitcher,
+  monthRangeISO,
+  type YearMonth,
+} from "@/modules/receipts/components/MonthSwitcher";
 import {
   PeriodSwitcher,
   PeriodModeSelect,
@@ -77,7 +88,9 @@ interface Receipt {
   items?: ReceiptItemLite[];
 }
 
-interface ReceiptsResponse { receipts: Receipt[] }
+interface ReceiptsResponse {
+  receipts: Receipt[];
+}
 
 /**
  * "Linha" = unidade de agregação. Lançamento COM itens vira 1 linha por item
@@ -99,7 +112,9 @@ function linesOf(r: Receipt): DashLine[] {
   const date = r.paid_date || r.transaction_date || null;
   const est = r.is_estimated === true;
   // Itens desmembrados viraram lançamento próprio: fora das linhas (evita dobra).
-  const activeItems = (r.items ?? []).filter((it) => !it.promoted_to_receipt_id);
+  const activeItems = (r.items ?? []).filter(
+    (it) => !it.promoted_to_receipt_id,
+  );
   if (activeItems.length > 0) {
     return activeItems.map((it) => ({
       direction: r.direction,
@@ -134,15 +149,31 @@ function receiptMatchesCC(r: Receipt, cc: string): boolean {
   );
 }
 
-const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const MONTH_LABELS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 // Cores de entrada/saída alinhadas à paleta dos centros de custo (CC_COLORS):
 // preenchimentos (barras/legenda) nos tons 400; texto num tom legível da mesma família.
-const COLOR_IN = "#34D399";  // emerald-400
-const COLOR_OUT = "#A1A1AA"; // zinc-400 (gráfico Entradas×Saídas)
+const COLOR_IN = "#34D399"; // emerald-400
+const COLOR_OUT = "#a3a3a3"; // slate-400 (gráfico Entradas×Saídas)
 
 function fmtBRLfull(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(v);
 }
 
 /** "YYYY-MM-DD" -> "DD/MM/YYYY" (sem timezone). */
@@ -157,7 +188,10 @@ function monthKey(d: Date): string {
 }
 
 /** 6 meses terminando no mês selecionado (inclusive). */
-function sixMonthsEnding({ year, month }: YearMonth): { key: string; label: string }[] {
+function sixMonthsEnding({
+  year,
+  month,
+}: YearMonth): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(year, month - 1 - i, 1);
@@ -167,7 +201,10 @@ function sixMonthsEnding({ year, month }: YearMonth): { key: string; label: stri
 }
 
 /** Meses de from..to (inclusive). Cruzando ano, label ganha o ano ("Dez 25"). */
-function monthsBetween(from: YearMonth, to: YearMonth): { key: string; label: string }[] {
+function monthsBetween(
+  from: YearMonth,
+  to: YearMonth,
+): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
   const crossYear = from.year !== to.year;
   let y = from.year;
@@ -176,7 +213,9 @@ function monthsBetween(from: YearMonth, to: YearMonth): { key: string; label: st
     const d = new Date(y, m - 1, 1);
     out.push({
       key: monthKey(d),
-      label: crossYear ? `${MONTH_LABELS[m - 1]} ${String(y).slice(2)}` : MONTH_LABELS[m - 1],
+      label: crossYear
+        ? `${MONTH_LABELS[m - 1]} ${String(y).slice(2)}`
+        : MONTH_LABELS[m - 1],
     });
     m++;
     if (m > 12) {
@@ -188,7 +227,10 @@ function monthsBetween(from: YearMonth, to: YearMonth): { key: string; label: st
 }
 
 /** N meses APÓS o selecionado (pra projeção/previsto). */
-function futureMonths({ year, month }: YearMonth, n: number): { key: string; label: string }[] {
+function futureMonths(
+  { year, month }: YearMonth,
+  n: number,
+): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
   for (let i = 1; i <= n; i++) {
     const d = new Date(year, month - 1 + i, 1);
@@ -198,7 +240,9 @@ function futureMonths({ year, month }: YearMonth, n: number): { key: string; lab
 }
 
 function todayISO(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 /** Dias entre hoje e uma data ISO (positivo = futuro). */
@@ -210,7 +254,8 @@ function daysUntil(iso: string): number {
 }
 
 function dueLabel(days: number): string {
-  if (days < 0) return `${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"} atrás`;
+  if (days < 0)
+    return `${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"} atrás`;
   if (days === 0) return "hoje";
   if (days === 1) return "amanhã";
   return `em ${days} dias`;
@@ -230,7 +275,8 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const range = periodRange(period);
-  const ymKey = (m: YearMonth) => `${m.year}-${String(m.month).padStart(2, "0")}`;
+  const ymKey = (m: YearMonth) =>
+    `${m.year}-${String(m.month).padStart(2, "0")}`;
   const fromKey = ymKey(range.from);
   const toKey = ymKey(range.to);
 
@@ -255,12 +301,15 @@ export default function DashboardPage() {
         );
         if (!cancel) setReceipts(resp.receipts || []);
       } catch (e) {
-        if (!cancel) setError(e instanceof Error ? e.message : "Erro ao carregar dados");
+        if (!cancel)
+          setError(e instanceof Error ? e.message : "Erro ao carregar dados");
       } finally {
         if (!cancel) setLoading(false);
       }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [period]);
 
   // Itens em aberto (a pagar/receber), independente do período — alimentam a
@@ -278,7 +327,9 @@ export default function DashboardPage() {
         /* silencioso: os widgets de projeção/vencimento só não aparecem */
       }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, []);
 
   // Expande em linhas (split por item) e filtra por CC na LINHA - assim uma
@@ -300,7 +351,8 @@ export default function DashboardPage() {
     return k >= fromKey && k <= toKey;
   };
   const monthKpis = useMemo(() => {
-    let income = 0, expense = 0;
+    let income = 0,
+      expense = 0;
     for (const l of lines) {
       if (!inRange(l.date)) continue;
       if (l.is_estimated) continue; // previsto não entra no realizado
@@ -315,7 +367,9 @@ export default function DashboardPage() {
   // recorte das Entradas/Saídas — não soma contas de meses anteriores). INCLUI
   // previsto (são obrigações projetadas do período).
   const pending = useMemo(() => {
-    let aPagar = 0, aReceber = 0, vencido = 0;
+    let aPagar = 0,
+      aReceber = 0,
+      vencido = 0;
     for (const l of lines) {
       if (!inRange(l.date)) continue;
       if (l.status === "a_pagar") aPagar += l.value;
@@ -330,18 +384,43 @@ export default function DashboardPage() {
   // no modo Mês), alimentado pelos itens em aberto (recorrências projetadas etc.).
   const chartData = useMemo(() => {
     const isMonth = period.mode === "month";
-    const selKey = isMonth ? monthKey(new Date(period.month.year, period.month.month - 1, 1)) : "";
-    const realMonths = isMonth ? sixMonthsEnding(period.month) : monthsBetween(range.from, range.to);
+    const selKey = isMonth
+      ? monthKey(new Date(period.month.year, period.month.month - 1, 1))
+      : "";
+    const realMonths = isMonth
+      ? sixMonthsEnding(period.month)
+      : monthsBetween(range.from, range.to);
     const futMonths = isMonth ? futureMonths(period.month, 3) : [];
-    type Row = { mes: string; mesNum: string; entradas: number; saidas: number; previsto: boolean; sel: boolean };
+    type Row = {
+      mes: string;
+      mesNum: string;
+      entradas: number;
+      saidas: number;
+      previsto: boolean;
+      sel: boolean;
+    };
     const acc: Record<string, Row> = {};
     const order: string[] = [];
     for (const m of realMonths) {
-      acc[m.key] = { mes: m.label, mesNum: m.key.slice(5), entradas: 0, saidas: 0, previsto: false, sel: m.key === selKey };
+      acc[m.key] = {
+        mes: m.label,
+        mesNum: m.key.slice(5),
+        entradas: 0,
+        saidas: 0,
+        previsto: false,
+        sel: m.key === selKey,
+      };
       order.push(m.key);
     }
     for (const m of futMonths) {
-      acc[m.key] = { mes: m.label, mesNum: m.key.slice(5), entradas: 0, saidas: 0, previsto: true, sel: false };
+      acc[m.key] = {
+        mes: m.label,
+        mesNum: m.key.slice(5),
+        entradas: 0,
+        saidas: 0,
+        previsto: true,
+        sel: false,
+      };
       order.push(m.key);
     }
     for (const l of lines) {
@@ -379,8 +458,11 @@ export default function DashboardPage() {
   // (D) Comparativo com o mês anterior — só no modo Mês (passado está no fetch).
   const lastMonthKpis = useMemo(() => {
     if (period.mode !== "month") return null;
-    const prevKey = monthKey(new Date(period.month.year, period.month.month - 2, 1));
-    let income = 0, expense = 0;
+    const prevKey = monthKey(
+      new Date(period.month.year, period.month.month - 2, 1),
+    );
+    let income = 0,
+      expense = 0;
     for (const l of lines) {
       if (!l.date || l.date.slice(0, 7) !== prevKey) continue;
       if (l.is_estimated) continue;
@@ -405,7 +487,12 @@ export default function DashboardPage() {
     return Object.entries(byCC)
       .map(([id, total]) => {
         const cc = ccs.find((c) => c.id === id);
-        return { id, name: cc?.name || "Sem centro", color: cc?.color || "#94a3b8", total };
+        return {
+          id,
+          name: cc?.name || "Sem centro",
+          color: cc?.color || "#94a3b8",
+          total,
+        };
       })
       .sort((a, b) => b.total - a.total);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -452,7 +539,9 @@ export default function DashboardPage() {
         : ccs.find((c) => c.id === activeCC)?.name || "Centro";
     const catTotal = topCategories.reduce((s, c) => s + c.total, 0);
     const pct = (v: number) =>
-      catTotal > 0 ? `${((v / catTotal) * 100).toFixed(1).replace(".", ",")}%` : "—";
+      catTotal > 0
+        ? `${((v / catTotal) * 100).toFixed(1).replace(".", ",")}%`
+        : "—";
 
     const tables: ReportDoc["tables"] = [
       {
@@ -534,7 +623,11 @@ export default function DashboardPage() {
       const doc = buildDashboardDoc();
       if (isNativeCapacitorApp()) {
         const { blob } = await reportToPdf(doc);
-        await exportFile(`dashboard_${todayISO()}.pdf`, blob, "application/pdf");
+        await exportFile(
+          `dashboard_${todayISO()}.pdf`,
+          blob,
+          "application/pdf",
+        );
       } else {
         await openReportPage(doc);
       }
@@ -548,35 +641,27 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportPdf}
-          disabled={exportingPdf || loading}
-          className="gap-1.5"
-        >
-          <Download className="size-[18px]" />
-          {exportingPdf ? "Gerando…" : "Exportar PDF"}
-        </Button>
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <PeriodModeSelect value={period} onChange={setPeriod} className="w-full sm:flex-1" />
+      {/* Mesma anatomia da barra de Lançamentos: os campos que se consultam
+          toda hora esticam à esquerda, a ação encosta à direita. O "Exportar
+          PDF" tinha uma faixa só pra ele. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div className="grid flex-1 min-w-0 gap-2 grid-cols-1 sm:grid-cols-3">
+          <PeriodModeSelect
+            value={period}
+            onChange={setPeriod}
+            className="w-full"
+          />
           {period.mode === "month" && (
             <MonthSwitcher
               value={period.month}
               onChange={(month) => setPeriod({ ...period, month })}
               variant="picker"
-              className="w-full sm:flex-1"
             />
           )}
           {showCCFilter && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:flex-1")}
-                >
+                <button type="button" className={CAMPO_BARRA}>
                   {activeCC !== "all" ? (
                     <CostCenterChip
                       icon={ccs.find((c) => c.id === activeCC)?.icon}
@@ -588,7 +673,15 @@ export default function DashboardPage() {
                   )}
                   <span
                     className="flex-1 text-left truncate"
-                    style={activeCC !== "all" ? { color: ccTextColor(ccs.find((c) => c.id === activeCC)?.color) } : undefined}
+                    style={
+                      activeCC !== "all"
+                        ? {
+                            color: ccTextColor(
+                              ccs.find((c) => c.id === activeCC)?.color,
+                            ),
+                          }
+                        : undefined
+                    }
                   >
                     {activeCC === "all"
                       ? "Todos os Centros"
@@ -600,7 +693,11 @@ export default function DashboardPage() {
               <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuItem
                   onClick={() => setActiveCC("all")}
-                  className={activeCC === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
+                  className={
+                    activeCC === "all"
+                      ? "bg-white/10 font-medium gap-2"
+                      : "gap-2"
+                  }
                 >
                   <AllCentersChip className="size-6" />
                   <span className="min-w-0 flex-1 truncate">Todos</span>
@@ -609,24 +706,48 @@ export default function DashboardPage() {
                   <DropdownMenuItem
                     key={cc.id}
                     onClick={() => setActiveCC(cc.id)}
-                    className={activeCC === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
+                    className={
+                      activeCC === cc.id
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
                   >
-                    <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                    <span className="min-w-0 flex-1 truncate" style={{ color: cc.color ?? undefined }}>{cc.name}</span>
+                    <CostCenterChip
+                      icon={cc.icon}
+                      color={cc.color}
+                      className="size-6"
+                    />
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      style={{ color: cc.color ?? undefined }}
+                    >
+                      {cc.name}
+                    </span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
         </div>
+
+        <Button
+          onClick={handleExportPdf}
+          disabled={exportingPdf || loading}
+          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+        >
+          <Download className="size-[18px]" />
+          {exportingPdf ? "Gerando…" : "Exportar PDF"}
+        </Button>
+      </div>
 
       {/* Controles do modo selecionado (régua de meses / semestre / ano / datas).
           O seletor de modo em si fica na barra de topo, ao lado dos centros. */}
       <PeriodSwitcher value={period} onChange={setPeriod} />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
+          {error}
+        </div>
       )}
 
       {/* KPIs do mês + pendências: uma linha só, mesmo padrão de card. */}
@@ -634,12 +755,57 @@ export default function DashboardPage() {
         {/* Paleta alinhada aos valores em Lançamentos: entrada/receita =
             emerald-700; despesa = slate-900 (neutra, sem vermelho). Vermelho
             fica só p/ ALERTA (Vencido, Saldo negativo); amber = A pagar. */}
-        <KpiCard label={period.mode === "month" ? "Entradas (mês)" : "Entradas"} value={monthKpis.income} color="text-emerald-700" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.income, lastMonthKpis.income, true) : null} />
-        <KpiCard label={period.mode === "month" ? "Saídas (mês)" : "Saídas"} value={monthKpis.expense} color="text-slate-900" loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false) : null} />
-        <KpiCard label={period.mode === "month" ? "Saldo (mês)" : "Saldo"} value={monthKpis.balance} color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-600"} loading={loading} delta={lastMonthKpis ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true) : null} />
-        <KpiCard label={period.mode === "month" ? "A pagar (mês)" : "A pagar"} value={pending.aPagar} color="text-amber-600" loading={loading} />
-        <KpiCard label={period.mode === "month" ? "A receber (mês)" : "A receber"} value={pending.aReceber} color="text-emerald-700" loading={loading} />
-        <KpiCard label="Vencido" value={pending.vencido} color="text-red-600" loading={loading} />
+        <KpiCard
+          label={period.mode === "month" ? "Entradas (mês)" : "Entradas"}
+          value={monthKpis.income}
+          color="text-emerald-700"
+          loading={loading}
+          delta={
+            lastMonthKpis
+              ? mkDelta(monthKpis.income, lastMonthKpis.income, true)
+              : null
+          }
+        />
+        <KpiCard
+          label={period.mode === "month" ? "Saídas (mês)" : "Saídas"}
+          value={monthKpis.expense}
+          color="text-slate-900"
+          loading={loading}
+          delta={
+            lastMonthKpis
+              ? mkDelta(monthKpis.expense, lastMonthKpis.expense, false)
+              : null
+          }
+        />
+        <KpiCard
+          label={period.mode === "month" ? "Saldo (mês)" : "Saldo"}
+          value={monthKpis.balance}
+          color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-600"}
+          loading={loading}
+          delta={
+            lastMonthKpis
+              ? mkDelta(monthKpis.balance, lastMonthKpis.balance, true)
+              : null
+          }
+        />
+        <KpiCard
+          label={period.mode === "month" ? "A pagar (mês)" : "A pagar"}
+          value={pending.aPagar}
+          color="text-amber-600"
+          loading={loading}
+        />
+        <KpiCard
+          label={period.mode === "month" ? "A receber (mês)" : "A receber"}
+          value={pending.aReceber}
+          color="text-emerald-700"
+          loading={loading}
+        />
+        <KpiCard
+          label="Vencido"
+          value={pending.vencido}
+          color="text-red-600"
+          loading={loading}
+        />
       </div>
 
       {/* Gráfico minimalista: 6 meses terminando no selecionado. O mês
@@ -677,7 +843,7 @@ export default function DashboardPage() {
             >
               <XAxis
                 dataKey="mes"
-                stroke="#a1a1aa"
+                stroke="#a3a3a3"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -693,7 +859,7 @@ export default function DashboardPage() {
                 cursor={{ fill: "rgba(0,0,0,0.03)" }}
                 contentStyle={{
                   background: "white",
-                  border: "1px solid #e4e4e7",
+                  border: "1px solid #e5e5e5",
                   borderRadius: 6,
                   fontSize: 12,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -705,7 +871,15 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_IN}
-                    fillOpacity={d.previsto ? 0.4 : period.mode !== "month" ? 1 : d.sel ? 1 : 0.3}
+                    fillOpacity={
+                      d.previsto
+                        ? 0.4
+                        : period.mode !== "month"
+                          ? 1
+                          : d.sel
+                            ? 1
+                            : 0.3
+                    }
                   />
                 ))}
               </Bar>
@@ -714,7 +888,15 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_OUT}
-                    fillOpacity={d.previsto ? 0.4 : period.mode !== "month" ? 1 : d.sel ? 1 : 0.3}
+                    fillOpacity={
+                      d.previsto
+                        ? 0.4
+                        : period.mode !== "month"
+                          ? 1
+                          : d.sel
+                            ? 1
+                            : 0.3
+                    }
                   />
                 ))}
               </Bar>
@@ -731,17 +913,26 @@ export default function DashboardPage() {
             Onde Mais Saiu — {periodLabel(period)}
           </h2>
           {topCategories.length === 0 ? (
-            <p className="text-sm text-slate-500">Sem despesas neste período.</p>
+            <p className="text-sm text-slate-500">
+              Sem despesas neste período.
+            </p>
           ) : (
             <ul className="space-y-2">
               {topCategories.map((c) => {
                 const max = topCategories[0].total;
-                const pct = max ? Math.max(4, Math.round((c.total / max) * 100)) : 0;
+                const pct = max
+                  ? Math.max(4, Math.round((c.total / max) * 100))
+                  : 0;
                 return (
                   <li key={c.cat} className="flex items-center gap-3">
-                    <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">{getCategoryLabel(c.cat, categories)}</span>
+                    <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">
+                      {getCategoryLabel(c.cat, categories)}
+                    </span>
                     <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded-sm">
-                      <div className="h-3 rounded-sm bg-slate-400" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-3 rounded-sm bg-slate-400"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                     <span className="text-sm text-slate-700 w-24 text-right tabular-nums">
                       {fmtBRLfull(c.total)}
@@ -760,18 +951,36 @@ export default function DashboardPage() {
               Gastos por Centro — {periodLabel(period)}
             </h2>
             {ccSpend.length === 0 ? (
-              <p className="text-sm text-slate-500">Sem despesas neste período.</p>
+              <p className="text-sm text-slate-500">
+                Sem despesas neste período.
+              </p>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="h-40 w-40 shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={ccSpend} dataKey="total" nameKey="name" innerRadius={42} outerRadius={66} paddingAngle={2} stroke="none">
-                        {ccSpend.map((c) => <Cell key={c.id} fill={c.color} />)}
+                      <Pie
+                        data={ccSpend}
+                        dataKey="total"
+                        nameKey="name"
+                        innerRadius={42}
+                        outerRadius={66}
+                        paddingAngle={2}
+                        stroke="none"
+                      >
+                        {ccSpend.map((c) => (
+                          <Cell key={c.id} fill={c.color} />
+                        ))}
                       </Pie>
                       <Tooltip
                         formatter={(v: number) => fmtBRLfull(v)}
-                        contentStyle={{ background: "white", border: "1px solid #e4e4e7", borderRadius: 6, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+                        contentStyle={{
+                          background: "white",
+                          border: "1px solid #e5e5e5",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                        }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -780,11 +989,23 @@ export default function DashboardPage() {
                   {(() => {
                     const total = ccSpend.reduce((s, x) => s + x.total, 0);
                     return ccSpend.map((c) => (
-                      <li key={c.id} className="flex items-center gap-2 text-sm">
-                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                        <span className="text-slate-700 truncate flex-1 min-w-0">{c.name}</span>
-                        <span className="text-slate-400 tabular-nums">{total ? Math.round((c.total / total) * 100) : 0}%</span>
-                        <span className="text-slate-700 tabular-nums w-20 text-right">{fmtBRLfull(c.total)}</span>
+                      <li
+                        key={c.id}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <span
+                          className="size-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: c.color }}
+                        />
+                        <span className="text-slate-700 truncate flex-1 min-w-0">
+                          {c.name}
+                        </span>
+                        <span className="text-slate-400 tabular-nums">
+                          {total ? Math.round((c.total / total) * 100) : 0}%
+                        </span>
+                        <span className="text-slate-700 tabular-nums w-20 text-right">
+                          {fmtBRLfull(c.total)}
+                        </span>
                       </li>
                     ));
                   })()}
@@ -798,7 +1019,9 @@ export default function DashboardPage() {
       {/* (B) Próximos vencimentos — contas a pagar/receber de hoje em diante */}
       {dueSoon.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
-          <h2 className="text-xs font-medium text-slate-500 mb-3">Próximos vencimentos</h2>
+          <h2 className="text-xs font-medium text-slate-500 mb-3">
+            Próximos vencimentos
+          </h2>
           <ul className="divide-y divide-slate-100">
             {dueSoon.map((r) => {
               const days = daysUntil(r.due_date!);
@@ -818,14 +1041,31 @@ export default function DashboardPage() {
                   }}
                   className="flex items-center gap-3 py-2 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 >
-                  <span className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}>{dueLabel(days)}</span>
-                  <span className="flex-1 min-w-0 truncate text-slate-700">
-                    {r.vendor ? r.vendor.toUpperCase() : (r.category ? getCategoryLabel(r.category, categories) : (income ? "A receber" : "A pagar"))}
-                    {cc && showCCFilter ? <span className="text-slate-400"> — {cc.name}</span> : null}
-                    {r.is_estimated ? <span className="text-slate-400"> — Previsto</span> : null}
+                  <span
+                    className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}
+                  >
+                    {dueLabel(days)}
                   </span>
-                  <span className={`tabular-nums shrink-0 ${income ? "text-emerald-700" : "text-slate-900"}`}>
-                    {income ? "+" : "−"}{fmtBRLfull(Number(r.total_value))}
+                  <span className="flex-1 min-w-0 truncate text-slate-700">
+                    {r.vendor
+                      ? r.vendor.toUpperCase()
+                      : r.category
+                        ? getCategoryLabel(r.category, categories)
+                        : income
+                          ? "A receber"
+                          : "A pagar"}
+                    {cc && showCCFilter ? (
+                      <span className="text-slate-400"> — {cc.name}</span>
+                    ) : null}
+                    {r.is_estimated ? (
+                      <span className="text-slate-400"> — Previsto</span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={`tabular-nums shrink-0 ${income ? "text-emerald-700" : "text-slate-900"}`}
+                  >
+                    {income ? "+" : "−"}
+                    {fmtBRLfull(Number(r.total_value))}
                   </span>
                 </li>
               );
@@ -835,62 +1075,83 @@ export default function DashboardPage() {
       )}
 
       {/* Prévia do lançamento (Próximos vencimentos) — só leitura. */}
-      <Dialog open={!!previewReceipt} onOpenChange={(o) => !o && setPreviewReceipt(null)}>
+      <Dialog
+        open={!!previewReceipt}
+        onOpenChange={(o) => !o && setPreviewReceipt(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Detalhes do Lançamento</DialogTitle>
           </DialogHeader>
-          {previewReceipt && (() => {
-            const r = previewReceipt;
-            const cc = ccs.find((c) => c.id === r.cost_center_id);
-            const income = r.direction === "income";
-            const statusKey = r.status as keyof typeof STATUS_LABEL;
-            return (
-              <dl className="text-sm">
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Tipo</dt>
-                  <dd className="text-slate-900">{income ? "Entrada (receita)" : "Saída (despesa)"}</dd>
-                </div>
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Status</dt>
-                  <dd>
-                    <Badge colorScheme={STATUS_COLOR_SCHEME[statusKey] ?? "slate"}>
-                      {STATUS_LABEL[statusKey] ?? r.status}
-                    </Badge>
-                    {r.is_estimated ? <span className="text-slate-400 ml-2">Previsto</span> : null}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Valor</dt>
-                  <dd className={`font-medium tabular-nums ${income ? "text-emerald-700" : "text-slate-900"}`}>
-                    {income ? "+" : "−"}{fmtBRLfull(Number(r.total_value))}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Origem</dt>
-                  <dd className="text-slate-900 break-words">{r.vendor ? r.vendor.toUpperCase() : "—"}</dd>
-                </div>
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Categoria</dt>
-                  <dd className="text-slate-900">{getCategoryLabel(r.category, categories)}</dd>
-                </div>
-                {showCCFilter && (
+          {previewReceipt &&
+            (() => {
+              const r = previewReceipt;
+              const cc = ccs.find((c) => c.id === r.cost_center_id);
+              const income = r.direction === "income";
+              const statusKey = r.status as keyof typeof STATUS_LABEL;
+              return (
+                <dl className="text-sm">
                   <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                    <dt className="text-slate-500">Centro de custo</dt>
-                    <dd className="text-slate-900">{cc?.name ?? "—"}</dd>
+                    <dt className="text-slate-500">Tipo</dt>
+                    <dd className="text-slate-900">
+                      {income ? "Entrada (receita)" : "Saída (despesa)"}
+                    </dd>
                   </div>
-                )}
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
-                  <dt className="text-slate-500">Transação</dt>
-                  <dd className="text-slate-900 tabular-nums">{fmtDateBR(r.transaction_date)}</dd>
-                </div>
-                <div className="grid grid-cols-[120px_1fr] gap-3 py-2">
-                  <dt className="text-slate-500">Vencimento</dt>
-                  <dd className="text-slate-900 tabular-nums">{fmtDateBR(r.due_date)}</dd>
-                </div>
-              </dl>
-            );
-          })()}
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Status</dt>
+                    <dd>
+                      <Badge
+                        colorScheme={STATUS_COLOR_SCHEME[statusKey] ?? "slate"}
+                      >
+                        {STATUS_LABEL[statusKey] ?? r.status}
+                      </Badge>
+                      {r.is_estimated ? (
+                        <span className="text-slate-400 ml-2">Previsto</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Valor</dt>
+                    <dd
+                      className={`font-medium tabular-nums ${income ? "text-emerald-700" : "text-slate-900"}`}
+                    >
+                      {income ? "+" : "−"}
+                      {fmtBRLfull(Number(r.total_value))}
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Origem</dt>
+                    <dd className="text-slate-900 break-words">
+                      {r.vendor ? r.vendor.toUpperCase() : "—"}
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Categoria</dt>
+                    <dd className="text-slate-900">
+                      {getCategoryLabel(r.category, categories)}
+                    </dd>
+                  </div>
+                  {showCCFilter && (
+                    <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                      <dt className="text-slate-500">Centro de custo</dt>
+                      <dd className="text-slate-900">{cc?.name ?? "—"}</dd>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2 border-b border-slate-100">
+                    <dt className="text-slate-500">Transação</dt>
+                    <dd className="text-slate-900 tabular-nums">
+                      {fmtDateBR(r.transaction_date)}
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-[120px_1fr] gap-3 py-2">
+                    <dt className="text-slate-500">Vencimento</dt>
+                    <dd className="text-slate-900 tabular-nums">
+                      {fmtDateBR(r.due_date)}
+                    </dd>
+                  </div>
+                </dl>
+              );
+            })()}
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Fechar</Button>
@@ -902,19 +1163,38 @@ export default function DashboardPage() {
   );
 }
 
-interface Delta { pct: number | null; up: boolean; good: boolean }
+interface Delta {
+  pct: number | null;
+  up: boolean;
+  good: boolean;
+}
 
 /** Variação vs mês anterior. higherIsGood: entradas/saldo=true, saídas=false. */
-function mkDelta(cur: number, last: number, higherIsGood: boolean): Delta | null {
+function mkDelta(
+  cur: number,
+  last: number,
+  higherIsGood: boolean,
+): Delta | null {
   if (last === 0 && cur === 0) return null;
   const up = cur > last;
   const good = higherIsGood ? cur >= last : cur <= last;
-  const pct = last !== 0 ? Math.round(Math.abs((cur - last) / last) * 100) : null;
+  const pct =
+    last !== 0 ? Math.round(Math.abs((cur - last) / last) * 100) : null;
   return { pct, up, good };
 }
 
-function KpiCard({ label, value, color, loading, delta }: {
-  label: string; value: number; color: string; loading: boolean; delta?: Delta | null;
+function KpiCard({
+  label,
+  value,
+  color,
+  loading,
+  delta,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  loading: boolean;
+  delta?: Delta | null;
 }) {
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
@@ -923,8 +1203,13 @@ function KpiCard({ label, value, color, loading, delta }: {
         {loading ? "..." : fmtBRLfull(value)}
       </p>
       {!loading && delta && delta.pct !== null ? (
-        <p className={`text-xs mt-1 tabular-nums ${delta.good ? "text-emerald-600" : "text-red-600"}`}>
-          {delta.up ? "▲" : "▼"} {delta.pct}% <span className="text-slate-400">vs mês passado</span>
+        <p
+          className={`text-xs mt-1 tabular-nums ${delta.good ? "text-emerald-600" : "text-red-600"}`}
+        >
+          <span className="whitespace-nowrap">
+            {delta.up ? "▲" : "▼"} {delta.pct}%
+          </span>{" "}
+          <span className="block text-slate-400">vs mês passado</span>
         </p>
       ) : null}
     </div>

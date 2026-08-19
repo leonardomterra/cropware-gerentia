@@ -54,14 +54,14 @@ export function DeleteConfirmationDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-lg max-w-md">
         <AlertDialogHeader className="space-y-3">
-          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#18181b' }}>
+          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#171717' }}>
             {title}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p
                 className="font-normal leading-relaxed"
-                style={{ fontSize: '14px', color: '#71717a' }}
+                style={{ fontSize: '14px', color: '#737373' }}
               >
                 Esta ação é irreversível.{' '}
                 {isBatch
@@ -72,7 +72,7 @@ export function DeleteConfirmationDialog({
               </p>
 
               {/* Subtle warning */}
-              <p className="font-normal" style={{ fontSize: '14px', color: '#a1a1aa' }}>
+              <p className="font-normal" style={{ fontSize: '14px', color: '#a3a3a3' }}>
                 Esta exclusão é definitiva e não poderá ser desfeita.
               </p>
 
@@ -81,21 +81,21 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#71717a' }}
+                    style={{ fontSize: '14px', color: '#737373' }}
                   >
                     Itens selecionados:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto"
-                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e4e4e7' }}
+                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
                   >
                     {batchItems!.map((name, i) => (
                       <div key={i} className="flex items-center gap-1.5 font-normal">
-                        <span style={{ color: '#52525b' }}>{name}</span>
+                        <span style={{ color: '#525252' }}>{name}</span>
                       </div>
                     ))}
                     {totalBatch > batchItems!.length && (
-                      <p className="font-normal italic" style={{ fontSize: '14px', color: '#a1a1aa' }}>
+                      <p className="font-normal italic" style={{ fontSize: '14px', color: '#a3a3a3' }}>
                         ...e mais {totalBatch - batchItems!.length} item(ns)
                       </p>
                     )}
@@ -108,20 +108,20 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#71717a' }}
+                    style={{ fontSize: '14px', color: '#737373' }}
                   >
                     A exclusão {isBatch ? 'destes itens' : 'deste item'} irá impactar:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1"
-                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e4e4e7' }}
+                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
                   >
                     {cascadeItems!
                       .filter(c => c.count > 0)
                       .map((item) => (
                         <div key={item.label} className="flex items-center justify-between font-normal">
-                          <span style={{ color: '#52525b' }}>{item.label}</span>
-                          <span style={{ color: '#18181b' }}>{item.count}</span>
+                          <span style={{ color: '#525252' }}>{item.label}</span>
+                          <span style={{ color: '#171717' }}>{item.count}</span>
                         </div>
                       ))}
                   </div>

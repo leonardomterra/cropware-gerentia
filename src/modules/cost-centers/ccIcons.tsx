@@ -1,26 +1,26 @@
 import type { ComponentType, SVGProps } from "react";
 // Filled (material-symbols regular) - mais encorpado que o -light/outline e
 // consistente; bom com fundo pintado. Ver Q1/Q2 (2026-06-01).
-import IconHome from "~icons/material-symbols/home";
-import IconPerson from "~icons/material-symbols/person";
-import IconAgriculture from "~icons/material-symbols/agriculture";
-import IconEco from "~icons/material-symbols/eco";
-import IconStore from "~icons/material-symbols/storefront";
-import IconCar from "~icons/material-symbols/directions-car";
-import IconSavings from "~icons/material-symbols/savings";
-import IconWork from "~icons/material-symbols/work";
-import IconBuild from "~icons/material-symbols/build";
-import IconReceipt from "~icons/material-symbols/receipt-long";
-import IconSchool from "~icons/material-symbols/school";
-import IconMedical from "~icons/material-symbols/medical-services";
-import IconRestaurant from "~icons/material-symbols/restaurant";
-import IconCart from "~icons/material-symbols/shopping-cart";
-import IconFlight from "~icons/material-symbols/flight";
-import IconApartment from "~icons/material-symbols/apartment";
-import IconPets from "~icons/material-symbols/pets";
-import IconBolt from "~icons/material-symbols/bolt";
-import IconCategory from "~icons/material-symbols/category";
-import IconApps from "~icons/material-symbols/apps";
+import IconHome from "~icons/ph/house-fill";
+import IconPerson from "~icons/ph/user-fill";
+import IconAgriculture from "~icons/ph/tractor-fill";
+import IconEco from "~icons/ph/plant-fill";
+import IconStore from "~icons/ph/storefront-fill";
+import IconCar from "~icons/ph/car-fill";
+import IconSavings from "~icons/ph/piggy-bank-fill";
+import IconWork from "~icons/ph/briefcase-fill";
+import IconBuild from "~icons/ph/wrench-fill";
+import IconReceipt from "~icons/ph/receipt-fill";
+import IconSchool from "~icons/ph/graduation-cap-fill";
+import IconMedical from "~icons/ph/first-aid-kit-fill";
+import IconRestaurant from "~icons/ph/fork-knife-fill";
+import IconCart from "~icons/ph/shopping-cart-fill";
+import IconFlight from "~icons/ph/airplane-tilt-fill";
+import IconApartment from "~icons/ph/building-apartment-fill";
+import IconPets from "~icons/ph/paw-print-fill";
+import IconBolt from "~icons/ph/lightning-fill";
+import IconCategory from "~icons/ph/tag-fill";
+import IconApps from "~icons/ph/squares-four-fill";
 import { cn } from "@/components/ui/utils";
 
 export type CCIconComponent = ComponentType<SVGProps<SVGSVGElement>>;

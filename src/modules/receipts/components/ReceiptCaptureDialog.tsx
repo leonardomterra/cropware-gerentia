@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import Camera from "~icons/material-symbols-light/photo-camera-outline";
-import Upload from "~icons/material-symbols-light/upload";
+import Camera from "~icons/ph/camera";
+import Upload from "~icons/ph/upload-simple";
 import Loader2 from "~icons/svg-spinners/ring-resize";
 import {
   Dialog,

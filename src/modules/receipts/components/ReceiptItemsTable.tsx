@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import CallMade from "~icons/material-symbols-light/call-made";
+import CallMade from "~icons/ph/arrow-up-right";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { Badge } from "@/components/ui/badge";

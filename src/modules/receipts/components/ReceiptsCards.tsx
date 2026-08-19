@@ -1,10 +1,13 @@
-import ArrowDownLeft from "~icons/material-symbols-light/call-received";
-import ArrowUpRight from "~icons/material-symbols-light/call-made";
-import MoreVertical from "~icons/material-symbols-light/more-vert";
-import ListIcon from "~icons/material-symbols-light/format-list-bulleted";
-import ReceiptLong from "~icons/material-symbols-light/receipt-long-outline";
-import CreditCard from "~icons/material-symbols-light/credit-card-outline";
-import InfoIcon from "~icons/material-symbols-light/info-outline";
+import ArrowDownLeft from "~icons/ph/arrow-down-left";
+import ArrowUpRight from "~icons/ph/arrow-up-right";
+import MoreVertical from "~icons/ph/dots-three-vertical";
+import ListIcon from "~icons/ph/list-bullets";
+import ReceiptLong from "~icons/ph/receipt";
+import CreditCard from "~icons/ph/credit-card";
+// Duotone só no indicador de cartão: ele marca UMA condição da linha, e o
+// segundo tom o separa dos ícones de tipo de documento, que são estruturais.
+import CreditCardDuotone from "~icons/ph/credit-card-duotone";
+import InfoIcon from "~icons/ph/info";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,6 +25,7 @@ import {
   STATUS_LABEL,
   isCreditCard,
 } from "../constants";
+import { BOTAO_ACOES } from "@/lib/ui-tokens";
 import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
 import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import { useCategories } from "../hooks/useCategories";
@@ -36,9 +40,7 @@ interface ReceiptsCardsProps {
   onView: (r: Receipt) => void;
   onEdit: (r: Receipt) => void;
   onDelete: (r: Receipt) => void;
-  /** Exporta este lançamento/fatura em CSV. */
-  onExport?: (r: Receipt) => void;
-  /** Só a ação "Ver detalhes" (sem editar/excluir). */
+  /** Só a ação "Ver" (sem editar/excluir). */
   viewOnly?: boolean;
   /** Mensagem quando não há registros. */
   emptyLabel?: string;
@@ -49,7 +51,6 @@ export function ReceiptsCards({
   onView,
   onEdit,
   onDelete,
-  onExport,
   viewOnly = false,
   emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsCardsProps) {
@@ -59,7 +60,7 @@ export function ReceiptsCards({
   return (
     <div className="flex flex-col gap-2">
       {receipts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-400">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-sm text-slate-500">
           {emptyLabel}
         </div>
       ) : null}
@@ -100,16 +101,27 @@ export function ReceiptsCards({
                 <ReceiptLong className="size-4 shrink-0 text-slate-400" />
               ) : null}
               {isCreditCard(r.payment_method) && (
-                <CreditCard className="size-4 shrink-0 text-violet-500" title="Cartão de crédito" />
+                <CreditCardDuotone
+                  className="size-4 shrink-0 text-violet-500"
+                  title="Cartão de crédito"
+                />
               )}
               <span className="truncate">
-                {r.vendor ? r.vendor.toUpperCase() : r.description ? r.description.toUpperCase() : "(sem origem)"}
+                {r.vendor
+                  ? r.vendor.toUpperCase()
+                  : r.description
+                    ? r.description.toUpperCase()
+                    : "(sem origem)"}
               </span>
             </p>
-            <p className="text-sm text-slate-500 mt-0.5 truncate">
+            {/* 2ª linha da escada: slate-700. Ver a tabela de tons em
+                docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa G. */}
+            <p className="text-sm text-slate-700 mt-0.5 truncate">
               {formatDateBR(r.transaction_date)}
               {(() => {
-                const its = (r.items ?? []).filter((i) => !i.promoted_to_receipt_id);
+                const its = (r.items ?? []).filter(
+                  (i) => !i.promoted_to_receipt_id,
+                );
                 const hasItems = r.item_count > 0 && its.length > 0;
                 if (hasItems) {
                   const uCats = [...new Set(its.map((i) => i.category))];
@@ -124,7 +136,7 @@ export function ReceiptsCards({
               })()}
             </p>
             {nameOf(r.created_by) && (
-              <p className="text-xs text-slate-400 mt-0.5 truncate">
+              <p className="text-sm text-slate-500 mt-0.5 truncate">
                 Lançado por {nameOf(r.created_by)}
               </p>
             )}
@@ -134,9 +146,19 @@ export function ReceiptsCards({
                 className="px-0 w-6"
                 title={r.direction === "income" ? "Entrada" : "Saída"}
               >
-                {r.direction === "income" ? <ArrowDownLeft /> : <ArrowUpRight />}
+                {r.direction === "income" ? (
+                  <ArrowDownLeft />
+                ) : (
+                  <ArrowUpRight />
+                )}
               </Badge>
-              <Badge colorScheme={r.is_estimated ? "orange" : (STATUS_COLOR_SCHEME[r.status] ?? "slate")}>
+              <Badge
+                colorScheme={
+                  r.is_estimated
+                    ? "orange"
+                    : (STATUS_COLOR_SCHEME[r.status] ?? "slate")
+                }
+              >
                 {r.is_estimated ? "Previsto" : STATUS_LABEL[r.status]}
               </Badge>
               {r.item_count > 0 && (r.items?.length ?? 0) > 0 && (
@@ -156,27 +178,19 @@ export function ReceiptsCards({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-9 shrink-0 -mt-1"
+                className={cn(BOTAO_ACOES, "size-9 shrink-0 -mt-1")}
                 aria-label="Ações"
               >
                 <MoreVertical className="size-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="min-w-[11rem]"
-            >
+            <DropdownMenuContent align="end" className="min-w-[11rem]">
               <DropdownMenuItem onSelect={() => onView(r)}>
-                Ver detalhes
+                Ver
               </DropdownMenuItem>
               {!viewOnly && canEdit(r) && (
                 <DropdownMenuItem onSelect={() => onEdit(r)}>
                   Editar
-                </DropdownMenuItem>
-              )}
-              {onExport && (
-                <DropdownMenuItem onSelect={() => onExport(r)}>
-                  Exportar CSV
                 </DropdownMenuItem>
               )}
               {!viewOnly && canEdit(r) && (

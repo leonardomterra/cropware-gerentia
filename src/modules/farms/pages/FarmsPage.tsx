@@ -1,4 +1,4 @@
-import Sprout from "~icons/material-symbols-light/eco-outline";
+import Sprout from "~icons/ph/plant";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function FarmsPage() {

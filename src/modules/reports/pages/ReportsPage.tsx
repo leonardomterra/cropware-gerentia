@@ -1,14 +1,18 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import Download from "~icons/material-symbols-light/download";
-import Print from "~icons/material-symbols-light/print-outline";
-import Summarize from "~icons/material-symbols-light/summarize-outline";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import Download from "~icons/ph/download-simple";
+import Print from "~icons/ph/printer";
+import Summarize from "~icons/ph/file-text";
+import ChevronDown from "~icons/ph/caret-down";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  CAMPO_BARRA,
+} from "@/lib/ui-tokens";
 import {
   Select,
   SelectContent,
@@ -57,7 +61,8 @@ import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
 
 function cellText(v: ReportCell, col: ReportColumn): string {
-  if (col.money && typeof v === "number" && Number.isFinite(v)) return formatBRL(v);
+  if (col.money && typeof v === "number" && Number.isFinite(v))
+    return formatBRL(v);
   if (col.money && (v === "" || v == null)) return "";
   return String(v ?? "");
 }
@@ -89,13 +94,17 @@ function ReportTableView({ table }: { table: ReportTable }) {
           </thead>
           <tbody>
             {table.rows.map((row, ri) => (
-              <tr key={ri} className="border-b border-slate-100 last:border-b-0">
+              <tr
+                key={ri}
+                className="border-b border-slate-100 last:border-b-0"
+              >
                 {row.map((v, ci) => (
                   <td
                     key={ci}
                     className={cn(
                       "py-2 px-4 text-slate-700 whitespace-nowrap",
-                      table.columns[ci].align === "right" && "text-right tabular-nums",
+                      table.columns[ci].align === "right" &&
+                        "text-right tabular-nums",
                     )}
                   >
                     {cellText(v, table.columns[ci])}
@@ -110,7 +119,8 @@ function ReportTableView({ table }: { table: ReportTable }) {
                     key={ci}
                     className={cn(
                       "py-2 px-4 font-semibold text-slate-900 whitespace-nowrap",
-                      table.columns[ci].align === "right" && "text-right tabular-nums",
+                      table.columns[ci].align === "right" &&
+                        "text-right tabular-nums",
                     )}
                   >
                     {cellText(v, table.columns[ci])}
@@ -278,6 +288,10 @@ export default function ReportsPage() {
   });
 
   const showDirection = kind === "categoria" || kind === "centro";
+  // Quantos campos a barra mostra AGORA — a grade precisa do número pra dar a
+  // cada um a mesma fração. Num flex, o rótulo mais longo encolheria os outros.
+  const camposNaBarra =
+    1 + (showDirection ? 1 : 0) + (userCCs.length > 1 ? 1 : 0);
 
   const doc: ReportDoc = useMemo(() => {
     const ccNameById = new Map(userCCs.map((c) => [c.id, c.name] as const));
@@ -293,7 +307,16 @@ export default function ReportsPage() {
       direction: showDirection ? direction : "all",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, receipts, categories, userCCs, activeCCId, month, direction, showDirection]);
+  }, [
+    kind,
+    receipts,
+    categories,
+    userCCs,
+    activeCCId,
+    month,
+    direction,
+    showDirection,
+  ]);
 
   const csvName = `relatorio_${kind}_${month.year}-${String(month.month).padStart(2, "0")}.csv`;
   const noData = doc.empty;
@@ -306,7 +329,9 @@ export default function ReportsPage() {
   // compartilhamento. No web mantém a página HTML (abre em aba com botão imprimir).
   const runPrint = async (withAttachments: boolean) => {
     const native = isNativeCapacitorApp();
-    const docs = withAttachments ? receipts.filter((r) => !!r.attachment_key) : [];
+    const docs = withAttachments
+      ? receipts.filter((r) => !!r.attachment_key)
+      : [];
     setPrinting(true);
     const toastId = toast.loading(
       withAttachments && docs.length
@@ -337,7 +362,9 @@ export default function ReportsPage() {
         await openReportPage(doc, att.html);
       }
       if (failed > 0) {
-        toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, { id: toastId });
+        toast.warning(`${failed} anexo(s) não puderam ser incluídos.`, {
+          id: toastId,
+        });
       } else {
         toast.dismiss(toastId);
       }
@@ -350,98 +377,132 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Controles — ocupam a largura: filtros flex-1, ações à direita. */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
-          <SelectTrigger className="w-full lg:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-none rounded-md">
-            <span className="flex min-w-0 flex-1 items-center gap-1.5">
-              <Summarize className="size-[18px] shrink-0 text-slate-500" />
-              <SelectValue />
-            </span>
-          </SelectTrigger>
-          <SelectContent>
-            {REPORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <MonthSwitcher
-          value={month}
-          onChange={setMonth}
-          variant="picker"
-          className="w-full lg:flex-1"
-        />
-
-        {showDirection && (
-          <Select value={direction} onValueChange={(v) => setDirection(v as DirectionFilter)}>
-            <SelectTrigger className="w-full lg:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-none rounded-md">
-              <SelectValue />
+      {/* Mesma anatomia da barra de Lançamentos: os campos esticam à esquerda
+          numa GRADE (em flex, um rótulo maior encolhe os vizinhos), o mês e as
+          ações encostam à direita. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md §26. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div
+          className={cn(
+            "grid flex-1 min-w-0 gap-2 grid-cols-1",
+            camposNaBarra === 3
+              ? "sm:grid-cols-3"
+              : camposNaBarra === 2
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-1",
+          )}
+        >
+          <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
+            <SelectTrigger className={CAMPO_BARRA}>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                <Summarize className="size-[18px] shrink-0 text-slate-500" />
+                <SelectValue />
+              </span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tudo</SelectItem>
-              <SelectItem value="expense">Só saídas</SelectItem>
-              <SelectItem value="income">Só entradas</SelectItem>
+              {REPORT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-        )}
 
-        {userCCs.length > 1 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(TOOLBAR_TRIGGER_CLASS, "w-full lg:flex-1")}
-              >
-                {activeCC ? (
-                  <CostCenterChip icon={activeCC.icon} color={activeCC.color} className="size-[18px]" />
-                ) : (
-                  <AllCentersChip className="size-[18px]" />
-                )}
-                <span
-                  className="flex-1 text-left truncate"
-                  style={activeCC ? { color: ccTextColor(activeCC.color) } : undefined}
-                >
+          {showDirection && (
+            <Select
+              value={direction}
+              onValueChange={(v) => setDirection(v as DirectionFilter)}
+            >
+              <SelectTrigger className={CAMPO_BARRA}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tudo</SelectItem>
+                <SelectItem value="expense">Só saídas</SelectItem>
+                <SelectItem value="income">Só entradas</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
+          {userCCs.length > 1 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className={CAMPO_BARRA}>
                   {activeCC ? (
-                    activeCC.name
+                    <CostCenterChip
+                      icon={activeCC.icon}
+                      color={activeCC.color}
+                      className="size-[18px]"
+                    />
                   ) : (
-                    <>
-                      <span className="sm:hidden">Centros</span>
-                      <span className="hidden sm:inline">Todos os Centros</span>
-                    </>
+                    <AllCentersChip className="size-[18px]" />
                   )}
-                </span>
-                <ChevronDown className="size-4 text-slate-500 shrink-0" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem
-                onClick={() => setActiveCCId("all")}
-                className={activeCCId === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"}
-              >
-                <AllCentersChip className="size-6" />
-                <span className="min-w-0 flex-1 truncate">Todos</span>
-              </DropdownMenuItem>
-              {userCCs.map((cc) => (
+                  <span
+                    className="flex-1 text-left truncate"
+                    style={
+                      activeCC
+                        ? { color: ccTextColor(activeCC.color) }
+                        : undefined
+                    }
+                  >
+                    {activeCC ? (
+                      activeCC.name
+                    ) : (
+                      <>
+                        <span className="sm:hidden">Centros</span>
+                        <span className="hidden sm:inline">
+                          Todos os Centros
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setActiveCCId(cc.id)}
-                  className={activeCCId === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"}
+                  onClick={() => setActiveCCId("all")}
+                  className={
+                    activeCCId === "all"
+                      ? "bg-white/10 font-medium gap-2"
+                      : "gap-2"
+                  }
                 >
-                  <CostCenterChip icon={cc.icon} color={cc.color} className="size-6" />
-                  <span className="min-w-0 flex-1 truncate" style={{ color: cc.color ?? undefined }}>{cc.name}</span>
+                  <AllCentersChip className="size-6" />
+                  <span className="min-w-0 flex-1 truncate">Todos</span>
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                {userCCs.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setActiveCCId(cc.id)}
+                    className={
+                      activeCCId === cc.id
+                        ? "bg-white/10 font-medium gap-2"
+                        : "gap-2"
+                    }
+                  >
+                    <CostCenterChip
+                      icon={cc.icon}
+                      color={cc.color}
+                      className="size-6"
+                    />
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      style={{ color: cc.color ?? undefined }}
+                    >
+                      {cc.name}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
 
-        <div className="flex gap-2 lg:shrink-0">
+        <MonthSwitcher value={month} onChange={setMonth} variant="picker" />
+
+        <div className="flex gap-2 shrink-0">
           <Button
-            variant="outline"
-            className="gap-1.5 flex-1 lg:flex-none"
+            className={cn(BOTAO_BARRA, "gap-1.5")}
             disabled={noData}
             onClick={() => downloadReportCsv(doc, csvName)}
           >
@@ -454,8 +515,7 @@ export default function ReportsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="outline"
-                className="gap-1.5 flex-1 lg:flex-none"
+                className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
                 disabled={noData || printing}
               >
                 <Print className="size-[18px]" />
@@ -472,18 +532,11 @@ export default function ReportsPage() {
                 <ChevronDown className="size-[18px] text-slate-500" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="min-w-[11rem]"
-            >
-              <DropdownMenuItem
-                onClick={() => runPrint(false)}
-              >
+            <DropdownMenuContent align="end" className="min-w-[11rem]">
+              <DropdownMenuItem onClick={() => runPrint(false)}>
                 Sem anexos
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => runPrint(true)}
-              >
+              <DropdownMenuItem onClick={() => runPrint(true)}>
                 Com anexos
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -501,7 +554,10 @@ export default function ReportsPage() {
       {doc.meta.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {doc.meta.map((m, i) => (
-            <div key={i} className="bg-white rounded-lg border border-slate-200 p-4 min-w-0">
+            <div
+              key={i}
+              className="bg-white rounded-lg border border-slate-200 p-4 min-w-0"
+            >
               <p className="text-sm text-slate-500 truncate">{m.label}</p>
               <p
                 className={cn(

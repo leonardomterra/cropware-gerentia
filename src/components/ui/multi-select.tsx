@@ -74,7 +74,7 @@ export function MultiSelect({
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between h-auto min-h-[2.3rem] px-3 py-2 bg-white border border-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] hover:bg-white text-sm font-normal", className)}
+          className={cn("w-full justify-between h-auto min-h-[2.3rem] px-3 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-50 text-sm font-normal", className)}
           disabled={disabled}
         >
           <div className="flex flex-wrap gap-1 flex-1">
@@ -124,8 +124,8 @@ export function MultiSelect({
                     className={cn(
                       "mr-2 flex h-4 w-4 items-center justify-center rounded border shadow-sm transition-all",
                       safeSelected.includes(option.value)
-                        ? "bg-white border-black text-[#3b9f73]"
-                        : "opacity-50 [&_svg]:invisible border-slate-300 bg-white"
+                        ? "bg-slate-50 border-black text-[#3b9f73]"
+                        : "opacity-50 [&_svg]:invisible border-slate-300 bg-slate-50"
                     )}
                   >
                     <Check className={cn("h-3.5 w-3.5")} strokeWidth={3} />

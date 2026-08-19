@@ -46,7 +46,7 @@ export function ConfirmActionDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-lg max-w-md">
         <AlertDialogHeader className="space-y-3">
-          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#18181b' }}>
+          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#171717' }}>
             {title}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
@@ -54,7 +54,7 @@ export function ConfirmActionDialog({
               {description && (
                 <p
                   className="font-normal leading-relaxed"
-                  style={{ fontSize: '14px', color: '#71717a' }}
+                  style={{ fontSize: '14px', color: '#737373' }}
                 >
                   {description}
                 </p>
@@ -63,12 +63,12 @@ export function ConfirmActionDialog({
               {hasInfo && (
                 <div
                   className="rounded-lg p-3 space-y-1"
-                  style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e4e4e7' }}
+                  style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
                 >
                   {infoItems!.map((item) => (
                     <div key={item.label} className="flex items-center justify-between font-normal">
-                      <span style={{ color: '#52525b' }}>{item.label}</span>
-                      <span style={{ color: '#18181b' }}>{item.value}</span>
+                      <span style={{ color: '#525252' }}>{item.label}</span>
+                      <span style={{ color: '#171717' }}>{item.value}</span>
                     </div>
                   ))}
                 </div>

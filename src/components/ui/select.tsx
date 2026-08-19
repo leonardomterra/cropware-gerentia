@@ -42,7 +42,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "border-slate-100 data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-slate-300 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded border bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] px-3 py-2 text-base md:text-sm whitespace-nowrap transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "border-slate-100 data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-slate-300 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded border bg-slate-50 px-3 py-2 text-base md:text-sm whitespace-nowrap transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -73,7 +73,17 @@ function SelectContent({
         // para Radix nunca posicionar/flippar o popper sob o header.
         collisionPadding={collisionPadding}
         className={cn(
-          "bg-zinc-900 text-zinc-100 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative max-h-(--radix-select-content-available-height) min-w-[8rem] max-w-[var(--radix-select-trigger-width)] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-zinc-800 shadow-lg",
+          // CLARO, e não o vidro escuro dos menus de ação.
+          //
+          // Select é SELETOR DE CAMPO: ele mora dentro de um formulário, ao
+          // lado de campos claros, e a lista que abre é a continuação do campo
+          // — não um menu de comandos. Escuro ali, o painel disputava a atenção
+          // com o formulário e ainda destoava do SearchableSelect, que sempre
+          // foi claro: duas listas de escolha, dois temas, na mesma tela.
+          //
+          // A regra do app: **menu de AÇÃO é vidro escuro; seletor de CAMPO é
+          // claro.** Ver docs/ADOCAO-DESIGN-FLAGFIELD.md.
+          "bg-white text-slate-900 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative max-h-(--radix-select-content-available-height) min-w-[8rem] max-w-[var(--radix-select-trigger-width)] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg border border-slate-200 shadow-lg",
           isInsideModal ? "z-[2500]" : "z-[999]",
           position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
@@ -105,7 +115,8 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("text-zinc-400 px-2.5 py-1.5 text-xs", className)}
+      // slate-500, não 400: sobre o painel claro o 400 dá 2,52:1.
+      className={cn("text-slate-500 px-2.5 py-1.5 text-xs", className)}
       {...props}
     />
   );
@@ -120,7 +131,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "focus:bg-white/10 focus:text-white [&_svg:not([class*='text-'])]:text-zinc-400 relative flex w-full cursor-default items-center gap-2 rounded-lg py-2 pr-8 pl-2 text-base md:text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "focus:bg-slate-100 focus:text-slate-900 [&_svg:not([class*='text-'])]:text-slate-400 relative flex w-full cursor-default items-center gap-2 rounded-lg py-2 pr-8 pl-2 text-base md:text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}
@@ -142,7 +153,8 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("bg-white/10 pointer-events-none -mx-1 my-1 h-px", className)}
+      // Cinza opaco: o branco a 10% era feito pro painel escuro e some aqui.
+      className={cn("bg-slate-200 pointer-events-none -mx-1 my-1 h-px", className)}
       {...props}
     />
   );

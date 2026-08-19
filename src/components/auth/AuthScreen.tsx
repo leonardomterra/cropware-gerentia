@@ -84,7 +84,7 @@ export function AuthScreen({
         <div className="flex flex-col gap-3 pt-2">
           <button
             type="submit"
-            className="w-full h-10 rounded-lg font-medium text-white bg-zinc-800 hover:bg-zinc-900 transition-colors inline-flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-10 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-900 transition-colors inline-flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ fontSize: "14px" }}
             disabled={disabled}
           >
@@ -102,7 +102,7 @@ export function AuthScreen({
             type="button"
             onClick={onGoToSignUp}
             disabled={submitting}
-            className="w-full h-10 rounded-lg font-medium border-[1.5px] border-zinc-400 text-zinc-600 hover:bg-zinc-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-10 rounded-lg font-medium border-[1.5px] border-slate-400 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ fontSize: "14px" }}
           >
             Criar Conta
@@ -113,7 +113,7 @@ export function AuthScreen({
           type="button"
           onClick={onGoToForgotPassword}
           disabled={submitting}
-          className="w-full text-center text-zinc-500 hover:text-zinc-700"
+          className="w-full text-center text-slate-500 hover:text-slate-700"
           style={{ fontSize: "13px" }}
         >
           Esqueci minha senha

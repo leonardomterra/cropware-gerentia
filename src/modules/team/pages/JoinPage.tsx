@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Building2 from "~icons/material-symbols-light/apartment";
-import AlertTriangle from "~icons/material-symbols-light/warning-outline";
+import Building2 from "~icons/ph/building-apartment";
+import AlertTriangle from "~icons/ph/warning";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -28,7 +28,7 @@ const STATUSES_CC: { label: string; hex: string }[] = [
   { label: "A Receber", hex: "#60a5fa" },// blue
   { label: "Recebido", hex: "#34d399" }, // emerald
   { label: "Vencido", hex: "#f87171" },  // red
-  { label: "Cancelado", hex: "#a1a1aa" },// zinc
+  { label: "Cancelado", hex: "#a3a3a3" },// zinc
   { label: "Previsto", hex: "#a78bfa" }, // violet (distinto do amber)
   { label: "Entrada", hex: "#34d399" },  // emerald
   { label: "Saída", hex: "#f87171" },    // red

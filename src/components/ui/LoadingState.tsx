@@ -1,4 +1,4 @@
-import Spinner from "~icons/material-symbols-light/progress-activity";
+import Spinner from "~icons/ph/circle-notch";
 import { cn } from "./utils";
 
 interface LoadingStateProps {

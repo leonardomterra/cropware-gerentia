@@ -24,10 +24,17 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { AiSuggestButton } from "@/components/ui/AiSuggestButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
-import Plus from "~icons/material-symbols-light/add";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import CallMade from "~icons/material-symbols-light/call-made";
-import OpenInNew from "~icons/material-symbols-light/open-in-new";
+import Plus from "~icons/ph/plus";
+import Trash2 from "~icons/ph/trash";
+import CallMade from "~icons/ph/arrow-up-right";
+import OpenInNew from "~icons/ph/arrow-square-out";
+import AttachFile from "~icons/ph/paperclip";
+import Pencil from "~icons/ph/pencil-simple";
+import { cn } from "@/components/ui/utils";
+import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
+import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
+import { ReceiptItemsTable } from "./ReceiptItemsTable";
+import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -86,6 +93,33 @@ interface ReceiptFormDialogProps {
   /** Títulos do dialog (por contexto de aba). */
   titleNew?: string;
   titleEdit?: string;
+  /** Título no modo leitura. */
+  titleView?: string;
+  /**
+   * VER É ESTA MESMA TELA, TRAVADA.
+   *
+   * Ver um lançamento abria um diálogo com um resumo desenhado à parte — outra
+   * ordem, outro formato, e um campo novo aqui que ninguém lembrava de repetir
+   * lá. Com `somenteLeitura` o formulário inteiro entra num `<fieldset
+   * disabled>` e o rodapé troca Cancelar/Salvar por Fechar/Editar.
+   *
+   * Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa D.
+   */
+  somenteLeitura?: boolean;
+  /** Chamado pelo botão *Editar* do rodapé, na leitura. Ausente = sem permissão. */
+  aoEditar?: () => void;
+  /**
+   * Onde o formulário é servido.
+   *
+   * `pagina` é o padrão novo (rota própria, casca `PaginaDeFormulario`): num
+   * diálogo o teclado do iOS espreme o conteúdo, a rolagem do modal briga com a
+   * da tela atrás e sobra menos largura no celular — e este formulário é longo.
+   *
+   * `dialogo` continua existindo para quem o abre de dentro de outro fluxo (o
+   * Lembrete que vira lançamento, em Pendências), onde tirar a pessoa da tela
+   * custaria o contexto dela.
+   */
+  modo?: "pagina" | "dialogo";
 }
 
 export interface FormState {
@@ -140,6 +174,22 @@ function newItemRow(): ItemRow {
   };
 }
 
+/** Linha rótulo/valor do bloco que só aparece na leitura. */
+function InfoLeitura({
+  rotulo,
+  children,
+}: {
+  rotulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-slate-500">{rotulo}</p>
+      <p className="text-slate-700 truncate">{children}</p>
+    </div>
+  );
+}
+
 export function ReceiptFormDialog({
   open,
   onOpenChange,
@@ -151,7 +201,14 @@ export function ReceiptFormDialog({
   defaultDocType,
   titleNew = "Novo Lançamento",
   titleEdit = "Editar Lançamento",
+  titleView = "Lançamento",
+  somenteLeitura = false,
+  aoEditar,
+  modo = "dialogo",
 }: ReceiptFormDialogProps) {
+  const { nameOf } = useOrgPeople();
+  const autor = receipt ? nameOf(receipt.created_by) : null;
+  const [verAnexo, setVerAnexo] = useState(false);
   const isEdit = !!receipt;
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -232,7 +289,7 @@ export function ReceiptFormDialog({
         ...prefill.values,
         // Fatura nasce informativa; demais somam (backend tem o mesmo default).
         counts_in_total: dt !== "fatura",
-        items: allowItems ? prefill.values.items ?? [] : [],
+        items: allowItems ? (prefill.values.items ?? []) : [],
       });
     } else if (seed) {
       setForm({
@@ -475,8 +532,7 @@ export function ReceiptFormDialog({
         vendor: form.vendor.trim().toUpperCase() || null,
         category: hasItems ? null : form.category || null,
         description: form.description.trim() || null,
-        payment_method:
-          form.payment_method === "" ? null : form.payment_method,
+        payment_method: form.payment_method === "" ? null : form.payment_method,
         invoice_number: form.invoice_number.trim() || null,
         notes: form.notes.trim() || null,
         cost_center_id: hasItems ? null : form.cost_center_id || null,
@@ -514,496 +570,647 @@ export function ReceiptFormDialog({
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? titleEdit : titleNew}</DialogTitle>
-        </DialogHeader>
+  /**
+   * O corpo do formulário mora numa variável porque ele é servido em DUAS
+   * cascas — página e diálogo. Copiá-lo seria garantir que um campo novo
+   * entrasse só numa das duas, que é exatamente o defeito que a fusão de
+   * "ver" com "editar" acabou de corrigir.
+   */
+  const camposDoFormulario = (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Tipo</Label>
+          <Select
+            value={form.direction}
+            onValueChange={(v) => set("direction", v as ReceiptDirection)}
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="expense">Despesa</SelectItem>
+              <SelectItem value="income">Receita</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Status</Label>
+          <Select
+            value={form.is_estimated ? "previsto" : form.status}
+            onValueChange={(v) => {
+              if (v === "previsto") {
+                set("is_estimated", true);
+              } else {
+                setForm((f) => ({
+                  ...f,
+                  is_estimated: false,
+                  status: v as ReceiptStatus,
+                }));
+              }
+            }}
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="previsto">Previsto</SelectItem>
+              {availableStatuses.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={form.direction}
-                onValueChange={(v) =>
-                  set("direction", v as ReceiptDirection)
-                }
-              >
-                <SelectTrigger className="h-9 mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Despesa</SelectItem>
-                  <SelectItem value="income">Receita</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select
-                value={form.is_estimated ? "previsto" : form.status}
-                onValueChange={(v) => {
-                  if (v === "previsto") {
-                    set("is_estimated", true);
-                  } else {
-                    setForm((f) => ({
-                      ...f,
-                      is_estimated: false,
-                      status: v as ReceiptStatus,
-                    }));
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="previsto">Previsto</SelectItem>
-                  {availableStatuses.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      {/* Valor e Origem na mesma linha: o valor é curto e sobrava
+                metade da largura ao lado dele. */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="total_value">Valor (R$)</Label>
+          {hasItems || summaryMode ? (
+            <Input
+              id="total_value"
+              value={formatBRL(summaryMode ? receipt!.total_value : itemsTotal)}
+              readOnly
+              disabled
+              className="mt-1"
+            />
+          ) : (
+            <Input
+              id="total_value"
+              value={form.total_value}
+              onChange={(e) =>
+                set("total_value", formatBRLInput(e.target.value))
+              }
+              placeholder="0,00"
+              inputMode="decimal"
+              required
+              className="mt-1"
+            />
+          )}
+        </div>
 
+        <div>
+          <Label htmlFor="vendor">Origem</Label>
+          <Input
+            id="vendor"
+            value={form.vendor}
+            onChange={(e) => set("vendor", e.target.value.toUpperCase())}
+            placeholder={
+              form.direction === "expense"
+                ? "Ex: Posto Vale do Sol"
+                : "Ex: Cooperativa XYZ"
+            }
+            className="mt-1"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="description">Descrição</Label>
+        <Input
+          id="description"
+          value={form.description}
+          onChange={(e) => set("description", e.target.value.toUpperCase())}
+          placeholder="Ex: Diesel S10 - 50L"
+          className="mt-1"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {!hasItems && !summaryMode && (
           <div>
-            <Label htmlFor="total_value">Valor (R$)</Label>
-            {hasItems || summaryMode ? (
-              <Input
-                id="total_value"
-                value={formatBRL(summaryMode ? receipt!.total_value : itemsTotal)}
-                readOnly
-                disabled
-                className="mt-1"
-              />
-            ) : (
-              <Input
-                id="total_value"
-                value={form.total_value}
-                onChange={(e) =>
-                  set("total_value", formatBRLInput(e.target.value))
+            <div className="flex items-center justify-between min-h-[1.125rem]">
+              <Label>Categoria</Label>
+              <AiSuggestButton
+                onClick={() => runSuggest("header", form.description)}
+                loading={suggestingKey === "header"}
+                disabled={
+                  suggestingKey !== null ||
+                  !form.vendor.trim() ||
+                  !form.description.trim()
                 }
-                placeholder="0,00"
-                inputMode="decimal"
-                required
-                className="mt-1"
               />
+            </div>
+            <SearchableSelect
+              options={[
+                { value: "none", label: "Sem categoria" },
+                ...catOptions,
+              ]}
+              value={form.category || "none"}
+              onValueChange={(v) => set("category", v === "none" ? "" : v)}
+              placeholder="Selecione..."
+              searchPlaceholder="Buscar categoria..."
+              emptyMessage="Nenhuma categoria."
+              triggerClassName="mt-1"
+            />
+          </div>
+        )}
+        <div>
+          <div className="flex items-center min-h-[1.125rem]">
+            <Label>Tipo de Documento</Label>
+          </div>
+          <Select
+            value={form.doc_type}
+            onValueChange={(v) => set("doc_type", v as ReceiptDocType)}
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DOC_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {DOC_TYPE_LABEL[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {!summaryMode && ccs.length > 1 && (
+        <div>
+          <Label>
+            Centro de Custo
+            {hasItems && (
+              <span className="text-slate-400 font-normal">
+                {" "}
+                (aplica a todos os itens)
+              </span>
             )}
-          </div>
+          </Label>
+          <Select
+            value={form.cost_center_id}
+            onValueChange={(v) => set("cost_center_id", v)}
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue placeholder="Escolher..." />
+            </SelectTrigger>
+            <SelectContent>
+              {ccs.map((cc) => (
+                <SelectItem key={cc.id} value={cc.id}>
+                  {cc.name}
+                  {cc.is_default ? " (Padrão)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="transaction_date">Data do Lançamento</Label>
+          <Input
+            id="transaction_date"
+            type="date"
+            value={form.transaction_date}
+            onChange={(e) => set("transaction_date", e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        {showDueDate ? (
           <div>
-            <Label htmlFor="vendor">
-              Origem
+            <Label htmlFor="due_date">Vencimento</Label>
+            <Input
+              id="due_date"
+              type="date"
+              value={form.due_date}
+              onChange={(e) => set("due_date", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        ) : null}
+        {showPaidDate ? (
+          <div>
+            <Label htmlFor="paid_date">
+              {form.direction === "expense" ? "Pago em" : "Recebido em"}
             </Label>
             <Input
-              id="vendor"
-              value={form.vendor}
-              onChange={(e) => set("vendor", e.target.value.toUpperCase())}
-              placeholder={
-                form.direction === "expense"
-                  ? "Ex: Posto Vale do Sol"
-                  : "Ex: Cooperativa XYZ"
-              }
+              id="paid_date"
+              type="date"
+              value={form.paid_date}
+              onChange={(e) => set("paid_date", e.target.value)}
               className="mt-1"
             />
           </div>
+        ) : null}
+      </div>
 
-          <div>
-            <Label htmlFor="description">Descrição</Label>
-            <Input
-              id="description"
-              value={form.description}
-              onChange={(e) => set("description", e.target.value.toUpperCase())}
-              placeholder="Ex: Diesel S10 - 50L"
-              className="mt-1"
-            />
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label>Forma de Pagamento</Label>
+          <Select
+            value={form.payment_method || "none"}
+            onValueChange={(v) =>
+              set(
+                "payment_method",
+                v === "none" ? "" : (v as ReceiptPaymentMethod),
+              )
+            }
+          >
+            <SelectTrigger className="h-9 mt-1">
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Não informado</SelectItem>
+              {PAYMENT_METHODS.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {PAYMENT_METHOD_LABEL[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="invoice_number">Número da Nota Fiscal</Label>
+          <Input
+            id="invoice_number"
+            value={form.invoice_number}
+            onChange={(e) => set("invoice_number", e.target.value)}
+            placeholder="Opcional"
+            className="mt-1"
+          />
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {!hasItems && !summaryMode && (
-              <div>
-                <div className="flex items-center justify-between min-h-[1.125rem]">
-                  <Label>Categoria</Label>
-                  <AiSuggestButton
-                    onClick={() => runSuggest("header", form.description)}
-                    loading={suggestingKey === "header"}
-                    disabled={
-                      suggestingKey !== null ||
-                      !form.vendor.trim() ||
-                      !form.description.trim()
-                    }
-                  />
-                </div>
-                <SearchableSelect
-                  options={[
-                    { value: "none", label: "Sem categoria" },
-                    ...catOptions,
-                  ]}
-                  value={form.category || "none"}
-                  onValueChange={(v) => set("category", v === "none" ? "" : v)}
-                  placeholder="Selecione..."
-                  searchPlaceholder="Buscar categoria..."
-                  emptyMessage="Nenhuma categoria."
-                  triggerClassName="mt-1"
-                />
-              </div>
-            )}
-            <div>
-              <div className="flex items-center min-h-[1.125rem]">
-                <Label>Tipo de Documento</Label>
-              </div>
-              <Select
-                value={form.doc_type}
-                onValueChange={(v) => set("doc_type", v as ReceiptDocType)}
-              >
-                <SelectTrigger className="h-9 mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOC_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {DOC_TYPE_LABEL[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      <div>
+        <Label htmlFor="notes">Observações</Label>
+        <Textarea
+          id="notes"
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value.toUpperCase())}
+          rows={2}
+          className="mt-1"
+        />
+      </div>
 
-          {!summaryMode && ccs.length > 1 && (
-            <div>
-              <Label>
-                Centro de Custo
-                {hasItems && (
-                  <span className="text-slate-400 font-normal"> (aplica a todos os itens)</span>
-                )}
-              </Label>
-              <Select
-                value={form.cost_center_id}
-                onValueChange={(v) => set("cost_center_id", v)}
-              >
-                <SelectTrigger className="h-9 mt-1">
-                  <SelectValue placeholder="Escolher..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {ccs.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>
-                      {cc.name}{cc.is_default ? " (Padrão)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="transaction_date">Data do Lançamento</Label>
-              <Input
-                id="transaction_date"
-                type="date"
-                value={form.transaction_date}
-                onChange={(e) => set("transaction_date", e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            {showDueDate ? (
-              <div>
-                <Label htmlFor="due_date">Vencimento</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={form.due_date}
-                  onChange={(e) => set("due_date", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            ) : null}
-            {showPaidDate ? (
-              <div>
-                <Label htmlFor="paid_date">
-                  {form.direction === "expense" ? "Pago em" : "Recebido em"}
-                </Label>
-                <Input
-                  id="paid_date"
-                  type="date"
-                  value={form.paid_date}
-                  onChange={(e) => set("paid_date", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label>Forma de Pagamento</Label>
-              <Select
-                value={form.payment_method || "none"}
-                onValueChange={(v) =>
-                  set(
-                    "payment_method",
-                    v === "none" ? "" : (v as ReceiptPaymentMethod),
-                  )
-                }
-              >
-                <SelectTrigger className="h-9 mt-1">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não informado</SelectItem>
-                  {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {PAYMENT_METHOD_LABEL[m]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="invoice_number">Número da Nota Fiscal</Label>
-              <Input
-                id="invoice_number"
-                value={form.invoice_number}
-                onChange={(e) => set("invoice_number", e.target.value)}
-                placeholder="Opcional"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea
-              id="notes"
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value.toUpperCase())}
-              rows={2}
-              className="mt-1"
-            />
-          </div>
-
-          {/* "Contabilizar no total" — aparece só onde há risco de duplicar
+      {/* "Contabilizar no total" — aparece só onde há risco de duplicar
               (fatura ou cartão de crédito). Fatura nasce desligado; cartão,
               ligado. Desligado = informativo (não soma). */}
-          {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
-            <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
-              <div className="min-w-0">
-                <Label htmlFor="counts_in_total" className="text-sm">
-                  Contabilizar no total
-                </Label>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {form.doc_type === "fatura"
-                    ? "Faturas entram como informativo por padrão (não somam) — os gastos vêm das compras lançadas. Ligue se preferir contabilizar só a fatura."
-                    : "Despesa no cartão de crédito. Desligue se ela já está incluída na fatura, pra não somar duas vezes."}
-                </p>
-              </div>
-              <Switch
-                id="counts_in_total"
-                checked={form.counts_in_total}
-                onCheckedChange={(v) => set("counts_in_total", v)}
-                className="mt-0.5 shrink-0"
-              />
-            </div>
-          )}
+      {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
+        <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
+          <div className="min-w-0">
+            <Label htmlFor="counts_in_total" className="text-sm">
+              Contabilizar no total
+            </Label>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {form.doc_type === "fatura"
+                ? "Faturas entram como informativo por padrão (não somam) — os gastos vêm das compras lançadas. Ligue se preferir contabilizar só a fatura."
+                : "Despesa no cartão de crédito. Desligue se ela já está incluída na fatura, pra não somar duas vezes."}
+            </p>
+          </div>
+          <Switch
+            id="counts_in_total"
+            checked={form.counts_in_total}
+            onCheckedChange={(v) => set("counts_in_total", v)}
+            className="mt-0.5 shrink-0"
+          />
+        </div>
+      )}
 
-          {/* Resumo de itemizado (Lançamentos): atalho pra gerenciar os itens
+      {/* Resumo de itemizado (Lançamentos): atalho pra gerenciar os itens
               na página dedicada (Notas e Recibos / Faturas). */}
-          {summaryMode && receipt && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
-              <p className="text-sm text-slate-600">
-                Este lançamento tem{" "}
-                <span className="font-medium text-slate-900">
-                  {receipt.item_count} {receipt.item_count === 1 ? "item" : "itens"}
-                </span>
-                . Edite-os na página dedicada.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1 shrink-0"
-                onClick={() => {
-                  onOpenChange(false);
-                  const base = receipt.doc_type === "fatura" ? "/faturas" : "/notas";
-                  navigate(`${base}?open=${receipt.id}`);
-                }}
-              >
-                <OpenInNew className="size-4" />
-                Gerenciar itens
-              </Button>
-            </div>
-          )}
+      {summaryMode && receipt && (
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-slate-600">
+            Este lançamento tem{" "}
+            <span className="font-medium text-slate-900">
+              {receipt.item_count} {receipt.item_count === 1 ? "item" : "itens"}
+            </span>
+            . Edite-os na página dedicada.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1 shrink-0"
+            onClick={() => {
+              onOpenChange(false);
+              const base =
+                receipt.doc_type === "fatura" ? "/faturas" : "/notas";
+              navigate(`${base}?open=${receipt.id}`);
+            }}
+          >
+            <OpenInNew className="size-4" />
+            Gerenciar itens
+          </Button>
+        </div>
+      )}
 
-          {/* Itens (split): cada um com categoria + centro de custo proprios.
+      {/* Itens (split): cada um com categoria + centro de custo proprios.
               Com itens, o total/categoria/CC do cabeçalho vem dos itens.
               Só aparece quando allowItems (páginas Notas e Recibos / Faturas). */}
-          {allowItems && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>
-                  {hasItems ? `Itens (${form.items.length})` : "Itens (opcional)"}
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addItem}
-                  className="gap-1"
-                >
-                  <Plus className="size-4" />
-                  Adicionar
-                </Button>
-              </div>
-
-              {hasItems && (
-                <div className="space-y-2">
-                  {form.items.map((it) => (
-                    <div
-                      key={it.key}
-                      className="rounded-md border border-slate-200 p-3 space-y-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={it.description}
-                          onChange={(e) =>
-                            updateItem(it.key, {
-                              description: e.target.value.toUpperCase(),
-                            })
-                          }
-                          placeholder="Descrição do item"
-                          className="flex-1"
-                        />
-                        {canConvert && savedItemIds.has(it.key) && (
-                          <ActionIconButton
-                            icon={CallMade}
-                            label="Converter em lançamento"
-                            onClick={() => setPendingConvert(it)}
-                          />
-                        )}
-                        <ActionIconButton
-                          icon={Trash2}
-                          label="Remover item"
-                          tone="danger"
-                          onClick={() => removeItem(it.key)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-xs text-slate-500">Qtd</Label>
-                          <Input
-                            value={it.quantity}
-                            onChange={(e) =>
-                              updateItem(it.key, { quantity: e.target.value })
-                            }
-                            placeholder="0"
-                            inputMode="decimal"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-slate-500">
-                            Unit.
-                          </Label>
-                          <Input
-                            value={it.unit_value}
-                            onChange={(e) =>
-                              updateItem(it.key, {
-                                unit_value: formatBRLInput(e.target.value),
-                              })
-                            }
-                            placeholder="0,00"
-                            inputMode="decimal"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-slate-500">Total</Label>
-                          <Input
-                            value={it.total_value}
-                            onChange={(e) =>
-                              updateItem(it.key, {
-                                total_value: formatBRLInput(e.target.value),
-                              })
-                            }
-                            placeholder="0,00"
-                            inputMode="decimal"
-                            className="mt-1"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between min-h-[1.125rem]">
-                          <Label className="text-xs text-slate-500">
-                            Categoria
-                          </Label>
-                          <AiSuggestButton
-                            onClick={() => runSuggest(it.key, it.description)}
-                            loading={suggestingKey === it.key}
-                            disabled={
-                              suggestingKey !== null ||
-                              !form.vendor.trim() ||
-                              !it.description.trim()
-                            }
-                            disabledHint="Preencha origem e a descrição do item para sugerir"
-                          />
-                        </div>
-                        <SearchableSelect
-                          options={[
-                            { value: "none", label: "Sem categoria" },
-                            ...catOptions,
-                          ]}
-                          value={it.category || "none"}
-                          onValueChange={(v) =>
-                            updateItem(it.key, {
-                              category: v === "none" ? "" : v,
-                            })
-                          }
-                          placeholder="Selecione..."
-                          searchPlaceholder="Buscar categoria..."
-                          emptyMessage="Nenhuma categoria."
-                          triggerClassName="mt-1"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-right text-sm text-slate-600">
-                    Total dos itens:{" "}
-                    <span className="font-medium text-slate-900">
-                      {formatBRL(itemsTotal)}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {error ? (
-            <p className="text-sm text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <DialogFooter className="mt-2">
+      {allowItems && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>
+              {hasItems ? `Itens (${form.items.length})` : "Itens (opcional)"}
+            </Label>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
+              size="sm"
+              onClick={addItem}
+              className="gap-1"
             >
-              Cancelar
+              <Plus className="size-4" />
+              Adicionar
             </Button>
-            <Button type="submit" variant="default" disabled={submitting}>
-              {submitting ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
-            </Button>
+          </div>
+
+          {hasItems && (
+            <div className="space-y-2">
+              {form.items.map((it) => (
+                <div
+                  key={it.key}
+                  className="rounded-md border border-slate-200 p-3 space-y-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={it.description}
+                      onChange={(e) =>
+                        updateItem(it.key, {
+                          description: e.target.value.toUpperCase(),
+                        })
+                      }
+                      placeholder="Descrição do item"
+                      className="flex-1"
+                    />
+                    {canConvert && savedItemIds.has(it.key) && (
+                      <ActionIconButton
+                        icon={CallMade}
+                        label="Converter em lançamento"
+                        onClick={() => setPendingConvert(it)}
+                      />
+                    )}
+                    <ActionIconButton
+                      icon={Trash2}
+                      label="Remover item"
+                      tone="danger"
+                      onClick={() => removeItem(it.key)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">Qtd</Label>
+                      <Input
+                        value={it.quantity}
+                        onChange={(e) =>
+                          updateItem(it.key, { quantity: e.target.value })
+                        }
+                        placeholder="0"
+                        inputMode="decimal"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Unit.</Label>
+                      <Input
+                        value={it.unit_value}
+                        onChange={(e) =>
+                          updateItem(it.key, {
+                            unit_value: formatBRLInput(e.target.value),
+                          })
+                        }
+                        placeholder="0,00"
+                        inputMode="decimal"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Total</Label>
+                      <Input
+                        value={it.total_value}
+                        onChange={(e) =>
+                          updateItem(it.key, {
+                            total_value: formatBRLInput(e.target.value),
+                          })
+                        }
+                        placeholder="0,00"
+                        inputMode="decimal"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between min-h-[1.125rem]">
+                      <Label className="text-xs text-slate-500">
+                        Categoria
+                      </Label>
+                      <AiSuggestButton
+                        onClick={() => runSuggest(it.key, it.description)}
+                        loading={suggestingKey === it.key}
+                        disabled={
+                          suggestingKey !== null ||
+                          !form.vendor.trim() ||
+                          !it.description.trim()
+                        }
+                        disabledHint="Preencha origem e a descrição do item para sugerir"
+                      />
+                    </div>
+                    <SearchableSelect
+                      options={[
+                        { value: "none", label: "Sem categoria" },
+                        ...catOptions,
+                      ]}
+                      value={it.category || "none"}
+                      onValueChange={(v) =>
+                        updateItem(it.key, {
+                          category: v === "none" ? "" : v,
+                        })
+                      }
+                      placeholder="Selecione..."
+                      searchPlaceholder="Buscar categoria..."
+                      emptyMessage="Nenhuma categoria."
+                      triggerClassName="mt-1"
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="text-right text-sm text-slate-600">
+                Total dos itens:{" "}
+                <span className="font-medium text-slate-900">
+                  {formatBRL(itemsTotal)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  const extrasDeLeitura = (
+    <>
+      {/* O que só existe na leitura: dados que o formulário não edita.
+              Ficam AQUI, e não numa tela paralela, justamente para não voltar a
+              ter dois lugares mostrando o mesmo lançamento. */}
+      {/* Lançamento itemizado visto de uma aba que não edita itens
+              (Lançamentos usa allowItems=false): sem isto os itens sumiriam da
+              leitura, que era justamente o que o diálogo antigo mostrava. */}
+      {somenteLeitura &&
+      receipt &&
+      !allowItems &&
+      (receipt.item_count ?? 0) > 0 ? (
+        <div className="mt-1">
+          <p className="text-sm text-slate-500 mb-2">Itens</p>
+          <ReceiptItemsTable receipt={receipt} editable={false} />
+        </div>
+      ) : null}
+
+      {somenteLeitura && receipt ? (
+        <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-sm">
+          <InfoLeitura rotulo="Fonte">
+            <span className="capitalize">{receipt.source}</span>
+          </InfoLeitura>
+          {receipt.vendor_cnpj ? (
+            <InfoLeitura rotulo="CNPJ">{receipt.vendor_cnpj}</InfoLeitura>
+          ) : null}
+          {autor ? (
+            <InfoLeitura rotulo="Lançado por">{autor}</InfoLeitura>
+          ) : null}
+          {receipt.attachment_key ? (
+            <div className="col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setVerAnexo(true)}
+              >
+                <AttachFile className="size-4" />
+                Ver arquivo
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </>
+  );
+
+  const ID_DO_FORM = "form-lancamento";
+
+  if (modo === "pagina") {
+    return (
+      <>
+        <PaginaDeFormulario
+          formId={ID_DO_FORM}
+          rotuloSalvar={isEdit ? "Salvar" : "Criar"}
+          descricao={somenteLeitura ? titleView : isEdit ? titleEdit : titleNew}
+          somenteLeitura={somenteLeitura}
+          aoEditar={aoEditar}
+          aoVoltar={() => onOpenChange(false)}
+          salvando={submitting}
+        >
+          <form
+            id={ID_DO_FORM}
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-3"
+          >
+            {camposDoFormulario}
+            {extrasDeLeitura}
+          </form>
+        </PaginaDeFormulario>
+
+        <AttachmentViewerDialog
+          receipt={receipt ?? null}
+          open={verAnexo}
+          onOpenChange={setVerAnexo}
+        />
+
+        <ConfirmActionDialog
+          open={pendingConvert !== null}
+          onOpenChange={(o) => {
+            if (!o) setPendingConvert(null);
+          }}
+          title="Converter em Lançamento"
+          description={
+            pendingConvert
+              ? `Converter "${pendingConvert.description || "este item"}" (${formatBRL(parseBRLInput(pendingConvert.total_value) || 0)}) em um lançamento separado? Ele sai deste lançamento e o total é recalculado.`
+              : ""
+          }
+          confirmLabel="Converter"
+          cancelLabel="Cancelar"
+          loading={converting}
+          loadingLabel="Convertendo..."
+          onConfirm={confirmConvert}
+        />
+      </>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "max-w-2xl max-h-[90vh] overflow-y-auto",
+          somenteLeitura && "modo-leitura",
+        )}
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {somenteLeitura ? titleView : isEdit ? titleEdit : titleNew}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <fieldset disabled={somenteLeitura} className="contents">
+            {camposDoFormulario}
+          </fieldset>
+          {extrasDeLeitura}
+          <DialogFooter className="mt-2">
+            {somenteLeitura ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Fechar
+                </Button>
+                {/* Um botão só, que troca de rótulo: "Editar" aqui vira
+                    "Salvar" na mesma posição depois do clique. Cancelar seria
+                    salvar o que já estava lá. */}
+                {aoEditar ? (
+                  <Button type="button" variant="default" onClick={aoEditar}>
+                    <Pencil className="size-4 mr-1.5" />
+                    Editar
+                  </Button>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={submitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="default" disabled={submitting}>
+                  {submitting ? "Salvando..." : isEdit ? "Salvar" : "Criar"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AttachmentViewerDialog
+        receipt={receipt ?? null}
+        open={verAnexo}
+        onOpenChange={setVerAnexo}
+      />
 
       <ConfirmActionDialog
         open={pendingConvert !== null}

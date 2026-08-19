@@ -1,8 +1,8 @@
 import { useState, type ComponentType, type ReactNode } from "react";
 import { toast } from "sonner";
-import Person from "~icons/material-symbols-light/person-outline";
-import Lock from "~icons/material-symbols-light/lock-outline";
-import Warning from "~icons/material-symbols-light/warning-outline";
+import Person from "~icons/ph/user";
+import Lock from "~icons/ph/lock";
+import Warning from "~icons/ph/warning";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

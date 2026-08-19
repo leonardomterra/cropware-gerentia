@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 
-import KeyIcon from "~icons/material-symbols-light/key-outline";
-import BlockIcon from "~icons/material-symbols-light/block-outline";
-import CheckIcon from "~icons/material-symbols-light/check-circle-outline";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import LoginIcon from "~icons/material-symbols-light/login";
-import MailIcon from "~icons/material-symbols-light/mail-outline";
-import Download from "~icons/material-symbols-light/download";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import KeyIcon from "~icons/ph/key";
+import BlockIcon from "~icons/ph/prohibit";
+import CheckIcon from "~icons/ph/check-circle";
+import Trash2 from "~icons/ph/trash";
+import LoginIcon from "~icons/ph/sign-in";
+import MailIcon from "~icons/ph/envelope-simple";
+import Download from "~icons/ph/download-simple";
+import ChevronDown from "~icons/ph/caret-down";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

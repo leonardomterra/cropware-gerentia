@@ -1,15 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
-import Plus from "~icons/material-symbols-light/add";
-import Pencil from "~icons/material-symbols-light/edit-outline";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import Checklist from "~icons/material-symbols-light/checklist";
-import Search from "~icons/material-symbols-light/search";
-import FilterList from "~icons/material-symbols-light/filter-list";
-import X from "~icons/material-symbols-light/close";
-import CheckCircle from "~icons/material-symbols-light/check-circle-outline";
-import Undo from "~icons/material-symbols-light/undo";
-import Archive from "~icons/material-symbols-light/archive-outline";
-import SwapHoriz from "~icons/material-symbols-light/swap-horiz";
+import Plus from "~icons/ph/plus";
+import Pencil from "~icons/ph/pencil-simple";
+import Trash2 from "~icons/ph/trash";
+import Checklist from "~icons/ph/list-checks";
+import Search from "~icons/ph/magnifying-glass";
+import FilterList from "~icons/ph/funnel";
+import X from "~icons/ph/x";
+import CheckCircle from "~icons/ph/check-circle";
+import Undo from "~icons/ph/arrow-u-up-left";
+import Archive from "~icons/ph/archive";
+import SwapHoriz from "~icons/ph/arrows-left-right";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,24 +273,24 @@ export default function PendenciasPage() {
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-zinc-200 bg-zinc-100 text-base md:text-sm text-slate-900 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-slate-200 bg-slate-100 text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
             >
               <FilterList className="size-4 shrink-0" />
               Filtrar
               {activeFilters > 0 && (
-                <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-zinc-800 text-white text-xs tabular-nums">
+                <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-slate-800 text-white text-xs tabular-nums">
                   {activeFilters}
                 </span>
               )}
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="p-3 space-y-3 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg">
+          <PopoverContent align="end" className="p-3 space-y-3 bg-slate-900 text-slate-100 border-slate-800 rounded-xl shadow-lg">
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <Checkbox checked={hideDone} onCheckedChange={(v) => setHideDone(!!v)} />
               Ocultar resolvidos
             </label>
             <div className="space-y-1">
-              <span className="text-xs text-zinc-400">Prioridade (lembretes)</span>
+              <span className="text-xs text-slate-400">Prioridade (lembretes)</span>
               <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as "all" | TaskPriority)}>
                 <SelectTrigger className="h-9 bg-white text-slate-500"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -306,7 +306,7 @@ export default function PendenciasPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => { setHideDone(false); setPriorityFilter("all"); }}
-                className="w-full text-zinc-400 hover:bg-white/10 hover:text-zinc-100 h-8"
+                className="w-full text-slate-400 hover:bg-white/10 hover:text-slate-100 h-8"
               >
                 <X className="size-4 mr-1" />
                 Limpar filtros
@@ -513,7 +513,7 @@ function ConvertMenuItem({ label, onClick }: { label: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="w-full px-2.5 py-2 rounded-md text-sm text-zinc-100 hover:bg-white/10 text-left"
+      className="w-full px-2.5 py-2 rounded-md text-sm text-slate-100 hover:bg-white/10 text-left"
     >
       {label}
     </button>
@@ -568,7 +568,7 @@ function TaskCard({ t, cc, onToggleDone, onEdit, onRemove, onConvert }: {
                   <SwapHoriz className="size-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="p-1 w-56 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg">
+              <PopoverContent align="end" className="p-1 w-56 bg-slate-900 text-slate-100 border-slate-800 rounded-xl shadow-lg">
                 <ConvertMenuItem label="Conta a pagar" onClick={() => { setConvOpen(false); onConvert("a_pagar"); }} />
                 <ConvertMenuItem label="Conta a receber" onClick={() => { setConvOpen(false); onConvert("a_receber"); }} />
                 <ConvertMenuItem label="Lançamento concluído" onClick={() => { setConvOpen(false); onConvert("concluido"); }} />

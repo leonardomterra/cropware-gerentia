@@ -1,9 +1,15 @@
 import { useState } from "react";
-import ChevronLeft from "~icons/material-symbols-light/chevron-left";
-import ChevronRight from "~icons/material-symbols-light/chevron-right";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
-import Calendar from "~icons/material-symbols-light/calendar-month-outline";
+import ChevronLeft from "~icons/ph/caret-left";
+import ChevronRight from "~icons/ph/caret-right";
+import ChevronDown from "~icons/ph/caret-down";
+import Calendar from "~icons/ph/calendar-blank";
 import { cn } from "@/components/ui/utils";
+import {
+  BOTAO_BARRA,
+  ICONE_BOTAO_BARRA,
+  SETA_BOTAO_BARRA,
+  SUPERFICIE_ESCURA,
+} from "@/lib/ui-tokens";
 import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import {
@@ -147,16 +153,28 @@ export function MonthSwitcher({
               type="button"
               onClick={() => onChange(m)}
               className={cn(
-                "h-9 rounded-md text-sm capitalize transition-colors",
+                // A borda existe nos DOIS estados — transparente no ativo. Só
+                // no inativo, ela mudaria a caixa em 1px de cada lado e os
+                // chips pulariam de lugar a cada troca de mês.
+                "h-9 rounded-md text-sm capitalize transition-colors border",
                 stretch ? "flex-1 min-w-0 px-1" : "px-3 whitespace-nowrap",
                 selected
-                  ? "bg-zinc-800 text-white font-medium"
-                  : "text-slate-600 hover:bg-slate-100",
+                  ? // Mesmo vidro dos menus: o mês ativo é o único bloco
+                    // pintado da faixa, e chapado ele puxava o olho mais que a
+                    // própria lista. Sobre a área branca a transparência não
+                    // TEM o que revelar — o efeito aqui é o bloco ficar mais
+                    // leve, não translúcido de fato.
+                    "bg-slate-900/65 backdrop-blur-sm text-white font-medium border-transparent"
+                  : // Recuado, não ilegível: `slate-500` dá 4,74:1 no branco,
+                    // acima do mínimo de 4,5. O `slate-400` que pareceria mais
+                    // "apagado" cai pra 2,52:1 — e estes são alvos de clique,
+                    // não decoração.
+                    "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700",
               )}
             >
               {MONTHS_SHORT[m.month - 1]}
               {m.year !== value.year ? (
-                <span className={cn("ml-1", selected ? "opacity-70" : "text-slate-400")}>
+                <span className={cn("ml-1", selected ? "opacity-70" : "opacity-60")}>
                   '{String(m.year).slice(2)}
                 </span>
               ) : null}
@@ -191,46 +209,57 @@ export function MonthSwitcher({
             type="button"
             title="Escolher mês"
             className={cn(
-              TOOLBAR_TRIGGER_CLASS,
-              variant === "picker" ? "w-full" : "ml-1 shrink-0 text-slate-600",
+              variant === "picker"
+                ? // Mesma família dos botões de Filtros e Ordenar: ele é um
+                  // filtro, e estava com aparência de campo.
+                  cn(BOTAO_BARRA, "inline-flex items-center rounded-md")
+                : cn(TOOLBAR_TRIGGER_CLASS, "ml-1 shrink-0 text-slate-600"),
             )}
           >
-            <Calendar className="size-4 text-slate-500 shrink-0" />
             {variant === "picker" ? (
               <>
-                <span className="flex-1 text-left truncate">
+                <Calendar className={ICONE_BOTAO_BARRA} />
+                <span className="whitespace-nowrap capitalize">
                   {MONTHS_FULL[value.month - 1]} {value.year}
                 </span>
-                <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                <ChevronDown className={SETA_BOTAO_BARRA} />
               </>
             ) : (
-              !compact && (
+              <>
+              <Calendar className="size-4 text-slate-500 shrink-0" />
+              {!compact && (
                 <span className="hidden sm:inline whitespace-nowrap">
                   {MONTHS_FULL[value.month - 1]} {value.year}
                 </span>
-              )
+              )}
+              </>
             )}
           </button>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-[var(--radix-popover-trigger-width)] min-w-[15rem] p-2 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg"
+          className={cn(
+            "min-w-[15rem] p-2",
+            // Mesmo vidro dos outros painéis — era o único menu opaco que
+            // sobrou depois da Etapa A.
+            SUPERFICIE_ESCURA,
+          )}
         >
           <div className="flex items-center justify-between mb-2">
             <button
               type="button"
               aria-label="Ano anterior"
               onClick={() => setPickerYear((y) => y - 1)}
-              className="flex size-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10"
+              className="flex size-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="text-sm font-medium text-zinc-100">{pickerYear}</span>
+            <span className="text-sm font-medium text-white">{pickerYear}</span>
             <button
               type="button"
               aria-label="Próximo ano"
               onClick={() => setPickerYear((y) => y + 1)}
-              className="flex size-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10"
+              className="flex size-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -250,7 +279,7 @@ export function MonthSwitcher({
                     "h-9 rounded-lg text-sm capitalize transition-colors",
                     selected
                       ? "bg-white/10 text-white font-medium"
-                      : "text-zinc-100 hover:bg-white/10",
+                      : "text-slate-100 hover:bg-white/10",
                   )}
                 >
                   {label}
@@ -265,7 +294,7 @@ export function MonthSwitcher({
                 onChange(today);
                 setPickerOpen(false);
               }}
-              className="mt-2 w-full h-9 rounded-lg text-sm text-zinc-300 hover:bg-white/10 transition-colors"
+              className="mt-2 w-full h-9 rounded-lg text-sm text-slate-300 hover:bg-white/10 transition-colors"
             >
               Ir para o mês atual
             </button>

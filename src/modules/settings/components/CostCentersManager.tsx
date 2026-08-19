@@ -1,9 +1,9 @@
 import { useState } from "react";
-import Plus from "~icons/material-symbols-light/add";
-import Star from "~icons/material-symbols-light/star-outline";
-import StarFilled from "~icons/material-symbols-light/star";
-import Archive from "~icons/material-symbols-light/archive-outline";
-import Pencil from "~icons/material-symbols-light/edit-outline";
+import Plus from "~icons/ph/plus";
+import Star from "~icons/ph/star";
+import StarFilled from "~icons/ph/star-fill";
+import Archive from "~icons/ph/archive";
+import Pencil from "~icons/ph/pencil-simple";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -276,7 +276,7 @@ export function CostCentersManager() {
                     >
                       <Icon
                         className="size-5"
-                        style={{ color: selected ? ccTextColor(form.color) : "#71717a" }}
+                        style={{ color: selected ? ccTextColor(form.color) : "#737373" }}
                       />
                     </button>
                   );

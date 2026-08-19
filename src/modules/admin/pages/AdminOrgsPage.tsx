@@ -1,13 +1,13 @@
 import { useState } from "react";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import UserPlus from "~icons/material-symbols-light/person-add-outline";
-import Plus from "~icons/material-symbols-light/add";
-import Download from "~icons/material-symbols-light/download";
+import Trash2 from "~icons/ph/trash";
+import UserPlus from "~icons/ph/user-plus";
+import Plus from "~icons/ph/plus";
+import Download from "~icons/ph/download-simple";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
+import ChevronDown from "~icons/ph/caret-down";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import Search from "~icons/material-symbols-light/search";
-import FilterList from "~icons/material-symbols-light/filter-list";
-import X from "~icons/material-symbols-light/close";
+import Search from "~icons/ph/magnifying-glass";
+import FilterList from "~icons/ph/funnel";
+import ChevronDown from "~icons/ph/caret-down";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -19,21 +18,32 @@ import {
 import { type SearchableOption } from "@/components/ui/searchable-select";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { cn } from "@/components/ui/utils";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import {
+  BOTAO_BARRA,
+  ICONE_BOTAO_BARRA,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useCategories } from "../hooks/useCategories";
-import type {
-  ReceiptDirection,
-  ReceiptFilters,
-  ReceiptStatus,
-} from "../types";
+import type { ReceiptDirection, ReceiptFilters, ReceiptStatus } from "../types";
 import { STATUS_LABEL } from "../constants";
 
 interface ReceiptFiltersBarProps {
   value: ReceiptFilters;
   onChange: (next: ReceiptFilters) => void;
-  /** Conteudo extra rendered no final da row de filtros (ex: dropdown
-   *  de Centro de Custo). Fica na mesma flex line dos campos. */
-  trailing?: React.ReactNode;
+  /**
+   * Campos que ficam À VISTA na barra, ao lado da busca (ex.: Centro de Custo).
+   * Entram na MESMA grade da busca — grade, e não flex, porque em
+   * `minmax(0,1fr)` o conteúdo não consegue alargar a coluna. Num flex a
+   * largura mínima do item é o `min-content`, e bastava um nome de centro maior
+   * pra a busca encolher.
+   */
+  campos?: React.ReactNode;
+  /** Botões à direita, encostados no de Filtros (ex.: Ordenar). */
+  acoes?: React.ReactNode;
 }
 
 const STATUS_OPTIONS: ReceiptStatus[] = [
@@ -46,11 +56,24 @@ const STATUS_OPTIONS: ReceiptStatus[] = [
 ];
 
 /**
- * Barra de filtros minimalista: so a BUSCA fica visivel; tipos/status/
- * categorias moram num popover atras do botao "Filtrar" (com badge de
- * contagem quando ha filtro ativo). Menos caixas na tela.
+ * Barra de filtros e ações — padrão da seção 26 do `ui-polish-patterns` do Flag
+ * Field (ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa C).
+ *
+ * Duas linhas. Na primeira, os filtros de uso constante como campos diretos,
+ * esticando, e os botões de painel encostados à direita. Na segunda (montada
+ * por quem usa o componente), as ações.
+ *
+ * O que fica À VISTA: o que se consulta toda hora. O resto mora no painel, onde
+ * ocupa zero espaço quando não está em uso.
+ *
+ * Os valores vêm de `src/lib/ui-tokens.ts` — importe de lá, não copie a classe.
  */
-export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersBarProps) {
+export function ReceiptFiltersBar({
+  value,
+  onChange,
+  campos,
+  acoes,
+}: ReceiptFiltersBarProps) {
   const { categories } = useCategories();
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -61,9 +84,6 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   ) => {
     onChange({ ...value, [key]: v });
   };
-
-  const clearFilters = () =>
-    onChange({ ...(value.search ? { search: value.search } : {}) });
 
   // Conta CAMPOS de filtro ativos (busca nao conta - ela e visivel).
   const activeCount =
@@ -90,51 +110,67 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
   );
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="flex-1 min-w-0">
+    <div className="flex flex-wrap items-center gap-2 w-full">
+      {/* w-full: sem ele o container encolhe até o conteúdo e os botões não
+          chegam na borda direita. */}
+      <div
+        className={cn(
+          "grid flex-1 min-w-0 gap-2 grid-cols-1",
+          campos && "sm:grid-cols-2",
+        )}
+      >
         <div className="relative">
           <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <Input
             value={value.search ?? ""}
-            onChange={(e) =>
-              set("search", e.target.value || undefined)
-            }
+            onChange={(e) => set("search", e.target.value || undefined)}
             placeholder="Buscar por origem ou descrição..."
             className={cn(
-              "pl-8 h-9 bg-white border-slate-200 shadow-none",
+              "pl-8 h-9 border-slate-200 shadow-none",
               fieldText,
             )}
           />
         </div>
+        {campos}
       </div>
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-zinc-200 bg-zinc-100 text-base md:text-sm text-slate-900 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
           >
-            <FilterList className="size-4 shrink-0" />
-            Filtrar
-            {activeCount > 0 && (
-              <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-zinc-800 text-white text-xs tabular-nums">
-                {activeCount}
-              </span>
-            )}
+            <FilterList className={ICONE_BOTAO_BARRA} />
+            Filtros
+            <FilterCountBadge count={activeCount} />
+            <ChevronDown className={SETA_BOTAO_BARRA} />
           </button>
         </PopoverTrigger>
         <PopoverContent
-          align="start"
-          className="p-3 space-y-3 bg-zinc-900 text-zinc-100 border-zinc-800 rounded-xl shadow-lg"
-          style={isMobile ? { width: "var(--radix-popover-trigger-width)" } : undefined}
+          align="end"
+          className={PAINEL_ESCURO}
+          style={
+            isMobile
+              ? { width: "var(--radix-popover-trigger-width)" }
+              : undefined
+          }
         >
-          <div>
+          {/* Os controles de dentro continuam BRANCOS. Escurecê-los foi testado
+              e descartado no Flag Field: texto claro sobre painel escuro dentro
+              de outro painel escuro perde contraste. */}
+          <div className="space-y-1.5">
+            <label className={ROTULO_PAINEL_ESCURO}>Tipo</label>
             <Select
               value={value.direction ?? "all"}
               onValueChange={(v) =>
-                set("direction", v === "all" ? undefined : (v as ReceiptDirection))
+                set(
+                  "direction",
+                  v === "all" ? undefined : (v as ReceiptDirection),
+                )
               }
             >
+              {/* Aqui o campo continua BRANCO, e não no cinza dos demais: sobre o
+                  painel escuro, campo branco é a separação mais forte que existe. */}
               <SelectTrigger className={cn("h-9 bg-white", fieldText)}>
                 <SelectValue />
               </SelectTrigger>
@@ -146,12 +182,16 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             </Select>
           </div>
 
-          <div>
+          <div className="space-y-1.5">
+            <label className={ROTULO_PAINEL_ESCURO}>Situação</label>
             <MultiSearchableSelect
               options={statusOptions}
               value={value.status ?? []}
               onValueChange={(arr) =>
-                set("status", arr.length > 0 ? (arr as ReceiptStatus[]) : undefined)
+                set(
+                  "status",
+                  arr.length > 0 ? (arr as ReceiptStatus[]) : undefined,
+                )
               }
               placeholder="Todos os status"
               searchPlaceholder="Buscar status..."
@@ -159,7 +199,8 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
             />
           </div>
 
-          <div>
+          <div className="space-y-1.5">
+            <label className={ROTULO_PAINEL_ESCURO}>Categoria</label>
             <MultiSearchableSelect
               options={categoryOptions}
               value={value.category ?? []}
@@ -171,25 +212,10 @@ export function ReceiptFiltersBar({ value, onChange, trailing }: ReceiptFiltersB
               multiLabel={(n) => `${n} categorias`}
             />
           </div>
-
-          {activeCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="w-full text-zinc-400 hover:bg-white/10 hover:text-zinc-100 h-8"
-            >
-              <X className="size-4 mr-1" />
-              Limpar filtros
-            </Button>
-          )}
         </PopoverContent>
       </Popover>
 
-      {/* Slot trailing (ex: CC dropdown). */}
-      {trailing ? (
-        <div className="ml-auto flex items-center gap-2">{trailing}</div>
-      ) : null}
+      {acoes}
     </div>
   );
 }

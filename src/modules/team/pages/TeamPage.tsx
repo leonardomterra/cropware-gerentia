@@ -1,7 +1,7 @@
 import { useState } from "react";
-import Copy from "~icons/material-symbols-light/content-copy-outline";
-import UserPlus from "~icons/material-symbols-light/person-add-outline";
-import X from "~icons/material-symbols-light/close";
+import Copy from "~icons/ph/copy";
+import UserPlus from "~icons/ph/user-plus";
+import X from "~icons/ph/x";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

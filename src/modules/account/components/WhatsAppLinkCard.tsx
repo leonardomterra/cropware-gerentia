@@ -1,7 +1,7 @@
 import { useState } from "react";
-import Chat from "~icons/material-symbols-light/chat-outline";
-import ContentCopy from "~icons/material-symbols-light/content-copy-outline";
-import Check from "~icons/material-symbols-light/check";
+import Chat from "~icons/ph/chat-circle";
+import ContentCopy from "~icons/ph/copy";
+import Check from "~icons/ph/check";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { api } from "@/utils/api";

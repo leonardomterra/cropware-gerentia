@@ -6,13 +6,15 @@ import path from "path";
 
 export default defineConfig({
   // Icons (unplugin-icons): icones offline tree-shaken via `~icons/<set>/<nome>`.
-  // Sets instalados: material-symbols-light (estaticos), line-md + svg-spinners
-  // (animados/loaders). Compila cada icone como componente React no build.
-  // `scale: 1.2` (default do unplugin, fixado explicito) faz todo icone sair com
-  // width/height="1.2em". O app.css usa `svg[width="1.2em"]` pra dar um leve
-  // aumento neles (material-symbols tem mais padding que o lucide e parecia menor
-  // no mesmo box) - discrimina do lucide (width="24") e do recharts (px). Se
-  // mudar este scale, atualizar o seletor no app.css.
+  // Sets instalados: ph (Phosphor - a familia da interface, com os pesos
+  // regular/fill/duotone/bold/light disponiveis como nomes proprios, ex.
+  // `~icons/ph/trash-duotone`), line-md + svg-spinners (animados/loaders).
+  // Compila cada icone como componente React no build.
+  //
+  // `scale: 1.2` define so' o width/height INTRINSECO (1.2em) - vale quando o
+  // uso nao passa `size-*`. Qualquer classe de tamanho ganha dele por CSS.
+  // O aumento extra de 10% que existia no app.css saiu com o material-symbols;
+  // ver o comentario la'.
   plugins: [
     tailwindcss(),
     react(),

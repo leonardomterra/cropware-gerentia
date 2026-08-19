@@ -28,10 +28,10 @@ export function ItemsCount({
 
     return (
         <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 px-1 my-2", className)}>
-            <div className="truncate min-w-0 font-normal" style={{ fontSize: '14px', color: '#a1a1aa' }}>
+            <div className="truncate min-w-0 font-normal" style={{ fontSize: '14px', color: '#a3a3a3' }}>
                 Mostrando {count} {totalCount !== undefined && totalCount !== count ? `de ${totalCount} ` : ''}{label}
                 {headerSuffix && (
-                    <span className="ml-1" style={{ color: '#27272a' }}>
+                    <span className="ml-1" style={{ color: '#262626' }}>
                         {headerSuffix}
                     </span>
                 )}

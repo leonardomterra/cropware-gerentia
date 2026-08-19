@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import Plus from "~icons/material-symbols-light/add";
-import Pencil from "~icons/material-symbols-light/edit-outline";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
-import EyeOff from "~icons/material-symbols-light/visibility-off-outline";
-import Eye from "~icons/material-symbols-light/visibility-outline";
-import Search from "~icons/material-symbols-light/search";
-import ChevronRight from "~icons/material-symbols-light/keyboard-arrow-right";
+import Plus from "~icons/ph/plus";
+import Pencil from "~icons/ph/pencil-simple";
+import Trash2 from "~icons/ph/trash";
+import EyeOff from "~icons/ph/eye-slash";
+import Eye from "~icons/ph/eye";
+import Search from "~icons/ph/magnifying-glass";
+import ChevronRight from "~icons/ph/caret-right";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

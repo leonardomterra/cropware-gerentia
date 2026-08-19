@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 
 // Offline / producao: import estatico via unplugin-icons (tree-shaken, sem rede).
 // E' assim que os icones devem entrar nas telas reais do app.
-import MsReceipt from "~icons/material-symbols-light/receipt-long-outline";
-import MsWallet from "~icons/material-symbols-light/account-balance-wallet-outline";
-import MsSettings from "~icons/material-symbols-light/settings-outline";
-import MsChart from "~icons/material-symbols-light/bar-chart-4-bars";
+import MsReceipt from "~icons/ph/receipt";
+import MsWallet from "~icons/ph/wallet";
+import MsSettings from "~icons/ph/gear";
+import MsChart from "~icons/ph/chart-bar";
 import SpinRing from "~icons/svg-spinners/ring-resize";
 import LineConfirm from "~icons/line-md/confirm-circle";
 
@@ -205,7 +205,7 @@ export default function IconLabPage() {
           Offline (unplugin-icons) - jeito de PRODUCAO
         </h2>
         <p className="text-xs text-slate-400 mb-4">
-          Import estatico de "~icons/SET/NOME" (ex: ~icons/material-symbols-light/receipt-long-outline).
+          Import estatico de "~icons/SET/NOME" (ex: ~icons/ph/receipt).
           Tree-shaken, sem rede - so o icone usado entra no bundle. As secoes acima usam a API (so dev).
         </p>
         <div className="flex flex-wrap items-center gap-6 text-slate-700">

@@ -10,32 +10,38 @@
    ========================================================== */
 
 @theme {
-  --color-farm-primary: #52525b; /* zinc-600 - brand/header */
-  --color-farm-primary-dark: #3f3f46; /* zinc-700 */
-  --color-farm-primary-darker: #27272a; /* zinc-800 */
-  --color-farm-primary-darkest: #18181b; /* zinc-900 */
-  --color-farm-primary-light: #71717a; /* zinc-500 - sub-header/secundario */
+  --color-farm-primary: #525252; /* neutral-600 - brand/header */
+  --color-farm-primary-dark: #404040; /* neutral-700 */
+  --color-farm-primary-darker: #262626; /* neutral-800 */
+  --color-farm-primary-darkest: #171717; /* neutral-900 */
+  --color-farm-primary-light: #737373; /* neutral-500 - sub-header/secundario */
 
   /* ============================================================
-     PALETA NEUTRA = ZINC (single source of truth)
+     PALETA NEUTRA = NEUTRAL (single source of truth)
      ------------------------------------------------------------
      O app usa classes slate-* (centenas de lugares). Em vez de
      renomear tudo, REDEFINIMOS o que "slate" significa -> as
-     utilities slate-* passam a renderizar ZINC. Trocar a paleta
+     utilities slate-* passam a renderizar NEUTRAL. Trocar a paleta
      neutra do app inteiro = editar SO estes 11 valores aqui.
+
+     Era ZINC (hue 240) ate 19/08/2026; virou NEUTRAL (acromatico) pra
+     bater com o Flag Field, que foi pra acromatico por causa do
+     white-label. A diferenca e' sutil e proposital: zinc tem um azul
+     que aparece justamente quando o cinza cobre area grande, como o
+     header e as barras. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa B.
      (Tema escuro, no futuro: estes viram var(--n-*) + override .dark.)
      ============================================================ */
   --color-slate-50: #fafafa;
-  --color-slate-100: #f4f4f5;
-  --color-slate-200: #e4e4e7;
-  --color-slate-300: #d4d4d8;
-  --color-slate-400: #a1a1aa;
-  --color-slate-500: #71717a;
-  --color-slate-600: #52525b;
-  --color-slate-700: #3f3f46;
-  --color-slate-800: #27272a;
-  --color-slate-900: #18181b;
-  --color-slate-950: #09090b;
+  --color-slate-100: #f5f5f5;
+  --color-slate-200: #e5e5e5;
+  --color-slate-300: #d4d4d4;
+  --color-slate-400: #a3a3a3;
+  --color-slate-500: #737373;
+  --color-slate-600: #525252;
+  --color-slate-700: #404040;
+  --color-slate-800: #262626;
+  --color-slate-900: #171717;
+  --color-slate-950: #0a0a0a;
 
   /* shadcn-compat tokens - mapeados pra HSL vars em :root */
   --color-background: hsl(var(--background));
@@ -89,32 +95,32 @@
 :root {
   --font-ui: "Mozilla Text Variable", "Mozilla Text", "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Tokens shadcn em HSL - agora na familia ZINC (hue ~240, satur. baixa). */
+  /* Tokens shadcn em HSL - familia NEUTRAL (acromatica, hue 0 sat 0). */
   --background: 0 0% 100%;
-  --foreground: 240 6% 10%; /* zinc-900 */
+  --foreground: 0 0% 9%; /* neutral-900 */
   --card: 0 0% 100%;
-  --card-foreground: 240 6% 10%;
+  --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 6% 10%;
+  --popover-foreground: 0 0% 9%;
 
-  --primary: 240 5% 34%; /* zinc-600 */
+  --primary: 0 0% 32%; /* neutral-600 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 5% 96%; /* zinc-100 */
-  --secondary-foreground: 240 6% 10%;
+  --secondary: 0 0% 96%; /* neutral-100 */
+  --secondary-foreground: 0 0% 9%;
 
-  --muted: 240 5% 96%; /* zinc-100 */
-  --muted-foreground: 240 4% 46%; /* zinc-500 */
+  --muted: 0 0% 96%; /* neutral-100 */
+  --muted-foreground: 0 0% 45%; /* neutral-500 */
 
-  --accent: 240 5% 96%;
-  --accent-foreground: 240 6% 10%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
 
   --destructive: 0 75% 50%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 240 5% 90%; /* zinc-200 */
-  --input: 240 5% 90%;
-  --ring: 240 5% 34%; /* zinc-600 */
+  --border: 0 0% 90%; /* neutral-200 */
+  --input: 0 0% 90%;
+  --ring: 0 0% 32%; /* neutral-600 */
 
   --radius: 4px;
 }
@@ -261,6 +267,159 @@ body[data-scroll-locked] {
   margin-right: 0 !important;
 }
 
+/* ==========================================================
+   SCROLLBAR — Etapa A de docs/ADOCAO-DESIGN-FLAGFIELD.md
+   ==========================================================
+
+   1) O GUTTER vai no elemento que DE FATO rola.
+
+   O comentário acima afirmava que o <main> tinha `scrollbar-gutter: stable`
+   próprio. Não tinha — a regra nunca existiu. Sem ela, filtrar uma lista até
+   ela caber na tela faz a barra sumir, a largura útil crescer ~15px e a barra
+   de filtros inteira se reorganizar. O sintoma engana: campos sem relação
+   nenhuma entre si mudam de tamanho juntos.
+
+   > Campos sem relação mudando juntos nunca é conteúdo — é a linha reflowando.
+   > Procure a barra de rolagem antes de mexer no flex.
+
+   2) A barra fica DISCRETA, em todo o app.
+
+   A barra nativa desenha uma calha RETANGULAR, que destoa do canto arredondado
+   dos dialogs — parece um recorte quadrado na quina. A calha some e o polegar
+   ganha borda transparente com `background-clip`, o que o encolhe por dentro e
+   o deixa flutuando arredondado, acompanhando o raio de qualquer contêiner.
+   ========================================================== */
+
+[data-app-scroll-container] {
+  scrollbar-gutter: stable;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
+  border: 4px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Nada pintado fora do raio, e o scroll do dialog não "vaza" pra página. */
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  overscroll-behavior: contain;
+}
+
+/* ==========================================================
+   CAMPOS NUMÉRICOS — sem as setinhas de incremento
+
+   Elas ocupam a ponta direita de todo campo numérico e atrapalham mais do que
+   ajudam: são alvos de ~10px, aparecem só no hover em alguns navegadores (o
+   campo muda de aparência sozinho quando o mouse passa), e ninguém digita um
+   valor clicando de um em um. No celular não existem, então metade dos
+   usuários já vivia sem elas.
+
+   Pior que inúteis, são um risco: a roda do mouse sobre um campo numérico
+   focado altera o valor — dá pra trocar 120,00 por 470,00 rolando a página.
+
+   `appearance: textfield` cobre o Firefox e o `-webkit-*-spin-button` os
+   demais. Os dois são necessários; nenhum sozinho cobre todos.
+   ========================================================== */
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ==========================================================
+   MODO LEITURA — a tela de "ver" é a de editar, travada.
+   ==========================================================
+   Portado do Flag Field (Etapa D de docs/ADOCAO-DESIGN-FLAGFIELD.md).
+
+   Ver um lançamento abria um diálogo com um resumo desenhado à parte: outra
+   ordem, outro formato, e um campo novo no formulário que ninguém lembrava de
+   repetir lá. Agora é o MESMO formulário dentro de um `<fieldset disabled>`.
+
+   Isso esbarra num detalhe: `disabled` nos componentes-base vale 50% de
+   opacidade e cursor de proibido — medida certa para UM campo bloqueado no meio
+   de um formulário ativo, e errada para uma tela que existe só para ser lida.
+   Um lançamento inteiro a meio tom, no celular sob sol, não se lê.
+
+   Aqui o campo travado volta ao contraste cheio e ganha fundo cinza: fica claro
+   que não se digita, sem custar legibilidade. O !important é necessário porque
+   a regra do Tailwind (`.disabled\:opacity-50:disabled`) tem especificidade
+   maior que esta.
+   ========================================================== */
+
+.modo-leitura :disabled,
+.modo-leitura [disabled] {
+  opacity: 1 !important;
+  cursor: default !important;
+}
+
+/* Só os controles ganham fundo — não os contêineres que por acaso herdem o
+   atributo do fieldset.
+
+   O texto é mais claro que o quase-preto dos campos editáveis: no modo leitura
+   TODOS os valores ficariam no tom mais forte da tela ao mesmo tempo, e a
+   página inteira pesava.
+
+   OS DOIS TONS ANDAM JUNTOS. Quando o campo EDITÁVEL ganhou fundo #fafafa
+   (19/08), a leitura precisou descer um degrau — senão os dois estados ficariam
+   idênticos e o cinza deixaria de significar "não se digita". E ao escurecer o
+   fundo para #f5f5f5, o texto teve de escurecer junto: #737373 ali cai para
+   4,35:1 e REPROVA no AA. Ficou #525252, que dá 7,17:1.
+
+   Regra para a próxima vez que alguém mexer: mudou o fundo, recalcule a letra —
+   nesta tela ela é lida no celular, no sol. */
+.modo-leitura input:disabled,
+.modo-leitura textarea:disabled,
+.modo-leitura select:disabled,
+.modo-leitura button:disabled {
+  background-color: #f5f5f5 !important;
+  color: #525252 !important;
+  border-color: #e5e5e5 !important;
+  box-shadow: none !important;
+}
+
+/* O valor escolhido num seletor mora num <span> dentro do botão, que não herda
+   a cor por causa das próprias classes do componente. */
+.modo-leitura button:disabled span,
+.modo-leitura button:disabled svg {
+  color: #525252 !important;
+}
+
+/* O fieldset é só um invólucro: não deve desenhar nada nem espremer o que está
+   dentro. */
+.modo-leitura fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 /* Tap highlight + touch action em elementos interativos. */
 button,
 a,
@@ -278,12 +437,25 @@ select,
   font-weight: 400 !important;
 }
 
-/* Badges: o tamanho (text-xs/text-[11px]) e o peso (font-medium) vêm do
-   componente <Badge>. Aqui só mantemos o letter-spacing e garantimos que
-   nunca fica maiúsculo (NAO uppercase). */
+/* Badges: tipografia padronizada em um lugar só (Etapa B de
+   docs/ADOCAO-DESIGN-FLAGFIELD.md). 12,5px em peso 500 é a medida do Flag
+   Field — no 400 o selo desaparecia dentro do card, e acima de 500 competia
+   com o título da linha.
+
+   MAIÚSCULO desde 19/08/2026, por decisão do Leonardo. O app tem a regra geral
+   de não usar caixa alta (a utility `.uppercase` segue neutralizada logo abaixo,
+   e vale pro resto da interface) — o badge é a exceção, como no Flag Field: ele
+   é um SELO, não uma frase, e a caixa alta é o que o separa do texto ao redor
+   sem precisar de borda.
+
+   Efeito colateral conhecido: o `toSubtitleCase` do componente (que põe os
+   rótulos em "A Pagar") deixou de ter efeito visível. Ficou no lugar porque
+   volta a valer se a caixa alta for revertida. */
 [data-slot="badge"] {
-  letter-spacing: -0.01em !important;
-  text-transform: none !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
 }
 
 /* SEM TEXTO MAIUSCULO (decisao de design, espelho CDM).
@@ -294,15 +466,15 @@ select,
   text-transform: none !important;
 }
 
-/* Leve aumento dos icones do unplugin-icons (material-symbols/line-md/svg-spinners).
-   material-symbols-light tem mais padding interno que o lucide antigo, entao no
-   mesmo box (size-4 etc.) o glifo parecia menor. Seletor: todo icone do unplugin
-   sai com width="1.2em" (scale fixo no vite.config), o que NAO bate com lucide
-   (width="24") nem recharts (px). transform-origin centro = sem deslocamento.
-   Ajustar o fator aqui (1.1 = +10%). */
-svg[width="1.2em"] {
-  transform: scale(1.1);
-}
+/* O aumento de 10% nos icones SAIU junto com o material-symbols.
+   Ele existia porque o material-symbols-light tem padding interno grande e o
+   glifo parecia menor dentro do mesmo box (size-4 etc.). O Phosphor preenche o
+   viewBox como o lucide preenchia, entao somar 1.2 (scale do vite) com 1.1
+   (aqui) deixava o icone 32% maior que a caixa pedida.
+
+   Se algum dia parecer pequeno, o botao de ajuste e' este bloco - e nao o
+   `scale` do vite.config, que so' define o width/height intrinseco (qualquer
+   `size-*` na className ganha dele por CSS). */
 
 /* Autofill do Chrome: por padrao pinta o input de azul (#e8f0fe) e nao
    respeita bg-white. O truque e' um box-shadow inset gigante na cor de fundo

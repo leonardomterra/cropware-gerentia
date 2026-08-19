@@ -6,6 +6,7 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
 
 import { cn } from "./utils";
 import { useIsInsideModal } from "./modal-scope";
+import { MENU_ESCURO } from "@/lib/ui-tokens";
 
 function DropdownMenu({
   modal = false,
@@ -33,10 +34,25 @@ function DropdownMenuTrigger({
   );
 }
 
+/**
+ * Espaço reservado no topo pra o menu não desenhar sob o header.
+ *
+ * No toque são 340px (notch + header completo); no desktop, 12px. Era 340
+ * sempre, e no desktop isso espremia menus de 6 itens — se um dropdown abre
+ * com barra de rolagem sem ter itens demais, o culpado costuma ser este número,
+ * não a altura do menu.
+ */
+function padraoDeColisao() {
+  const toque =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: coarse)").matches;
+  return { top: toque ? 340 : 12 };
+}
+
 function DropdownMenuContent({
   className,
   sideOffset = 4,
-  collisionPadding = { top: 340 },
+  collisionPadding,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   // Eleva z-index pra acima de modais quando dentro de Dialog/Sheet/Drawer.
@@ -50,9 +66,12 @@ function DropdownMenuContent({
         // collisionPadding.top reserva ~340px do topo — notch iOS (~60px) + header verde
         // completo (~270px com env(safe-area-inset-top), título, seletor de app e status bar).
         // Garante que Radix nunca renderize popper sobre o header sticky em iPhones Pro Max.
-        collisionPadding={collisionPadding}
+        collisionPadding={collisionPadding ?? padraoDeColisao()}
         className={cn(
-          "bg-zinc-900 text-zinc-100 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-zinc-800 p-1 shadow-lg",
+          // Vidro escuro é o PADRÃO do componente — não anote MENU_ESCURO na
+          // chamada. Ver src/lib/ui-tokens.ts.
+          MENU_ESCURO,
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto",
           isInsideModal ? "z-[2500]" : "z-[999]",
           className,
         )}
@@ -85,7 +104,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "focus:bg-white/10 focus:text-white data-[variant=destructive]:text-red-400 data-[variant=destructive]:focus:bg-red-500/15 data-[variant=destructive]:focus:text-red-300 data-[variant=destructive]:*:[svg]:!text-red-400 [&_svg:not([class*='text-'])]:text-zinc-400 relative flex cursor-default items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "focus:bg-white/10 focus:text-white data-[variant=destructive]:text-red-400 data-[variant=destructive]:focus:bg-red-500/15 data-[variant=destructive]:focus:text-red-300 data-[variant=destructive]:*:[svg]:!text-red-400 [&_svg:not([class*='text-'])]:text-white/70 relative flex cursor-default items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -166,7 +185,7 @@ function DropdownMenuLabel({
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(
-        "px-2.5 py-1.5 text-xs font-medium text-zinc-400 data-[inset]:pl-8",
+        "px-2.5 py-1.5 text-xs font-medium text-slate-400 data-[inset]:pl-8",
         className,
       )}
       {...props}
@@ -241,7 +260,7 @@ function DropdownMenuSubContent({
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        "bg-zinc-900 text-zinc-100 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-xl border border-zinc-800 p-1 shadow-lg",
+        "bg-slate-900 text-slate-100 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-xl border border-slate-800 p-1 shadow-lg",
         className,
       )}
       {...props}
