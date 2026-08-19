@@ -103,6 +103,26 @@ export function getCategoryLabel(
 }
 
 /**
+ * Rótulo COM o código contábil na frente ("490 - Energia Elétrica"), quando a
+ * categoria tem um. Só para EXPORT (CSV/PDF): é o contador que lê o relatório
+ * e precisa bater com o razão dele. Na tela o código aparece só em
+ * Configurações — nas listas de lançamento ele roubaria espaço do nome.
+ * Categoria sem código cai no rótulo normal, então nada muda para quem não
+ * usa plano de contas.
+ */
+export function getCategoryExportLabel(
+  slug: string | null | undefined,
+  categories: FarmCategory[],
+  fallback = "—",
+): string {
+  const label = getCategoryLabel(slug, categories, fallback);
+  const code = slug
+    ? categories.find((c) => c.slug === slug)?.code
+    : null;
+  return code ? `${code} - ${label}` : label;
+}
+
+/**
  * Converte input pt-BR ("1.234,56") em number. Tolerante:
  * - "1234.56" -> 1234.56
  * - "1234,56" -> 1234.56

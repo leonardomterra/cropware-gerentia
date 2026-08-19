@@ -3,7 +3,7 @@ import { receiptLines } from "@/modules/receipts/utils/receiptLines";
 import {
   formatBRL,
   formatDateBR,
-  getCategoryLabel,
+  getCategoryExportLabel,
 } from "@/modules/receipts/utils/receiptFormatters";
 import { STATUS_LABEL } from "@/modules/receipts/constants";
 
@@ -92,7 +92,7 @@ function toReportLines(receipts: Receipt[], ctx: ReportContext): RLine[] {
       due_date: r.due_date,
       direction: ln.direction,
       status: ln.status,
-      categoryLabel: getCategoryLabel(ln.category, ctx.categories),
+      categoryLabel: getCategoryExportLabel(ln.category, ctx.categories),
       ccName: ln.cost_center_id
         ? ctx.ccNameById.get(ln.cost_center_id) ?? "Sem centro"
         : "Sem centro",
@@ -235,7 +235,7 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
     rs.map((r) => [
       formatDateBR(r.due_date),
       r.vendor || r.description || "—",
-      getCategoryLabel(r.category, ctx.categories),
+      getCategoryExportLabel(r.category, ctx.categories),
       STATUS_LABEL[r.status],
       Number(r.total_value) || 0,
     ]);
