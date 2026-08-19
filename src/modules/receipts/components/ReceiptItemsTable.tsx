@@ -32,7 +32,9 @@ export function ReceiptItemsTable({
   onChanged,
   editable: editableProp = true,
 }: ReceiptItemsTableProps) {
-  const { categories } = useCategories();
+  // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
+  // lancamento ja gravado, que pode apontar pra categoria desativada.
+  const { allCategories: categories } = useCategories();
   const { user, isViewer } = useAuth();
   // Convidado nao desagrupa item (isso cria lancamento). A checagem mora aqui,
   // e nao em cada chamador, pra ninguem esquecer de passar a prop.

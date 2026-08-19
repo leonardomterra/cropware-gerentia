@@ -174,8 +174,30 @@ export interface FarmCategory {
   icon_lucide: string | null;
   direction: ReceiptDirection;
   is_preset: boolean;
-  /** Grupo visual no select (Fazenda, Pessoal, Escritório, Viagem,
-   *  Financeiro, Receitas). Pode ser null para custom user categories
-   *  futuras que nao tenham grupo definido. */
+  /** Chave do grupo (Fazenda, Pessoal, Escritório, Viagem, Financeiro,
+   *  Receitas nos presets; `grp_xxxxxxxx` nos grupos criados pela org).
+   *  Estavel: renomear o grupo nao mexe aqui. Null = cai em "Outras".
+   *  Atencao: em `useCategories` este campo ja vem RESOLVIDO com o rotulo
+   *  exibido; o valor cru so aparece em `useManageCategories`. */
   group_name: string | null;
+  /** Codigo contabil opcional (plano de contas do cliente). */
+  code?: string | null;
+}
+
+/**
+ * Grupo de categoria gerenciado pela org (farm_category_groups). So existe
+ * linha quando a org mexeu no grupo: renomeou, ocultou, reordenou ou criou.
+ * Grupo preset intocado nao tem linha - o rotulo e' a propria chave.
+ */
+export interface FarmCategoryGroup {
+  id: string;
+  organization_id: string;
+  group_key: string;
+  name: string;
+  hidden: boolean;
+  sort_order: number;
+  is_custom: boolean;
+  code: string | null;
+  /** aba onde um grupo VAZIO aparece. Null = nas duas. */
+  direction: ReceiptDirection | null;
 }

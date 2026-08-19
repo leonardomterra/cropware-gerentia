@@ -272,7 +272,9 @@ function ReportPctList({ table }: { table: ReportTable }) {
 export default function ReportsPage() {
   const { user } = useAuth();
   const userCCs = user?.costCenters ?? [];
-  const { categories } = useCategories();
+  // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
+  // lancamento ja gravado, que pode apontar pra categoria desativada.
+  const { allCategories: categories } = useCategories();
   const isMobile = useIsMobile();
 
   const [kind, setKind] = useState<ReportKind>("resumo");

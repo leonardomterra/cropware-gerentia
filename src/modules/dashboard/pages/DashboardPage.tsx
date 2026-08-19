@@ -323,7 +323,9 @@ function dueLabel(days: number): string {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { categories } = useCategories();
+  // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
+  // lancamento ja gravado, que pode apontar pra categoria desativada.
+  const { allCategories: categories } = useCategories();
   const ccs = user?.costCenters || [];
   const showCCFilter = ccs.length > 1;
 

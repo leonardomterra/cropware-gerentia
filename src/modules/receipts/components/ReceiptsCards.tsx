@@ -54,7 +54,9 @@ export function ReceiptsCards({
   viewOnly = false,
   emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsCardsProps) {
-  const { categories } = useCategories();
+  // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
+  // lancamento ja gravado, que pode apontar pra categoria desativada.
+  const { allCategories: categories } = useCategories();
   const { nameOf } = useOrgPeople();
   const { canEdit } = useReceiptPermissions();
   return (

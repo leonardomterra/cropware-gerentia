@@ -102,7 +102,9 @@ export default function PendenciasPage() {
   const { user, isViewer } = useAuth();
   const { tasks, loading, create, update, remove, toggleDone } = useTasks();
   const { receipts, loading: finLoading, refetch: refetchFin } = useReceipts({ status: ["a_pagar", "a_receber", "vencido"] });
-  const { categories } = useCategories();
+  // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
+  // lancamento ja gravado, que pode apontar pra categoria desativada.
+  const { allCategories: categories } = useCategories();
 
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c] as const));
 

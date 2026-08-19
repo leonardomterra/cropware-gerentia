@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import {
   Dialog,
   DialogContent,
@@ -20,144 +21,310 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/components/ui/utils";
-import { useAuth } from "@/contexts/AuthContext";
 import type { ReceiptDirection } from "@/modules/receipts/types";
+import {
+  FALLBACK_GROUP,
+  type ResolvedGroup,
+} from "@/modules/receipts/categoryGroups";
 import {
   useManageCategories,
   type ManageCategory,
 } from "../hooks/useManageCategories";
 
-interface FormState {
+interface CategoryForm {
   name: string;
+  code: string;
   direction: ReceiptDirection;
-  group_name: string;
+  /** chave (group_key) da secao onde a categoria foi criada. */
+  groupKey: string;
+  /** rotulo da secao, so pra exibir no dialog. */
+  groupLabel: string;
 }
 
-const EMPTY_FORM: FormState = {
+interface GroupForm {
+  name: string;
+  code: string;
+}
+
+const EMPTY_CATEGORY: CategoryForm = {
   name: "",
+  code: "",
   direction: "expense",
-  group_name: "",
+  groupKey: "",
+  groupLabel: "",
 };
 
+const EMPTY_GROUP: GroupForm = { name: "", code: "" };
+
+/** Nome + codigo contabil opcional, em coluna. Usado nos dois dialogs. */
+function NameAndCodeFields({
+  value,
+  onChange,
+  namePlaceholder,
+  codePlaceholder,
+  maxLength,
+}: {
+  value: { name: string; code: string };
+  onChange: (patch: { name?: string; code?: string }) => void;
+  namePlaceholder: string;
+  codePlaceholder: string;
+  maxLength: number;
+}) {
+  return (
+    <div className="space-y-4 py-2">
+      <div>
+        <label className="text-sm font-medium text-slate-700 block mb-1">
+          Nome
+        </label>
+        <Input
+          placeholder={namePlaceholder}
+          value={value.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          maxLength={maxLength}
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-slate-700 block mb-1">
+          Código <span className="text-slate-400 font-normal">(opcional)</span>
+        </label>
+        <Input
+          placeholder={codePlaceholder}
+          value={value.code}
+          onChange={(e) => onChange({ code: e.target.value })}
+          maxLength={20}
+        />
+        <p className="text-xs text-slate-500 mt-1">
+          Do plano de contas, se você usa um. Aparece junto do nome.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Gerenciador de Categorias (Configuracoes). Lista presets agrupados +
- * "Minhas Categorias" (custom do user). Acoes:
- * - Presets: ocultar/reativar pela org (so admin). Oculto = esmaecido.
- * - Custom: editar nome/cor + excluir (so as proprias).
+ * Gerenciador de Categorias (Configuracoes). Lista as categorias agrupadas e
+ * deixa a org montar a propria estrutura. Acoes (so owner/admin):
+ * - GRUPO: renomear, desativar/reativar, e excluir quando foi a org que criou
+ *   (grupo preset nao se exclui - o preset e' global, so se desativa).
+ * - CATEGORIA da org: editar, excluir.
+ * - CATEGORIA preset: desativar/reativar pela org.
+ * Desativado = esmaecido aqui, e fora do seletor de lancamento.
  */
 export function CategoriesManager({
   direction,
 }: {
   direction: ReceiptDirection;
 }) {
-  const { isAdmin } = useAuth();
-  const { categories, loading, error, create, update, remove, setHidden } =
-    useManageCategories();
+  const {
+    categories,
+    groups,
+    loading,
+    error,
+    canManage,
+    create,
+    update,
+    remove,
+    setHidden,
+    createGroup,
+    saveGroup,
+    setGroupHidden,
+    removeGroup,
+    compareGroups,
+  } = useManageCategories();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<ManageCategory | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<ManageCategory | null>(null);
+  const [catForm, setCatForm] = useState<CategoryForm>(EMPTY_CATEGORY);
+  const [pendingDeleteCat, setPendingDeleteCat] =
+    useState<ManageCategory | null>(null);
+
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<ResolvedGroup | null>(null);
+  const [groupForm, setGroupForm] = useState<GroupForm>(EMPTY_GROUP);
+  const [pendingDeleteGroup, setPendingDeleteGroup] =
+    useState<ResolvedGroup | null>(null);
+
   const [saving, setSaving] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<ManageCategory | null>(
-    null,
-  );
   const [query, setQuery] = useState("");
   // Grupos colapsados por padrao (Set = grupos abertos). Busca abre todos.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const searching = query.trim() !== "";
 
-  function toggleGroup(name: string) {
+  function toggleGroup(key: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  // Filtra (busca + tipo) e agrupa por group_name. "Minhas Categorias" por ultimo.
-  const groups = useMemo(() => {
+  /**
+   * Secoes desta aba. Um grupo entra se tem categoria da direction atual ou
+   * se esta VAZIO e foi criado nesta aba (senao um grupo novo sumiria ate
+   * ganhar a primeira categoria). Busca filtra os itens e some com a secao
+   * que ficou sem nenhum.
+   */
+  const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = categories.filter((c) => {
-      if (c.direction !== direction) return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
-      return true;
-    });
-    const map = new Map<string, ManageCategory[]>();
-    for (const c of filtered) {
-      const g = c.group_name || "Outras";
-      const arr = map.get(g) ?? [];
+    const byKey = new Map<string, ManageCategory[]>();
+    for (const c of categories) {
+      if (c.direction !== direction) continue;
+      const key = c.group_name || FALLBACK_GROUP;
+      const arr = byKey.get(key) ?? [];
       arr.push(c);
-      map.set(g, arr);
+      byKey.set(key, arr);
     }
-    const entries = [...map.entries()];
-    entries.sort(([a], [b]) => {
-      if (a === "Minhas Categorias") return 1;
-      if (b === "Minhas Categorias") return -1;
-      return a.localeCompare(b, "pt-BR");
-    });
-    // Dentro de cada grupo: presets primeiro, personalizadas (custom) por
-    // ultimo; cada bloco em ordem alfabetica.
-    return entries.map(([name, items]) => ({
-      name,
-      items: [...items].sort(
-        (a, b) =>
-          Number(b.is_preset) - Number(a.is_preset) ||
-          a.name.localeCompare(b.name, "pt-BR"),
-      ),
-    }));
-  }, [categories, query, direction]);
 
-  // Criar dentro de um grupo: o tipo (despesa/receita) e o group_name vem da
-  // propria secao onde o usuario clicou o slot "+ Nova categoria".
-  function openNew(groupName: string, direction: ReceiptDirection) {
-    setEditing(null);
-    setForm({ ...EMPTY_FORM, group_name: groupName, direction });
-    setDialogOpen(true);
+    const out: {
+      group: ResolvedGroup;
+      items: ManageCategory[];
+      total: number;
+    }[] = [];
+    for (const group of groups.values()) {
+      const all = byKey.get(group.key) ?? [];
+      if (all.length === 0 && group.direction !== direction) continue;
+      const items = q
+        ? all.filter((c) => c.name.toLowerCase().includes(q))
+        : all;
+      if (q && items.length === 0) continue;
+      out.push({
+        group,
+        total: all.length,
+        // Presets primeiro, depois as da org; cada bloco em ordem alfabetica.
+        items: [...items].sort(
+          (a, b) =>
+            Number(b.is_preset) - Number(a.is_preset) ||
+            a.name.localeCompare(b.name, "pt-BR"),
+        ),
+      });
+    }
+    out.sort((a, b) => compareGroups(a.group, b.group));
+    return out;
+  }, [categories, groups, query, direction, compareGroups]);
+
+  // ------------------------------------------------------------- categorias
+
+  function openNewCategory(group: ResolvedGroup) {
+    setEditingCat(null);
+    setCatForm({
+      ...EMPTY_CATEGORY,
+      direction,
+      groupKey: group.key,
+      groupLabel: group.name,
+    });
+    setCatDialogOpen(true);
   }
 
-  function openEdit(cat: ManageCategory) {
-    setEditing(cat);
-    setForm({
+  function openEditCategory(cat: ManageCategory) {
+    setEditingCat(cat);
+    setCatForm({
       name: cat.name,
+      code: cat.code ?? "",
       direction: cat.direction,
-      group_name: cat.group_name || "",
+      groupKey: cat.group_name || FALLBACK_GROUP,
+      groupLabel: groups.get(cat.group_name || FALLBACK_GROUP)?.name ?? "",
     });
-    setDialogOpen(true);
+    setCatDialogOpen(true);
   }
 
-  async function handleSubmit() {
-    if (!form.name.trim()) {
+  async function submitCategory() {
+    if (!catForm.name.trim()) {
       toast.error("Dê um nome para a categoria.");
       return;
     }
     setSaving(true);
-    const ok = editing
-      ? await update(editing.id, { name: form.name.trim() })
+    const ok = editingCat
+      ? await update(editingCat.id, {
+          name: catForm.name.trim(),
+          code: catForm.code,
+        })
       : await create({
-          name: form.name.trim(),
-          direction: form.direction,
-          group_name: form.group_name,
+          name: catForm.name.trim(),
+          code: catForm.code,
+          direction: catForm.direction,
+          group_name: catForm.groupKey,
         });
     setSaving(false);
     if (ok) {
-      toast.success(editing ? "Categoria atualizada" : "Categoria criada");
-      setDialogOpen(false);
+      toast.success(editingCat ? "Categoria atualizada" : "Categoria criada");
+      setCatDialogOpen(false);
     }
   }
 
-  async function handleToggleHidden(cat: ManageCategory) {
+  async function toggleCategoryHidden(cat: ManageCategory) {
     const ok = await setHidden(cat.id, !cat.hidden);
     if (ok)
-      toast.success(cat.hidden ? "Categoria reativada" : "Categoria ocultada");
+      toast.success(cat.hidden ? "Categoria reativada" : "Categoria desativada");
   }
 
-  async function handleDelete() {
-    if (!pendingDelete) return;
-    const ok = await remove(pendingDelete.id);
-    setPendingDelete(null);
+  async function confirmDeleteCategory() {
+    if (!pendingDeleteCat) return;
+    const ok = await remove(pendingDeleteCat.id);
+    setPendingDeleteCat(null);
     if (ok) toast.success("Categoria excluída");
   }
+
+  // ----------------------------------------------------------------- grupos
+
+  function openNewGroup() {
+    setEditingGroup(null);
+    setGroupForm(EMPTY_GROUP);
+    setGroupDialogOpen(true);
+  }
+
+  function openEditGroup(group: ResolvedGroup) {
+    setEditingGroup(group);
+    setGroupForm({ name: group.name, code: group.code ?? "" });
+    setGroupDialogOpen(true);
+  }
+
+  async function submitGroup() {
+    if (!groupForm.name.trim()) {
+      toast.error("Dê um nome para o grupo.");
+      return;
+    }
+    setSaving(true);
+    const ok = editingGroup
+      ? await saveGroup(editingGroup, {
+          name: groupForm.name.trim(),
+          code: groupForm.code,
+        })
+      : await createGroup(groupForm.name.trim(), direction, groupForm.code);
+    setSaving(false);
+    if (ok) {
+      toast.success(editingGroup ? "Grupo atualizado" : "Grupo criado");
+      setGroupDialogOpen(false);
+    } else {
+      // saveGroup/createGroup ja escreveram o motivo (nome repetido, RLS...).
+      toast.error(error ?? "Não foi possível salvar o grupo.");
+    }
+  }
+
+  async function toggleGroupHidden(group: ResolvedGroup) {
+    const ok = await setGroupHidden(group, !group.hidden);
+    if (ok)
+      toast.success(
+        group.hidden
+          ? `Grupo ${group.name} reativado`
+          : `Grupo ${group.name} desativado`,
+      );
+  }
+
+  async function confirmDeleteGroup() {
+    if (!pendingDeleteGroup) return;
+    setSaving(true);
+    const ok = await removeGroup(pendingDeleteGroup);
+    setSaving(false);
+    setPendingDeleteGroup(null);
+    if (ok) toast.success("Grupo excluído");
+  }
+
+  /** Quantas categorias somem junto com o grupo (as duas direcoes). */
+  const deleteGroupCount = pendingDeleteGroup
+    ? categories.filter((c) => (c.group_name || FALLBACK_GROUP) === pendingDeleteGroup.key)
+        .length
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -181,169 +348,276 @@ export function CategoriesManager({
 
       {loading ? (
         <LoadingState />
-      ) : groups.length === 0 ? (
-        <EmptyStateCard title="Nenhuma categoria encontrada" />
+      ) : sections.length === 0 ? (
+        <EmptyStateCard
+          title={
+            searching
+              ? "Nenhuma categoria encontrada"
+              : "Nenhum grupo por aqui ainda"
+          }
+        />
       ) : (
         <div className="space-y-2">
-          {groups.map((group) => {
-            const isOpen = searching || expanded.has(group.name);
+          {sections.map(({ group, items, total }) => {
+            const isOpen = searching || expanded.has(group.key);
             return (
-            <section key={group.name}>
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.name)}
-                  className="group/sec flex items-center gap-2 flex-1 min-w-0 text-left py-1"
-                >
-                  <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 group-hover/sec:bg-slate-100 group-hover/sec:text-slate-700 transition-colors shrink-0">
-                    <ChevronRight
-                      className={cn(
-                        "size-5 transition-transform",
-                        isOpen && "rotate-90",
-                      )}
-                    />
-                  </span>
-                  <span className="text-sm font-medium text-slate-500">
-                    {group.name} ({group.items.length})
-                  </span>
-                </button>
-              </div>
-              {isOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 pb-1">
-                {group.items.map((cat) => {
-                  const isCustom = !cat.is_preset;
-                  const hasActions = isCustom || isAdmin;
-                  return (
+              <section key={group.key}>
+                <div className="group/hdr flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.key)}
+                    className={cn(
+                      "group/sec flex items-center gap-2 flex-1 min-w-0 text-left py-1",
+                      group.hidden && "opacity-50",
+                    )}
+                  >
+                    <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 group-hover/sec:bg-slate-100 group-hover/sec:text-slate-700 transition-colors shrink-0">
+                      <ChevronRight
+                        className={cn(
+                          "size-5 transition-transform",
+                          isOpen && "rotate-90",
+                        )}
+                      />
+                    </span>
+                    {group.code && (
+                      <span className="text-xs text-slate-400 tabular-nums shrink-0">
+                        {group.code}
+                      </span>
+                    )}
+                    <span className="text-sm font-medium text-slate-500 truncate">
+                      {group.name} ({total})
+                    </span>
+                  </button>
+                  {canManage && (
                     <div
-                      key={cat.id}
                       className={cn(
-                        "group flex items-center gap-2.5 h-full rounded-lg border px-3 py-2 transition-colors",
-                        "bg-white border-slate-200 hover:bg-slate-50",
-                        cat.hidden && "opacity-50",
+                        "flex items-center gap-1.5 shrink-0 transition-opacity",
+                        // Mesmo padrao dos cards: no desktop as acoes so
+                        // aparecem no hover; no mobile (sem hover) ficam fixas.
+                        "opacity-100 md:opacity-0 md:group-hover/hdr:opacity-100",
                       )}
                     >
-                      <span className="text-sm text-slate-700 truncate flex-1">
-                        {cat.name}
-                      </span>
-                      {hasActions && (
-                        <div
-                          className={cn(
-                            "flex items-center gap-1.5 shrink-0 transition-opacity",
-                            // Custom: botoes sempre visiveis porem esmaecidos
-                            // (mais claros) ate o hover. Presets: acoes so no
-                            // hover (desktop).
-                            isCustom
-                              ? "opacity-40 group-hover:opacity-100"
-                              : "opacity-100 md:opacity-0 md:group-hover:opacity-100",
-                          )}
-                        >
-                          {isCustom ? (
-                            <>
-                              <ActionIconButton
-                                icon={Pencil}
-                                label="Editar"
-                                onClick={() => openEdit(cat)}
-                              />
-                              <ActionIconButton
-                                icon={Trash2}
-                                label="Excluir"
-                                tone="danger"
-                                onClick={() => setPendingDelete(cat)}
-                              />
-                            </>
-                          ) : (
-                            <ActionIconButton
-                              icon={cat.hidden ? Eye : EyeOff}
-                              label={cat.hidden ? "Reativar" : "Ocultar"}
-                              onClick={() => handleToggleHidden(cat)}
-                            />
-                          )}
-                        </div>
+                      <ActionIconButton
+                        icon={Pencil}
+                        label="Renomear grupo"
+                        onClick={() => openEditGroup(group)}
+                      />
+                      <ActionIconButton
+                        icon={group.hidden ? Eye : EyeOff}
+                        label={
+                          group.hidden ? "Reativar grupo" : "Desativar grupo"
+                        }
+                        onClick={() => void toggleGroupHidden(group)}
+                      />
+                      {group.isCustom && (
+                        <ActionIconButton
+                          icon={Trash2}
+                          label="Excluir grupo"
+                          tone="danger"
+                          onClick={() => setPendingDeleteGroup(group)}
+                        />
                       )}
                     </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => openNew(group.name, direction)}
-                  className="flex items-center justify-start gap-1.5 h-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-400 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  <Plus className="size-4" />
-                  Nova Categoria
-                </button>
-              </div>
-              )}
-            </section>
+                  )}
+                </div>
+                {isOpen && (
+                  <div
+                    className={cn(
+                      "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 pb-1",
+                      group.hidden && "opacity-50",
+                    )}
+                  >
+                    {items.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className={cn(
+                          "group flex items-center gap-2.5 h-full rounded-lg border px-3 py-2 transition-colors",
+                          "bg-white border-slate-200 hover:bg-slate-50",
+                          cat.hidden && "opacity-50",
+                        )}
+                      >
+                        {cat.code && (
+                          <span className="text-xs text-slate-400 tabular-nums shrink-0">
+                            {cat.code}
+                          </span>
+                        )}
+                        <span className="text-sm text-slate-700 truncate flex-1">
+                          {cat.name}
+                        </span>
+                        {canManage && (
+                          <div
+                            className={cn(
+                              "flex items-center gap-1.5 shrink-0 transition-opacity",
+                              // Categoria da org: botoes sempre visiveis porem
+                              // esmaecidos ate o hover. Preset: acoes so no
+                              // hover (desktop).
+                              !cat.is_preset
+                                ? "opacity-40 group-hover:opacity-100"
+                                : "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                            )}
+                          >
+                            {!cat.is_preset ? (
+                              <>
+                                <ActionIconButton
+                                  icon={Pencil}
+                                  label="Editar"
+                                  onClick={() => openEditCategory(cat)}
+                                />
+                                <ActionIconButton
+                                  icon={Trash2}
+                                  label="Excluir"
+                                  tone="danger"
+                                  onClick={() => setPendingDeleteCat(cat)}
+                                />
+                              </>
+                            ) : (
+                              <ActionIconButton
+                                icon={cat.hidden ? Eye : EyeOff}
+                                label={cat.hidden ? "Reativar" : "Desativar"}
+                                onClick={() => void toggleCategoryHidden(cat)}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => openNewCategory(group)}
+                        className="flex items-center justify-start gap-1.5 h-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-400 hover:border-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        <Plus className="size-4" />
+                        Nova Categoria
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
             );
           })}
         </div>
       )}
 
-      {/* Dialog criar/editar custom */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Novo grupo: mesma anatomia do cabecalho de grupo (caixa size-9 +
+          rotulo), pra cair alinhado com a lista acima. */}
+      {canManage && !loading && !searching && (
+        <button
+          type="button"
+          onClick={openNewGroup}
+          className="group/new flex items-center gap-2 w-full text-left py-1"
+        >
+          <span className="size-9 inline-flex items-center justify-center rounded-md border border-dashed border-slate-200 text-slate-400 group-hover/new:border-slate-300 group-hover/new:bg-slate-50 group-hover/new:text-slate-600 transition-colors shrink-0">
+            <Plus className="size-5" />
+          </span>
+          <span className="text-sm font-medium text-slate-400 group-hover/new:text-slate-600 transition-colors">
+            Novo Grupo
+          </span>
+        </button>
+      )}
+
+      {/* Dialog criar/editar categoria */}
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editing ? "Editar Categoria" : "Nova Categoria"}
+              {editingCat ? "Editar Categoria" : "Nova Categoria"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nome
-              </label>
-              <Input
-                placeholder="Ex: Manutenção do Trator"
-                value={form.name}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, name: e.target.value }))
-                }
-                maxLength={40}
-              />
-            </div>
-
-            {/* Tipo e grupo vem da secao onde foi criada (nao editavel aqui). */}
-            {!editing && form.group_name && (
-              <p className="text-xs text-slate-500">
-                {form.direction === "income" ? "Receita" : "Despesa"} em{" "}
-                <span className="text-slate-700">{form.group_name}</span>
-              </p>
-            )}
-          </div>
+          <NameAndCodeFields
+            value={catForm}
+            onChange={(patch) => setCatForm((s) => ({ ...s, ...patch }))}
+            namePlaceholder="Ex: Manutenção do Trator"
+            codePlaceholder="Ex: 1002"
+            maxLength={60}
+          />
+          {/* Tipo e grupo vem da secao onde foi criada (nao editavel aqui). */}
+          {!editingCat && catForm.groupLabel && (
+            <p className="text-xs text-slate-500 -mt-1">
+              {catForm.direction === "income" ? "Receita" : "Despesa"} em{" "}
+              <span className="text-slate-700">{catForm.groupLabel}</span>
+            </p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setCatDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar Categoria"}
+            <Button onClick={submitCategory} disabled={saving}>
+              {saving ? "Salvando..." : editingCat ? "Salvar" : "Criar Categoria"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Confirmacao de exclusao */}
-      <Dialog
-        open={pendingDelete !== null}
-        onOpenChange={(o) => {
-          if (!o) setPendingDelete(null);
-        }}
-      >
+      {/* Dialog criar/renomear grupo */}
+      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Excluir Categoria?</DialogTitle>
+            <DialogTitle>
+              {editingGroup ? "Editar Grupo" : "Novo Grupo"}
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600 py-2">
-            A categoria <strong>{pendingDelete?.name}</strong> será removida.
-            Lançamentos antigos que a usavam continuam intactos.
-          </p>
+          <NameAndCodeFields
+            value={groupForm}
+            onChange={(patch) => setGroupForm((s) => ({ ...s, ...patch }))}
+            namePlaceholder="Ex: Escritório Fazenda"
+            codePlaceholder="Ex: 3.11.01.03"
+            maxLength={40}
+          />
+          {editingGroup && !editingGroup.isCustom && (
+            <p className="text-xs text-slate-500 -mt-1">
+              Grupo padrão do gerentia. O novo nome vale só para esta conta.
+            </p>
+          )}
+          {!editingGroup && (
+            <p className="text-xs text-slate-500 -mt-1">
+              Grupo de{" "}
+              <span className="text-slate-700">
+                {direction === "income" ? "receita" : "despesa"}
+              </span>
+              . Depois é só criar as categorias dentro dele.
+            </p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+            <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleDelete}>Excluir</Button>
+            <Button onClick={submitGroup} disabled={saving}>
+              {saving ? "Salvando..." : editingGroup ? "Salvar" : "Criar Grupo"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmacao de exclusao de categoria */}
+      <ConfirmActionDialog
+        open={pendingDeleteCat !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingDeleteCat(null);
+        }}
+        onConfirm={() => void confirmDeleteCategory()}
+        title="Excluir categoria?"
+        description={`A categoria ${pendingDeleteCat?.name ?? ""} será removida. Lançamentos antigos que a usavam continuam intactos.`}
+        confirmLabel="Excluir"
+      />
+
+      {/* Confirmacao de exclusao de grupo */}
+      <ConfirmActionDialog
+        open={pendingDeleteGroup !== null}
+        onOpenChange={(o) => {
+          if (!o) setPendingDeleteGroup(null);
+        }}
+        onConfirm={() => void confirmDeleteGroup()}
+        title="Excluir grupo?"
+        description={
+          deleteGroupCount > 0
+            ? `O grupo ${pendingDeleteGroup?.name ?? ""} e as ${deleteGroupCount} categorias dentro dele serão removidos. Lançamentos antigos continuam intactos.`
+            : `O grupo ${pendingDeleteGroup?.name ?? ""} será removido.`
+        }
+        loading={saving}
+        confirmLabel="Excluir"
+        loadingLabel="Excluindo..."
+      />
     </div>
   );
 }
