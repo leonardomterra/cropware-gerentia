@@ -1,5 +1,9 @@
 import type { FarmRole } from "@/contexts/AuthContext";
 
+/** Perfis atribuiveis pelo gestor. O titular (owner) nao entra: nao se convida
+ *  nem se rebaixa o dono da conta por aqui. */
+export type TeamRole = "admin" | "member" | "viewer";
+
 export interface Member {
   user_id: string;
   full_name: string | null;
@@ -18,7 +22,7 @@ export interface Invite {
   invited_by: string;
   invited_name: string | null;
   invited_email: string | null;
-  role: "admin" | "member";
+  role: TeamRole;
   cost_center_ids: string[];
   used: boolean;
   expires_at: string;
@@ -28,12 +32,12 @@ export interface Invite {
 export interface InviteInput {
   invited_name?: string;
   invited_email?: string;
-  role: "admin" | "member";
+  role: TeamRole;
   cost_center_ids: string[];
 }
 
 export interface InviteLookup {
   organization_name: string;
-  role: "admin" | "member";
+  role: TeamRole;
   invited_name: string | null;
 }

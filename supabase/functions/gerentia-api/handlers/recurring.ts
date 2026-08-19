@@ -1,12 +1,14 @@
 import type { Hono } from "npm:hono";
-import { getUserClient, requireFarmAdmin, requireFarmUser } from "../lib/userClient.ts";
+import { getUserClient, requireCanWrite, requireFarmAdmin, requireFarmUser } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { userCanAccessCC } from "../lib/cc.ts";
 
 /**
  * CRUD de farm_recurring_receipts (R1.3).
  *
- * Leitura: qualquer membro da org. Escrita/pause/run-now: owner/admin.
+ * Leitura: o que a RLS permitir (usuario ve as dele; gestor/convidado, as da
+ * org). Escrita: qualquer perfil que escreve, sobre a PROPRIA recorrencia — a
+ * posse e garantida pela RLS. run-now segue restrito a owner/admin.
  * O cron job pg_cron 'farm-process-recurring' chama farm_process_recurring()
  * todo dia as 07 UTC — topa a fila de lançamentos PREVISTOS (is_estimated=true)
  * de cada recorrencia ativa. POST/PATCH/DELETE tambem orquestram a
@@ -51,7 +53,7 @@ export function mountRecurringRoutes(app: Hono) {
   app.post("/recurring", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmAdmin(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const body = await c.req.json().catch(() => null);
       if (!body || typeof body !== "object") return c.json({ error: "invalid_body" }, 400);
@@ -130,7 +132,7 @@ export function mountRecurringRoutes(app: Hono) {
   app.patch("/recurring/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmAdmin(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const id = c.req.param("id");
       const body = await c.req.json().catch(() => null);
@@ -225,16 +227,20 @@ export function mountRecurringRoutes(app: Hono) {
   app.delete("/recurring/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmAdmin(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const id = c.req.param("id");
 
-      // Confirma posse (via RLS) ANTES de qualquer RPC admin por id — senão o
-      // cleanup (service-role) rodaria sobre a recorrência de outro org.
+      // Confirma posse ANTES de qualquer RPC admin por id — senão o cleanup
+      // (service-role) rodaria sobre a recorrência de outro org. O created_by
+      // explícito é essencial no modelo multiusuário: pela RLS o gestor LÊ a
+      // recorrência do usuário, então só o SELECT deixaria ele apagar os
+      // previstos futuros de um lançamento que não pode excluir.
       const { data: owned } = await client
         .from("farm_recurring_receipts")
         .select("id")
         .eq("id", id)
+        .eq("created_by", auth.user!.id)
         .maybeSingle();
       if (!owned) return c.json({ error: "not_found" }, 404);
 

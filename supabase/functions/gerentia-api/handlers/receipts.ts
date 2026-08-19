@@ -1,5 +1,5 @@
 import type { Hono } from "npm:hono";
-import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
+import { getUserClient, requireCanWrite, requireFarmUser } from "../lib/userClient.ts";
 import { uploadToR2, presignGetUrl, getFromR2 } from "../lib/r2.ts";
 import { extractReceiptFromImage, suggestCategory } from "../lib/gemini.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
@@ -170,6 +170,10 @@ export function mountReceiptRoutes(app: Hono) {
       const direction = q.get("direction");
       const costCenterId = q.get("cost_center_id");
       const search = q.get("search")?.trim();
+      // scope=mine: o gestor (que enxerga a org inteira pela RLS) pede so os
+      // dele. Sem o parametro, cada perfil recebe o que a RLS ja permite —
+      // usuario ve so o proprio, gestor/convidado veem a equipe.
+      const scopeMine = q.get("scope") === "mine";
       const from = q.get("from");
       const to = q.get("to");
       // 1000 cobre o Dashboard com período de até 12 meses sem truncar.
@@ -182,6 +186,7 @@ export function mountReceiptRoutes(app: Hono) {
         .order("created_at", { ascending: false })
         .limit(limit);
 
+      if (scopeMine) query = query.eq("created_by", auth.user!.id);
       if (statusArr.length > 0) query = query.in("status", statusArr);
       if (direction) query = query.eq("direction", direction);
       if (from) query = query.gte("transaction_date", from);
@@ -240,7 +245,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.post("/receipts", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
 
       const body = await c.req.json().catch(() => null);
@@ -366,7 +371,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.patch("/receipts/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
 
       const id = c.req.param("id");
@@ -522,7 +527,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.delete("/receipts/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
 
       const id = c.req.param("id");
@@ -549,7 +554,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.post("/receipts/:id/items/:itemId/promote", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
 
       const id = c.req.param("id");
@@ -665,7 +670,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.post("/receipts/suggest-category", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       if (!aiRateOk(auth.user!.id)) return c.json({ error: "rate_limited" }, 429);
 
@@ -713,7 +718,7 @@ export function mountReceiptRoutes(app: Hono) {
   app.post("/receipts/scan", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       if (!aiRateOk(auth.user!.id)) return c.json({ error: "rate_limited" }, 429);
 

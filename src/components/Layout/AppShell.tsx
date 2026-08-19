@@ -16,8 +16,9 @@ import SlidersHorizontal from "~icons/material-symbols-light/tune";
 import Repeat from "~icons/material-symbols-light/autorenew";
 import Checklist from "~icons/material-symbols-light/checklist";
 import NotificationsIcon from "~icons/material-symbols-light/notifications-outline";
-// import Users from "~icons/material-symbols-light/group-outline"; // Equipe desativada (app individual)
+import Users from "~icons/material-symbols-light/group-outline";
 import ManageAccounts from "~icons/material-symbols-light/manage-accounts-outline";
+import Domain from "~icons/material-symbols-light/domain";
 import UserCircle from "~icons/material-symbols-light/account-circle-outline";
 import LogOut from "~icons/material-symbols-light/logout";
 import HelpCircle from "~icons/material-symbols-light/help-outline";
@@ -26,7 +27,7 @@ import PanelLeftClose from "~icons/material-symbols-light/left-panel-close-outli
 import PanelLeftOpen from "~icons/material-symbols-light/left-panel-open-outline";
 import Menu from "~icons/material-symbols-light/menu";
 import X from "~icons/material-symbols-light/close";
-import { useAuth } from "@/contexts/AuthContext";
+import { ROLE_LABELS, useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
 import { LogoWordmark } from "@/components/LogoWordmark";
@@ -48,17 +49,23 @@ interface NavItem {
   end?: boolean;
   /** Só pra admin (RBAC). No app individual o dono é admin, então aparecem. */
   adminOnly?: boolean;
+  /** So aparece em organizacao com equipe (kind=company). */
+  teamOnly?: boolean;
+  /** Some pro convidado (perfil somente-leitura). */
+  hideForViewer?: boolean;
   /** Liga um contador dinâmico ao item. O array é constante de módulo, então o
    *  número é resolvido no AppShell (via hook) e passado ao NavRow. */
   badgeKey?: "notifications";
 }
 
-// Ordem única do menu. adminOnly marca os itens de gestão (Recorrências/
-// Configurações) — RBAC preservado p/ multi-usuário futuro; no app individual
-// o dono é admin e vê todos.
+// Ordem única do menu.
+//   adminOnly      gestão da organização (Configurações, Equipe)
+//   teamOnly       só faz sentido em org com equipe (kind=company)
+//   hideForViewer  cria/edita dado — o convidado não vê
+// Ver docs/ORGANIZACOES-E-PERFIS.md §2.
 const NAV_ITEMS: NavItem[] = [
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
-  { to: "/recorrencias", label: "Recorrências", icon: Repeat, adminOnly: true },
+  { to: "/recorrencias", label: "Recorrências", icon: Repeat, hideForViewer: true },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/pendencias", label: "Pendências", icon: Checklist },
   { to: "/notificacoes", label: "Notificações", icon: NotificationsIcon, badgeKey: "notifications" },
@@ -67,15 +74,14 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/faturas", label: "Faturas", icon: CreditCard },
   { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
   { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, adminOnly: true },
+  { to: "/equipe", label: "Equipe", icon: Users, adminOnly: true, teamOnly: true },
   // "Fazendas" escondido do menu (CRUD orfao); rota /fazendas segue válida via URL.
-  // "Equipe" desativada (app individual); infra de org/RBAC/convites dormente no
-  // backend. Rota /equipe segue válida via URL direta.
-  // { to: "/equipe", label: "Equipe", icon: Users },
 ];
 
 // Só-master (allowlist MASTER_EMAILS): gestão de plataforma de todos os usuários.
 const MASTER_NAV_ITEMS: NavItem[] = [
-  { to: "/admin", label: "Usuários", icon: ManageAccounts },
+  { to: "/admin", label: "Usuários", icon: ManageAccounts, end: true },
+  { to: "/admin/organizacoes", label: "Organizações", icon: Domain },
 ];
 
 // Conta NAO entra no nav principal - fica no menu do usuario (rodape).
@@ -133,7 +139,7 @@ function NavRow({
 }
 
 export function AppShell() {
-  const { user, signOut, isAdmin, isMaster } = useAuth();
+  const { user, signOut, isAdmin, isMaster, isViewer, isTeamOrg } = useAuth();
   // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
   // mesmo estado que a página lê — marcar lida lá atualiza o badge aqui.
   const { unread } = useNotifications();
@@ -170,7 +176,12 @@ export function AppShell() {
   }, [user?.id]);
 
   const navItems: NavItem[] = [
-    ...NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin),
+    ...NAV_ITEMS.filter(
+      (i) =>
+        (!i.adminOnly || isAdmin) &&
+        (!i.teamOnly || isTeamOrg) &&
+        (!i.hideForViewer || !isViewer),
+    ),
     ...(isMaster ? MASTER_NAV_ITEMS : []),
   ];
 
@@ -268,8 +279,22 @@ export function AppShell() {
               sideOffset={6}
               className="w-56"
             >
-              {/* Rotulo da org escondido (app individual): o nome da org = nome
-                  do usuario, redundante com o botao. Reativar com app multi-user. */}
+              {/* Em org com equipe o usuario precisa saber ONDE esta e COM QUE
+                  perfil — e' o que explica ver (ou nao ver) o dado dos colegas.
+                  No assinante avulso isso e' redundante e fica escondido. */}
+              {isTeamOrg && (
+                <>
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-medium text-slate-900 truncate">
+                      {user?.organizationName}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {user ? ROLE_LABELS[user.role] : ""}
+                    </p>
+                  </div>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                </>
+              )}
               <DropdownMenuItem
                 onSelect={() => navigate("/conta")}
               >
@@ -394,6 +419,14 @@ export function AppShell() {
       {/* COLUNA DE CONTEUDO */}
       <div className="flex flex-col flex-1 min-w-0">
         <ImpersonationBanner />
+
+        {/* Convidado: deixa claro por que nao existe botao de criar/editar. */}
+        {isViewer && (
+          <div className="shrink-0 bg-purple-50 border-b border-purple-200 px-4 py-2 text-center text-xs text-purple-900">
+            Você está como <strong>Convidado</strong> em {user?.organizationName} —
+            acesso de consulta, sem cadastrar ou alterar lançamentos.
+          </div>
+        )}
 
         {/* DESKTOP: topbar com toggle + breadcrumb */}
         <div className="hidden md:flex items-center h-13 shrink-0 border-b border-slate-200 px-3 gap-2">

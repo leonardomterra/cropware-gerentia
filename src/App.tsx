@@ -8,6 +8,7 @@ import {
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isNativeCapacitorApp } from "@/utils/platform";
 import { PaywallGate } from "@/components/billing/PaywallGate";
+import { Paywall } from "@/components/billing/Paywall";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { SignUpScreen } from "@/components/auth/SignUpScreen";
 import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
@@ -69,6 +70,9 @@ const ErrorTestPage = lazyWithRetry(
 const AdminUsersPage = lazyWithRetry(
   () => import("@/modules/admin/pages/AdminUsersPage"),
 );
+const AdminOrgsPage = lazyWithRetry(
+  () => import("@/modules/admin/pages/AdminOrgsPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -95,7 +99,7 @@ function LoadingScreen() {
 }
 
 function RootRoutes() {
-  const { user, loading, isResettingPassword, resetError, isAdmin, isMaster } =
+  const { user, loading, isResettingPassword, resetError, isAdmin, isMaster, isViewer } =
     useAuth();
 
   // App nativo: status bar branca na tela de login (deslogado) e slate-100
@@ -145,6 +149,14 @@ function RootRoutes() {
               <ErrorTestPage />
             </Suspense>
           }
+        />
+      )}
+      {/* DEV-only: preview da tela de paywall (trial vencido) em tela cheia, sem
+          precisar vencer o trial de verdade. Acesse /paywall. */}
+      {import.meta.env.DEV && (
+        <Route
+          path="paywall"
+          element={<Paywall onRecheck={() => window.location.reload()} />}
         />
       )}
       {/* NotificationsProvider envolve o AppShell: assim a sidebar (badge de
@@ -260,25 +272,39 @@ function RootRoutes() {
                 </Suspense>
               }
             />
+          </>
+        )}
+        {/* Recorrência é do próprio usuário (a RLS garante a posse), então não
+            é mais exclusiva de gestor — só o convidado fica de fora. */}
+        {!isViewer && (
+          <Route
+            path="recorrencias"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <RecurringPage />
+              </Suspense>
+            }
+          />
+        )}
+        {isMaster && (
+          <>
             <Route
-              path="recorrencias"
+              path="admin"
               element={
                 <Suspense fallback={<LoadingScreen />}>
-                  <RecurringPage />
+                  <AdminUsersPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="admin/organizacoes"
+              element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <AdminOrgsPage />
                 </Suspense>
               }
             />
           </>
-        )}
-        {isMaster && (
-          <Route
-            path="admin"
-            element={
-              <Suspense fallback={<LoadingScreen />}>
-                <AdminUsersPage />
-              </Suspense>
-            }
-          />
         )}
         {/* DEV-only: laboratorio de icones (Iconify). So existe em dev, por URL
             /icones. Em producao a rota nao e registrada (cai no catch-all). */}

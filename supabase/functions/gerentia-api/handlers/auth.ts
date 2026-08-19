@@ -21,7 +21,7 @@ export function mountAuthRoutes(app: Hono) {
         listUserCostCenters(admin, auth.user!.id, auth.organizationId!),
         admin
           .from("organizations")
-          .select("id, name, trial_started_at, trial_ends_at")
+          .select("id, name, kind, seats_limit, trial_started_at, trial_ends_at")
           .eq("id", auth.organizationId!)
           .maybeSingle(),
         admin
@@ -30,6 +30,16 @@ export function mountAuthRoutes(app: Hono) {
           .eq("user_id", auth.user!.id)
           .maybeSingle(),
       ]);
+
+      // Assentos ocupados: so faz sentido (e so e exposto) pra quem gerencia.
+      let seatsUsed: number | null = null;
+      if (auth.role === "owner" || auth.role === "admin") {
+        const { count } = await admin
+          .from("users_meta")
+          .select("user_id", { count: "exact", head: true })
+          .eq("organization_id", auth.organizationId!);
+        seatsUsed = count ?? null;
+      }
 
       return c.json({
         user: {
@@ -40,7 +50,15 @@ export function mountAuthRoutes(app: Hono) {
           whatsapp_linked: !!metaRes.data?.whatsapp_linked_at,
         },
         role: auth.role,
-        organization: orgRes.data,
+        organization: orgRes.data ? { ...orgRes.data, seats_used: seatsUsed } : null,
+        // A UI NAO recalcula regra de acesso: consome isto. A fonte de verdade
+        // continua sendo a RLS — ver docs/ORGANIZACOES-E-PERFIS.md §5.
+        permissions: {
+          can_read_all: auth.canReadAll,
+          can_write: auth.canWrite,
+          can_write_others: false,
+          can_manage_team: auth.role === "owner" || auth.role === "admin",
+        },
         allowed_cost_center_ids: allowed, // "all" | string[]
         cost_centers: costCenters,
       });

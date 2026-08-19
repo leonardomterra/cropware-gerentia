@@ -6,6 +6,7 @@ import CheckIcon from "~icons/material-symbols-light/check-circle-outline";
 import Trash2 from "~icons/material-symbols-light/delete-outline";
 import LoginIcon from "~icons/material-symbols-light/login";
 import MailIcon from "~icons/material-symbols-light/mail-outline";
+import Download from "~icons/material-symbols-light/download";
 import ChevronDown from "~icons/material-symbols-light/keyboard-arrow-down";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
 import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { useAdminUsers } from "../hooks/useAdminUsers";
+import { downloadBackup } from "../hooks/useAdminOrgs";
 import type { AdminUser } from "../types";
 
 function fmtDate(d: string | null): string {
@@ -53,6 +55,21 @@ export default function AdminUsersPage() {
     impersonate,
     resendInvite,
   } = useAdminUsers();
+
+  // Backup por pessoa: suporte e pedido de LGPD começam por esta tela.
+  const [backingUp, setBackingUp] = useState<string | null>(null);
+
+  async function handleBackup(u: AdminUser) {
+    setBackingUp(u.id);
+    try {
+      await downloadBackup("user", u.id, u.full_name || u.email || "usuario");
+      toast.success("Backup gerado");
+    } catch {
+      toast.error("Erro ao gerar o backup");
+    } finally {
+      setBackingUp(null);
+    }
+  }
 
   const [search, setSearch] = useState("");
 
@@ -475,13 +492,24 @@ export default function AdminUsersPage() {
                       {fmtDate(u.last_sign_in_at)}
                     </td>
                     <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); openEdit(u); }}
-                        className="text-xs text-slate-600 hover:text-slate-900"
-                      >
-                        Editar
-                      </button>
+                      <div className="inline-flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); void handleBackup(u); }}
+                          disabled={backingUp === u.id}
+                          className="text-slate-400 hover:text-slate-900"
+                          title="Baixar o que essa pessoa cadastrou (JSON)"
+                        >
+                          <Download className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openEdit(u); }}
+                          className="text-xs text-slate-600 hover:text-slate-900"
+                        >
+                          Editar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

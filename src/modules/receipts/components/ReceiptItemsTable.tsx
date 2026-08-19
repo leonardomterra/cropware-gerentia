@@ -30,10 +30,13 @@ interface ReceiptItemsTableProps {
 export function ReceiptItemsTable({
   receipt,
   onChanged,
-  editable = true,
+  editable: editableProp = true,
 }: ReceiptItemsTableProps) {
   const { categories } = useCategories();
-  const { user } = useAuth();
+  const { user, isViewer } = useAuth();
+  // Convidado nao desagrupa item (isso cria lancamento). A checagem mora aqui,
+  // e nao em cada chamador, pra ninguem esquecer de passar a prop.
+  const editable = editableProp && !isViewer;
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c]));

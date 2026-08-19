@@ -16,8 +16,34 @@ import {
 import { api } from "@/utils/api";
 import { isMasterUser } from "@/utils/masterUsers";
 import { appRedirectBase } from "@/utils/platform";
+import { invalidateOrgPeople } from "@/modules/team/hooks/useOrgPeople";
 
-export type FarmRole = "owner" | "admin" | "member";
+/**
+ * Perfis de acesso — ver docs/ORGANIZACOES-E-PERFIS.md.
+ *   owner/admin (Gestor)  veem a organizacao inteira, editam so o proprio
+ *   member      (Usuario) ve e edita so o proprio
+ *   viewer      (Convidado) ve a organizacao inteira, nao edita nada
+ */
+export type FarmRole = "owner" | "admin" | "member" | "viewer";
+
+/** Rotulo do perfil na interface. */
+export const ROLE_LABELS: Record<FarmRole, string> = {
+  owner: "Gestor (titular)",
+  admin: "Gestor",
+  member: "Usuário",
+  viewer: "Convidado",
+};
+
+export interface FarmPermissions {
+  /** Enxerga os lancamentos de toda a organizacao. */
+  canReadAll: boolean;
+  /** Pode criar/editar/apagar (o proprio). */
+  canWrite: boolean;
+  /** Pode editar lancamento de terceiro (hoje: ninguem). */
+  canWriteOthers: boolean;
+  /** Pode convidar/remover gente e mexer em centro de custo. */
+  canManageTeam: boolean;
+}
 
 export interface CostCenter {
   id: string;
@@ -42,6 +68,11 @@ export interface FarmUser {
   whatsappLinked: boolean;
   allowedCostCenterIds: "all" | string[];
   costCenters: CostCenter[];
+  /** individual = assinante avulso; company = organizacao com equipe. */
+  organizationKind: "individual" | "company";
+  seatsLimit: number | null;
+  seatsUsed: number | null;
+  permissions: FarmPermissions;
 }
 
 export interface SignUpInput {
@@ -65,9 +96,18 @@ interface AuthMeResponse {
   organization: {
     id: string;
     name: string;
+    kind?: "individual" | "company";
+    seats_limit?: number | null;
+    seats_used?: number | null;
     trial_started_at: string | null;
     trial_ends_at: string | null;
   } | null;
+  permissions?: {
+    can_read_all: boolean;
+    can_write: boolean;
+    can_write_others: boolean;
+    can_manage_team: boolean;
+  };
   allowed_cost_center_ids: "all" | string[];
   cost_centers: CostCenter[];
 }
@@ -79,6 +119,12 @@ interface AuthContextType {
   resetError: string | null;
   isAdmin: boolean;
   isMaster: boolean;
+  /** Convidado: so leitura. Atalho pra esconder acao em vez de deixar dar erro. */
+  isViewer: boolean;
+  canWrite: boolean;
+  canReadAll: boolean;
+  /** Organizacao com equipe (kind=company). Assinante avulso nao ve nada de time. */
+  isTeamOrg: boolean;
   canAccessCC: (ccId: string) => boolean;
   refreshUser: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -113,6 +159,24 @@ async function fetchUserProfile(): Promise<FarmUser | null> {
       whatsappLinked: me.user.whatsapp_linked,
       allowedCostCenterIds: me.allowed_cost_center_ids,
       costCenters: me.cost_centers ?? [],
+      organizationKind: me.organization.kind ?? "individual",
+      seatsLimit: me.organization.seats_limit ?? null,
+      seatsUsed: me.organization.seats_used ?? null,
+      // Fallback pro caso da API estar numa versao anterior: deriva do role em
+      // vez de deixar a UI sem permissao nenhuma.
+      permissions: me.permissions
+        ? {
+            canReadAll: me.permissions.can_read_all,
+            canWrite: me.permissions.can_write,
+            canWriteOthers: me.permissions.can_write_others,
+            canManageTeam: me.permissions.can_manage_team,
+          }
+        : {
+            canReadAll: me.role !== "member",
+            canWrite: me.role !== "viewer",
+            canWriteOthers: false,
+            canManageTeam: me.role === "owner" || me.role === "admin",
+          },
     };
   } catch (err) {
     console.warn("[fetchUserProfile] failed:", err);
@@ -290,6 +354,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     await clearSessionTokens();
+    // Sair não recarrega a página: o cache de nomes da equipe precisa ir embora
+    // na mão, senão fica na memória depois que a pessoa saiu.
+    invalidateOrgPeople();
     setUser(null);
   }, []);
 
@@ -348,6 +415,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
   const isMaster = isMasterUser(user?.email);
+  const isViewer = user?.role === "viewer";
+  const canWrite = user?.permissions.canWrite ?? false;
+  const canReadAll = user?.permissions.canReadAll ?? false;
+  const isTeamOrg = user?.organizationKind === "company";
   const canAccessCC = useCallback(
     (ccId: string): boolean => {
       if (!user) return false;
@@ -366,6 +437,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetError,
         isAdmin,
         isMaster,
+        isViewer,
+        canWrite,
+        canReadAll,
+        isTeamOrg,
         canAccessCC,
         refreshUser,
         signIn,

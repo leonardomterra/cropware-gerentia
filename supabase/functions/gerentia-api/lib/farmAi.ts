@@ -16,7 +16,7 @@ export interface LinkedUser {
   user_id: string;
   organization_id: string;
   user_name: string | null;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "member" | "viewer";
   allowed_cost_center_ids: "all" | string[];
   cost_centers: CostCenterRow[];
 }
@@ -74,6 +74,22 @@ function defaultCC(linked: LinkedUser): CostCenterRow | null {
 
 function ccFilterIds(linked: LinkedUser): string[] | null {
   return linked.allowed_cost_center_ids === "all" ? null : linked.allowed_cost_center_ids;
+}
+
+/**
+ * O bot roda com service_role, que BYPASSA a RLS — entao a regra de "quem ve o
+ * que" precisa ser repetida aqui. Sem isso, um usuario perguntando "quanto
+ * gastei esse mes?" no WhatsApp receberia o consolidado da empresa inteira.
+ * Espelha public.farm_can_read_all() — ver docs/ORGANIZACOES-E-PERFIS.md §5.
+ */
+function waCanReadAll(linked: LinkedUser): boolean {
+  return linked.role === "owner" || linked.role === "admin" || linked.role === "viewer";
+}
+
+/** Recorta a query pelo dono do lancamento, em cima do filtro de organizacao. */
+// deno-lint-ignore no-explicit-any
+function onlyVisible(q: any, linked: LinkedUser): any {
+  return waCanReadAll(linked) ? q : q.eq("created_by", linked.user_id);
 }
 
 function catName(slug: string | null, cats: CategoryRow[]): string {
@@ -209,11 +225,12 @@ async function loadScopedReceipt(ctx: ToolCtx, id: string): Promise<
   const { admin, linked } = ctx;
   const { data: row } = await admin
     .from("farm_receipts")
-    .select("id, direction, status, total_value, category, cost_center_id, vendor, description, payment_method, transaction_date, due_date, paid_date")
+    .select("id, created_by, direction, status, total_value, category, cost_center_id, vendor, description, payment_method, transaction_date, due_date, paid_date")
     .eq("id", id)
     .eq("organization_id", linked.organization_id)
     .maybeSingle();
   if (!row) return null;
+  if (!waCanReadAll(linked) && row.created_by !== linked.user_id) return null;
   const allowed = ccFilterIds(linked);
   if (allowed && row.cost_center_id && !allowed.includes(row.cost_center_id)) return null;
   return row;
@@ -350,6 +367,7 @@ async function execMarkPaid(args: any, ctx: ToolCtx): Promise<ToolResult> {
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("transaction_date", { ascending: false })
     .limit(50);
+  q = onlyVisible(q, linked);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
   const { data, error } = await q;
@@ -460,6 +478,7 @@ export async function findReconcileCandidates(
     .in("status", openStatuses)
     .order("due_date", { ascending: true, nullsFirst: false })
     .limit(80);
+  q = onlyVisible(q, linked);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
   const { data, error } = await q;
@@ -532,12 +551,15 @@ export async function settleReceiptWithReceipt(
 ): Promise<{ ok: boolean; alreadyPaid?: boolean; gone?: boolean; row?: any; message: string }> {
   const { data: row } = await admin
     .from("farm_receipts")
-    .select("id, direction, status, total_value, vendor, description, category, cost_center_id, is_estimated, attachment_key, attachment_mime, ai_raw")
+    .select("id, created_by, direction, status, total_value, vendor, description, category, cost_center_id, is_estimated, attachment_key, attachment_mime, ai_raw")
     .eq("id", candidateId)
     .eq("organization_id", linked.organization_id)
     .maybeSingle();
   const goneMsg = "Essa conta sumiu — talvez tenha sido apagada. Tenta de novo.";
   if (!row) return { ok: false, gone: true, message: goneMsg };
+  if (!waCanReadAll(linked) && row.created_by !== linked.user_id) {
+    return { ok: false, gone: true, message: goneMsg };
+  }
   const allowed = ccFilterIds(linked);
   if (allowed && row.cost_center_id && !allowed.includes(row.cost_center_id)) {
     return { ok: false, gone: true, message: goneMsg };
@@ -599,6 +621,7 @@ async function execSummary(args: any, ctx: ToolCtx): Promise<ToolResult> {
     .select("direction, status, total_value, transaction_date, is_estimated")
     .eq("organization_id", linked.organization_id)
     .limit(3000);
+  q = onlyVisible(q, linked);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
   const { data, error } = await q;
@@ -649,6 +672,7 @@ async function execSpendByCategory(args: any, ctx: ToolCtx): Promise<ToolResult>
     .gte("transaction_date", from)
     .lte("transaction_date", to)
     .limit(3000);
+  q = onlyVisible(q, linked);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
   const { data, error } = await q;
@@ -694,6 +718,7 @@ async function execComparePeriods(args: any, ctx: ToolCtx): Promise<ToolResult> 
     .gte("transaction_date", lastB.from)
     .lte("transaction_date", thisB.to)
     .limit(4000);
+  q = onlyVisible(q, linked);
   const allowed = ccFilterIds(linked);
   if (allowed) q = q.in("cost_center_id", allowed);
   const { data, error } = await q;
@@ -735,6 +760,7 @@ async function execListReceipts(args: any, ctx: ToolCtx): Promise<ToolResult> {
     .gte("transaction_date", since)
     .order("transaction_date", { ascending: false })
     .limit(10);
+  q = onlyVisible(q, linked);
   if (args.direction) q = q.eq("direction", args.direction);
   if (typeof args.category === "string") q = q.eq("category", snapCategory(args.category, ctx.categories, args.direction === "income" ? "income" : "expense"));
   if (args.status) q = q.eq("status", args.status);
@@ -1034,8 +1060,23 @@ function toolDeclarations() {
   }];
 }
 
+/** Ferramentas que alteram dados — negadas pro perfil convidado (viewer). */
+const WRITE_TOOLS = new Set([
+  "create_receipt",
+  "update_receipt",
+  "cancel_receipt",
+  "mark_receipt_paid",
+  "create_task",
+  "complete_task",
+]);
+
 // deno-lint-ignore no-explicit-any
 async function execTool(name: string, args: any, ctx: ToolCtx): Promise<ToolResult> {
+  // Convidado e somente-leitura tambem no WhatsApp. Bloqueia aqui, no despacho,
+  // pra nao depender de cada executor lembrar da regra.
+  if (WRITE_TOOLS.has(name) && ctx.linked.role === "viewer") {
+    return { error: "read_only_profile" };
+  }
   switch (name) {
     case "create_receipt": return await execCreateReceipt(args, ctx);
     case "update_receipt": return await execUpdateReceipt(args, ctx);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/utils/api";
 import type { Invite, InviteInput, Member } from "../types";
-import type { FarmRole } from "@/contexts/AuthContext";
+import { invalidateOrgPeople } from "./useOrgPeople";
 
 interface MembersResponse { members: Member[] }
 interface InvitesResponse { invites: Invite[] }
@@ -23,6 +23,9 @@ export function useTeam() {
       ]);
       setMembers(mRes.members || []);
       setInvites(iRes.invites || []);
+      // Quem abre a Equipe costuma ter acabado de mexer nela: derruba o mapa de
+      // nomes pra o "Lançado por" não ficar sem rótulo pra quem entrou agora.
+      invalidateOrgPeople();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar equipe");
     } finally {
@@ -54,27 +57,5 @@ export function useTeam() {
     }
   }, [refresh]);
 
-  const updateMember = useCallback(async (userId: string, patch: { role?: FarmRole; cost_center_ids?: string[] }): Promise<boolean> => {
-    try {
-      await api(`/members/${userId}`, { method: "PATCH", body: patch });
-      await refresh();
-      return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao atualizar membro");
-      return false;
-    }
-  }, [refresh]);
-
-  const removeMember = useCallback(async (userId: string): Promise<boolean> => {
-    try {
-      await api(`/members/${userId}`, { method: "DELETE" });
-      await refresh();
-      return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao remover membro");
-      return false;
-    }
-  }, [refresh]);
-
-  return { members, invites, loading, error, refresh, createInvite, revokeInvite, updateMember, removeMember };
+  return { members, invites, loading, error, refresh, createInvite, revokeInvite };
 }

@@ -132,7 +132,7 @@ async function getLinkedUser(admin: any, phone: string): Promise<LinkedUser | nu
     .eq("user_id", userId)
     .eq("organization_id", orgId)
     .maybeSingle();
-  const role = (meta?.role as "owner" | "admin" | "member" | null) || "member";
+  const role = (meta?.role as "owner" | "admin" | "member" | "viewer" | null) || "member";
 
   const [allowed, ccs] = await Promise.all([
     getAllowedCostCenterIds(admin, userId, orgId),
@@ -749,6 +749,21 @@ async function sendReconcilePrompt(from: string, e: any, candidates: ReconcileCa
 async function handleMessage(admin: any, msg: any): Promise<void> {
   const from: string = msg.from;
   const linked = await getLinkedUser(admin, from);
+
+  // Convidado (viewer) e somente-leitura tambem no WhatsApp. Pergunta continua
+  // liberada (o bloqueio das ferramentas de escrita mora em farmAi/execTool);
+  // o que precisa de guard aqui e o que grava FORA do despacho da IA: foto/
+  // documento (OCR -> lancamento) e os botoes de confirmacao.
+  if (
+    linked?.role === "viewer" &&
+    (msg.type === "image" || msg.type === "document" || msg.type === "interactive")
+  ) {
+    await sendText(
+      from,
+      "👀 Seu perfil é *Convidado*: você consulta os dados da organização, mas não registra nem altera lançamentos.\n\nPode me perguntar totais, gastos por categoria e vencimentos à vontade.",
+    );
+    return;
+  }
 
   // 1) Botões / lista interativos
   if (msg.type === "interactive") {

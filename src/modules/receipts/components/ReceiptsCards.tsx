@@ -22,6 +22,8 @@ import {
   STATUS_LABEL,
   isCreditCard,
 } from "../constants";
+import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
+import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import { useCategories } from "../hooks/useCategories";
 import {
   formatBRL,
@@ -52,6 +54,8 @@ export function ReceiptsCards({
   emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsCardsProps) {
   const { categories } = useCategories();
+  const { nameOf } = useOrgPeople();
+  const { canEdit } = useReceiptPermissions();
   return (
     <div className="flex flex-col gap-2">
       {receipts.length === 0 ? (
@@ -119,6 +123,11 @@ export function ReceiptsCards({
                   : "";
               })()}
             </p>
+            {nameOf(r.created_by) && (
+              <p className="text-xs text-slate-400 mt-0.5 truncate">
+                Lançado por {nameOf(r.created_by)}
+              </p>
+            )}
             <div className="mt-2 flex items-center gap-1.5">
               <Badge
                 colorScheme={r.direction === "income" ? "emerald" : "slate"}
@@ -160,7 +169,7 @@ export function ReceiptsCards({
               <DropdownMenuItem onSelect={() => onView(r)}>
                 Ver detalhes
               </DropdownMenuItem>
-              {!viewOnly && (
+              {!viewOnly && canEdit(r) && (
                 <DropdownMenuItem onSelect={() => onEdit(r)}>
                   Editar
                 </DropdownMenuItem>
@@ -170,7 +179,7 @@ export function ReceiptsCards({
                   Exportar CSV
                 </DropdownMenuItem>
               )}
-              {!viewOnly && (
+              {!viewOnly && canEdit(r) && (
                 <DropdownMenuItem
                   onSelect={() => onDelete(r)}
                   variant="destructive"

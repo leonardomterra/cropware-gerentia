@@ -30,6 +30,7 @@ function filtersToQuery(filters?: ReceiptFilters): string {
   if (filters.search) params.set("search", filters.search);
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
+  if (filters.scope) params.set("scope", filters.scope);
   const s = params.toString();
   return s ? `?${s}` : "";
 }

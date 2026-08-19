@@ -6,7 +6,8 @@ import { getUserClient, requireFarmAdmin } from "../lib/userClient.ts";
  * Convites por codigo de 6 digitos (admin/owner only).
  * Padrao espelhado do WhatsApp linking que ja funciona.
  *
- * - POST /invites: gera codigo TTL 7d com role + CCs pre-atribuidos.
+ * - POST /invites: gera codigo TTL 7d com role + CCs pre-atribuidos. Respeita
+ *   organizations.seats_limit (null = 1) contando membros + convites pendentes.
  * - GET /invites: lista convites pendentes da org.
  * - DELETE /invites/:id: revoga convite.
  * - GET /invites/lookup/:code (PUBLICO): a JoinPage usa pra mostrar "Convite valido pra X".
@@ -43,7 +44,36 @@ export function mountInviteRoutes(app: Hono) {
 
       const body = await c.req.json().catch(() => null);
       if (!body || typeof body !== "object") return c.json({ error: "invalid_body" }, 400);
-      const role = body.role === "admin" ? "admin" : "member";
+      const role = ["admin", "viewer"].includes(body.role) ? body.role : "member";
+
+      // Trava de assentos. seats_limit null = 1 (assinante avulso): a equipe e
+      // recurso contratado, o Master libera o teto na organizacao. Conta quem ja
+      // esta dentro + convites pendentes, senao da pra estourar o limite
+      // gerando varios convites de uma vez.
+      const { data: org } = await client
+        .from("organizations")
+        .select("seats_limit")
+        .eq("id", auth.organizationId!)
+        .maybeSingle();
+      const seatsLimit = org?.seats_limit ?? 1;
+      const { count: membersCount } = await client
+        .from("users_meta")
+        .select("user_id", { count: "exact", head: true })
+        .eq("organization_id", auth.organizationId!);
+      const { count: pendingCount } = await client
+        .from("farm_org_invites")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", auth.organizationId!)
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString());
+      const seatsUsed = (membersCount ?? 0) + (pendingCount ?? 0);
+      if (seatsUsed >= seatsLimit) {
+        return c.json({
+          error: "seats_limit_reached",
+          seats_limit: seatsLimit,
+          seats_used: seatsUsed,
+        }, 403);
+      }
       const cost_center_ids: string[] = Array.isArray(body.cost_center_ids)
         ? (body.cost_center_ids as string[]).filter((x) => typeof x === "string")
         : [];

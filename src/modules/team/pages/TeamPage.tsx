@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Copy from "~icons/material-symbols-light/content-copy-outline";
-import Trash2 from "~icons/material-symbols-light/delete-outline";
 import UserPlus from "~icons/material-symbols-light/person-add-outline";
 import X from "~icons/material-symbols-light/close";
 import { toast } from "sonner";
@@ -16,29 +15,111 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "../hooks/useTeam";
-import type { Member } from "../types";
+import type { TeamRole } from "../types";
 
-interface InviteForm {
-  name: string;
-  role: "admin" | "member";
-  ccIds: string[];
+/**
+ * Equipe da organização — visão do gestor.
+ *
+ * O gestor CONVIDA (decisão 2 de docs/ORGANIZACOES-E-PERFIS.md §3). Trocar o
+ * perfil de alguém e desligar um acesso são poderes do Master, no painel de
+ * Organizações: as duas ações mexem em quem enxerga o financeiro da empresa e
+ * a segunda joga a pessoa numa conta nova.
+ */
+
+/**
+ * Cada opção diz o que a pessoa PASSA A VER, não o nome técnico do papel — é
+ * aqui que o gestor entende o que está concedendo. Ver §2 do documento.
+ */
+const ROLE_OPTIONS: { value: TeamRole; label: string; hint: string }[] = [
+  {
+    value: "member",
+    label: "Usuário",
+    hint: "Lança e edita apenas o que ele mesmo cadastra. Não vê o que os outros lançam.",
+  },
+  {
+    value: "admin",
+    label: "Gestor",
+    hint: "Vê os lançamentos de toda a equipe e convida gente. Edita apenas os próprios.",
+  },
+  {
+    value: "viewer",
+    label: "Convidado",
+    hint: "Só consulta: vê tudo da organização e não cadastra nem altera nada. Para diretoria, contador ou auditoria.",
+  },
+];
+
+/** O que este perfil enxerga — coluna da tabela de pessoas. */
+function seesLabel(role: string): string {
+  return role === "member" ? "Só os próprios lançamentos" : "Toda a organização";
+}
+
+function roleLabel(role: string): string {
+  if (role === "owner") return "Gestor (titular)";
+  return ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role;
+}
+
+function roleColor(role: string): "amber" | "blue" | "slate" | "purple" {
+  if (role === "owner") return "amber";
+  if (role === "admin") return "blue";
+  if (role === "viewer") return "purple";
+  return "slate";
+}
+
+function RolePicker({
+  value,
+  onChange,
+}: {
+  value: TeamRole;
+  onChange: (r: TeamRole) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {ROLE_OPTIONS.map((opt) => (
+        <label
+          key={opt.value}
+          className={`flex gap-3 px-3 py-2.5 rounded border cursor-pointer transition-colors ${
+            value === opt.value
+              ? "border-slate-900 bg-slate-50"
+              : "border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <input
+            type="radio"
+            className="mt-1"
+            checked={value === opt.value}
+            onChange={() => onChange(opt.value)}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-slate-900">{opt.label}</span>
+            <span className="block text-xs text-slate-500 mt-0.5">{opt.hint}</span>
+          </span>
+        </label>
+      ))}
+    </div>
+  );
 }
 
 export default function TeamPage() {
   const { user } = useAuth();
-  const { members, invites, loading, error, createInvite, revokeInvite, updateMember, removeMember } = useTeam();
-  const orgCCs = user?.costCenters ?? [];
+  const { members, invites, loading, error, createInvite, revokeInvite } =
+    useTeam();
 
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState<InviteForm>({ name: "", role: "member", ccIds: [] });
+  const [inviteForm, setInviteForm] = useState<{ name: string; role: TeamRole }>({
+    name: "",
+    role: "member",
+  });
   const [creating, setCreating] = useState(false);
   const [lastInviteCode, setLastInviteCode] = useState<string | null>(null);
 
-  const [editing, setEditing] = useState<Member | null>(null);
-  const [editForm, setEditForm] = useState<{ role: "admin" | "member"; ccIds: string[] }>({ role: "member", ccIds: [] });
+  // Assentos: quem já está dentro + convites em aberto (o convite reserva a
+  // vaga; senão dá pra gerar 10 códigos com limite de 3 e estourar depois).
+  const seatsLimit = user?.seatsLimit ?? 1;
+  const seatsUsed = members.length + invites.length;
+  const seatsFull = seatsUsed >= seatsLimit;
 
   function openInvite() {
-    setInviteForm({ name: "", role: "member", ccIds: [] });
+    setInviteForm({ name: "", role: "member" });
     setLastInviteCode(null);
     setInviteOpen(true);
   }
@@ -48,7 +129,7 @@ export default function TeamPage() {
     const invite = await createInvite({
       invited_name: inviteForm.name.trim() || undefined,
       role: inviteForm.role,
-      cost_center_ids: inviteForm.role === "member" ? inviteForm.ccIds : [],
+      cost_center_ids: [],
     });
     setCreating(false);
     if (invite) {
@@ -68,60 +149,38 @@ export default function TeamPage() {
     toast.success("Link copiado");
   }
 
-  function openEdit(m: Member) {
-    if (m.role === "owner") {
-      toast.error("Owner nao pode ser editado por aqui.");
-      return;
-    }
-    setEditing(m);
-    setEditForm({
-      role: m.role as "admin" | "member",
-      ccIds: m.cost_center_ids === "all" ? [] : m.cost_center_ids,
-    });
-  }
-
-  async function handleSaveEdit() {
-    if (!editing) return;
-    const ok = await updateMember(editing.user_id, {
-      role: editForm.role,
-      cost_center_ids: editForm.role === "member" ? editForm.ccIds : undefined,
-    });
-    if (ok) {
-      toast.success("Membro atualizado");
-      setEditing(null);
-    }
-  }
-
-  async function handleRemove(m: Member) {
-    if (m.role === "owner") return;
-    if (!confirm(`Remover ${m.full_name || m.email} da organizacao?`)) return;
-    const ok = await removeMember(m.user_id);
-    if (ok) toast.success("Membro removido");
-  }
-
   async function handleRevokeInvite(id: string) {
     if (!confirm("Revogar este convite?")) return;
     const ok = await revokeInvite(id);
     if (ok) toast.success("Convite revogado");
   }
 
-  function toggleCC(ccId: string, list: string[]): string[] {
-    return list.includes(ccId) ? list.filter((x) => x !== ccId) : [...list, ccId];
-  }
-
   return (
     <div className="max-w-4xl space-y-6">
-      <header className="flex items-center justify-between">
+      <header className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500">
-            Convide membros e defina a que centros de custo cada um tem acesso.
+            Cada pessoa lança e edita o que é dela. Gestor e convidado enxergam o
+            consolidado da organização.
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            {seatsUsed} de {seatsLimit} {seatsLimit === 1 ? "acesso" : "acessos"} em
+            uso · para trocar o perfil de alguém ou desligar um acesso, fale com o
+            suporte
           </p>
         </div>
-        <Button onClick={openInvite}>
+        <Button onClick={openInvite} disabled={seatsFull}>
           <UserPlus className="size-4 mr-1" />
-          Convidar Membro
+          Convidar
         </Button>
       </header>
+
+      {seatsFull && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded p-3">
+          Todos os acessos do seu plano estão em uso. Para incluir mais gente na
+          organização, fale com a gente pelo suporte.
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
@@ -129,10 +188,12 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Membros */}
+      {/* Pessoas */}
       <section className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200">
-          <h2 className="text-sm font-medium text-slate-900">Membros ({members.length})</h2>
+          <h2 className="text-sm font-medium text-slate-900">
+            Pessoas ({members.length})
+          </h2>
         </div>
         {loading ? (
           <p className="text-sm text-slate-500 p-4">Carregando...</p>
@@ -141,55 +202,28 @@ export default function TeamPage() {
             <thead className="bg-slate-50 text-slate-600 text-xs">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Nome</th>
-                <th className="text-left px-4 py-2 font-medium">Role</th>
-                <th className="text-left px-4 py-2 font-medium">Centros</th>
-                <th className="text-right px-4 py-2 font-medium">Ações</th>
+                <th className="text-left px-4 py-2 font-medium">Perfil</th>
+                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell">
+                  Enxerga
+                </th>
               </tr>
             </thead>
             <tbody>
               {members.map((m) => (
                 <tr key={m.user_id} className="border-t border-slate-100">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{m.full_name || "(sem nome)"}</div>
+                    <div className="font-medium text-slate-900">
+                      {m.full_name || "(sem nome)"}
+                    </div>
                     <div className="text-xs text-slate-500">{m.email}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge size="compact" colorScheme={m.role === "owner" ? "amber" : m.role === "admin" ? "blue" : "slate"}>
-                      {m.role}
+                    <Badge size="compact" colorScheme={roleColor(m.role)}>
+                      {roleLabel(m.role)}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {m.cost_center_ids === "all" ? (
-                      <span className="text-xs italic text-slate-500">todos</span>
-                    ) : (
-                      <span className="text-xs">
-                        {m.cost_center_ids.length === 0
-                          ? <span className="italic text-slate-500">nenhum</span>
-                          : m.cost_center_ids
-                              .map((id) => orgCCs.find((c) => c.id === id)?.name)
-                              .filter(Boolean).join(", ")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {m.role !== "owner" && (
-                      <div className="inline-flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(m)}
-                          className="text-xs text-slate-600 hover:text-slate-900"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(m)}
-                          className="text-xs text-slate-600 hover:text-red-600 inline-flex items-center gap-1"
-                        >
-                          <Trash2 className="size-3" /> Remover
-                        </button>
-                      </div>
-                    )}
+                  <td className="px-4 py-3 text-xs text-slate-600 hidden sm:table-cell">
+                    {seesLabel(m.role)}
                   </td>
                 </tr>
               ))}
@@ -202,15 +236,20 @@ export default function TeamPage() {
       {invites.length > 0 && (
         <section className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200">
-            <h2 className="text-sm font-medium text-slate-900">Convites Pendentes ({invites.length})</h2>
+            <h2 className="text-sm font-medium text-slate-900">
+              Convites Pendentes ({invites.length})
+            </h2>
           </div>
           <ul className="divide-y divide-slate-100">
             {invites.map((inv) => (
               <li key={inv.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-lg tracking-widest text-slate-900">{inv.code}</div>
+                  <div className="font-mono text-lg tracking-widest text-slate-900">
+                    {inv.code}
+                  </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {inv.invited_name || "Sem nome"} - {inv.role} - expira em {new Date(inv.expires_at).toLocaleDateString("pt-BR")}
+                    {inv.invited_name || "Sem nome"} · {roleLabel(inv.role)} · expira
+                    em {new Date(inv.expires_at).toLocaleDateString("pt-BR")}
                   </div>
                 </div>
                 <button
@@ -243,11 +282,11 @@ export default function TeamPage() {
         </section>
       )}
 
-      {/* Convidar dialog */}
+      {/* Convidar */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convidar Membro</DialogTitle>
+            <DialogTitle>Convidar para a organização</DialogTitle>
           </DialogHeader>
           {lastInviteCode ? (
             <div className="space-y-4 py-2">
@@ -260,74 +299,49 @@ export default function TeamPage() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => copyCode(lastInviteCode)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => copyCode(lastInviteCode)}
+                >
                   <Copy className="size-4 mr-1" /> Código
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={() => copyLink(lastInviteCode)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => copyLink(lastInviteCode)}
+                >
                   <Copy className="size-4 mr-1" /> Link
                 </Button>
               </div>
               <p className="text-xs text-slate-500">
-                Válido por 7 dias. A pessoa precisa entrar em {window.location.origin}/entrar
+                Válido por 7 dias. A pessoa precisa entrar em{" "}
+                {window.location.origin}/entrar
               </p>
             </div>
           ) : (
             <div className="space-y-4 py-2">
               <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Nome (opcional)</label>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Nome (opcional)
+                </label>
                 <Input
-                  placeholder="Joao da Silva"
+                  placeholder="João da Silva"
                   value={inviteForm.name}
-                  onChange={(e) => setInviteForm((s) => ({ ...s, name: e.target.value }))}
+                  onChange={(e) =>
+                    setInviteForm((s) => ({ ...s, name: e.target.value }))
+                  }
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Funcao</label>
-                <div className="flex gap-2">
-                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={inviteForm.role === "member"}
-                      onChange={() => setInviteForm((s) => ({ ...s, role: "member" }))}
-                    />
-                    <span className="text-sm">Member (acesso limitado)</span>
-                  </label>
-                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={inviteForm.role === "admin"}
-                      onChange={() => setInviteForm((s) => ({ ...s, role: "admin" }))}
-                    />
-                    <span className="text-sm">Admin (todos os centros)</span>
-                  </label>
-                </div>
+                <label className="text-sm font-medium text-slate-700 block mb-2">
+                  Perfil de acesso
+                </label>
+                <RolePicker
+                  value={inviteForm.role}
+                  onChange={(role) => setInviteForm((s) => ({ ...s, role }))}
+                />
               </div>
-              {inviteForm.role === "member" && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700 block mb-2">
-                    Centros de acesso ({inviteForm.ccIds.length} selecionados)
-                  </label>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {orgCCs.map((cc) => (
-                      <label
-                        key={cc.id}
-                        className="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={inviteForm.ccIds.includes(cc.id)}
-                          onChange={() => setInviteForm((s) => ({ ...s, ccIds: toggleCC(cc.id, s.ccIds) }))}
-                        />
-                        <span
-                          className="size-3 rounded-full"
-                          style={{ backgroundColor: cc.color || "#71717a" }}
-                        />
-                        <span className="text-sm text-slate-700">{cc.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
           <DialogFooter>
@@ -335,76 +349,14 @@ export default function TeamPage() {
               <Button onClick={() => setInviteOpen(false)}>Fechar</Button>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>
+                  Cancelar
+                </Button>
                 <Button onClick={handleCreateInvite} disabled={creating}>
                   {creating ? "Criando..." : "Gerar Código"}
                 </Button>
               </>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Editar membro */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar {editing?.full_name || editing?.email}</DialogTitle>
-          </DialogHeader>
-          {editing && (
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Funcao</label>
-                <div className="flex gap-2">
-                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={editForm.role === "member"}
-                      onChange={() => setEditForm((s) => ({ ...s, role: "member" }))}
-                    />
-                    <span className="text-sm">Member</span>
-                  </label>
-                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      checked={editForm.role === "admin"}
-                      onChange={() => setEditForm((s) => ({ ...s, role: "admin" }))}
-                    />
-                    <span className="text-sm">Admin</span>
-                  </label>
-                </div>
-              </div>
-              {editForm.role === "member" && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700 block mb-2">
-                    Centros de acesso
-                  </label>
-                  <div className="space-y-1.5">
-                    {orgCCs.map((cc) => (
-                      <label
-                        key={cc.id}
-                        className="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editForm.ccIds.includes(cc.id)}
-                          onChange={() => setEditForm((s) => ({ ...s, ccIds: toggleCC(cc.id, s.ccIds) }))}
-                        />
-                        <span
-                          className="size-3 rounded-full"
-                          style={{ backgroundColor: cc.color || "#71717a" }}
-                        />
-                        <span className="text-sm text-slate-700">{cc.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button onClick={handleSaveEdit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

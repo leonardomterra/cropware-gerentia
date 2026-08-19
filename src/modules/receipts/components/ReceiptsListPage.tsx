@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import { AllCentersChip, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
 import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
 import { ReceiptFiltersBar } from "./ReceiptFiltersBar";
@@ -176,11 +177,18 @@ export function ReceiptsListPage({
   titleNew,
   titleEdit,
 }: ReceiptsListPageProps) {
-  const { user } = useAuth();
+  const { user, isViewer, canReadAll, isTeamOrg } = useAuth();
+  const { canEdit } = useReceiptPermissions();
+  // Convidado nao cria nem edita: as acoes somem em vez de aparecerem e darem
+  // erro. A RLS ja barra no banco — isto e so a interface contando a verdade.
+  const readOnly = viewOnly || isViewer;
   const userCCs = user?.costCenters ?? [];
   const showTabs = userCCs.length > 1;
 
   const [filters, setFilters] = useState<ReceiptFilters>({});
+  // Gestor/convidado abrem no consolidado da equipe (e' o motivo do perfil
+  // existir) e podem estreitar pro proprio.
+  const [onlyMine, setOnlyMine] = useState(false);
   const [month, setMonth] = useState<YearMonth>(currentYearMonth);
   const [activeCCId, setActiveCCId] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
@@ -204,6 +212,7 @@ export function ReceiptsListPage({
   const effectiveFilters: ReceiptFilters = {
     ...filters,
     ...(activeCCId !== "all" ? { cost_center_id: activeCCId } : {}),
+    ...(onlyMine ? { scope: "mine" as const } : {}),
     from: monthRange.from,
     to: monthRange.to,
   };
@@ -437,8 +446,18 @@ export function ReceiptsListPage({
   };
 
   const confirmBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    // Só apaga o que é do próprio usuário. Sem este filtro, o gestor que
+    // selecionasse a lista da equipe tomaria um "3 de 8 não foram excluídos",
+    // que soa como falha quando na verdade é a regra funcionando.
+    const selected = receipts.filter((r) => selectedIds.has(r.id));
+    const ids = selected.filter(canEdit).map((r) => r.id);
+    const skipped = selected.length - ids.length;
+    if (ids.length === 0) {
+      setBulkOpen(false);
+      clearSelection();
+      toast.info("Nada a excluir: esses lançamentos são de outras pessoas.");
+      return;
+    }
     setBulkDeleting(true);
     try {
       const results = await Promise.allSettled(ids.map((id) => deleteReceipt(id)));
@@ -447,7 +466,10 @@ export function ReceiptsListPage({
       clearSelection();
       await refetch();
       if (failed === 0) {
-        toast.success(`${ids.length} ${ids.length === 1 ? "lançamento excluído" : "lançamentos excluídos"}`);
+        toast.success(
+          `${ids.length} ${ids.length === 1 ? "lançamento excluído" : "lançamentos excluídos"}` +
+            (skipped > 0 ? ` · ${skipped} de outras pessoas foram mantidos` : ""),
+        );
       } else {
         toast.error(`${failed} de ${ids.length} não foram excluídos. Tente de novo.`);
       }
@@ -466,14 +488,14 @@ export function ReceiptsListPage({
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
-        {showCreate && (
+        {showCreate && !isViewer && (
           <Button variant="outline" onClick={openCreate} className="gap-1.5 flex-1 min-w-0 lg:min-w-[150px]">
             <Plus className="size-[18px] shrink-0" />
             <span className="flex-1 text-left truncate sm:hidden">{createLabelShort}</span>
             <span className="flex-1 text-left truncate hidden sm:inline">{createLabel}</span>
           </Button>
         )}
-        {showCapture && (
+        {showCapture && !isViewer && (
           <Button
             variant="outline"
             onClick={() => setCaptureOpen(true)}
@@ -483,6 +505,31 @@ export function ReceiptsListPage({
             <span className="flex-1 text-left truncate sm:hidden">Capturar</span>
             <span className="flex-1 text-left truncate hidden sm:inline">Capturar Recibo</span>
           </Button>
+        )}
+
+        {isTeamOrg && canReadAll && (
+          <div className="col-span-2 lg:col-span-1 flex rounded-md border border-slate-200 overflow-hidden lg:min-w-[190px]">
+            <button
+              type="button"
+              onClick={() => setOnlyMine(false)}
+              className={cn(
+                "flex-1 px-3 py-2 text-sm transition-colors",
+                !onlyMine ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+              )}
+            >
+              Toda a equipe
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyMine(true)}
+              className={cn(
+                "flex-1 px-3 py-2 text-sm border-l border-slate-200 transition-colors",
+                onlyMine ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+              )}
+            >
+              Só os meus
+            </button>
+          </div>
         )}
 
         {showTabs && (
@@ -613,7 +660,7 @@ export function ReceiptsListPage({
               <span className="text-slate-700">
                 {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
               </span>
-              {viewOnly ? (
+              {readOnly ? (
                 <Button
                   size="sm"
                   variant="outline"
@@ -673,7 +720,7 @@ export function ReceiptsListPage({
               onEdit={openEdit}
               onDelete={(r) => setPendingDelete(r)}
               onExport={handleExportOne}
-              viewOnly={viewOnly}
+              viewOnly={readOnly}
               emptyLabel={emptyLabel}
             />
           ) : (
@@ -686,7 +733,7 @@ export function ReceiptsListPage({
               selectedIds={selectedIds}
               onToggleOne={toggleOne}
               onToggleAll={toggleAll}
-              viewOnly={viewOnly}
+              viewOnly={readOnly}
               emptyLabel={emptyLabel}
             />
           )}

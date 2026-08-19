@@ -1,37 +1,8 @@
-import type { Context, Hono } from "npm:hono";
+import type { Hono } from "npm:hono";
 import { getUserClient, requireMaster } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { isMasterUser } from "../lib/masterUsers.ts";
-
-/**
- * Registra uma ação sensível do painel MASTER em farm_admin_audit. Nunca lança:
- * auditoria não pode derrubar a ação em si (best-effort), só loga falha.
- */
-async function logAdminAction(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
-  c: Context,
-  actor: { id?: string; email?: string | null },
-  action: string,
-  target: { id?: string | null; email?: string | null },
-  detail?: Record<string, unknown>,
-) {
-  try {
-    const fwd = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
-    await admin.from("farm_admin_audit").insert({
-      actor_user_id: actor.id ?? null,
-      actor_email: actor.email ?? null,
-      action,
-      target_user_id: target.id ?? null,
-      target_email: target.email ?? null,
-      detail: detail ?? null,
-      ip: fwd || c.req.header("cf-connecting-ip") || null,
-      user_agent: c.req.header("user-agent") ?? null,
-    });
-  } catch (e) {
-    console.error("[admin audit] falha ao registrar:", e);
-  }
-}
+import { logAdminAction } from "../lib/adminAudit.ts";
 
 /**
  * Painel MASTER de gestão de usuários (gerentia.app).

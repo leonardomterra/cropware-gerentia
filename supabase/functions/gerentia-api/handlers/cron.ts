@@ -277,15 +277,33 @@ export function mountCronRoutes(app: Hono) {
       .eq("is_active", true);
     if (error) return c.json({ error: error.message }, 500);
 
+    // Papel de cada telefone vinculado: gestor/convidado recebem o consolidado
+    // da organizacao; usuario recebe SO o que ele mesmo lancou. Sem isso o
+    // resumo semanal entrega o financeiro da empresa inteira pra equipe toda —
+    // o cron roda com service_role e nao passa pela RLS.
+    const linkedIds = [...new Set((links || []).map((l) => l.user_id as string))];
+    const { data: metas } = await admin
+      .from("users_meta")
+      .select("user_id, role")
+      .in("user_id", linkedIds.length ? linkedIds : [crypto.randomUUID()]);
+    const roleById: Record<string, string> = {};
+    for (const m of metas || []) roleById[m.user_id as string] = m.role as string;
+    const seesWholeOrg = (userId: string) =>
+      ["owner", "admin", "viewer"].includes(roleById[userId] ?? "member");
+
     const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     let sent = 0, failed = 0;
     for (const link of links || []) {
-      // Agrega receitas/despesas da semana pra essa org.
-      const { data: rs } = await admin
+      // Agrega receitas/despesas da semana no escopo que esse usuario enxerga.
+      let rq = admin
         .from("farm_receipts")
         .select("direction, total_value, status")
         .eq("organization_id", link.organization_id)
         .gte("transaction_date", weekStart);
+      if (!seesWholeOrg(link.user_id as string)) {
+        rq = rq.eq("created_by", link.user_id);
+      }
+      const { data: rs } = await rq;
       let inc = 0, exp = 0, pend = 0;
       for (const r of rs || []) {
         const v = Number(r.total_value) || 0;

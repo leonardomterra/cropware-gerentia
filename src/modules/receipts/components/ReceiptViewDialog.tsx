@@ -19,6 +19,8 @@ import {
   STATUS_LABEL,
   isCreditCard,
 } from "../constants";
+import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
+import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import { useCategories } from "../hooks/useCategories";
 import { ReceiptItemsTable } from "./ReceiptItemsTable";
 import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
@@ -68,6 +70,8 @@ export function ReceiptViewDialog({
   onEdit,
 }: ReceiptViewDialogProps) {
   const { categories } = useCategories();
+  const { nameOf } = useOrgPeople();
+  const { canEdit } = useReceiptPermissions();
   const [viewerOpen, setViewerOpen] = useState(false);
 
   if (!receipt) return null;
@@ -128,6 +132,9 @@ export function ReceiptViewDialog({
           <Field label="Fonte">
             <span className="capitalize">{receipt.source}</span>
           </Field>
+          {nameOf(receipt.created_by) && (
+            <Field label="Lançado por">{nameOf(receipt.created_by)}</Field>
+          )}
           {(receipt.doc_type === "fatura" || isCreditCard(receipt.payment_method)) && (
             <Field label="Contabilizado">
               {receipt.counts_in_total ? (
@@ -179,14 +186,16 @@ export function ReceiptViewDialog({
               Ver arquivo
             </Button>
           )}
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              onEdit(receipt);
-            }}
-          >
-            Editar
-          </Button>
+          {canEdit(receipt) && (
+            <Button
+              onClick={() => {
+                onOpenChange(false);
+                onEdit(receipt);
+              }}
+            >
+              Editar
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
 

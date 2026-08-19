@@ -99,7 +99,7 @@ const EMPTY_FORM: FormStateTask = {
 };
 
 export default function PendenciasPage() {
-  const { user } = useAuth();
+  const { user, isViewer } = useAuth();
   const { tasks, loading, create, update, remove, toggleDone } = useTasks();
   const { receipts, loading: finLoading, refetch: refetchFin } = useReceipts({ status: ["a_pagar", "a_receber", "vencido"] });
   const { categories } = useCategories();
@@ -315,11 +315,13 @@ export default function PendenciasPage() {
           </PopoverContent>
         </Popover>
         </div>
-        {/* Linha 2: novo lembrete */}
-        <Button variant="outline" onClick={openNew} className="w-full sm:w-auto">
-          <Plus className="size-4 mr-1" />
-          Novo Lembrete
-        </Button>
+        {/* Linha 2: novo lembrete (convidado nao cadastra) */}
+        {!isViewer && (
+          <Button variant="outline" onClick={openNew} className="w-full sm:w-auto">
+            <Plus className="size-4 mr-1" />
+            Novo Lembrete
+          </Button>
+        )}
       </header>
 
       {/* 3 colunas no desktop; empilha no mobile */}

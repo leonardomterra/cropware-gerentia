@@ -32,7 +32,26 @@ export function getUserClient(req: Request): SupabaseClient {
   });
 }
 
-export type FarmRole = "owner" | "admin" | "member";
+export type FarmRole = "owner" | "admin" | "member" | "viewer";
+
+/**
+ * Quem enxerga a organizacao inteira: gestor (owner/admin) e convidado (viewer).
+ * Espelha public.farm_can_read_all() na RLS — a fonte de verdade e o banco;
+ * isto aqui existe pra API poder montar resposta/erro sem ir ate a policy.
+ */
+export function roleCanReadAll(role: FarmRole | null): boolean {
+  return role === "owner" || role === "admin" || role === "viewer";
+}
+
+/** Quem pode escrever alguma coisa: todos menos o convidado. Espelha farm_can_write(). */
+export function roleCanWrite(role: FarmRole | null): boolean {
+  return role === "owner" || role === "admin" || role === "member";
+}
+
+/** Gestor edita registro de terceiro? Hoje nao — espelha farm_can_write_others(). */
+export function roleCanWriteOthers(_role: FarmRole | null): boolean {
+  return false;
+}
 
 /**
  * Resolve o auth.users + organization_id + role do user atual.
@@ -47,6 +66,8 @@ export async function requireFarmUser(client: SupabaseClient) {
       user: null,
       organizationId: null,
       role: null as FarmRole | null,
+      canReadAll: false,
+      canWrite: false,
       error: new Response(
         JSON.stringify({ error: "unauthenticated" }),
         { status: 401, headers: { "content-type": "application/json" } },
@@ -65,6 +86,8 @@ export async function requireFarmUser(client: SupabaseClient) {
       user,
       organizationId: null,
       role: null as FarmRole | null,
+      canReadAll: false,
+      canWrite: false,
       error: new Response(
         JSON.stringify({ error: "no_organization" }),
         { status: 403, headers: { "content-type": "application/json" } },
@@ -77,6 +100,8 @@ export async function requireFarmUser(client: SupabaseClient) {
     user,
     organizationId: meta.organization_id as string,
     role,
+    canReadAll: roleCanReadAll(role),
+    canWrite: roleCanWrite(role),
     error: null,
   };
 }
@@ -93,6 +118,26 @@ export async function requireFarmAdmin(client: SupabaseClient) {
       ...auth,
       error: new Response(
         JSON.stringify({ error: "forbidden_admin_only" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      ),
+    };
+  }
+  return auth;
+}
+
+/**
+ * Igual ao requireFarmUser mas falha 403 se o usuario for convidado (viewer).
+ * A RLS ja bloqueia a escrita — isto existe pra devolver um erro claro em vez
+ * de "0 linhas afetadas" ou um 400 cru do PostgREST.
+ */
+export async function requireCanWrite(client: SupabaseClient) {
+  const auth = await requireFarmUser(client);
+  if (auth.error) return auth;
+  if (!auth.canWrite) {
+    return {
+      ...auth,
+      error: new Response(
+        JSON.stringify({ error: "forbidden_read_only" }),
         { status: 403, headers: { "content-type": "application/json" } },
       ),
     };

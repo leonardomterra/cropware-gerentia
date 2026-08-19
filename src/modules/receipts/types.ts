@@ -129,6 +129,9 @@ export interface ReceiptFilters {
   search?: string;
   from?: string;
   to?: string;
+  /** "mine" limita ao que o proprio usuario lancou. So faz diferenca pra quem
+   *  enxerga a organizacao inteira (gestor/convidado). */
+  scope?: "mine";
 }
 
 export interface ReceiptInput {

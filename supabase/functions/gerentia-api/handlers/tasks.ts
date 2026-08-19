@@ -1,5 +1,5 @@
 import type { Hono } from "npm:hono";
-import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
+import { getUserClient, requireCanWrite, requireFarmUser } from "../lib/userClient.ts";
 
 /**
  * CRUD de farm_tasks — os "Lembretes" da aba Pendencias.
@@ -12,6 +12,11 @@ import { getUserClient, requireFarmUser } from "../lib/userClient.ts";
  * PESSOAIS: todo usuario da org cria/edita os seus (requireFarmUser, NAO admin
  * — diferente de recurring). A lista filtra por created_by e as escritas tambem
  * exigem created_by; a RLS mantem o escopo por organizacao.
+ *
+ * Lembrete continua PESSOAL por padrao mesmo pro gestor (que pela RLS poderia
+ * ver os da equipe) — um to-do alheio na lista so atrapalha. Quem quiser o
+ * consolidado pede ?scope=all. Lancamento e o contrario: e dado da empresa, e
+ * por isso /receipts ja devolve a equipe inteira pro gestor.
  */
 
 const PRIORITIES = ["low", "normal", "high"];
@@ -30,11 +35,15 @@ export function mountTaskRoutes(app: Hono) {
       const client = getUserClient(c.req.raw);
       const auth = await requireFarmUser(client);
       if (auth.error) return auth.error;
-      const { data, error } = await client
+      // ?scope=all: gestor/convidado veem os lembretes da equipe (a RLS decide
+      // se pode). Sem o parametro, so os proprios.
+      const scopeAll = new URL(c.req.url).searchParams.get("scope") === "all";
+      let q = client
         .from("farm_tasks")
         .select("*")
-        .eq("organization_id", auth.organizationId!)
-        .eq("created_by", auth.user!.id)
+        .eq("organization_id", auth.organizationId!);
+      if (!(scopeAll && auth.canReadAll)) q = q.eq("created_by", auth.user!.id);
+      const { data, error } = await q
         .order("done", { ascending: true })
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -49,7 +58,7 @@ export function mountTaskRoutes(app: Hono) {
   app.post("/tasks", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const body = await c.req.json().catch(() => null);
       if (!body || typeof body !== "object") return c.json({ error: "invalid_body" }, 400);
@@ -84,7 +93,7 @@ export function mountTaskRoutes(app: Hono) {
   app.patch("/tasks/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const id = c.req.param("id");
       const body = await c.req.json().catch(() => null);
@@ -130,7 +139,7 @@ export function mountTaskRoutes(app: Hono) {
   app.delete("/tasks/:id", async (c) => {
     try {
       const client = getUserClient(c.req.raw);
-      const auth = await requireFarmUser(client);
+      const auth = await requireCanWrite(client);
       if (auth.error) return auth.error;
       const id = c.req.param("id");
       const { data: owned } = await client

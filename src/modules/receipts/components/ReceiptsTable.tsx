@@ -33,6 +33,8 @@ import {
   STATUS_LABEL,
   isCreditCard,
 } from "../constants";
+import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
+import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import { useCategories } from "../hooks/useCategories";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
@@ -79,6 +81,8 @@ export function ReceiptsTable({
   emptyLabel = "Nenhum lançamento neste mês.",
 }: ReceiptsTableProps) {
   const { categories } = useCategories();
+  const { nameOf } = useOrgPeople();
+  const { canEdit } = useReceiptPermissions();
   const { user } = useAuth();
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c] as const));
   const allSelected = receipts.length > 0 && receipts.every((r) => selectedIds.has(r.id));
@@ -212,6 +216,11 @@ export function ReceiptsTable({
                       <TooltipContent side="top" className="max-w-xs">{origem}</TooltipContent>
                     </Tooltip>
                   </span>
+                  {nameOf(r.created_by) && (
+                    <span className="block text-xs text-slate-400 truncate mt-0.5">
+                      Lançado por {nameOf(r.created_by)}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="py-3 text-sm font-normal text-slate-600">
                   <Tooltip>
@@ -307,13 +316,13 @@ export function ReceiptsTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onSelect={() => onView(r)}>Ver detalhes</DropdownMenuItem>
-                        {!viewOnly && (
+                        {!viewOnly && canEdit(r) && (
                           <DropdownMenuItem onSelect={() => onEdit(r)}>Editar</DropdownMenuItem>
                         )}
                         {onExport && (
                           <DropdownMenuItem onSelect={() => onExport(r)}>Exportar CSV</DropdownMenuItem>
                         )}
-                        {!viewOnly && (
+                        {!viewOnly && canEdit(r) && (
                           <DropdownMenuItem variant="destructive" onSelect={() => onDelete(r)}>Excluir</DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

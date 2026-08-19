@@ -19,6 +19,8 @@ import { mountRecurringRoutes } from "./handlers/recurring.ts";
 import { mountTaskRoutes } from "./handlers/tasks.ts";
 import { mountNotificationRoutes } from "./handlers/notifications.ts";
 import { mountAdminRoutes } from "./handlers/admin.ts";
+import { mountAdminOrgRoutes } from "./handlers/adminOrgs.ts";
+import { mountAdminExportRoutes } from "./handlers/adminExport.ts";
 
 const app = new Hono().basePath("/gerentia-api");
 
@@ -29,7 +31,7 @@ app.get("/health", (c) =>
   c.json({
     ok: true,
     service: "gerentia-api",
-    version: "0.7.2",
+    version: "0.8.1",
     ts: new Date().toISOString(),
   }),
 );
@@ -47,6 +49,8 @@ mountRecurringRoutes(app);
 mountTaskRoutes(app);
 mountNotificationRoutes(app);
 mountAdminRoutes(app);
+mountAdminOrgRoutes(app);
+mountAdminExportRoutes(app);
 
 app.onError((err, c) => {
   // Loga o detalhe no servidor; ao cliente devolve só genérico (não vaza
