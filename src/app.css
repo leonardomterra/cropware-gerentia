@@ -454,6 +454,46 @@ select,
   font-weight: 400 !important;
 }
 
+/* Título e descrição no MESMO peso: o padrão do sonner engrossa o título, e
+   sobre o fundo colorido do richColors isso já vem do contraste da cor. */
+[data-sonner-toast] [data-title],
+[data-sonner-toast] [data-description] {
+  font-weight: 400 !important;
+}
+
+/* O botão de fechar fica no PADRÃO do sonner — círculo com borda, ancorado no
+   canto — que é exatamente o do Flag Field: lá não há uma linha de CSS para
+   ele. Estilizar aqui já foi tentado e piorou: zerar fundo e borda deixava um
+   "×" solto flutuando fora do cartão. */
+
+/* Botão de AÇÃO do toast (o "Ver").
+ *
+ * Herda a cor do próprio toast via `currentColor`, em vez do preto sólido do
+ * padrão do sonner: com `richColors` cada estado tem sua cor, e um bloco preto
+ * sobre o fundo âmbar competia com a mensagem — virava a coisa mais escura do
+ * cartão sendo a menos importante. Contornado na cor do estado, ele se lê como
+ * parte do aviso.
+ *
+ * `currentColor` é o que faz UMA regra servir os quatro estados: não há lista
+ * de cores para manter em sincronia com o sonner.
+ *
+ * Fonte a 14px — o piso do app; o padrão do sonner é 12px. */
+[data-sonner-toast] [data-button] {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  height: auto !important;
+  padding: 4px 12px !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: currentColor !important;
+  border: 1px solid currentColor !important;
+}
+[data-sonner-toast] [data-button]:hover {
+  /* Lavagem neutra, e não `currentColor` de fundo: com fundo e texto na mesma
+     cor o rótulo sumiria. */
+  background: rgb(0 0 0 / 0.06) !important;
+}
+
 /* Badges: tipografia padronizada em um lugar só (Etapa B de
    docs/ADOCAO-DESIGN-FLAGFIELD.md). 12,5px em peso 500 é a medida do Flag
    Field — no 400 o selo desaparecia dentro do card, e acima de 500 competia
