@@ -4,6 +4,7 @@ import Check from "~icons/ph/check";
 import DoneAll from "~icons/ph/checks";
 import Trash2 from "~icons/ph/trash";
 import { Button } from "@/components/ui/button";
+import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
 import { cn } from "@/components/ui/utils";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
@@ -12,12 +13,34 @@ import { useNotifications } from "../hooks/useNotifications";
 import type { AppNotification } from "../types";
 
 /** "14:32" hoje, "ontem", senão "12/07". */
+/**
+ * Cor do card por URGÊNCIA — a mesma linguagem do toast (`richColors`), porque
+ * o toast e a linha da lista são a MESMA notificação vista em dois momentos.
+ *
+ * Três níveis, não quatro: distinguir "vence hoje" de "vence amanhã" por cor
+ * seria precisão que o olho não usa, e o texto já diz qual é.
+ *
+ * SÓ NÃO-LIDA recebe cor. Lida é assunto encerrado — pintar a lista inteira
+ * faria a cor deixar de significar "exige atenção" e passar a significar
+ * "existe". É o que separa uma caixa de entrada de um arco-íris.
+ */
+function tomDoCard(kind: string) {
+  if (kind === "overdue")
+    return { caixa: "bg-red-50 border-red-200", corpo: "text-red-700" };
+  if (kind === "due_today" || kind === "due_in_1d")
+    return { caixa: "bg-amber-50 border-amber-200", corpo: "text-amber-800" };
+  return { caixa: "bg-white border-slate-300", corpo: "text-slate-500" };
+}
+
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const now = new Date();
   if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -26,8 +49,15 @@ function fmtWhen(iso: string): string {
 }
 
 export default function NotificacoesPage() {
-  const { notifications, unread, loading, error, markRead, markAllRead, remove } =
-    useNotifications();
+  const {
+    notifications,
+    unread,
+    loading,
+    error,
+    markRead,
+    markAllRead,
+    remove,
+  } = useNotifications();
   const navigate = useNavigate();
 
   // Abrir = marcar lida + ir pra origem. Não há deep-link por item ainda, então
@@ -40,19 +70,45 @@ export default function NotificacoesPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center gap-2">
-        <span className="text-sm text-slate-500">
-          {unread > 0
-            ? `${unread} não lida${unread > 1 ? "s" : ""}`
-            : "Tudo em dia"}
-        </span>
-        <div className="flex-1" />
+      {/* Ação à esquerda, contador à direita — a ordem do padrão de página
+          (docs/PADRAO-DE-PAGINA.md): primeiro o que se faz, depois quanto
+          sobrou. Aqui não há botão de criar (notificação é produzida pelo
+          cron), então "Marcar Todas como Lidas" fica no cinza de barra, e não
+          no escuro reservado para criar. */}
+      <header className="flex items-center gap-2 min-h-[36px]">
         {unread > 0 && (
-          <Button variant="outline" onClick={() => void markAllRead()}>
-            <DoneAll className="size-4 mr-1" />
-            Marcar todas como lidas
+          <Button
+            variant="ghost"
+            onClick={() => void markAllRead()}
+            className={cn(BOTAO_BARRA, "gap-1.5 rounded-md")}
+          >
+            <DoneAll className={ICONE_BOTAO_BARRA} />
+            Marcar Todas como Lidas
+            {/* Contador em VERMELHO, e não no `BADGE_BOTAO_BARRA` escuro dos
+                filtros: aqui o número é um alerta (há coisa esperando), não a
+                contagem de um estado que a pessoa mesma ligou.
+ 
+                Branco sobre `red-400`, por escolha do Leonardo (20/08/2026).
+                Fica em 2,8:1 e NÃO passa no AA para texto — o que se tolera
+                aqui porque o número é redundante: a mesma contagem está escrita
+                em "3 Não Lidas", do outro lado do mesmo cabeçalho. Quem não
+                conseguir ler o selo não perde a informação.
+
+                Se um dia este selo for para um lugar onde o número NÃO se
+                repete, ele precisa escurecer. O sinal forte fica na bolinha do
+                sino, no trilho, onde ele compete com o resto da tela; aqui
+                dentro, já na página de notificações, ele não precisa gritar. */}
+            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-400 text-white text-[11px] tabular-nums">
+              {unread > 99 ? "99+" : unread}
+            </span>
           </Button>
         )}
+        <div className="flex-1" />
+        <span className="text-sm text-slate-500">
+          {unread > 0
+            ? `${unread} ${unread > 1 ? "Não Lidas" : "Não Lida"}`
+            : "Tudo em Dia"}
+        </span>
       </header>
 
       {loading ? (
@@ -96,40 +152,70 @@ function Row({
   onRemove: () => void;
 }) {
   const isUnread = !n.read_at;
-  const overdue = n.kind === "overdue";
+  const tom = tomDoCard(n.kind);
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border p-3 flex items-start gap-3",
-        isUnread ? "border-slate-300" : "border-slate-200 opacity-70",
+        "rounded-lg border p-3 flex items-start gap-3",
+        isUnread ? tom.caixa : "bg-white border-slate-200 opacity-70",
       )}
     >
-      {/* Ponto de não-lida (vermelho quando vencido). */}
-      <span
-        className={cn(
-          "mt-2 size-2 rounded-full shrink-0",
-          isUnread ? (overdue ? "bg-red-500" : "bg-slate-900") : "bg-transparent",
-        )}
-      />
-      <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left">
-        <div className={cn("truncate", isUnread ? "font-medium text-slate-900" : "text-slate-600")}>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 min-w-0 text-left"
+      >
+        <div
+          className={cn(
+            "truncate",
+            isUnread ? "font-medium text-slate-900" : "text-slate-600",
+          )}
+        >
           {n.title}
         </div>
         {n.body && (
           <div
             className={cn(
               "text-sm truncate",
-              overdue && isUnread ? "text-red-600" : "text-slate-500",
+              isUnread ? tom.corpo : "text-slate-500",
             )}
           >
             {n.body}
           </div>
         )}
       </button>
-      <span className="text-xs text-slate-400 shrink-0 mt-0.5">{fmtWhen(n.created_at)}</span>
       <div className="flex items-center gap-1 shrink-0">
-        {isUnread && <ActionIconButton icon={Check} label="Marcar como lida" onClick={onRead} />}
-        <ActionIconButton icon={Trash2} label="Limpar" tone="danger" onClick={onRemove} />
+        {/* Quando: mesma caixa dos botões de ação (altura, borda, raio), mas em
+            <span>, não <button disabled>. É informação, não ação desativada —
+            um botão desabilitado promete um clique que não existe e ainda entra
+            na navegação por teclado.
+
+            LARGURA FIXA: `fmtWhen` só produz três formatos, todos de 5
+            caracteres — "07:27", "ontem", "18/08" (o ano nunca aparece). Sem
+            largura fixa, "ontem" em letras proporcionais encolhia a caixa e a
+            coluna de botões dançava de linha para linha. Se algum dia entrar um
+            formato mais longo ali, este 72px precisa subir junto. */}
+        <span
+          className={cn(
+            "h-9 w-[72px] inline-flex items-center justify-center rounded-md border border-current/25 bg-white/60 text-sm tabular-nums whitespace-nowrap",
+            isUnread ? tom.corpo : "text-slate-500",
+          )}
+        >
+          {fmtWhen(n.created_at)}
+        </span>
+        {isUnread && (
+          <ActionIconButton
+            icon={Check}
+            label="Marcar como lida"
+            onClick={onRead}
+          />
+        )}
+        <ActionIconButton
+          icon={Trash2}
+          label="Limpar"
+          tone="danger"
+          onClick={onRemove}
+        />
       </div>
     </div>
   );
