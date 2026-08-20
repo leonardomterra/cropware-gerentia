@@ -6,6 +6,7 @@ import Save from "~icons/ph/floppy-disk";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { cn } from "./utils";
+import { BOTAO_BARRA } from "@/lib/ui-tokens";
 
 interface PaginaDeFormularioProps {
   /** `form` do botão Salvar — o formulário fica fora do botão, então precisa do id. */
@@ -54,11 +55,14 @@ export function PaginaDeFormulario({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 w-full">
+        {/* Sem borda, no cinza do Flag Field (`BOTAO_BARRA`): Voltar é a saída,
+            não uma escolha — contornado, ele competia com a ação principal ao
+            lado. É o mesmo cinza dos botões de Filtros e Ordenar. */}
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           onClick={aoVoltar}
-          className="h-9 px-4 font-normal"
+          className={cn(BOTAO_BARRA, "rounded-md")}
         >
           <ArrowLeft className="size-4 mr-2" />
           Voltar

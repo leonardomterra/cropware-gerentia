@@ -386,29 +386,46 @@ input[type="number"] {
    TODOS os valores ficariam no tom mais forte da tela ao mesmo tempo, e a
    página inteira pesava.
 
-   OS DOIS TONS ANDAM JUNTOS. Quando o campo EDITÁVEL ganhou fundo #fafafa
-   (19/08), a leitura precisou descer um degrau — senão os dois estados ficariam
-   idênticos e o cinza deixaria de significar "não se digita". E ao escurecer o
-   fundo para #f5f5f5, o texto teve de escurecer junto: #737373 ali cai para
-   4,35:1 e REPROVA no AA. Ficou #525252, que dá 7,17:1.
+   OS DOIS TONS ANDAM JUNTOS, e são os do Flag Field. O campo EDITÁVEL é
+   BRANCO, então a leitura pode ficar em #fafafa: um degrau abaixo é suficiente
+   para dizer "não se digita", sem o peso do #f5f5f5 que a gente usava quando o
+   editável também era cinza.
+
+   Com o fundo mais claro, a letra pôde clarear junto — #737373 sobre #fafafa dá
+   4,54:1 e passa no AA (sobre o #f5f5f5 antigo daria 4,35:1 e reprovava). É o
+   que faz o modo leitura finalmente PARECER travado, em vez de só estar.
 
    Regra para a próxima vez que alguém mexer: mudou o fundo, recalcule a letra —
-   nesta tela ela é lida no celular, no sol. */
+   esta tela é lida no celular, no sol. A margem aqui é fina (4,54 x 4,5). */
 .modo-leitura input:disabled,
 .modo-leitura textarea:disabled,
 .modo-leitura select:disabled,
 .modo-leitura button:disabled {
-  background-color: #f5f5f5 !important;
-  color: #525252 !important;
-  border-color: #e5e5e5 !important;
+  background-color: #fafafa !important;
+  color: #737373 !important;
+  border-color: #ededed !important;
   box-shadow: none !important;
+}
+
+/* O <fieldset disabled> marca os controles como :disabled — é por isso que o
+   visual de leitura funciona. Mas o fieldset usa `display: contents`, e aí o
+   Chrome deixa de BLOQUEAR o clique: campo nativo fica inerte de qualquer
+   jeito, mas widget movido a JS (os Select do Radix) continua abrindo o menu.
+   Foi o que aconteceu com "Duração" em Recorrências.
+
+   Desligar o ponteiro no que já está :disabled fecha o buraco de uma vez, para
+   qualquer componente — inclusive os que ainda não existem. Não alcança nada
+   fora do fieldset, então os extras de leitura (abrir anexo, por exemplo)
+   continuam clicáveis. */
+.modo-leitura :disabled {
+  pointer-events: none !important;
 }
 
 /* O valor escolhido num seletor mora num <span> dentro do botão, que não herda
    a cor por causa das próprias classes do componente. */
 .modo-leitura button:disabled span,
 .modo-leitura button:disabled svg {
-  color: #525252 !important;
+  color: #737373 !important;
 }
 
 /* O fieldset é só um invólucro: não deve desenhar nada nem espremer o que está

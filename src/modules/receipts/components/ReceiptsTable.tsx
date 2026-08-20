@@ -1,7 +1,7 @@
 import MoreVert from "~icons/ph/dots-three-vertical";
 import ListIcon from "~icons/ph/list-bullets";
-import ReceiptLong from "~icons/ph/receipt";
-import CreditCard from "~icons/ph/credit-card";
+import ReceiptDuotone from "~icons/ph/receipt-duotone";
+import InvoiceDuotone from "~icons/ph/invoice-duotone";
 // Duotone só no indicador de cartão: ele marca UMA condição da linha, e o
 // segundo tom o separa dos ícones de tipo de documento, que são estruturais.
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
@@ -215,11 +215,23 @@ export function ReceiptsTable({
                       DOC_TYPE_PREFIX[r.doc_type] === "N") && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex shrink-0 text-slate-400">
+                          {/* Duotone com cor, como no trilho lateral: em cinza
+                              os dois liam como decoração da linha. Fatura ganha
+                              ícone PRÓPRIO (invoice) em vez de outro cartão —
+                              fatura e "pago no cartão" podem aparecer juntos, e
+                              dois cartões lado a lado não distinguiam nada. */}
+                          <span
+                            className={cn(
+                              "inline-flex shrink-0",
+                              DOC_TYPE_PREFIX[r.doc_type] === "F"
+                                ? "text-sky-500"
+                                : "text-amber-500",
+                            )}
+                          >
                             {DOC_TYPE_PREFIX[r.doc_type] === "F" ? (
-                              <CreditCard className="size-4" />
+                              <InvoiceDuotone className="size-4" />
                             ) : (
-                              <ReceiptLong className="size-4" />
+                              <ReceiptDuotone className="size-4" />
                             )}
                           </span>
                         </TooltipTrigger>
@@ -293,7 +305,7 @@ export function ReceiptsTable({
                 <TableCell className="py-3">
                   {/* Previsto: 1 badge só, em cor própria (laranja) — sinaliza
                       que é projeção, não conta firmada. Lançamento itemizado
-                      ganha um badge "Tipo · N itens" ao lado. */}
+                      ganha um badge "Tipo — N itens" ao lado. */}
                   <div className="flex items-center gap-1.5">
                     <Badge
                       colorScheme={

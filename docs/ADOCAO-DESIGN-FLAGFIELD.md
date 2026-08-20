@@ -3,6 +3,10 @@
 > Estudo do `cropware-flagfield` e plano de incorporação no gerentia.
 > Escrito em 19/08/2026, depois de ler o código, os tokens e o histórico de
 > decisões dos dois lados.
+>
+> **Para MONTAR uma página nova, use `PADRAO-DE-PAGINA.md`** — é o resultado
+> destilado deste plano, sem o histórico. Este documento aqui é o porquê e o
+> que ainda falta (Etapa I).
 
 ---
 

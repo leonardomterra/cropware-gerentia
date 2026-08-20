@@ -71,9 +71,7 @@ export function MultiSearchableSelect({
 
   const selectedSet = new Set(value);
   const singleSelected =
-    value.length === 1
-      ? options.find((o) => o.value === value[0])
-      : undefined;
+    value.length === 1 ? options.find((o) => o.value === value[0]) : undefined;
 
   // Agrupa preservando ordem.
   const groups: { name: string | undefined; items: SearchableOption[] }[] = [];
@@ -92,7 +90,7 @@ export function MultiSearchableSelect({
     value.length === 0
       ? placeholder
       : value.length === 1
-        ? singleSelected?.label ?? placeholder
+        ? (singleSelected?.label ?? placeholder)
         : multiLabel(value.length);
 
   return (
@@ -102,7 +100,7 @@ export function MultiSearchableSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            "h-9 w-full inline-flex items-center justify-between gap-2 rounded border border-slate-100 bg-slate-50 px-3 text-base md:text-sm text-slate-500 transition-colors hover:border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
+            "h-9 w-full inline-flex items-center justify-between gap-2 rounded border border-slate-200 bg-white px-3 text-base md:text-sm text-slate-500 transition-colors hover:border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
             triggerClassName,
           )}

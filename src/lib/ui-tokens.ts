@@ -100,7 +100,8 @@ export const PAINEL_ESCURO = cn(
  * Rótulo de campo dentro do painel escuro. Branco, e não cinza: sobre o vidro a
  * 65% o `slate-400` cai para ~2,2:1.
  */
-export const ROTULO_PAINEL_ESCURO = "text-[13px] font-normal text-white";
+// 14px, o piso do app — estava em 13px, único texto do painel abaixo da régua.
+export const ROTULO_PAINEL_ESCURO = "text-sm font-normal text-white";
 
 /**
  * Botão da barra de filtros (Filtros, Ordenar, Exportar...).
@@ -109,12 +110,12 @@ export const ROTULO_PAINEL_ESCURO = "text-[13px] font-normal text-white";
  * lado crescem; sem ele, nomes longos achatam os rótulos.
  */
 export const BOTAO_BARRA =
-  "h-9 px-4 shrink-0 font-normal shadow-none border-0 bg-slate-100 text-slate-700 hover:bg-slate-200";
+  "h-9 px-4 shrink-0 font-normal shadow-none border-0 bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300";
 
 /**
  * CAMPO da barra (o seletor de Centro de Custo, ao lado da busca).
  *
- * Mesmo fundo dos campos do app (`slate-50`), e não o `slate-100` dos botões da
+ * Mesmo fundo dos campos do app (branco), e não o `slate-100` dos botões da
  * barra. Na primeira linha convivem duas coisas diferentes: CAMPOS, que guardam
  * um valor escolhido, e BOTÕES, que abrem painel — dar o mesmo tom aos dois
  * fazia o centro de custo ler como ação, e não como filtro preenchido.
@@ -125,7 +126,7 @@ export const BOTAO_BARRA =
  */
 export const CAMPO_BARRA =
   "h-9 w-full inline-flex items-center gap-1.5 px-3 rounded-md cursor-pointer transition-colors " +
-  "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 text-sm " +
+  "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 text-sm " +
   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 [&>svg]:size-[18px]";
 
 /** Ícone à esquerda do rótulo, dentro de BOTAO_BARRA. */

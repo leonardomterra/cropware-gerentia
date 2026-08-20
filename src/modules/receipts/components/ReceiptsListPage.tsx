@@ -20,16 +20,7 @@ import {
   pdfViewerHtml,
 } from "../utils/mergeAttachmentsPdf";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +49,7 @@ import { ReceiptsTable } from "./ReceiptsTable";
 import { ReceiptsCards } from "./ReceiptsCards";
 import { ReceiptFormDialog } from "./ReceiptFormDialog";
 import { ReceiptCaptureDialog } from "./ReceiptCaptureDialog";
-import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
+import { PaginaDeAnexo } from "./PaginaDeAnexo";
 import {
   MonthSwitcher,
   currentYearMonth,
@@ -510,7 +501,7 @@ export function ReceiptsListPage({
         toast.success(
           `${ids.length} ${ids.length === 1 ? "lançamento excluído" : "lançamentos excluídos"}` +
             (skipped > 0
-              ? ` · ${skipped} de outras pessoas foram mantidos`
+              ? ` — ${skipped} de outras pessoas foram mantidos`
               : ""),
         );
       } else {
@@ -539,6 +530,17 @@ export function ReceiptsListPage({
    * um `GET /receipts/:id` que a API ainda não tem — sem ele, a página não
    * sobreviveria a um F5. Fica anotado como próximo passo.
    */
+  // Ver anexo também substitui a lista, pelo mesmo motivo do formulário: no
+  // celular o diálogo espremia justamente o que se quer olhar grande.
+  if (viewingAttachment) {
+    return (
+      <PaginaDeAnexo
+        receipt={viewingAttachment}
+        aoVoltar={() => setViewingAttachment(null)}
+      />
+    );
+  }
+
   if (formOpen) {
     return (
       <ReceiptFormDialog
@@ -942,71 +944,49 @@ export function ReceiptsListPage({
         </BatchActionBar>
       )}
 
-      <AttachmentViewerDialog
-        receipt={viewingAttachment}
-        open={viewingAttachment !== null}
-        onOpenChange={(o) => {
-          if (!o) setViewingAttachment(null);
-        }}
-      />
-
-      <AlertDialog
+      {/* Confirmação passa pelo componente comum: os dois diálogos aqui eram
+          AlertDialog montados à mão e por isso não acompanhavam o padrão
+          (empilhavam no mobile, tinham divisória e sombra nos botões). */}
+      <ConfirmActionDialog
         open={pendingDelete !== null}
         onOpenChange={(o) => {
           if (!o) setPendingDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDelete?.vendor || pendingDelete?.description}
-              {" - "}
-              {pendingDelete ? formatBRL(pendingDelete.total_value) : ""}.
-              <br />
-              Essa acao nao pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
-              {deleting ? "Excluindo..." : "Excluir"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Excluir Lançamento"
+        description="Essa ação não pode ser desfeita."
+        infoItems={
+          pendingDelete
+            ? [
+                {
+                  label:
+                    pendingDelete.vendor ||
+                    pendingDelete.description ||
+                    "Lançamento",
+                  value: formatBRL(pendingDelete.total_value),
+                },
+              ]
+            : undefined
+        }
+        confirmLabel="Excluir"
+        loading={deleting}
+        loadingLabel="Excluindo..."
+        onConfirm={confirmDelete}
+      />
 
-      <AlertDialog
+      <ConfirmActionDialog
         open={bulkOpen}
         onOpenChange={(o) => {
           if (!bulkDeleting) setBulkOpen(o);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Excluir {selectedIds.size}{" "}
-              {selectedIds.size === 1 ? "Lançamento" : "Lançamentos"}?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Os lançamentos selecionados serão removidos permanentemente.
-              <br />
-              Essa acao nao pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDeleting}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBulkDelete}
-              disabled={bulkDeleting}
-            >
-              {bulkDeleting ? "Excluindo..." : `Excluir ${selectedIds.size}`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={`Excluir ${selectedIds.size} ${
+          selectedIds.size === 1 ? "Lançamento" : "Lançamentos"
+        }`}
+        description="Os lançamentos selecionados serão removidos permanentemente. Essa ação não pode ser desfeita."
+        confirmLabel={`Excluir ${selectedIds.size}`}
+        loading={bulkDeleting}
+        loadingLabel="Excluindo..."
+        onConfirm={confirmBulkDelete}
+      />
     </div>
   );
 }

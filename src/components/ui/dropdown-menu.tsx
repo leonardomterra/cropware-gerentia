@@ -12,7 +12,13 @@ function DropdownMenu({
   modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" modal={modal} {...props} />;
+  return (
+    <DropdownMenuPrimitive.Root
+      data-slot="dropdown-menu"
+      modal={modal}
+      {...props}
+    />
+  );
 }
 
 function DropdownMenuPortal({
@@ -46,7 +52,10 @@ function padraoDeColisao() {
   const toque =
     typeof window !== "undefined" &&
     window.matchMedia?.("(pointer: coarse)").matches;
-  return { top: toque ? 340 : 12 };
+  // left/right/bottom: sem eles o Radix cola o menu na borda da janela quando o
+  // gatilho está no canto — acontecia no `⋮` das listas e no menu de converter,
+  // à esquerda. 12px é a mesma folga do topo no desktop.
+  return { top: toque ? 340 : 12, left: 12, right: 12, bottom: 12 };
 }
 
 function DropdownMenuContent({

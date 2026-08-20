@@ -821,6 +821,9 @@ async function execCreateTask(args: any, ctx: ToolCtx): Promise<ToolResult> {
       title,
       due_date,
       total_value,
+      // Marca que veio pelo canal de mensagens, e não da tela: o valor e a data
+      // aqui foram INTERPRETADOS de texto livre, e a interface avisa isso.
+      source: "whatsapp",
     })
     .select("id, title, due_date, total_value")
     .single();

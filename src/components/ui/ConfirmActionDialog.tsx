@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './alert-dialog';
+} from "./alert-dialog";
 
 export interface InfoItem {
   label: string;
@@ -32,13 +32,13 @@ export function ConfirmActionDialog({
   open,
   onOpenChange,
   onConfirm,
-  title = 'Confirmar ação',
+  title = "Confirmar ação",
   description,
   infoItems,
   loading = false,
-  cancelLabel = 'Cancelar',
-  confirmLabel = 'Confirmar',
-  loadingLabel = 'Processando...',
+  cancelLabel = "Cancelar",
+  confirmLabel = "Confirmar",
+  loadingLabel = "Processando...",
 }: ConfirmActionDialogProps) {
   const hasInfo = infoItems && infoItems.length > 0;
 
@@ -46,7 +46,10 @@ export function ConfirmActionDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-lg max-w-md">
         <AlertDialogHeader className="space-y-3">
-          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#171717' }}>
+          <AlertDialogTitle
+            className="font-medium"
+            style={{ fontSize: "16px", color: "#171717" }}
+          >
             {title}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
@@ -54,7 +57,7 @@ export function ConfirmActionDialog({
               {description && (
                 <p
                   className="font-normal leading-relaxed"
-                  style={{ fontSize: '14px', color: '#737373' }}
+                  style={{ fontSize: "14px", color: "#737373" }}
                 >
                   {description}
                 </p>
@@ -63,12 +66,19 @@ export function ConfirmActionDialog({
               {hasInfo && (
                 <div
                   className="rounded-lg p-3 space-y-1"
-                  style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
+                  style={{
+                    backgroundColor: "#fafafa",
+                    fontSize: "14px",
+                    border: "1px solid #e5e5e5",
+                  }}
                 >
                   {infoItems!.map((item) => (
-                    <div key={item.label} className="flex items-center justify-between font-normal">
-                      <span style={{ color: '#525252' }}>{item.label}</span>
-                      <span style={{ color: '#171717' }}>{item.value}</span>
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between font-normal"
+                    >
+                      <span style={{ color: "#525252" }}>{item.label}</span>
+                      <span style={{ color: "#171717" }}>{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -76,11 +86,10 @@ export function ConfirmActionDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="grid grid-cols-2 gap-2 mt-2">
-          <AlertDialogCancel
-            disabled={loading}
-            className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 w-full rounded-md text-sm font-normal transition-colors mt-0"
-          >
+        {/* Sem className: a forma do rodapé e dos botões vive em
+            `alert-dialog.tsx`, para os três diálogos não divergirem. */}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
@@ -89,7 +98,6 @@ export function ConfirmActionDialog({
               onConfirm();
             }}
             disabled={loading}
-            className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 w-full rounded-md text-sm font-normal transition-colors"
           >
             {loading ? loadingLabel : confirmLabel}
           </AlertDialogAction>

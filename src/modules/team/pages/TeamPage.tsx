@@ -165,7 +165,7 @@ export default function TeamPage() {
           </p>
           <p className="text-xs text-slate-400 mt-1">
             {seatsUsed} de {seatsLimit} {seatsLimit === 1 ? "acesso" : "acessos"} em
-            uso · para trocar o perfil de alguém ou desligar um acesso, fale com o
+            uso — para trocar o perfil de alguém ou desligar um acesso, fale com o
             suporte
           </p>
         </div>
@@ -248,7 +248,7 @@ export default function TeamPage() {
                     {inv.code}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {inv.invited_name || "Sem nome"} · {roleLabel(inv.role)} · expira
+                    {inv.invited_name || "Sem nome"} — {roleLabel(inv.role)} — expira
                     em {new Date(inv.expires_at).toLocaleDateString("pt-BR")}
                   </div>
                 </div>

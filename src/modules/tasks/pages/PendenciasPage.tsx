@@ -6,6 +6,10 @@ import Checklist from "~icons/ph/list-checks";
 import Search from "~icons/ph/magnifying-glass";
 import FilterList from "~icons/ph/funnel";
 import X from "~icons/ph/x";
+import ChevronDown from "~icons/ph/caret-down";
+import ArrowsDownUp from "~icons/ph/arrows-down-up";
+import RepeatDuotone from "~icons/ph/arrows-clockwise-duotone";
+import WhatsappDuotone from "~icons/ph/whatsapp-logo-duotone";
 import CheckCircle from "~icons/ph/check-circle";
 import Undo from "~icons/ph/arrow-u-up-left";
 import Archive from "~icons/ph/archive";
@@ -14,13 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import {
   Select,
   SelectContent,
@@ -28,7 +26,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  ICONE_BOTAO_BARRA,
+  MENU_ESCURO,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/components/ui/utils";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
@@ -39,13 +63,27 @@ import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import type { CostCenter } from "@/modules/cost-centers/types";
 import { useTasks } from "../hooks/useTasks";
 import type { Task, TaskInput, TaskPriority } from "../types";
-import { useReceipts, updateReceipt } from "@/modules/receipts/hooks/useReceipts";
+import {
+  useReceipts,
+  updateReceipt,
+} from "@/modules/receipts/hooks/useReceipts";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
-import { getCategoryLabel, formatBRLInput, parseBRLInput } from "@/modules/receipts/utils/receiptFormatters";
-import { ReceiptFormDialog, type FormState } from "@/modules/receipts/components/ReceiptFormDialog";
+import {
+  getCategoryLabel,
+  formatBRLInput,
+  parseBRLInput,
+} from "@/modules/receipts/utils/receiptFormatters";
+import {
+  ReceiptFormDialog,
+  type FormState,
+} from "@/modules/receipts/components/ReceiptFormDialog";
 import type { Receipt } from "@/modules/receipts/types";
 
-const PRIORITY_LABEL: Record<TaskPriority, string> = { low: "Baixa", normal: "Normal", high: "Alta" };
+const PRIORITY_LABEL: Record<TaskPriority, string> = {
+  low: "Baixa",
+  normal: "Normal",
+  high: "Alta",
+};
 const PRIORITY_CLASS: Record<TaskPriority, string> = {
   low: "text-slate-400",
   normal: "text-slate-400",
@@ -66,7 +104,9 @@ const ICON_BTN =
 type ConvertKind = "a_pagar" | "a_receber" | "concluido";
 
 function todayISO(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 function fmtDate(yyyymmdd: string): string {
@@ -77,7 +117,10 @@ function fmtDate(yyyymmdd: string): string {
 }
 
 function fmtBRL(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(v);
 }
 
 const isPaid = (r: Receipt) => r.status === "pago" || r.status === "recebido";
@@ -90,47 +133,76 @@ interface FormStateTask {
   due_date: string;
   priority: TaskPriority;
   notes: string;
-  total_value: string;   // mascarado (formatBRLInput), igual ao form de lançamento
+  total_value: string; // mascarado (formatBRLInput), igual ao form de lançamento
   cost_center_id: string;
 }
 
 const EMPTY_FORM: FormStateTask = {
-  title: "", due_date: "", priority: "normal", notes: "", total_value: "", cost_center_id: NO_CC,
+  title: "",
+  due_date: "",
+  priority: "normal",
+  notes: "",
+  total_value: "",
+  cost_center_id: NO_CC,
 };
 
 export default function PendenciasPage() {
   const { user, isViewer } = useAuth();
   const { tasks, loading, create, update, remove, toggleDone } = useTasks();
-  const { receipts, loading: finLoading, refetch: refetchFin } = useReceipts({ status: ["a_pagar", "a_receber", "vencido"] });
+  const {
+    receipts,
+    loading: finLoading,
+    refetch: refetchFin,
+  } = useReceipts({ status: ["a_pagar", "a_receber", "vencido"] });
   // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
   // lancamento ja gravado, que pode apontar pra categoria desativada.
   const { allCategories: categories } = useCategories();
 
-  const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c] as const));
+  const ccById = new Map(
+    (user?.costCenters ?? []).map((c) => [c.id, c] as const),
+  );
 
   // Cópia local do financeiro: ao "pagar", o item continua na lista (disabled)
   // até ser tirado — por isso não re-buscamos após as ações.
   const [fin, setFin] = useState<Receipt[]>([]);
-  useEffect(() => { setFin(receipts); }, [receipts]);
+  useEffect(() => {
+    setFin(receipts);
+  }, [receipts]);
 
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [hideDone, setHideDone] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>("all");
+  const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>(
+    "all",
+  );
+  const [ordem, setOrdem] = useState<
+    "vencimento" | "maior" | "menor" | "origem"
+  >("vencimento");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formAberto, setFormAberto] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<FormStateTask>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<Task | null>(null);
   const [removing, setRemoving] = useState(false);
-  const [finConfirm, setFinConfirm] = useState<{ r: Receipt; action: "pay" | "archive" } | null>(null);
+  const [finConfirm, setFinConfirm] = useState<{
+    r: Receipt;
+    action: "pay" | "archive";
+  } | null>(null);
   // Conversão lembrete -> lançamento (abre o form pré-preenchido).
-  const [convert, setConvert] = useState<{ task: Task; seed: Partial<FormState> } | null>(null);
+  const [convert, setConvert] = useState<{
+    task: Task;
+    seed: Partial<FormState>;
+  } | null>(null);
 
   const activeFilters = (hideDone ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0);
 
-  function openNew() { setEditing(null); setForm(EMPTY_FORM); setDialogOpen(true); }
+  function openNew() {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setFormAberto(true);
+  }
   function openEdit(t: Task) {
     setEditing(t);
     setForm({
@@ -139,15 +211,20 @@ export default function PendenciasPage() {
       priority: t.priority,
       notes: t.notes || "",
       // Centavos -> mascara, do mesmo jeito que o form de lançamento semeia.
-      total_value: t.total_value ? formatBRLInput(String(Math.round(t.total_value * 100))) : "",
+      total_value: t.total_value
+        ? formatBRLInput(String(Math.round(t.total_value * 100)))
+        : "",
       cost_center_id: t.cost_center_id || NO_CC,
     });
-    setDialogOpen(true);
+    setFormAberto(true);
   }
 
   async function handleSubmit() {
     const title = form.title.trim();
-    if (!title) { toast.error("Escreva o que resolver"); return; }
+    if (!title) {
+      toast.error("Escreva o que resolver");
+      return;
+    }
     setSaving(true);
     const v = parseBRLInput(form.total_value);
     const payload: TaskInput = {
@@ -156,12 +233,17 @@ export default function PendenciasPage() {
       priority: form.priority,
       notes: form.notes.trim() || null,
       total_value: Number.isFinite(v) && v > 0 ? v : null,
-      cost_center_id: form.cost_center_id === NO_CC ? null : form.cost_center_id,
+      cost_center_id:
+        form.cost_center_id === NO_CC ? null : form.cost_center_id,
     };
-    const ok = editing ? await update(editing.id, payload) : !!(await create(payload));
+    const ok = editing
+      ? await update(editing.id, payload)
+      : !!(await create(payload));
     setSaving(false);
-    if (ok) { toast.success(editing ? "Lembrete atualizado" : "Lembrete criado"); setDialogOpen(false); }
-    else toast.error("Não consegui salvar");
+    if (ok) {
+      toast.success(editing ? "Lembrete atualizado" : "Lembrete criado");
+      setFormAberto(false);
+    } else toast.error("Não consegui salvar");
   }
 
   async function confirmRemove() {
@@ -171,19 +253,43 @@ export default function PendenciasPage() {
       const ok = await remove(pendingRemove.id);
       if (ok) toast.success("Removido");
       setPendingRemove(null);
-    } finally { setRemoving(false); }
+    } finally {
+      setRemoving(false);
+    }
   }
 
   // Converter lembrete -> lançamento: semeia o form (título vira origem, data
   // vira vencimento, valor e centro passam adiante) e abre pré-preenchido.
   function openConvert(t: Task, kind: ConvertKind) {
     const base: Partial<FormState> = { vendor: t.title.toUpperCase() };
-    if (t.total_value) base.total_value = formatBRLInput(String(Math.round(t.total_value * 100)));
+    if (t.total_value)
+      base.total_value = formatBRLInput(
+        String(Math.round(t.total_value * 100)),
+      );
     if (t.cost_center_id) base.cost_center_id = t.cost_center_id;
     let seed: Partial<FormState>;
-    if (kind === "a_pagar") seed = { ...base, direction: "expense", status: "a_pagar", due_date: t.due_date ?? "" };
-    else if (kind === "a_receber") seed = { ...base, direction: "income", status: "a_receber", due_date: t.due_date ?? "" };
-    else seed = { ...base, direction: "expense", status: "pago", transaction_date: t.due_date ?? todayISO(), paid_date: t.due_date ?? todayISO() };
+    if (kind === "a_pagar")
+      seed = {
+        ...base,
+        direction: "expense",
+        status: "a_pagar",
+        due_date: t.due_date ?? "",
+      };
+    else if (kind === "a_receber")
+      seed = {
+        ...base,
+        direction: "income",
+        status: "a_receber",
+        due_date: t.due_date ?? "",
+      };
+    else
+      seed = {
+        ...base,
+        direction: "expense",
+        status: "pago",
+        transaction_date: t.due_date ?? todayISO(),
+        paid_date: t.due_date ?? todayISO(),
+      };
     setConvert({ task: t, seed });
   }
 
@@ -191,15 +297,23 @@ export default function PendenciasPage() {
     const t = convert?.task;
     setConvert(null);
     if (t && !t.done) await toggleDone(t); // vira lançamento => o lembrete se resolve
-    await refetchFin();                     // traz o novo lançamento pra coluna
+    await refetchFin(); // traz o novo lançamento pra coluna
     toast.success("Convertido em lançamento");
   }
 
   // --- financeiro: pagar / desfazer / tirar (otimista, sem refetch) ---
   async function applyFinStatus(r: Receipt, paid: boolean) {
-    const status = paid ? (r.direction === "income" ? "recebido" : "pago") : (r.direction === "income" ? "a_receber" : "a_pagar");
+    const status = paid
+      ? r.direction === "income"
+        ? "recebido"
+        : "pago"
+      : r.direction === "income"
+        ? "a_receber"
+        : "a_pagar";
     const paid_date = paid ? todayISO() : null;
-    setFin((prev) => prev.map((x) => (x.id === r.id ? { ...x, status, paid_date } : x)));
+    setFin((prev) =>
+      prev.map((x) => (x.id === r.id ? { ...x, status, paid_date } : x)),
+    );
     try {
       await updateReceipt(r.id, { status, paid_date });
     } catch {
@@ -207,7 +321,9 @@ export default function PendenciasPage() {
       setFin((prev) => prev.map((x) => (x.id === r.id ? r : x))); // reverte
     }
   }
-  function doArchive(r: Receipt) { setFin((prev) => prev.filter((x) => x.id !== r.id)); }
+  function doArchive(r: Receipt) {
+    setFin((prev) => prev.filter((x) => x.id !== r.id));
+  }
 
   function runFinConfirm() {
     if (!finConfirm) return;
@@ -224,21 +340,76 @@ export default function PendenciasPage() {
     (!hideDone || !t.done) &&
     (priorityFilter === "all" || t.priority === priorityFilter);
   const finMatch = (r: Receipt) =>
-    (!q || [r.vendor, r.description, r.category].some((s) => (s || "").toLowerCase().includes(q))) &&
+    (!q ||
+      [r.vendor, r.description, r.category].some((s) =>
+        (s || "").toLowerCase().includes(q),
+      )) &&
     (!hideDone || !isPaid(r));
+  // RESOLVIDO SEMPRE POR ÚLTIMO, qualquer que seja a ordenação escolhida: um
+  // item já pago no topo da coluna é ruído — a coluna existe para mostrar o que
+  // falta. A escolha do menu decide só o desempate entre os pendentes.
+  const desempate = (
+    venc: string | null | undefined,
+    valor: number,
+    nome: string,
+  ) => ({ venc: venc || "9999-99-99", valor, nome: nome.toLowerCase() });
+
+  const compararPor = (
+    x: ReturnType<typeof desempate>,
+    y: ReturnType<typeof desempate>,
+  ) => {
+    switch (ordem) {
+      case "maior":
+        return y.valor - x.valor;
+      case "menor":
+        return x.valor - y.valor;
+      case "origem":
+        return x.nome.localeCompare(y.nome, "pt-BR");
+      default:
+        return x.venc < y.venc ? -1 : x.venc > y.venc ? 1 : 0;
+    }
+  };
+
   const byResolvedThenDue = (a: Receipt, b: Receipt) => {
-    const ra = isPaid(a) ? 1 : 0, rb = isPaid(b) ? 1 : 0;
+    const ra = isPaid(a) ? 1 : 0,
+      rb = isPaid(b) ? 1 : 0;
     if (ra !== rb) return ra - rb;
-    return (a.due_date || "9999") < (b.due_date || "9999") ? -1 : 1;
+    return compararPor(
+      desempate(
+        a.due_date,
+        Number(a.total_value) || 0,
+        a.vendor || a.description || "",
+      ),
+      desempate(
+        b.due_date,
+        Number(b.total_value) || 0,
+        b.vendor || b.description || "",
+      ),
+    );
   };
   const byDoneThenDue = (a: Task, b: Task) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
-    return (a.due_date || "9999") < (b.due_date || "9999") ? -1 : 1;
+    return compararPor(
+      desempate(a.due_date, Number(a.total_value) || 0, a.title || ""),
+      desempate(b.due_date, Number(b.total_value) || 0, b.title || ""),
+    );
   };
 
-  const visibleTasks = tasks.filter(taskMatch).sort(byDoneThenDue);
-  const aPagar = fin.filter((r) => r.direction === "expense" && finMatch(r)).sort(byResolvedThenDue);
-  const aReceber = fin.filter((r) => r.direction === "income" && finMatch(r)).sort(byResolvedThenDue);
+  // Cópia antes de ordenar: sort() é in-place e as listas vêm dos hooks.
+  const visibleTasks = [...tasks].filter(taskMatch).sort(byDoneThenDue);
+  const aPagar = fin
+    .filter((r) => r.direction === "expense" && finMatch(r))
+    .sort(byResolvedThenDue);
+  const aReceber = fin
+    .filter((r) => r.direction === "income" && finMatch(r))
+    .sort(byResolvedThenDue);
+  const totalVisivel = visibleTasks.length + aPagar.length + aReceber.length;
+  const temFiltroAtivo = activeFilters > 0 || query.trim() !== "";
+  const limparFiltros = () => {
+    setQuery("");
+    setHideDone(false);
+    setPriorityFilter("all");
+  };
 
   const ccs = user?.costCenters ?? [];
 
@@ -246,7 +417,7 @@ export default function PendenciasPage() {
     <FinancialCard
       key={r.id}
       r={r}
-      cc={r.cost_center_id ? ccById.get(r.cost_center_id) ?? null : null}
+      cc={r.cost_center_id ? (ccById.get(r.cost_center_id) ?? null) : null}
       categoryLabel={getCategoryLabel(r.category, categories)}
       onResolve={() => setFinConfirm({ r, action: "pay" })}
       onUndo={() => void applyFinStatus(r, false)}
@@ -254,77 +425,282 @@ export default function PendenciasPage() {
     />
   );
 
-  return (
-    <div className="space-y-4">
-      {/* Barra: novo lembrete + busca + filtros (estilo Lançamentos) */}
-      <header className="space-y-2">
-        {/* Linha 1: busca + filtros */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="relative">
-            <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+  // Criar/editar SUBSTITUI o quadro, na mesma rota — não é dialog. Ver
+  // `PaginaDeFormulario` e docs/PADRAO-DE-PAGINA.md §6.
+  if (formAberto) {
+    return (
+      <PaginaDeFormulario
+        formId="form-lembrete"
+        rotuloSalvar={editing ? "Salvar" : "Criar Lembrete"}
+        descricao={editing ? `Editando ${editing.title}` : "Novo lembrete"}
+        aoVoltar={() => setFormAberto(false)}
+        salvando={saving}
+      >
+        <form
+          id="form-lembrete"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSubmit();
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-1">
+              O que resolver
+            </label>
             <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por lembrete, origem ou descrição..."
-              className="pl-8 h-9 bg-white border-slate-200 shadow-none text-slate-500"
+              placeholder="Ex.: pagar o contador"
+              value={form.title}
+              onChange={(e) =>
+                setForm((s) => ({
+                  ...s,
+                  title: e.target.value.toUpperCase(),
+                }))
+              }
+              maxLength={120}
+              autoFocus
             />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Data (opcional)
+              </label>
+              <Input
+                type="date"
+                value={form.due_date}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, due_date: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Valor R$ (opcional)
+              </label>
+              <Input
+                inputMode="decimal"
+                placeholder="0,00"
+                value={form.total_value}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    total_value: formatBRLInput(e.target.value),
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ccs.length > 1 && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Centro de Custo (opcional)
+                </label>
+                <Select
+                  value={form.cost_center_id}
+                  onValueChange={(v) =>
+                    setForm((s) => ({ ...s, cost_center_id: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_CC}>Sem centro</SelectItem>
+                    {ccs.map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.name}
+                        {cc.is_default ? " (Padrão)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Prioridade
+              </label>
+              <Select
+                value={form.priority}
+                onValueChange={(v) =>
+                  setForm((s) => ({ ...s, priority: v as TaskPriority }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
+                  <SelectItem value="normal">
+                    {PRIORITY_LABEL.normal}
+                  </SelectItem>
+                  <SelectItem value="high">{PRIORITY_LABEL.high}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-1">
+              Observação (opcional)
+            </label>
+            <Textarea
+              placeholder="Detalhes..."
+              value={form.notes}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, notes: e.target.value }))
+              }
+              maxLength={1000}
+              rows={3}
+            />
+          </div>
+        </form>
+      </PaginaDeFormulario>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Barra no padrão de Lançamentos e Recorrências (docs/PADRAO-DE-PAGINA.md):
+          busca esticando, Filtros e Ordenar encostados à direita. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div className="relative flex-1 min-w-0">
+          <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por lembrete, origem ou descrição..."
+            className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
+          />
         </div>
+
         <Popover open={filterOpen} onOpenChange={setFilterOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="h-9 w-full sm:w-auto shrink-0 inline-flex items-center justify-start gap-1.5 px-3 rounded-md border border-slate-200 bg-slate-100 text-base md:text-sm text-slate-900 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
             >
-              <FilterList className="size-4 shrink-0" />
-              Filtrar
-              {activeFilters > 0 && (
-                <span className="ml-0.5 inline-flex items-center justify-center size-5 rounded-full bg-slate-800 text-white text-xs tabular-nums">
-                  {activeFilters}
-                </span>
-              )}
+              <FilterList className={ICONE_BOTAO_BARRA} />
+              Filtros
+              <FilterCountBadge count={activeFilters} />
+              <ChevronDown className={SETA_BOTAO_BARRA} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="p-3 space-y-3 bg-slate-900 text-slate-100 border-slate-800 rounded-xl shadow-lg">
-            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-              <Checkbox checked={hideDone} onCheckedChange={(v) => setHideDone(!!v)} />
+          <PopoverContent
+            align="end"
+            className={PAINEL_ESCURO}
+            style={
+              isMobile
+                ? { width: "var(--radix-popover-trigger-width)" }
+                : undefined
+            }
+          >
+            <label className="flex items-center gap-2 text-sm text-white cursor-pointer select-none">
+              <Checkbox
+                checked={hideDone}
+                onCheckedChange={(v) => setHideDone(!!v)}
+              />
               Ocultar resolvidos
             </label>
-            <div className="space-y-1">
-              <span className="text-xs text-slate-400">Prioridade (lembretes)</span>
-              <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as "all" | TaskPriority)}>
-                <SelectTrigger className="h-9 bg-white text-slate-500"><SelectValue /></SelectTrigger>
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>
+                Prioridade (lembretes)
+              </label>
+              <Select
+                value={priorityFilter}
+                onValueChange={(v) =>
+                  setPriorityFilter(v as "all" | TaskPriority)
+                }
+              >
+                <SelectTrigger className="h-9 bg-white text-slate-500">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="high">{PRIORITY_LABEL.high}</SelectItem>
-                  <SelectItem value="normal">{PRIORITY_LABEL.normal}</SelectItem>
+                  <SelectItem value="normal">
+                    {PRIORITY_LABEL.normal}
+                  </SelectItem>
                   <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {activeFilters > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setHideDone(false); setPriorityFilter("all"); }}
-                className="w-full text-slate-400 hover:bg-white/10 hover:text-slate-100 h-8"
-              >
-                <X className="size-4 mr-1" />
-                Limpar filtros
-              </Button>
-            )}
           </PopoverContent>
         </Popover>
-        </div>
-        {/* Linha 2: novo lembrete (convidado nao cadastra) */}
-        {!isViewer && (
-          <Button variant="outline" onClick={openNew} className="w-full sm:w-auto">
-            <Plus className="size-4 mr-1" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {/* Rótulo FIXO: mostrar a opção ativa faria o botão mudar de
+                largura a cada escolha. */}
+            <button
+              type="button"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            >
+              <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
+              Ordenar
+              <ChevronDown className={SETA_BOTAO_BARRA} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {(
+              [
+                ["vencimento", "Vencimento"],
+                ["maior", "Maior valor"],
+                ["menor", "Menor valor"],
+                ["origem", "Origem (A-Z)"],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <DropdownMenuItem
+                key={valor}
+                onClick={() => setOrdem(valor)}
+                className={
+                  ordem === valor ? "bg-white/10 font-medium" : undefined
+                }
+              >
+                {rotulo}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Linha de ações: convidado não cadastra. */}
+      {!isViewer && (
+        <header className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
+          <Button
+            variant="default"
+            onClick={openNew}
+            className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+          >
+            <Plus className="size-[18px] shrink-0" />
             Novo Lembrete
           </Button>
+        </header>
+      )}
+
+      {/* Contador e "Limpar Filtros" à direita, com altura reservada. */}
+      <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+        <p className="text-sm text-slate-500">
+          {totalVisivel === 0
+            ? "Nenhuma pendência encontrada"
+            : `Mostrando ${totalVisivel} ${
+                totalVisivel === 1 ? "Pendência" : "Pendências"
+              }`}
+        </p>
+        {temFiltroAtivo && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={limparFiltros}
+            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Limpar filtros"
+          >
+            <X className="size-4 mr-1.5" />
+            Limpar Filtros
+          </Button>
         )}
-      </header>
+      </div>
 
       {/* 3 colunas no desktop; empilha no mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
@@ -332,13 +708,21 @@ export default function PendenciasPage() {
           {loading ? (
             <LoadingState />
           ) : visibleTasks.length === 0 ? (
-            <EmptyCol minH={TASK_CARD_H} icon={<Checklist className="size-8 text-slate-300" />} text="Nenhum lembrete" />
+            <EmptyCol
+              minH={TASK_CARD_H}
+              icon={<Checklist className="size-8 text-slate-300" />}
+              text="Nenhum lembrete"
+            />
           ) : (
             visibleTasks.map((t) => (
               <TaskCard
                 key={t.id}
                 t={t}
-                cc={t.cost_center_id ? ccById.get(t.cost_center_id) ?? null : null}
+                cc={
+                  t.cost_center_id
+                    ? (ccById.get(t.cost_center_id) ?? null)
+                    : null
+                }
                 onToggleDone={() => void toggleDone(t)}
                 onEdit={() => openEdit(t)}
                 onRemove={() => setPendingRemove(t)}
@@ -349,103 +733,34 @@ export default function PendenciasPage() {
         </Column>
 
         <Column title="Pagar" count={aPagar.length}>
-          {finLoading ? <LoadingState /> : aPagar.length === 0 ? (
+          {finLoading ? (
+            <LoadingState />
+          ) : aPagar.length === 0 ? (
             <EmptyCol minH={FIN_CARD_H} text="Nada a pagar" />
-          ) : aPagar.map(renderFin)}
+          ) : (
+            aPagar.map(renderFin)
+          )}
         </Column>
 
         <Column title="Receber" count={aReceber.length}>
-          {finLoading ? <LoadingState /> : aReceber.length === 0 ? (
+          {finLoading ? (
+            <LoadingState />
+          ) : aReceber.length === 0 ? (
             <EmptyCol minH={FIN_CARD_H} text="Nada a receber" />
-          ) : aReceber.map(renderFin)}
+          ) : (
+            aReceber.map(renderFin)
+          )}
         </Column>
       </div>
 
       {/* Dialog criar/editar lembrete */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Lembrete" : "Novo Lembrete"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">O que resolver</label>
-              <Input
-                placeholder="Ex.: pagar o contador"
-                value={form.title}
-                onChange={(e) => setForm((s) => ({ ...s, title: e.target.value.toUpperCase() }))}
-                maxLength={120}
-                autoFocus
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Data (opcional)</label>
-                <Input type="date" value={form.due_date} onChange={(e) => setForm((s) => ({ ...s, due_date: e.target.value }))} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Valor R$ (opcional)</label>
-                <Input
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={form.total_value}
-                  onChange={(e) => setForm((s) => ({ ...s, total_value: formatBRLInput(e.target.value) }))}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ccs.length > 1 && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700 block mb-1">Centro de Custo (opcional)</label>
-                  <Select value={form.cost_center_id} onValueChange={(v) => setForm((s) => ({ ...s, cost_center_id: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NO_CC}>Sem centro</SelectItem>
-                      {ccs.map((cc) => (
-                        <SelectItem key={cc.id} value={cc.id}>
-                          {cc.name}{cc.is_default ? " (Padrão)" : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Prioridade</label>
-                <Select value={form.priority} onValueChange={(v) => setForm((s) => ({ ...s, priority: v as TaskPriority }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
-                    <SelectItem value="normal">{PRIORITY_LABEL.normal}</SelectItem>
-                    <SelectItem value="high">{PRIORITY_LABEL.high}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Observação (opcional)</label>
-              <Textarea
-                placeholder="Detalhes..."
-                value={form.notes}
-                onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
-                maxLength={1000}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Form de lançamento pré-preenchido (conversão de lembrete) */}
       <ReceiptFormDialog
         open={convert !== null}
-        onOpenChange={(o) => { if (!o) setConvert(null); }}
+        onOpenChange={(o) => {
+          if (!o) setConvert(null);
+        }}
         seed={convert?.seed ?? null}
         allowItems={false}
         onSaved={onConvertSaved}
@@ -455,9 +770,13 @@ export default function PendenciasPage() {
       {/* Confirmar exclusão/remoção de lembrete */}
       <ConfirmActionDialog
         open={pendingRemove !== null}
-        onOpenChange={(o) => { if (!o) setPendingRemove(null); }}
+        onOpenChange={(o) => {
+          if (!o) setPendingRemove(null);
+        }}
         title={pendingRemove?.done ? "Tirar da Lista" : "Excluir Lembrete"}
-        description={pendingRemove ? `Remover "${pendingRemove.title.toUpperCase()}"?` : ""}
+        description={
+          pendingRemove ? `Remover "${pendingRemove.title.toUpperCase()}"?` : ""
+        }
         confirmLabel={pendingRemove?.done ? "Tirar" : "Excluir"}
         cancelLabel="Cancelar"
         loading={removing}
@@ -468,18 +787,32 @@ export default function PendenciasPage() {
       {/* Confirmar ação financeira (pagar/receber ou tirar da lista) */}
       <ConfirmActionDialog
         open={finConfirm !== null}
-        onOpenChange={(o) => { if (!o) setFinConfirm(null); }}
+        onOpenChange={(o) => {
+          if (!o) setFinConfirm(null);
+        }}
         title={
-          !finConfirm ? "" : finConfirm.action === "pay"
-            ? (finConfirm.r.direction === "income" ? "Marcar como Recebido" : "Marcar como Pago")
-            : "Tirar da Lista"
+          !finConfirm
+            ? ""
+            : finConfirm.action === "pay"
+              ? finConfirm.r.direction === "income"
+                ? "Marcar como Recebido"
+                : "Marcar como Pago"
+              : "Tirar da Lista"
         }
         description={
-          !finConfirm ? "" : finConfirm.action === "pay"
-            ? `${(finConfirm.r.vendor || finConfirm.r.description || "Lançamento").toUpperCase()} — ${fmtBRL(finConfirm.r.total_value)}. Confirmar?`
-            : "Some desta lista. O lançamento continua registrado (e pago) no sistema."
+          !finConfirm
+            ? ""
+            : finConfirm.action === "pay"
+              ? `${(finConfirm.r.vendor || finConfirm.r.description || "Lançamento").toUpperCase()} — ${fmtBRL(finConfirm.r.total_value)}. Confirmar?`
+              : "Some desta lista. O lançamento continua registrado (e pago) no sistema."
         }
-        confirmLabel={!finConfirm ? "Confirmar" : finConfirm.action === "pay" ? "Confirmar" : "Tirar"}
+        confirmLabel={
+          !finConfirm
+            ? "Confirmar"
+            : finConfirm.action === "pay"
+              ? "Confirmar"
+              : "Tirar"
+        }
         cancelLabel="Cancelar"
         onConfirm={runFinConfirm}
       />
@@ -489,7 +822,15 @@ export default function PendenciasPage() {
 
 // ---------- sub-componentes ----------
 
-function Column({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+function Column({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: ReactNode;
+}) {
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
@@ -501,16 +842,35 @@ function Column({ title, count, children }: { title: string; count: number; chil
   );
 }
 
-function EmptyCol({ minH, icon, text }: { minH: string; icon?: ReactNode; text: string }) {
+function EmptyCol({
+  minH,
+  icon,
+  text,
+}: {
+  minH: string;
+  icon?: ReactNode;
+  text: string;
+}) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 p-3 text-center", minH)}>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 p-3 text-center",
+        minH,
+      )}
+    >
       {icon}
       <span className="text-sm text-slate-400">{text}</span>
     </div>
   );
 }
 
-function ConvertMenuItem({ label, onClick }: { label: string; onClick: () => void }) {
+function ConvertMenuItem({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -528,56 +888,150 @@ function ConvertMenuItem({ label, onClick }: { label: string; onClick: () => voi
 // NÃO tem "Concluir" avulso: todo lembrete é financeiro, então resolver um é
 // convertê-lo em lançamento — um "concluir" que não gera lançamento só some com
 // o compromisso sem registrar o dinheiro (decisão 15/07).
-function TaskCard({ t, cc, onToggleDone, onEdit, onRemove, onConvert }: {
-  t: Task; cc: CostCenter | null;
-  onToggleDone: () => void; onEdit: () => void; onRemove: () => void; onConvert: (kind: ConvertKind) => void;
+function TaskCard({
+  t,
+  cc,
+  onToggleDone,
+  onEdit,
+  onRemove,
+  onConvert,
+}: {
+  t: Task;
+  cc: CostCenter | null;
+  onToggleDone: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+  onConvert: (kind: ConvertKind) => void;
 }) {
   const [convOpen, setConvOpen] = useState(false);
   const overdue = !!t.due_date && !t.done && t.due_date < todayISO();
   // Valor é opcional (lembrete nasce de "anota: X"): sem valor, cinza.
   const hasValue = t.total_value !== null && t.total_value > 0;
   return (
-    <div className={cn("bg-white rounded-lg border border-slate-200 p-3 flex flex-col gap-2", TASK_CARD_H, t.done && "opacity-60")}>
+    <div
+      className={cn(
+        "bg-white rounded-lg border border-slate-200 p-3 flex flex-col gap-2",
+        TASK_CARD_H,
+        t.done && "opacity-60",
+      )}
+    >
       <div className="flex items-center gap-2 min-w-0">
-        <span className={`font-medium truncate flex-1 min-w-0 ${t.done ? "line-through text-slate-400" : "text-slate-900"}`}>
+        {/* Veio pelo WhatsApp x digitado na tela. A diferença não é decorativa:
+            aqui o título, o valor e a data foram INTERPRETADOS de texto livre
+            pela IA, e podem ter saído errado — é o card que a pessoa deve
+            conferir antes de converter em lançamento. */}
+        {t.source !== "manual" && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex shrink-0 text-emerald-500">
+                <WhatsappDuotone className="size-4" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Anotado pelo WhatsApp — confira os dados
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <span
+          className={`font-medium truncate flex-1 min-w-0 ${t.done ? "line-through text-slate-400" : "text-slate-900"}`}
+        >
           {t.title.toUpperCase()}
         </span>
         {t.priority !== "normal" && (
-          <span className={cn("text-xs shrink-0", PRIORITY_CLASS[t.priority])}>{PRIORITY_LABEL[t.priority]}</span>
+          <span className={cn("text-xs shrink-0", PRIORITY_CLASS[t.priority])}>
+            {PRIORITY_LABEL[t.priority]}
+          </span>
         )}
       </div>
-      <div className={cn("font-medium", hasValue && !t.done ? "text-slate-900" : "text-slate-400")}>
+      <div
+        className={cn(
+          "font-medium",
+          hasValue && !t.done ? "text-slate-900" : "text-slate-400",
+        )}
+      >
         {fmtBRL(t.total_value ?? 0)}
       </div>
       <div className="flex items-center gap-1.5 text-sm text-slate-500 min-w-0">
-        {cc && <CostCenterChip icon={cc.icon} color={cc.color} className="size-5 shrink-0" />}
-        <span className={cn("truncate", !cc && "text-slate-400")}>{cc ? cc.name : "Sem centro"}</span>
+        {cc && (
+          <CostCenterChip
+            icon={cc.icon}
+            color={cc.color}
+            className="size-5 shrink-0"
+          />
+        )}
+        <span className={cn("truncate", !cc && "text-slate-400")}>
+          {cc ? cc.name : "Sem centro"}
+        </span>
       </div>
-      <div className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}>
+      <div
+        className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}
+      >
         {t.due_date ? fmtDate(t.due_date) : "sem data"}
       </div>
       <div className="flex items-center gap-1 border-t border-slate-100 -mx-3 px-3 pt-2 mt-auto">
         {t.done ? (
           <>
-            <ActionIconButton icon={Undo} label="Reativar" onClick={onToggleDone} />
-            <ActionIconButton icon={Archive} label="Tirar da lista" tone="danger" onClick={onRemove} />
+            <ActionIconButton
+              icon={Undo}
+              label="Reativar"
+              onClick={onToggleDone}
+            />
+            <ActionIconButton
+              icon={Archive}
+              label="Tirar da lista"
+              tone="danger"
+              onClick={onRemove}
+            />
           </>
         ) : (
           <>
             <Popover open={convOpen} onOpenChange={setConvOpen}>
               <PopoverTrigger asChild>
-                <button type="button" title="Converter em lançamento" aria-label="Converter em lançamento" className={ICON_BTN}>
+                <button
+                  type="button"
+                  title="Converter em lançamento"
+                  aria-label="Converter em lançamento"
+                  className={ICON_BTN}
+                >
                   <SwapHoriz className="size-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="p-1 w-56 bg-slate-900 text-slate-100 border-slate-800 rounded-xl shadow-lg">
-                <ConvertMenuItem label="Conta a pagar" onClick={() => { setConvOpen(false); onConvert("a_pagar"); }} />
-                <ConvertMenuItem label="Conta a receber" onClick={() => { setConvOpen(false); onConvert("a_receber"); }} />
-                <ConvertMenuItem label="Lançamento concluído" onClick={() => { setConvOpen(false); onConvert("concluido"); }} />
+              <PopoverContent
+                align="end"
+                /* Mesmo vidro dos outros menus (`MENU_ESCURO`): este era o
+                   último painel do app com o escuro sólido escrito à mão. */
+                className={cn(MENU_ESCURO, "p-1 w-56")}
+              >
+                <ConvertMenuItem
+                  label="Conta a Pagar"
+                  onClick={() => {
+                    setConvOpen(false);
+                    onConvert("a_pagar");
+                  }}
+                />
+                <ConvertMenuItem
+                  label="Conta a Receber"
+                  onClick={() => {
+                    setConvOpen(false);
+                    onConvert("a_receber");
+                  }}
+                />
+                <ConvertMenuItem
+                  label="Lançamento Concluído"
+                  onClick={() => {
+                    setConvOpen(false);
+                    onConvert("concluido");
+                  }}
+                />
               </PopoverContent>
             </Popover>
             <ActionIconButton icon={Pencil} label="Editar" onClick={onEdit} />
-            <ActionIconButton icon={Trash2} label="Excluir" tone="danger" onClick={onRemove} />
+            <ActionIconButton
+              icon={Trash2}
+              label="Excluir"
+              tone="danger"
+              onClick={onRemove}
+            />
           </>
         )}
       </div>
@@ -585,34 +1039,98 @@ function TaskCard({ t, cc, onToggleDone, onEdit, onRemove, onConvert }: {
   );
 }
 
-function FinancialCard({ r, cc, categoryLabel, onResolve, onUndo, onArchive }: {
-  r: Receipt; cc: CostCenter | null; categoryLabel: string;
-  onResolve: () => void; onUndo: () => void; onArchive: () => void;
+function FinancialCard({
+  r,
+  cc,
+  categoryLabel,
+  onResolve,
+  onUndo,
+  onArchive,
+}: {
+  r: Receipt;
+  cc: CostCenter | null;
+  categoryLabel: string;
+  onResolve: () => void;
+  onUndo: () => void;
+  onArchive: () => void;
 }) {
   const resolved = isPaid(r);
   const overdue = !resolved && !!r.due_date && r.due_date < todayISO();
-  const resolveLabel = r.direction === "income" ? "Marcar como recebido" : "Marcar como pago";
+  const resolveLabel =
+    r.direction === "income" ? "Marcar como recebido" : "Marcar como pago";
   return (
-    <div className={cn("bg-white rounded-lg border border-slate-200 p-3 flex flex-col gap-2", FIN_CARD_H, resolved && "opacity-60")}>
-      <div className={`font-medium truncate ${resolved ? "line-through text-slate-500" : "text-slate-900"}`}>
-        {(r.vendor || r.description || "Lançamento").toUpperCase()}
+    <div
+      className={cn(
+        "bg-white rounded-lg border border-slate-200 p-3 flex flex-col gap-2",
+        FIN_CARD_H,
+        resolved && "opacity-60",
+      )}
+    >
+      <div className="flex items-center gap-1.5 min-w-0">
+        {/* Gerado por recorrência x criado à mão. Sem isso o quadro mistura o
+            que o usuário anotou com o que o sistema projetou, e a diferença
+            importa: a projeção some se a recorrência for removida. O ícone é o
+            mesmo de Recorrências no trilho, para o vínculo ser óbvio. */}
+        {r.is_estimated && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex shrink-0 text-teal-500">
+                <RepeatDuotone className="size-4" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">Gerado por recorrência</TooltipContent>
+          </Tooltip>
+        )}
+        <div
+          className={`font-medium truncate ${resolved ? "line-through text-slate-500" : "text-slate-900"}`}
+        >
+          {(r.vendor || r.description || "Lançamento").toUpperCase()}
+        </div>
       </div>
-      <div className={`font-medium ${resolved ? "text-slate-500" : "text-slate-900"}`}>{fmtBRL(r.total_value)}</div>
+      <div
+        className={`font-medium ${resolved ? "text-slate-500" : "text-slate-900"}`}
+      >
+        {fmtBRL(r.total_value)}
+      </div>
       <div className="flex items-center gap-1.5 text-sm text-slate-500 min-w-0">
-        {cc && <CostCenterChip icon={cc.icon} color={cc.color} className="size-5 shrink-0" />}
-        <span className="truncate">{cc ? cc.name : "Sem centro"}{categoryLabel !== "—" ? ` - ${categoryLabel}` : ""}</span>
+        {cc && (
+          <CostCenterChip
+            icon={cc.icon}
+            color={cc.color}
+            className="size-5 shrink-0"
+          />
+        )}
+        <span className="truncate">
+          {cc ? cc.name : "Sem centro"}
+          {categoryLabel !== "—" ? ` - ${categoryLabel}` : ""}
+        </span>
       </div>
-      <div className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}>
+      <div
+        className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}
+      >
         {r.due_date ? `vence ${fmtDate(r.due_date)}` : "sem vencimento"}
       </div>
       <div className="flex items-center gap-1 border-t border-slate-100 -mx-3 px-3 pt-2 mt-auto">
         {resolved ? (
           <>
-            <ActionIconButton icon={Undo} label="Voltar a pendente" onClick={onUndo} />
-            <ActionIconButton icon={Archive} label="Tirar da lista" tone="danger" onClick={onArchive} />
+            <ActionIconButton
+              icon={Undo}
+              label="Voltar a pendente"
+              onClick={onUndo}
+            />
+            <ActionIconButton
+              icon={Archive}
+              label="Tirar da lista"
+              tone="danger"
+              onClick={onArchive}
+            />
           </>
         ) : (
-          <ActionIconButton icon={CheckCircle} label={resolveLabel} onClick={onResolve} />
+          <ActionIconButton
+            icon={CheckCircle}
+            label={resolveLabel}
+            onClick={onResolve}
+          />
         )}
       </div>
     </div>

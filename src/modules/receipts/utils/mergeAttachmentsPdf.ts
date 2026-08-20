@@ -166,6 +166,36 @@ export async function mergeAttachmentsToPdf(
  * HTML de uma página-visualizador: barra com "Imprimir" e "Baixar PDF" + o PDF
  * embutido num iframe. Escrita numa aba nova (escapando o pop-up via gesto do
  * clique). `pdfUrl` é um blob: URL criado no app (mesma origem).
+ *
+ * POR QUE O `<iframe>` FICA AQUI — já investigado, não reabrir. A regra do app
+ * é "PDF é rasterizado, nunca embutido em iframe", porque o WKWebView do iOS
+ * deixa o quadro em branco (`utils/pdfRaster.ts`; seção 6 de
+ * `docs/PADRAO-DE-PAGINA.md`). Esta página é a exceção, e não por descuido: ela
+ * nunca chega a ser desenhada dentro da WebView.
+ *
+ * 1. Quem a escreve é `handlePrintSelected`, em `ReceiptsListPage`, e lá o
+ *    caminho nativo desvia ANTES: `isNativeCapacitorApp()` manda o PDF pro
+ *    `exportFile()`, que grava no Filesystem e abre a folha de compartilhamento
+ *    do iOS — de onde se imprime ou salva em Arquivos, que é a forma nativa de
+ *    fazer isso. O `window.open` só roda no navegador, e navegador de desktop
+ *    renderiza PDF em iframe sem reclamar.
+ * 2. No app o botão nem existe: "Imprimir" mora na `BatchActionBar`, que só
+ *    aparece com algo selecionado; e selecionar só existe na `ReceiptsTable`, a
+ *    lista de telas largas (`useIsMobile`, 768px). No celular a lista é
+ *    `ReceiptsCards`, que não tem seleção — e o alvo do iOS é
+ *    `TARGETED_DEVICE_FAMILY = 1`, só iPhone.
+ *
+ * SE ISSO MUDAR — `handlePrintSelected` perder o desvio `native`, a seleção em
+ * lote chegar aos cards do celular, ou o app passar a rodar em iPad — troque o
+ * iframe por `pdfParaImagens()` de `utils/pdfRaster.ts`: uma `<img>` por
+ * página, mesma mecânica do visualizador de anexos.
+ *
+ * LIMITE CONHECIDO que sobra: Safari de iPad na WEB (≥768px, WebKit) mostra só
+ * a primeira página do PDF no iframe. "Baixar PDF" continua entregando o
+ * arquivo inteiro, e por isso não pagamos aqui o custo de rasterizar um merge
+ * de tamanho imprevisível — N anexos virariam N imagens base64 num único
+ * `document.write`, e o problema deixaria de ser "não renderiza" para virar a
+ * aba travando.
  */
 export function pdfViewerHtml(pdfUrl: string, filename: string): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />

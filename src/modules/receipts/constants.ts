@@ -50,7 +50,7 @@ export const DOC_TYPE_PREFIX: Partial<Record<ReceiptDocType, string>> = {
   fatura: "F",
 };
 
-/** Rotulo curto pro badge "Tipo · N itens" (Nota fiscal vira "Nota"). */
+/** Rotulo curto pro badge "Tipo — N itens" (Nota fiscal vira "Nota"). */
 export const DOC_TYPE_SHORT_LABEL: Record<ReceiptDocType, string> = {
   cupom: "Cupom",
   nota_fiscal: "Nota",

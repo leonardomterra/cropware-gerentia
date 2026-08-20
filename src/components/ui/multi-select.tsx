@@ -1,15 +1,11 @@
 "use client";
 
-import * as React from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
-import { cn } from "./utils"
-import { Button } from "./button"
-import { Badge } from "./badge"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./popover"
+import * as React from "react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { cn } from "./utils";
+import { Button } from "./button";
+import { Badge } from "./badge";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import {
   Command,
   CommandEmpty,
@@ -17,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "./command"
+} from "./command";
 
 export interface MultiSelectOption {
   value: string;
@@ -74,15 +70,24 @@ export function MultiSelect({
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between h-auto min-h-[2.3rem] px-3 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-50 text-sm font-normal", className)}
+          className={cn(
+            "w-full justify-between h-auto min-h-[2.3rem] px-3 py-2 bg-white border border-slate-200 hover:bg-white text-sm font-normal",
+            className,
+          )}
           disabled={disabled}
         >
           <div className="flex flex-wrap gap-1 flex-1">
             {selectedOptions.length === 0 ? (
-              <span className="text-muted-foreground text-sm font-normal">{placeholder}</span>
+              <span className="text-muted-foreground text-sm font-normal">
+                {placeholder}
+              </span>
             ) : (
               selectedOptions.map((option) => (
-                <Badge key={option.value} variant="secondary" className="mr-1 mb-1 text-sm py-0.5 px-2" >
+                <Badge
+                  key={option.value}
+                  variant="secondary"
+                  className="mr-1 mb-1 text-sm py-0.5 px-2"
+                >
                   {option.badgeLabel || option.label}
                   <span
                     role="button"
@@ -108,7 +113,10 @@ export function MultiSelect({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder="Buscar..." className="h-9" />
           <CommandList>
@@ -125,7 +133,7 @@ export function MultiSelect({
                       "mr-2 flex h-4 w-4 items-center justify-center rounded border shadow-sm transition-all",
                       safeSelected.includes(option.value)
                         ? "bg-slate-50 border-black text-[#3b9f73]"
-                        : "opacity-50 [&_svg]:invisible border-slate-300 bg-slate-50"
+                        : "opacity-50 [&_svg]:invisible border-slate-300 bg-slate-50",
                     )}
                   >
                     <Check className={cn("h-3.5 w-3.5")} strokeWidth={3} />

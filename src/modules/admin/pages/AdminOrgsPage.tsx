@@ -482,7 +482,7 @@ export default function AdminOrgsPage() {
                           {m.full_name || "(sem nome)"}
                         </div>
                         <div className="text-xs text-slate-500 truncate">
-                          {m.email} · {m.receipts} lançamento(s)
+                          {m.email} — {m.receipts} lançamento(s)
                         </div>
                       </div>
                       <select

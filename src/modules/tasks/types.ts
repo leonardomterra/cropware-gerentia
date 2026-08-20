@@ -18,6 +18,9 @@ export interface Task {
   total_value: number | null;
   cost_center_id: string | null;
   reminded_at: string | null;
+  /** Como o lembrete entrou: "manual" (tela) ou "whatsapp"/"telegram" (IA leu
+   *  de texto livre — valor e data podem ter sido interpretados errado). */
+  source: "manual" | "whatsapp" | "telegram";
   created_at: string;
   updated_at: string;
 }

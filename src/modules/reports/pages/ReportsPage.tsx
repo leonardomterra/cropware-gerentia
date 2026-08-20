@@ -531,7 +531,10 @@ export default function ReportsPage() {
                     </>
                   )}
                 </span>
-                <ChevronDown className="size-[18px] text-slate-500" />
+                {/* Herda o branco do botão a 60%, como o chevron do "Novo
+                    Lançamento". O `text-slate-500` daqui era cinza escuro sobre
+                    fundo escuro — sumia. */}
+                <ChevronDown className="size-[18px] shrink-0 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[11rem]">

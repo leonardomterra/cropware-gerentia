@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './alert-dialog';
+} from "./alert-dialog";
 
 export interface CascadeItem {
   label: string;
@@ -37,16 +37,16 @@ export function DeleteConfirmationDialog({
   open,
   onOpenChange,
   onConfirm,
-  title = 'Confirmar exclusão',
+  title = "Confirmar exclusão",
   itemName,
   cascadeItems,
   loading = false,
-  cancelLabel = 'Cancelar',
-  confirmLabel = 'Excluir',
+  cancelLabel = "Cancelar",
+  confirmLabel = "Excluir",
   batchItems,
   batchCount,
 }: DeleteConfirmationDialogProps) {
-  const hasCascade = cascadeItems && cascadeItems.some(c => c.count > 0);
+  const hasCascade = cascadeItems && cascadeItems.some((c) => c.count > 0);
   const isBatch = batchItems && batchItems.length > 0;
   const totalBatch = batchCount ?? batchItems?.length ?? 0;
 
@@ -54,25 +54,31 @@ export function DeleteConfirmationDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-lg max-w-md">
         <AlertDialogHeader className="space-y-3">
-          <AlertDialogTitle className="font-medium" style={{ fontSize: '16px', color: '#171717' }}>
+          <AlertDialogTitle
+            className="font-medium"
+            style={{ fontSize: "16px", color: "#171717" }}
+          >
             {title}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p
                 className="font-normal leading-relaxed"
-                style={{ fontSize: '14px', color: '#737373' }}
+                style={{ fontSize: "14px", color: "#737373" }}
               >
-                Esta ação é irreversível.{' '}
+                Esta ação é irreversível.{" "}
                 {isBatch
                   ? `Ao excluir ${totalBatch} item(ns), todos os dados vinculados também serão removidos permanentemente.`
                   : itemName
                     ? `Ao excluir ${itemName}, todos os dados vinculados também serão removidos permanentemente.`
-                    : 'Todos os dados relacionados serão removidos permanentemente.'}
+                    : "Todos os dados relacionados serão removidos permanentemente."}
               </p>
 
               {/* Subtle warning */}
-              <p className="font-normal" style={{ fontSize: '14px', color: '#a3a3a3' }}>
+              <p
+                className="font-normal"
+                style={{ fontSize: "14px", color: "#a3a3a3" }}
+              >
                 Esta exclusão é definitiva e não poderá ser desfeita.
               </p>
 
@@ -81,21 +87,31 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#737373' }}
+                    style={{ fontSize: "14px", color: "#737373" }}
                   >
                     Itens selecionados:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto"
-                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
+                    style={{
+                      backgroundColor: "#fafafa",
+                      fontSize: "14px",
+                      border: "1px solid #e5e5e5",
+                    }}
                   >
                     {batchItems!.map((name, i) => (
-                      <div key={i} className="flex items-center gap-1.5 font-normal">
-                        <span style={{ color: '#525252' }}>{name}</span>
+                      <div
+                        key={i}
+                        className="flex items-center gap-1.5 font-normal"
+                      >
+                        <span style={{ color: "#525252" }}>{name}</span>
                       </div>
                     ))}
                     {totalBatch > batchItems!.length && (
-                      <p className="font-normal italic" style={{ fontSize: '14px', color: '#a3a3a3' }}>
+                      <p
+                        className="font-normal italic"
+                        style={{ fontSize: "14px", color: "#a3a3a3" }}
+                      >
                         ...e mais {totalBatch - batchItems!.length} item(ns)
                       </p>
                     )}
@@ -108,20 +124,28 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: '14px', color: '#737373' }}
+                    style={{ fontSize: "14px", color: "#737373" }}
                   >
-                    A exclusão {isBatch ? 'destes itens' : 'deste item'} irá impactar:
+                    A exclusão {isBatch ? "destes itens" : "deste item"} irá
+                    impactar:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1"
-                    style={{ backgroundColor: '#fafafa', fontSize: '14px', border: '1px solid #e5e5e5' }}
+                    style={{
+                      backgroundColor: "#fafafa",
+                      fontSize: "14px",
+                      border: "1px solid #e5e5e5",
+                    }}
                   >
                     {cascadeItems!
-                      .filter(c => c.count > 0)
+                      .filter((c) => c.count > 0)
                       .map((item) => (
-                        <div key={item.label} className="flex items-center justify-between font-normal">
-                          <span style={{ color: '#525252' }}>{item.label}</span>
-                          <span style={{ color: '#171717' }}>{item.count}</span>
+                        <div
+                          key={item.label}
+                          className="flex items-center justify-between font-normal"
+                        >
+                          <span style={{ color: "#525252" }}>{item.label}</span>
+                          <span style={{ color: "#171717" }}>{item.count}</span>
                         </div>
                       ))}
                   </div>
@@ -130,11 +154,8 @@ export function DeleteConfirmationDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-row gap-2 w-full sm:space-x-0 mt-2">
-          <AlertDialogCancel
-            disabled={loading}
-            className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 flex-1 rounded-md text-sm font-normal transition-colors mt-0"
-          >
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
@@ -143,9 +164,8 @@ export function DeleteConfirmationDialog({
               onConfirm();
             }}
             disabled={loading}
-            className="bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 flex-1 rounded-md text-sm font-normal transition-colors"
           >
-            {loading ? 'Excluindo...' : confirmLabel}
+            {loading ? "Excluindo..." : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

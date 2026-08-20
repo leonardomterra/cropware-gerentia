@@ -1,50 +1,17 @@
 import type { AttachmentItem } from "@/modules/receipts/utils/mergeAttachmentsPdf";
-
-// pdf.js é grande — carrega só quando realmente preciso (clique em "Com anexos"),
-// fora do chunk da página de Relatórios. Evita travar/recarregar a página.
-let _pdfjs: typeof import("pdfjs-dist") | null = null;
-async function getPdfjs(): Promise<typeof import("pdfjs-dist")> {
-  if (_pdfjs) return _pdfjs;
-  const lib = await import("pdfjs-dist");
-  const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-  lib.GlobalWorkerOptions.workerSrc = worker.default;
-  _pdfjs = lib;
-  return lib;
-}
+// A rasterização mora em utils/pdfRaster: o visualizador de anexos usa a mesma,
+// e duas cópias divergiriam na primeira correção de escala.
+import { pdfParaImagens } from "@/utils/pdfRaster";
 
 function bytesToDataUrl(bytes: ArrayBuffer, mime: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
     fr.onload = () => resolve(fr.result as string);
     fr.onerror = () => reject(fr.error);
-    fr.readAsDataURL(new Blob([bytes], { type: mime || "application/octet-stream" }));
+    fr.readAsDataURL(
+      new Blob([bytes], { type: mime || "application/octet-stream" }),
+    );
   });
-}
-
-// Rasteriza cada página de um PDF em JPEG (data URL) via pdf.js.
-async function pdfToImageDataUrls(bytes: ArrayBuffer): Promise<string[]> {
-  const pdfjsLib = await getPdfjs();
-  const task = pdfjsLib.getDocument({ data: new Uint8Array(bytes) });
-  const doc = await task.promise;
-  const urls: string[] = [];
-  try {
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.ceil(viewport.width);
-      canvas.height = Math.ceil(viewport.height);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
-      urls.push(canvas.toDataURL("image/jpeg", 0.82));
-    }
-  } finally {
-    await task.destroy();
-  }
-  return urls;
 }
 
 export interface AttachmentsHtmlResult {
@@ -67,14 +34,17 @@ export async function attachmentsToPagesHtml(
     try {
       const mime = it.receipt.attachment_mime ?? "";
       let urls: string[] = [];
-      if (mime === "application/pdf") urls = await pdfToImageDataUrls(it.bytes);
-      else if (mime.startsWith("image/")) urls = [await bytesToDataUrl(it.bytes, mime)];
+      if (mime === "application/pdf") urls = await pdfParaImagens(it.bytes);
+      else if (mime.startsWith("image/"))
+        urls = [await bytesToDataUrl(it.bytes, mime)];
       else {
         failed += 1;
         continue;
       }
       for (const u of urls) {
-        parts.push(`<div class="sheet att"><img class="att-img" src="${u}" alt="" /></div>`);
+        parts.push(
+          `<div class="sheet att"><img class="att-img" src="${u}" alt="" /></div>`,
+        );
       }
     } catch {
       failed += 1;

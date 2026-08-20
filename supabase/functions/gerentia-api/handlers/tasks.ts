@@ -80,6 +80,9 @@ export function mountTaskRoutes(app: Hono) {
         cost_center_id: typeof body.cost_center_id === "string" && body.cost_center_id
           ? body.cost_center_id
           : null,
+        // Explicito, e nao pelo default da coluna: quem le este handler ve que
+        // "criado pela tela" e uma decisao, nao um acaso do schema.
+        source: "manual",
       };
       const { data, error } = await client.from("farm_tasks").insert(row).select().single();
       if (error) return c.json({ error: error.message }, 400);

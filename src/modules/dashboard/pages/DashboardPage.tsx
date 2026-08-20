@@ -226,8 +226,58 @@ const FOCO_OPACIDADE = 0.65;
  *  adivinhar a altura da fonte. */
 const RODAPE_ALTURA = 34;
 
-const COLOR_IN = "#34D399"; // emerald-400
-const COLOR_OUT = "#a3a3a3"; // neutral-400
+type GeometriaDoEixo = {
+  escala: (v: string) => number | undefined;
+  largura: number;
+  topo: number;
+  altura: number;
+};
+
+/**
+ * Geometria da faixa de cada mês, tirada do estado interno do recharts que o
+ * <Customized> recebe: `scale(mes)` dá o início da faixa e `bandwidth()` a
+ * largura. Sem isso seria chute — ReferenceArea num eixo de categoria fecha com
+ * largura zero.
+ *
+ * Retorna null se o formato interno mudar numa atualização do recharts: quem
+ * chama some em silêncio, em vez de derrubar o gráfico inteiro.
+ */
+function geometriaDoEixo(props: unknown): GeometriaDoEixo | null {
+  const p = props as {
+    xAxisMap?: Record<
+      string,
+      { scale?: (v: string) => number | undefined; bandSize?: number }
+    >;
+    offset?: { top?: number; height?: number };
+  };
+  const eixo = p.xAxisMap?.[0];
+  const off = p.offset;
+  if (!eixo?.scale || off?.top == null || !off.height) return null;
+  const escala = eixo.scale as ((v: string) => number | undefined) & {
+    bandwidth?: () => number;
+  };
+  const largura = escala.bandwidth?.() ?? eixo.bandSize ?? 0;
+  if (!largura) return null;
+  return { escala, largura, topo: off.top, altura: off.height };
+}
+
+// Tom 300 nas duas séries, o mesmo da rosca de gastos por centro — o dashboard
+// inteiro fica num nível só de saturação.
+//
+// O vermelho fica no MESMO degrau que o verde: um degrau mais escuro puxaria o
+// olho só para as saídas. E vale só para o gráfico — nos KPIs e nos valores em
+// Lançamentos, despesa segue neutra e o vermelho fica para ALERTA (Vencido,
+// saldo negativo). Aqui a cor não classifica "ruim", só separa duas séries.
+const COLOR_IN = "#6ee7b7"; // emerald-300
+const COLOR_OUT = "#fca5a5"; // red-300
+
+/**
+ * Opacidade dos meses fora de foco. Subiu de 0,3 para 0,4 junto com a ida das
+ * cores de 400 para 300: sobre branco, 0,4 de um 300 dá quase exatamente o
+ * mesmo tom que 0,3 de um 400 dava. Ou seja, só o mês em foco clareou — os
+ * meses recuados ficaram onde estavam, que era onde deviam estar.
+ */
+const OPACIDADE_FORA_DE_FOCO = 0.4;
 
 function fmtBRLfull(v: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -241,6 +291,16 @@ function fmtDateBR(d: string | null): string {
   if (!d) return "—";
   const [y, m, day] = d.slice(0, 10).split("-");
   return `${day}/${m}/${y}`;
+}
+
+/**
+ * "YYYY-MM-DD" -> "DD/MM". Sem ano de propósito, mesmo nos vencimentos que caem
+ * no ano seguinte: quem diz o ano é o "em N dias" ao lado, e o ano repetido
+ * poluía a coluna inteira para desfazer uma dúvida que ninguém tem.
+ */
+function fmtDiaMes(d: string): string {
+  const [, m, day] = d.slice(0, 10).split("-");
+  return `${day}/${m}`;
 }
 
 function monthKey(d: Date): string {
@@ -456,6 +516,9 @@ export default function DashboardPage() {
     type Row = {
       mes: string;
       mesNum: string;
+      // Chave YYYY-MM: o rótulo ("Jul") não diz o ano, e o clique no gráfico
+      // precisa dos dois para trocar o mês em análise.
+      chave: string;
       entradas: number;
       saidas: number;
       previsto: boolean;
@@ -467,6 +530,7 @@ export default function DashboardPage() {
       acc[m.key] = {
         mes: m.label,
         mesNum: m.key.slice(5),
+        chave: m.key,
         entradas: 0,
         saidas: 0,
         previsto: false,
@@ -478,6 +542,7 @@ export default function DashboardPage() {
       acc[m.key] = {
         mes: m.label,
         mesNum: m.key.slice(5),
+        chave: m.key,
         entradas: 0,
         saidas: 0,
         previsto: true,
@@ -510,11 +575,28 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, openItems, period, activeCC, fromKey, toKey]);
 
+  /**
+   * Clicar num mês do gráfico passa a análise para aquele mês — a mesma coisa
+   * que clicar nele na régua acima. O gráfico vira a segunda face do mesmo
+   * controle, e já era ali que o usuário estava olhando quando decidia trocar.
+   *
+   * Só no modo Mês: nos outros não existe "mês selecionado" para mudar, e um
+   * clique que jogasse o dashboard inteiro de Ano para Mês seria uma virada
+   * grande demais para acontecer sem aviso.
+   */
+  const selecionarMes = (chave: string) => {
+    if (period.mode !== "month") return;
+    const [ano, mes] = chave.split("-").map(Number);
+    if (!ano || !mes) return;
+    if (ano === period.month.year && mes === period.month.month) return;
+    setPeriod({ ...period, month: { year: ano, month: mes } });
+  };
+
   // Rótulos do eixo X: no mobile a régua fica estreita, então mostramos TODOS os
   // meses mas com rótulo numérico (01, 02, …) — cabe sem o auto-skip irregular do
   // recharts. No desktop mantém os nomes (Jan, Fev, …) com o comportamento padrão.
   const isMobile = useIsMobile();
-  // Prévia de um lançamento ao clicar numa linha de "Próximos vencimentos".
+  // Prévia de um lançamento ao clicar numa linha de "Próximos Vencimentos".
   const [previewReceipt, setPreviewReceipt] = useState<Receipt | null>(null);
 
   // (D) Comparativo com o mês anterior — só no modo Mês (passado está no fetch).
@@ -567,7 +649,7 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receipts, fromKey, toKey, ccs]);
 
-  // (B) Próximos vencimentos — itens em aberto com vencimento de hoje em diante.
+  // (B) Próximos Vencimentos — itens em aberto com vencimento de hoje em diante.
   const dueSoon = useMemo(() => {
     const today = todayISO();
     return openItems
@@ -902,11 +984,17 @@ export default function DashboardPage() {
           </h2>
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-[#34D399]" />
+              <span
+                className="size-2 rounded-full"
+                style={{ backgroundColor: COLOR_IN }}
+              />
               Entradas
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-slate-400" />
+              <span
+                className="size-2 rounded-full"
+                style={{ backgroundColor: COLOR_OUT }}
+              />
               Saídas
             </span>
             {period.mode === "month" && (
@@ -917,7 +1005,9 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <div className="h-56">
+        <div
+          className={cn("h-56", period.mode === "month" && "cursor-pointer")}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -938,43 +1028,12 @@ export default function DashboardPage() {
                   numa atualização do recharts: some a moldura, não o gráfico. */}
               <Customized
                 component={(props: unknown) => {
-                  const p = props as {
-                    xAxisMap?: Record<
-                      string,
-                      {
-                        scale?: (v: string) => number | undefined;
-                        bandSize?: number;
-                      }
-                    >;
-                    offset?: { top?: number; height?: number };
-                  };
-                  const eixo = p.xAxisMap?.[0];
-                  const off = p.offset;
-                  if (!eixo?.scale || off?.top == null || !off.height) {
-                    return <g />;
-                  }
-                  const escala = eixo.scale as ((
-                    v: string,
-                  ) => number | undefined) & {
-                    bandwidth?: () => number;
-                  };
-                  const largura = escala.bandwidth?.() ?? eixo.bandSize ?? 0;
-                  const topo = off.top;
-                  const altura = off.height;
-                  if (!largura) return <g />;
-
-                  // Uma moldura por mês. A do mês em foco é sólida; as
-                  // demais ficam recuadas — só o contorno, sem fundo. Elas
-                  // existem para dar a RÉGUA: com uma moldura só, não se
-                  // enxergava onde um mês termina e o outro começa, e a do mês
-                  // ativo parecia flutuar.
-                  //
-                  // A folga sai de dentro da banda (metade de cada lado), não
-                  // do espaço entre elas: assim a moldura continua centrada nas
-                  // barras daquele mês e no rótulo do eixo.
-                  const folga = Math.min(6, largura / 4);
-                  // Base das barras: a faixa do mês vai daqui para baixo.
+                  const geo = geometriaDoEixo(props);
+                  if (!geo) return <g />;
+                  const { escala, largura, topo, altura } = geo;
                   const base = topo + altura;
+
+                  const folga = Math.min(6, largura / 4);
                   return (
                     <g>
                       {chartData.map((d) => {
@@ -1011,20 +1070,12 @@ export default function DashboardPage() {
                           );
                         }
 
-                        // Em foco: fundo claro atrás das barras (o escuro
-                        // apagaria as duas séries) e o vidro escuro só na faixa
-                        // do mês. O contorno vem por último, senão o rodapé
+                        // Em foco: sem fundo atrás das barras — o branco do
+                        // card já é o fundo —, e o vidro escuro só na faixa do
+                        // mês. O contorno vem DEPOIS do rodapé, senão o rodapé
                         // comeria a metade de dentro da linha de baixo.
                         return (
                           <g key={d.mes}>
-                            <rect
-                              x={esq}
-                              y={topo}
-                              width={largMoldura}
-                              height={alturaMoldura}
-                              rx={8}
-                              fill="#fafafa"
-                            />
                             <path
                               d={caminhoDeRodape(
                                 esq,
@@ -1043,7 +1094,10 @@ export default function DashboardPage() {
                               height={alturaMoldura}
                               rx={8}
                               fill="none"
-                              stroke="#d4d4d4"
+                              // Mesma borda do card (slate-200). O mês em foco é
+                              // um bloco dentro do card, não um card por cima
+                              // dele — uma borda mais escura o descolava.
+                              stroke="#e5e5e5"
                               strokeWidth={1}
                             />
                           </g>
@@ -1107,7 +1161,9 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_IN}
-                    fillOpacity={esmaecida(d, period.mode) ? 0.3 : 1}
+                    fillOpacity={
+                      esmaecida(d, period.mode) ? OPACIDADE_FORA_DE_FOCO : 1
+                    }
                   />
                 ))}
               </Bar>
@@ -1116,10 +1172,52 @@ export default function DashboardPage() {
                   <Cell
                     key={i}
                     fill={COLOR_OUT}
-                    fillOpacity={esmaecida(d, period.mode) ? 0.3 : 1}
+                    fillOpacity={
+                      esmaecida(d, period.mode) ? OPACIDADE_FORA_DE_FOCO : 1
+                    }
                   />
                 ))}
               </Bar>
+              {/* ALVOS DE CLIQUE — um por mês, cobrindo a moldura inteira
+                  (barras + faixa do nome). Vêm depois das <Bar> de propósito:
+                  precisam ficar por cima, senão o clique numa barra alta
+                  pararia nela.
+
+                  O onClick do próprio <BarChart> não serve: ele só considera o
+                  retângulo de plotagem (`inRange`, no recharts), então a faixa
+                  do nome do mês — que a moldura mostra como parte do mês —
+                  ficaria morta justamente onde a pessoa mira.
+
+                  A largura aqui é a banda INTEIRA, sem a folga da moldura: área
+                  de clique menor que o alvo visual deixaria faixas mortas entre
+                  os meses. */}
+              <Customized
+                component={(props: unknown) => {
+                  if (period.mode !== "month") return <g />;
+                  const geo = geometriaDoEixo(props);
+                  if (!geo) return <g />;
+                  return (
+                    <g>
+                      {chartData.map((d) => {
+                        const x = geo.escala(d.mes);
+                        if (x == null) return null;
+                        return (
+                          <rect
+                            key={d.chave}
+                            x={x}
+                            y={geo.topo}
+                            width={geo.largura}
+                            height={geo.altura + RODAPE_ALTURA}
+                            fill="transparent"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => selecionarMes(d.chave)}
+                          />
+                        );
+                      })}
+                    </g>
+                  );
+                }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -1148,9 +1246,13 @@ export default function DashboardPage() {
                     <span className="text-sm text-slate-700 truncate flex-1 min-w-0 sm:flex-none sm:w-32 sm:shrink-0">
                       {getCategoryLabel(c.cat, categories)}
                     </span>
+                    {/* Barra no slate-300 sobre trilho slate-100: dois degraus
+                        de diferença. Clarear mais uma casa colaria a barra no
+                        trilho e a comparação de tamanhos — que é a única coisa
+                        que este card faz — se perderia. */}
                     <div className="hidden sm:block flex-1 h-3 bg-slate-100 rounded-sm">
                       <div
-                        className="h-3 rounded-sm bg-slate-400"
+                        className="h-3 rounded-sm bg-slate-300"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -1236,11 +1338,11 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* (B) Próximos vencimentos — contas a pagar/receber de hoje em diante */}
+      {/* (B) Próximos Vencimentos — contas a pagar/receber de hoje em diante */}
       {dueSoon.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <h2 className="text-sm font-medium text-slate-500 mb-3">
-            Próximos vencimentos
+            Próximos Vencimentos
           </h2>
           <ul className="divide-y divide-slate-100">
             {dueSoon.map((r) => {
@@ -1261,10 +1363,13 @@ export default function DashboardPage() {
                   }}
                   className="flex items-center gap-3 py-2 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                 >
+                  {/* Data primeiro, relativo como apoio: "em 118 dias" não
+                      diz quando, e a data sozinha obriga a contar. Largura fixa
+                      para as descrições ficarem alinhadas. */}
                   <span
-                    className={`w-24 shrink-0 ${days <= 2 ? "text-red-600" : "text-slate-500"}`}
+                    className={`w-40 shrink-0 whitespace-nowrap tabular-nums ${days <= 2 ? "text-red-600" : "text-slate-500"}`}
                   >
-                    {dueLabel(days)}
+                    {fmtDiaMes(r.due_date!)} — {dueLabel(days)}
                   </span>
                   <span className="flex-1 min-w-0 truncate text-slate-700">
                     {r.vendor
@@ -1294,7 +1399,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Prévia do lançamento (Próximos vencimentos) — só leitura. */}
+      {/* Prévia do lançamento (Próximos Vencimentos) — só leitura. */}
       <Dialog
         open={!!previewReceipt}
         onOpenChange={(o) => !o && setPreviewReceipt(null)}
@@ -1416,22 +1521,36 @@ function KpiCard({
   loading: boolean;
   delta?: Delta | null;
 }) {
+  // `delta === undefined`: card que nunca compara (A pagar / A receber /
+  // Vencido). `delta === null`: card que compara, mas não neste período (fora
+  // do modo Mês). Só o primeiro caso dispensa o espaço reservado abaixo.
+  const temComparativo = delta !== undefined;
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <p className="text-sm text-slate-500 truncate">{label}</p>
       <p className={`text-base font-medium mt-1 tabular-nums ${color}`}>
         {loading ? "..." : fmtBRLfull(value)}
       </p>
-      {!loading && delta && delta.pct !== null ? (
-        <p
-          // emerald-600 dá 3,77:1 no branco; o 700 dá 5,48:1.
-          className={`text-sm mt-1 tabular-nums ${delta.good ? "text-emerald-700" : "text-red-600"}`}
-        >
-          <span className="whitespace-nowrap">
-            {delta.up ? "▲" : "▼"} {delta.pct}%
-          </span>{" "}
-          <span className="block text-slate-500">vs mês passado</span>
-        </p>
+      {temComparativo ? (
+        // Altura RESERVADA (2 linhas de text-sm = 40px), ocupada ou não.
+        // Trocar de mês dispara um carregamento, e sem a reserva o comparativo
+        // sumia e voltava: como o grid iguala a altura da linha, a fileira
+        // inteira de cards encolhia e crescia a cada troca. A reserva também
+        // cobre o mês sem base de comparação (mês anterior zerado, pct null),
+        // que dava o mesmo pulo entre dois meses já carregados.
+        <div className="mt-1 h-10 text-sm tabular-nums">
+          {!loading && delta && delta.pct !== null ? (
+            <p
+              // emerald-600 dá 3,77:1 no branco; o 700 dá 5,48:1.
+              className={delta.good ? "text-emerald-700" : "text-red-600"}
+            >
+              <span className="whitespace-nowrap">
+                {delta.up ? "▲" : "▼"} {delta.pct}%
+              </span>{" "}
+              <span className="block text-slate-500">vs mês passado</span>
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

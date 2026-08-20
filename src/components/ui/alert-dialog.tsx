@@ -52,7 +52,13 @@ function AlertDialogContent({
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-5 pointer-events-none" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px) + 0.5rem)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px) + 0.5rem)' }}>
+      <div
+        className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-5 pointer-events-none"
+        style={{
+          paddingTop: "max(1rem, env(safe-area-inset-top, 0px) + 0.5rem)",
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px) + 0.5rem)",
+        }}
+      >
         <AlertDialogPrimitive.Content
           data-slot="alert-dialog-content"
           className={cn(
@@ -87,10 +93,12 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        // No mobile empilha (col-reverse: ação primária em cima); no desktop
-        // vira linha com botoes dividindo a largura igualmente. Linha suave em
-        // cima (full-width via -mx-6 px-6). Mesmo padrao do DialogFooter.
-        "flex flex-col-reverse gap-2 sm:flex-row border-t border-slate-100 pt-4 -mx-6 px-6 sm:*:flex-1",
+        // Padrão do Flag Field: SEMPRE em linha, os dois botões dividindo a
+        // largura. Sem divisória em cima — num dialog de confirmação o corpo é
+        // uma frase, e a linha separava um parágrafo de dois botões, o que só
+        // adicionava peso. Empilhar no mobile também saiu: dois botões de meia
+        // tela cabem, e empilhado a ação destrutiva ficava sob o polegar.
+        "flex flex-row gap-2 w-full mt-2 sm:space-x-0 *:flex-1",
         className,
       )}
       {...props}
@@ -124,6 +132,16 @@ function AlertDialogDescription({
   );
 }
 
+/*
+ * Botões do padrão Flag Field: sem sombra. Sombra em botão dentro de um dialog
+ * que já flutua é sombra sobre sombra — o elemento parecia descolar do cartão.
+ *
+ * `outline-none` + anel próprio: o Radix foca um deles
+ * ao abrir o dialog, e sem isso o que aparece é o outline padrão do navegador —
+ * o halo AZUL do Chrome, fora da paleta do app. As classes destes dois botões
+ * são escritas à mão (não vêm de `buttonVariants`), então o tratamento de foco
+ * de lá não chegava aqui.
+ */
 function AlertDialogAction({
   className,
   ...props
@@ -131,8 +149,8 @@ function AlertDialogAction({
   return (
     <AlertDialogPrimitive.Action
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 px-4 py-2 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
-        className
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 px-4 py-2 rounded-md shadow-none outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:ring-offset-0",
+        className,
       )}
       {...props}
     />
@@ -146,8 +164,8 @@ function AlertDialogCancel({
   return (
     <AlertDialogPrimitive.Cancel
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-all disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 px-4 py-2 mt-0 shadow-sm",
-        className
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-all disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 h-9 px-4 py-2 mt-0 rounded-md shadow-none outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:ring-offset-0",
+        className,
       )}
       {...props}
     />

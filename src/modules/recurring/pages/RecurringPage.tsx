@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Plus from "~icons/ph/plus";
 import Repeat from "~icons/ph/arrows-clockwise-fill";
+import Search from "~icons/ph/magnifying-glass";
+import Info from "~icons/ph/info";
+import FilterList from "~icons/ph/funnel";
+import ChevronDown from "~icons/ph/caret-down";
+import ArrowsDownUp from "~icons/ph/arrows-down-up";
+import X from "~icons/ph/x";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -30,7 +38,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/components/ui/utils";
-import { BOTAO_ACOES } from "@/lib/ui-tokens";
+import {
+  BOTAO_ACOES,
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  CAMPO_BARRA,
+  ICONE_BOTAO_BARRA,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecurring } from "../hooks/useRecurring";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
@@ -40,7 +57,11 @@ import {
   parseBRLInput,
   formatBRLInput,
 } from "@/modules/receipts/utils/receiptFormatters";
-import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
+import {
+  AllCentersChip,
+  CostCenterChip,
+  ccTextColor,
+} from "@/modules/cost-centers/ccIcons";
 import type { CostCenter } from "@/modules/cost-centers/types";
 
 interface FormState {
@@ -104,8 +125,11 @@ export default function RecurringPage() {
   const { user } = useAuth();
   const ccs = user?.costCenters || [];
   const { items, loading, error, create, update, remove } = useRecurring();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formAberto, setFormAberto] = useState(false);
   const [editing, setEditing] = useState<Recurring | null>(null);
+  // Ver é a MESMA tela de editar, travada — nunca uma segunda tela, que
+  // divergiria da de edição em algum campo no primeiro ajuste.
+  const [somenteLeitura, setSomenteLeitura] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<Recurring | null>(null);
@@ -113,6 +137,20 @@ export default function RecurringPage() {
 
   const { categories: allCategories } = useCategories();
   const showCC = ccs.length > 1;
+  const isMobile = useIsMobile();
+
+  // Busca, filtros e ordenação — mesmo desenho de Lançamentos e Relatórios: o
+  // que se consulta toda hora fica à vista, o resto mora no painel.
+  const [busca, setBusca] = useState("");
+  const [fTipo, setFTipo] = useState<"all" | "expense" | "income">("all");
+  const [fSituacao, setFSituacao] = useState<"all" | "ativas" | "pausadas">(
+    "all",
+  );
+  const [fCategorias, setFCategorias] = useState<string[]>([]);
+  const [fCC, setFCC] = useState<string>("all");
+  const [ordem, setOrdem] = useState<
+    "nome" | "maior" | "menor" | "dia" | "proxima"
+  >("nome");
 
   // Filtra por direction (expense vs income) e agrupa por group_name
   // preservando ordem (categories ja vem ordenado do hook).
@@ -140,10 +178,12 @@ export default function RecurringPage() {
       ...EMPTY_FORM,
       cost_center_id: ccs.find((c) => c.is_default)?.id || ccs[0]?.id || "",
     });
-    setDialogOpen(true);
+    setSomenteLeitura(false);
+    setFormAberto(true);
   }
 
-  function openEdit(r: Recurring) {
+  function openEdit(r: Recurring, leitura = false) {
+    setSomenteLeitura(leitura);
     setEditing(r);
     const dur = durationFromEndDate(r.end_date);
     setForm({
@@ -162,7 +202,7 @@ export default function RecurringPage() {
       duration: dur.duration,
       durationCustom: dur.custom,
     });
-    setDialogOpen(true);
+    setFormAberto(true);
   }
 
   async function handleSubmit() {
@@ -212,7 +252,8 @@ export default function RecurringPage() {
     setSaving(false);
     if (ok) {
       toast.success(editing ? "Recorrência atualizada" : "Recorrência criada");
-      setDialogOpen(false);
+      setFormAberto(false);
+      setSomenteLeitura(false);
     }
   }
 
@@ -239,21 +280,525 @@ export default function RecurringPage() {
     }
   }
 
-  const active = items.filter((i) => i.active);
-  const inactive = items.filter((i) => !i.active);
+  const opcoesCategoria = useMemo(
+    () =>
+      allCategories.map((c) => ({
+        value: c.slug,
+        label: c.name,
+        group: c.group_name ?? "Outras",
+      })),
+    [allCategories],
+  );
+
+  // Só CAMPOS do painel contam: a busca e o centro estão à vista, e um badge
+  // sobre o botão de Filtros apontando para algo que já se vê é ruído.
+  const filtrosNoPainel =
+    (fTipo !== "all" ? 1 : 0) +
+    (fSituacao !== "all" ? 1 : 0) +
+    (fCategorias.length > 0 ? 1 : 0);
+  const temFiltroAtivo =
+    filtrosNoPainel > 0 || busca.trim() !== "" || fCC !== "all";
+
+  const limparFiltros = () => {
+    setBusca("");
+    setFTipo("all");
+    setFSituacao("all");
+    setFCategorias([]);
+    setFCC("all");
+  };
+
+  const visiveis = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    const filtrados = items.filter((r) => {
+      if (fTipo !== "all" && r.direction !== fTipo) return false;
+      if (fSituacao === "ativas" && !r.active) return false;
+      if (fSituacao === "pausadas" && r.active) return false;
+      if (fCategorias.length > 0 && !fCategorias.includes(r.category ?? ""))
+        return false;
+      if (fCC !== "all" && r.cost_center_id !== fCC) return false;
+      if (!termo) return true;
+      // Busca nos três campos que a pessoa lembra de cabeça: como ela chamou a
+      // recorrência, de quem é, e o que escreveu na descrição.
+      return [r.name, r.vendor, r.description].some((campo) =>
+        (campo ?? "").toLowerCase().includes(termo),
+      );
+    });
+    const porNome = (a: Recurring, b: Recurring) =>
+      a.name.localeCompare(b.name, "pt-BR");
+    // Cópia antes de ordenar: sort() é in-place e `items` vem do hook.
+    return [...filtrados].sort((a, b) => {
+      switch (ordem) {
+        case "maior":
+          return b.total_value - a.total_value || porNome(a, b);
+        case "menor":
+          return a.total_value - b.total_value || porNome(a, b);
+        case "dia":
+          return a.day_of_month - b.day_of_month || porNome(a, b);
+        case "proxima":
+          return (
+            a.next_run_date.localeCompare(b.next_run_date) || porNome(a, b)
+          );
+        default:
+          return porNome(a, b);
+      }
+    });
+  }, [items, busca, fTipo, fSituacao, fCategorias, fCC, ordem]);
+
+  const active = visiveis.filter((i) => i.active);
+  const inactive = visiveis.filter((i) => !i.active);
+
+  // Criar/editar/ver SUBSTITUI a lista, na mesma rota — não é dialog. Ver
+  // `PaginaDeFormulario` para o porquê (teclado do iOS, rolagem aninhada,
+  // largura útil no celular).
+  if (formAberto) {
+    return (
+      <PaginaDeFormulario
+        formId="form-recorrencia"
+        rotuloSalvar={editing ? "Salvar" : "Criar Recorrência"}
+        descricao={
+          somenteLeitura
+            ? editing?.name || ""
+            : editing
+              ? `Editando ${editing.name}`
+              : "Nova recorrência"
+        }
+        somenteLeitura={somenteLeitura}
+        aoEditar={somenteLeitura ? () => setSomenteLeitura(false) : undefined}
+        aoVoltar={() => {
+          setFormAberto(false);
+          setSomenteLeitura(false);
+        }}
+        salvando={saving}
+      >
+        <form
+          id="form-recorrencia"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSubmit();
+          }}
+          className="space-y-3"
+        >
+          {/* O aviso vale para a recorrência inteira, não só para o campo de
+              valor — embaixo dele lia como regra de preenchimento daquele
+              campo. No topo, é a premissa da tela: nada aqui é valor fechado.
+              Âmbar porque é ressalva, não erro (vermelho) nem confirmação. */}
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+            <Info className="size-[18px] shrink-0 mt-px text-amber-600" />
+            <p>
+              Os valores são uma{" "}
+              <strong className="font-medium">estimativa mensal</strong>. Você
+              ajusta o valor real em cada lançamento gerado.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-1">
+              Nome
+            </label>
+            <Input
+              placeholder="Energia, Internet, Salario do Joao..."
+              value={form.name}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, name: e.target.value.toUpperCase() }))
+              }
+              maxLength={80}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Tipo
+              </label>
+              <Select
+                value={form.direction}
+                onValueChange={(v) =>
+                  setForm((s) => ({
+                    ...s,
+                    direction: v as "expense" | "income",
+                    category:
+                      v === "income" ? "outros_receita" : "outros_despesa",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="income">Receita</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Valor médio (R$)
+              </label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="850,00"
+                value={form.total_value}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    total_value: formatBRLInput(e.target.value),
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Dia do Mês
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={28}
+                value={form.day_of_month}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, day_of_month: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Categoria
+              </label>
+              <SearchableSelect
+                options={categoryOptions}
+                value={form.category}
+                onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}
+                placeholder="Selecione..."
+                searchPlaceholder="Buscar categoria..."
+                emptyMessage="Nenhuma categoria."
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Duração
+              </label>
+              <Select
+                value={form.duration}
+                onValueChange={(v) => setForm((s) => ({ ...s, duration: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indef">Indeterminado</SelectItem>
+                  <SelectItem value="12">12 meses</SelectItem>
+                  <SelectItem value="24">24 meses</SelectItem>
+                  <SelectItem value="36">36 meses</SelectItem>
+                  <SelectItem value="48">48 meses</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {form.duration === "custom" && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Meses (1–120)
+                </label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={120}
+                  placeholder="Ex.: 18"
+                  value={form.durationCustom}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, durationCustom: e.target.value }))
+                  }
+                />
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-1">
+              Origem (Opcional)
+            </label>
+            <Input
+              placeholder="Cemig, Vivo, Joao Silva..."
+              value={form.vendor}
+              onChange={(e) =>
+                setForm((s) => ({
+                  ...s,
+                  vendor: e.target.value.toUpperCase(),
+                }))
+              }
+              maxLength={80}
+            />
+          </div>
+          {showCC && (
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Centro de Custo
+              </label>
+              <Select
+                value={form.cost_center_id || ""}
+                onValueChange={(v) =>
+                  setForm((s) => ({ ...s, cost_center_id: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolher..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ccs.map((cc) => (
+                    <SelectItem key={cc.id} value={cc.id}>
+                      {cc.name}
+                      {cc.is_default ? " (Padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </form>
+      </PaginaDeFormulario>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-start gap-2">
-        <Button
-          variant="outline"
-          onClick={openNew}
-          className="w-full sm:w-auto"
+      {/* Barra de busca/filtros no padrão de Lançamentos e Relatórios (Etapa C
+          da adoção do Flag Field): busca esticando, centro à vista quando há
+          mais de um, painel para o resto. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div
+          className={cn(
+            "grid flex-1 min-w-0 gap-2 grid-cols-1",
+            showCC && "sm:grid-cols-2",
+          )}
         >
-          <Plus className="size-4 mr-1" />
+          <div className="relative">
+            <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome, origem ou descrição..."
+              className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
+            />
+          </div>
+          {showCC && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className={CAMPO_BARRA}>
+                  {fCC !== "all" ? (
+                    <CostCenterChip
+                      icon={ccs.find((c) => c.id === fCC)?.icon}
+                      color={ccs.find((c) => c.id === fCC)?.color}
+                      className="size-[18px]"
+                    />
+                  ) : (
+                    <AllCentersChip className="size-[18px]" />
+                  )}
+                  <span
+                    className="flex-1 text-left truncate"
+                    style={
+                      fCC !== "all"
+                        ? {
+                            color: ccTextColor(
+                              ccs.find((c) => c.id === fCC)?.color,
+                            ),
+                          }
+                        : undefined
+                    }
+                  >
+                    {fCC === "all"
+                      ? "Todos os Centros"
+                      : (ccs.find((c) => c.id === fCC)?.name ?? "Centro")}
+                  </span>
+                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuItem
+                  onClick={() => setFCC("all")}
+                  className={
+                    fCC === "all" ? "bg-white/10 font-medium gap-2" : "gap-2"
+                  }
+                >
+                  <AllCentersChip className="size-6" />
+                  <span className="min-w-0 flex-1 truncate">Todos</span>
+                </DropdownMenuItem>
+                {ccs.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setFCC(cc.id)}
+                    className={
+                      fCC === cc.id ? "bg-white/10 font-medium gap-2" : "gap-2"
+                    }
+                  >
+                    <CostCenterChip
+                      icon={cc.icon}
+                      color={cc.color}
+                      className="size-6"
+                    />
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      style={{ color: cc.color ?? undefined }}
+                    >
+                      {cc.name}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            >
+              <FilterList className={ICONE_BOTAO_BARRA} />
+              Filtros
+              <FilterCountBadge count={filtrosNoPainel} />
+              <ChevronDown className={SETA_BOTAO_BARRA} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className={PAINEL_ESCURO}
+            style={
+              isMobile
+                ? { width: "var(--radix-popover-trigger-width)" }
+                : undefined
+            }
+          >
+            {/* Campos BRANCOS sobre o painel escuro: é a separação mais forte
+                que existe, e escurecê-los já foi testado e descartado. */}
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>Tipo</label>
+              <Select
+                value={fTipo}
+                onValueChange={(v) => setFTipo(v as typeof fTipo)}
+              >
+                <SelectTrigger className="h-9 bg-white text-slate-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="expense">Despesas</SelectItem>
+                  <SelectItem value="income">Receitas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>Situação</label>
+              <Select
+                value={fSituacao}
+                onValueChange={(v) => setFSituacao(v as typeof fSituacao)}
+              >
+                <SelectTrigger className="h-9 bg-white text-slate-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Ativas e pausadas</SelectItem>
+                  <SelectItem value="ativas">Só ativas</SelectItem>
+                  <SelectItem value="pausadas">Só pausadas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>Categoria</label>
+              <MultiSearchableSelect
+                options={opcoesCategoria}
+                value={fCategorias}
+                onValueChange={setFCategorias}
+                placeholder="Todas as categorias"
+                searchPlaceholder="Buscar categoria..."
+                multiLabel={(n) => `${n} categorias`}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {/* Rótulo FIXO: mostrar a opção ativa faria o botão mudar de
+              largura a cada escolha. A ativa se lê abrindo o menu. */}
+            <button
+              type="button"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            >
+              <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
+              Ordenar
+              <ChevronDown className={SETA_BOTAO_BARRA} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {(
+              [
+                ["nome", "Nome (A-Z)"],
+                ["maior", "Maior valor"],
+                ["menor", "Menor valor"],
+                ["dia", "Dia do mês"],
+                ["proxima", "Próxima geração"],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <DropdownMenuItem
+                key={valor}
+                onClick={() => setOrdem(valor)}
+                className={
+                  ordem === valor ? "bg-white/10 font-medium" : undefined
+                }
+              >
+                {rotulo}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <header className="flex flex-wrap items-center justify-start gap-2">
+        {/* A ÚNICA ação de fundo escuro da página, como em Lançamentos: é o
+            que separa "criar" das demais, todas em cinza. Estava em `outline`
+            e se confundia com Filtros e Ordenar. */}
+        <Button
+          variant="default"
+          onClick={openNew}
+          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+        >
+          <Plus className="size-[18px] shrink-0" />
           Nova Recorrência
         </Button>
       </header>
+
+      {/* Contador e "Limpar Filtros" à direita, como em Lançamentos. */}
+      {!error && !loading && items.length > 0 && (
+        <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+          <p className="text-sm text-slate-500">
+            {visiveis.length === 0
+              ? "Nenhuma recorrência encontrada"
+              : `Mostrando ${visiveis.length} ${
+                  visiveis.length === 1 ? "Recorrência" : "Recorrências"
+                }`}
+          </p>
+          {temFiltroAtivo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={limparFiltros}
+              className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+              title="Limpar filtros"
+            >
+              <X className="size-4 mr-1.5" />
+              Limpar Filtros
+            </Button>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
@@ -301,198 +846,6 @@ export default function RecurringPage() {
         </>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Editar Recorrência" : "Nova Recorrência"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nome
-              </label>
-              <Input
-                placeholder="Energia, Internet, Salario do Joao..."
-                value={form.name}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, name: e.target.value.toUpperCase() }))
-                }
-                maxLength={80}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Tipo
-                </label>
-                <Select
-                  value={form.direction}
-                  onValueChange={(v) =>
-                    setForm((s) => ({
-                      ...s,
-                      direction: v as "expense" | "income",
-                      category:
-                        v === "income" ? "outros_receita" : "outros_despesa",
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense">Despesa</SelectItem>
-                    <SelectItem value="income">Receita</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Valor médio (R$)
-                </label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="850,00"
-                  value={form.total_value}
-                  onChange={(e) =>
-                    setForm((s) => ({
-                      ...s,
-                      total_value: formatBRLInput(e.target.value),
-                    }))
-                  }
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Estimativa por mês. Você ajusta o valor real em cada
-                  lançamento.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Dia do Mês
-                </label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={28}
-                  value={form.day_of_month}
-                  onChange={(e) =>
-                    setForm((s) => ({ ...s, day_of_month: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Categoria
-                </label>
-                <SearchableSelect
-                  options={categoryOptions}
-                  value={form.category}
-                  onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}
-                  placeholder="Selecione..."
-                  searchPlaceholder="Buscar categoria..."
-                  emptyMessage="Nenhuma categoria."
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Duração
-                </label>
-                <Select
-                  value={form.duration}
-                  onValueChange={(v) => setForm((s) => ({ ...s, duration: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="indef">Indeterminado</SelectItem>
-                    <SelectItem value="12">12 meses</SelectItem>
-                    <SelectItem value="24">24 meses</SelectItem>
-                    <SelectItem value="36">36 meses</SelectItem>
-                    <SelectItem value="48">48 meses</SelectItem>
-                    <SelectItem value="custom">Personalizado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.duration === "custom" && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700 block mb-1">
-                    Meses (1–120)
-                  </label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={120}
-                    placeholder="Ex.: 18"
-                    value={form.durationCustom}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, durationCustom: e.target.value }))
-                    }
-                  />
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Origem (Opcional)
-              </label>
-              <Input
-                placeholder="Cemig, Vivo, Joao Silva..."
-                value={form.vendor}
-                onChange={(e) =>
-                  setForm((s) => ({
-                    ...s,
-                    vendor: e.target.value.toUpperCase(),
-                  }))
-                }
-                maxLength={80}
-              />
-            </div>
-            {showCC && (
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Centro de Custo
-                </label>
-                <Select
-                  value={form.cost_center_id || ""}
-                  onValueChange={(v) =>
-                    setForm((s) => ({ ...s, cost_center_id: v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolher..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ccs.map((cc) => (
-                      <SelectItem key={cc.id} value={cc.id}>
-                        {cc.name}
-                        {cc.is_default ? " (Padrão)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <ConfirmActionDialog
         open={pendingRemove !== null}
         onOpenChange={(o) => {
@@ -518,7 +871,7 @@ interface SectionProps {
   title: string;
   items: Recurring[];
   faded?: boolean;
-  openEdit: (r: Recurring) => void;
+  openEdit: (r: Recurring, leitura?: boolean) => void;
   handleToggleActive: (r: Recurring) => void;
   handleRemove: (r: Recurring) => void;
   showCC: boolean;
@@ -561,68 +914,98 @@ function Section({
           return (
             <div
               key={r.id}
-              className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden"
+              role="button"
+              tabIndex={0}
+              onClick={() => openEdit(r, true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openEdit(r, true);
+                }
+              }}
+              className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
             >
               <div className="flex items-stretch">
-                {/* A faixa codifica o estado que se varre nesta lista: entra ou
-                    sai. Ativa/pausada já é a seção. */}
+                {/* A faixa carrega a cor do CENTRO DE CUSTO — é o que agrupa
+                    visualmente a lista, e casa com o chip logo ao lado. Entra
+                    ou sai continua legível sem depender dela: o sinal +/− está
+                    na linha do valor, e cor nunca é o único código. Sem centro,
+                    a faixa some no tom da borda. */}
                 <div
                   aria-hidden
-                  className={`w-1 shrink-0 ${receita ? "bg-emerald-400" : "bg-slate-300"}`}
+                  className="w-1 shrink-0"
+                  style={{ backgroundColor: cc?.color ?? "#e5e5e5" }}
                 />
                 <div className="flex-1 min-w-0 p-4">
                   <div className="flex items-start gap-4">
-                    {/* 1 — o quê + quanto */}
-                    <div className="min-w-0 flex-[0.6] flex flex-col gap-0.5">
+                    {/* Quatro colunas, duas linhas cada. As colunas batem entre
+                        cards, então o olho desce a página lendo sempre no mesmo
+                        lugar. Peso separa só a primeira linha da primeira
+                        coluna; o resto é tom por POSIÇÃO (900 em cima, 700
+                        embaixo), num tamanho só. */}
+
+                    {/* 1 — o quê */}
+                    <div className="min-w-0 flex-[1.2] flex flex-col gap-0.5">
                       <p className="h-5 text-sm font-medium text-slate-900 truncate">
                         {r.name.toUpperCase()}
                       </p>
-                      {/* O sinal diz entrada/saída sem depender da cor da
-                          faixa — cor não pode ser o único código. */}
                       <p className="text-sm leading-5 text-slate-700 truncate">
-                        {receita ? "+" : "−"}
-                        {fmtBRL(r.total_value)} · dia {r.day_of_month}
-                      </p>
-                    </div>
-
-                    {/* 2 — de onde / em quê */}
-                    <div className="min-w-0 flex-[1.4] hidden sm:flex flex-col gap-0.5">
-                      <p className="h-5 text-sm text-slate-900 truncate">
-                        {r.vendor ? `${r.vendor.toUpperCase()} · ` : ""}
+                        {r.vendor ? `${r.vendor.toUpperCase()} — ` : ""}
                         {getCategoryLabel(r.category, categories)}
                       </p>
-                      <p className="text-sm leading-5 text-slate-700 truncate flex items-center gap-1.5">
-                        {showCC && cc ? (
-                          <>
-                            <CostCenterChip
-                              icon={cc.icon}
-                              color={cc.color}
-                              className="size-4 shrink-0"
-                            />
-                            <span className="truncate">{cc.name}</span>
-                          </>
-                        ) : (
-                          ""
-                        )}
+                    </div>
+
+                    {/* 2 — quanto, e em que dia. O sinal diz entrada/saída sem
+                        depender de cor. */}
+                    <div className="min-w-0 flex-[0.8] flex flex-col gap-0.5">
+                      <p className="h-5 text-sm text-slate-900 truncate">
+                        {receita ? "+" : "−"}
+                        {fmtBRL(r.total_value)}
+                      </p>
+                      <p className="text-sm leading-5 text-slate-700 truncate">
+                        dia {r.day_of_month}
                       </p>
                     </div>
 
-                    {/* 3 — até quando. `self-center`: não entra na grade das
-                        linhas, se centraliza sozinho. */}
-                    <div className="shrink-0 self-center hidden md:flex flex-col items-end gap-0.5">
-                      <p className="text-sm text-slate-900 whitespace-nowrap">
+                    {/* 3 — até quando */}
+                    <div className="min-w-0 flex-1 hidden md:flex flex-col gap-0.5">
+                      <p className="h-5 text-sm text-slate-900 truncate">
                         Projetado até {fmtDate(r.next_run_date)}
                       </p>
-                      <p className="text-sm text-slate-700 whitespace-nowrap">
+                      <p className="text-sm leading-5 text-slate-700 truncate">
                         {r.end_date
                           ? `termina ${fmtDate(r.end_date)}`
                           : "sem fim definido"}
                       </p>
                     </div>
 
+                    {/* 4 — centro de custo: chip + nome, do mesmo jeito que a
+                        tabela de Lançamentos e os menus mostram. O badge foi
+                        testado e descartado — a moldura extra competia com o
+                        próprio chip, que já é o selo. */}
+                    <div className="shrink-0 self-center hidden sm:flex items-center gap-2 min-w-0">
+                      {showCC && cc ? (
+                        <>
+                          <CostCenterChip
+                            icon={cc.icon}
+                            color={cc.color}
+                            className="size-6 shrink-0"
+                          />
+                          <span className="text-sm text-slate-600 truncate">
+                            {cc.name}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+
                     {/* Ações no menu, como no resto do app: três botões soltos
                         sobre o card branco leem como decoração. */}
-                    <div className="shrink-0 self-center">
+                    {/* `stopPropagation`: o card inteiro abre a visualização,
+                        e sem isso clicar no menu abriria a tela junto. */}
+                    <div
+                      className="shrink-0 self-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -638,6 +1021,9 @@ function Section({
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onSelect={() => openEdit(r, true)}>
+                            Ver
+                          </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => openEdit(r)}>
                             Editar
                           </DropdownMenuItem>

@@ -251,7 +251,12 @@ em memória/URL fixa por escolha dele; não replicar.)
 
 ---
 
-## 10. Padrão de página de lista (referência: `ReceiptsPage.tsx`)
+## 10. Padrão de página de lista — ⚠️ SUPERADA
+
+> **Ver `PADRAO-DE-PAGINA.md`.** O que está abaixo descreve o layout anterior à
+> adoção do design do Flag Field (19/08/2026) e não corresponde mais à tela.
+> Mantido só como registro do que mudou.
+
 
 Ordem vertical:
 1. Breadcrumb (global, automático)
@@ -327,7 +332,13 @@ recorte/adaptação para o Farm.
 
 ---
 
-## 14. Toolbar e listas — padrão "Lançamentos" (2026-06-12)
+## 14. Toolbar e listas — ⚠️ SUPERADA (era o padrão de 2026-06-12)
+
+> **Ver `PADRAO-DE-PAGINA.md`.** Divergem daqui, entre outros: "Limpar Filtros"
+> saiu de dentro do popover, o badge de contagem virou `FilterCountBadge`, a
+> fileira de ações deixou de ser `flex-1`, e o botão de criar passou a ser o
+> único escuro da página. Mantido como registro.
+
 
 Convenções de minimalismo fechadas na aba Lançamentos. **Adotar em toda tela
 de listagem/dashboard, no que couber.**

@@ -23,7 +23,7 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
-  collisionPadding = { top: 340, bottom: 16 },
+  collisionPadding = { top: 340, bottom: 16, left: 12, right: 12 },
   style,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
