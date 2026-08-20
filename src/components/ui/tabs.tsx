@@ -25,10 +25,7 @@ function TabsList({
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={cn(
-        "inline-flex items-center justify-center",
-        className,
-      )}
+      className={cn("inline-flex items-center justify-center", className)}
       {...props}
     />
   );

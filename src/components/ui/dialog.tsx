@@ -75,7 +75,13 @@ function DialogContent({
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       {/* Wrapper garante margem lateral no mobile + safe area para dynamic island */}
-      <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-5 pointer-events-none" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px) + 0.5rem)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px) + 0.5rem)' }}>
+      <div
+        className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-5 pointer-events-none"
+        style={{
+          paddingTop: "max(1rem, env(safe-area-inset-top, 0px) + 0.5rem)",
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px) + 0.5rem)",
+        }}
+      >
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
@@ -84,9 +90,9 @@ function DialogContent({
           )}
           onAnimationStart={(e) => {
             const el = e.currentTarget as HTMLElement;
-            if (el.getAttribute('data-state') === 'open') {
+            if (el.getAttribute("data-state") === "open") {
               el.scrollTop = 0;
-              el.querySelectorAll<HTMLElement>('*').forEach(child => {
+              el.querySelectorAll<HTMLElement>("*").forEach((child) => {
                 if (child.scrollTop > 0) child.scrollTop = 0;
               });
             }

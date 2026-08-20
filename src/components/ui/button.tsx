@@ -23,16 +23,13 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-slate-900 text-white hover:bg-slate-800 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
-        secondary:
-          "bg-slate-100 text-slate-900 hover:bg-slate-200 shadow-sm",
+        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 shadow-sm",
         outline:
           "border border-slate-200 bg-slate-100 text-slate-900 hover:bg-slate-200",
-        ghost:
-          "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+        ghost: "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
         destructive:
           "bg-red-600 text-white hover:bg-red-700 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
-        link:
-          "text-slate-700 underline-offset-2 hover:underline hover:text-slate-900",
+        link: "text-slate-700 underline-offset-2 hover:underline hover:text-slate-900",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -50,11 +47,10 @@ const buttonVariants = cva(
 
 const Button = React.forwardRef<
   HTMLButtonElement,
-
   React.ComponentPropsWithoutRef<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }
+    VariantProps<typeof buttonVariants> & {
+      asChild?: boolean;
+    }
 >(({ className, variant, size, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button";
 

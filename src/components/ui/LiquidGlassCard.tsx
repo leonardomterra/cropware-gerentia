@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode } from 'react';
+import { CSSProperties, ReactNode } from "react";
 
 export interface LiquidGlassCardProps {
   /** Border radius do card (default 24) */
@@ -32,9 +32,9 @@ export function LiquidGlassCard({
   radius = 24,
   blur = 16,
   saturate = 180,
-  tint = 'rgba(255,255,255,0.15)',
-  border = '1px solid rgba(255,255,255,0.25)',
-  shadow = 'inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1)',
+  tint = "rgba(255,255,255,0.15)",
+  border = "1px solid rgba(255,255,255,0.25)",
+  shadow = "inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1)",
   className,
   style,
   contentClassName,
@@ -48,22 +48,22 @@ export function LiquidGlassCard({
       className={className}
       onClick={onClick}
       style={{
-        position: 'relative',
-        overflow: 'hidden',
+        position: "relative",
+        overflow: "hidden",
         borderRadius: radius,
         background: tint,
         backdropFilter: backdropFilterValue,
         WebkitBackdropFilter: backdropFilterValue,
         border: border || undefined,
         boxShadow: shadow || undefined,
-        willChange: 'backdrop-filter',
+        willChange: "backdrop-filter",
         ...style,
       }}
     >
       <div
         className={contentClassName}
         style={{
-          position: 'relative',
+          position: "relative",
           ...contentStyle,
         }}
       >

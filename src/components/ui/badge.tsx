@@ -19,8 +19,7 @@ const badgeVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90",
-        outline:
-          "bg-slate-100 text-slate-700 [a&]:hover:bg-slate-200",
+        outline: "bg-slate-100 text-slate-700 [a&]:hover:bg-slate-200",
       },
       size: {
         // Só a altura muda entre os tamanhos: a fonte é a mesma nos dois,
@@ -66,7 +65,10 @@ const badgeVariants = cva(
 );
 
 type BadgeProps = React.ComponentPropsWithoutRef<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean; truncate?: boolean };
+  VariantProps<typeof badgeVariants> & {
+    asChild?: boolean;
+    truncate?: boolean;
+  };
 
 // forwardRef: o Badge é usado como filho de TooltipTrigger/Slot asChild (que
 // injeta um ref) — sem encaminhar o ref, o React avisa no console.

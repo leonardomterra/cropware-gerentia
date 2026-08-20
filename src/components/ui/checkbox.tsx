@@ -4,7 +4,10 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "./utils";
 
-interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface CheckboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }
@@ -41,12 +44,10 @@ function Checkbox({
           "peer-checked:bg-slate-600 peer-checked:border-slate-600 peer-checked:text-white",
           checked && "bg-slate-600 border-slate-600 text-white",
           "peer-aria-invalid:ring-destructive/20 peer-aria-invalid:border-destructive",
-          className
+          className,
         )}
       >
-        {checked && (
-          <Check className="size-3.5" strokeWidth={3} />
-        )}
+        {checked && <Check className="size-3.5" strokeWidth={3} />}
       </div>
     </label>
   );

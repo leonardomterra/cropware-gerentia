@@ -232,9 +232,9 @@ function Sidebar({
             width: isOffcanvasCollapsed
               ? "0px"
               : isIconCollapsed
-                ? (variant === "floating" || variant === "inset"
+                ? variant === "floating" || variant === "inset"
                   ? "calc(var(--sidebar-width-icon) + 1rem)"
-                  : "var(--sidebar-width-icon)")
+                  : "var(--sidebar-width-icon)"
                 : "var(--sidebar-width)",
           }}
           className={cn(
@@ -254,7 +254,9 @@ function Sidebar({
             ? {
                 top: appTopOffset,
                 height: `calc(100svh - ${appTopOffset})`,
-                width: isIconCollapsed ? desktopCollapsedWidth : "var(--sidebar-width)",
+                width: isIconCollapsed
+                  ? desktopCollapsedWidth
+                  : "var(--sidebar-width)",
                 left:
                   side === "left"
                     ? isOffcanvasCollapsed
@@ -269,7 +271,9 @@ function Sidebar({
                     : undefined,
               }
             : {
-                width: isIconCollapsed ? desktopCollapsedWidth : "var(--sidebar-width)",
+                width: isIconCollapsed
+                  ? desktopCollapsedWidth
+                  : "var(--sidebar-width)",
               }),
           ...(styleProp as React.CSSProperties | undefined),
         }}
@@ -509,7 +513,10 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("m-0 w-full min-w-0 list-none p-0 flex flex-col gap-1", className)}
+      className={cn(
+        "m-0 w-full min-w-0 list-none p-0 flex flex-col gap-1",
+        className,
+      )}
       {...props}
     />
   );
@@ -520,7 +527,10 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative block m-0 w-full list-none p-0", className)}
+      className={cn(
+        "group/menu-item relative block m-0 w-full list-none p-0",
+        className,
+      )}
       {...props}
     />
   );
@@ -622,7 +632,7 @@ function SidebarMenuAction({
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-        "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
+          "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className,
       )}
       {...props}

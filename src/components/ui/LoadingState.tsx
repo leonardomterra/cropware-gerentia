@@ -11,7 +11,10 @@ interface LoadingStateProps {
  * Estado de carregamento padrão (spinner + texto, centralizado). Use SEMPRE
  * este componente no lugar de um "<p>Carregando...</p>" cru, pra consistência.
  */
-export function LoadingState({ label = "Carregando…", className }: LoadingStateProps) {
+export function LoadingState({
+  label = "Carregando…",
+  className,
+}: LoadingStateProps) {
   return (
     <div
       className={cn(
