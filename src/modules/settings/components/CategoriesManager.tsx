@@ -7,19 +7,12 @@ import Eye from "~icons/ph/eye";
 import Search from "~icons/ph/magnifying-glass";
 import ChevronRight from "~icons/ph/caret-right";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
 import type { ReceiptDirection } from "@/modules/receipts/types";
 import {
@@ -255,7 +248,9 @@ export function CategoriesManager({
   async function toggleCategoryHidden(cat: ManageCategory) {
     const ok = await setHidden(cat.id, !cat.hidden);
     if (ok)
-      toast.success(cat.hidden ? "Categoria reativada" : "Categoria desativada");
+      toast.success(
+        cat.hidden ? "Categoria reativada" : "Categoria desativada",
+      );
   }
 
   async function confirmDeleteCategory() {
@@ -322,9 +317,95 @@ export function CategoriesManager({
 
   /** Quantas categorias somem junto com o grupo (as duas direcoes). */
   const deleteGroupCount = pendingDeleteGroup
-    ? categories.filter((c) => (c.group_name || FALLBACK_GROUP) === pendingDeleteGroup.key)
-        .length
+    ? categories.filter(
+        (c) => (c.group_name || FALLBACK_GROUP) === pendingDeleteGroup.key,
+      ).length
     : 0;
+
+  // Criar/editar SUBSTITUI a lista, dentro da aba — as abas de Configurações
+  // continuam à vista. Ver docs/PADRAO-DE-PAGINA.md §6.
+  if (catDialogOpen) {
+    return (
+      <PaginaDeFormulario
+        formId="form-categoria"
+        rotuloSalvar={editingCat ? "Salvar" : "Criar Categoria"}
+        descricao={
+          editingCat ? `Editando ${editingCat.name}` : "Nova categoria"
+        }
+        aoVoltar={() => setCatDialogOpen(false)}
+        salvando={saving}
+      >
+        <form
+          id="form-categoria"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitCategory();
+          }}
+          className="space-y-4"
+        >
+          <NameAndCodeFields
+            value={catForm}
+            onChange={(patch) => setCatForm((s) => ({ ...s, ...patch }))}
+            namePlaceholder="Ex: Manutenção do Trator"
+            codePlaceholder="Ex: 1002"
+            maxLength={60}
+          />
+          {/* Tipo e grupo vêm da seção onde foi criada (não editável aqui). */}
+          {!editingCat && catForm.groupLabel && (
+            <p className="text-sm text-slate-500">
+              {catForm.direction === "income" ? "Receita" : "Despesa"} em{" "}
+              <span className="text-slate-700">{catForm.groupLabel}</span>
+            </p>
+          )}
+        </form>
+      </PaginaDeFormulario>
+    );
+  }
+
+  if (groupDialogOpen) {
+    return (
+      <PaginaDeFormulario
+        formId="form-grupo"
+        rotuloSalvar={editingGroup ? "Salvar" : "Criar Grupo"}
+        descricao={
+          editingGroup ? `Editando ${editingGroup.name}` : "Novo grupo"
+        }
+        aoVoltar={() => setGroupDialogOpen(false)}
+        salvando={saving}
+      >
+        <form
+          id="form-grupo"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitGroup();
+          }}
+          className="space-y-4"
+        >
+          <NameAndCodeFields
+            value={groupForm}
+            onChange={(patch) => setGroupForm((s) => ({ ...s, ...patch }))}
+            namePlaceholder="Ex: Escritório Fazenda"
+            codePlaceholder="Ex: 3.11.01.03"
+            maxLength={40}
+          />
+          {editingGroup && !editingGroup.isCustom && (
+            <p className="text-sm text-slate-500">
+              Grupo padrão do gerentia. O novo nome vale só para esta conta.
+            </p>
+          )}
+          {!editingGroup && (
+            <p className="text-sm text-slate-500">
+              Grupo de{" "}
+              <span className="text-slate-700">
+                {direction === "income" ? "receita" : "despesa"}
+              </span>
+              . Depois é só criar as categorias dentro dele.
+            </p>
+          )}
+        </form>
+      </PaginaDeFormulario>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -507,7 +588,7 @@ export function CategoriesManager({
           onClick={openNewGroup}
           className="group/new flex items-center gap-2 w-full text-left py-1"
         >
-          <span className="size-9 inline-flex items-center justify-center rounded-md border border-dashed border-slate-200 text-slate-400 group-hover/new:border-slate-300 group-hover/new:bg-slate-50 group-hover/new:text-slate-600 transition-colors shrink-0">
+          <span className="size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-400 group-hover/new:border-slate-300 group-hover/new:bg-slate-50 group-hover/new:text-slate-600 transition-colors shrink-0">
             <Plus className="size-5" />
           </span>
           <span className="text-sm font-medium text-slate-400 group-hover/new:text-slate-600 transition-colors">
@@ -515,79 +596,6 @@ export function CategoriesManager({
           </span>
         </button>
       )}
-
-      {/* Dialog criar/editar categoria */}
-      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCat ? "Editar Categoria" : "Nova Categoria"}
-            </DialogTitle>
-          </DialogHeader>
-          <NameAndCodeFields
-            value={catForm}
-            onChange={(patch) => setCatForm((s) => ({ ...s, ...patch }))}
-            namePlaceholder="Ex: Manutenção do Trator"
-            codePlaceholder="Ex: 1002"
-            maxLength={60}
-          />
-          {/* Tipo e grupo vem da secao onde foi criada (nao editavel aqui). */}
-          {!editingCat && catForm.groupLabel && (
-            <p className="text-xs text-slate-500 -mt-1">
-              {catForm.direction === "income" ? "Receita" : "Despesa"} em{" "}
-              <span className="text-slate-700">{catForm.groupLabel}</span>
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCatDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={submitCategory} disabled={saving}>
-              {saving ? "Salvando..." : editingCat ? "Salvar" : "Criar Categoria"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog criar/renomear grupo */}
-      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingGroup ? "Editar Grupo" : "Novo Grupo"}
-            </DialogTitle>
-          </DialogHeader>
-          <NameAndCodeFields
-            value={groupForm}
-            onChange={(patch) => setGroupForm((s) => ({ ...s, ...patch }))}
-            namePlaceholder="Ex: Escritório Fazenda"
-            codePlaceholder="Ex: 3.11.01.03"
-            maxLength={40}
-          />
-          {editingGroup && !editingGroup.isCustom && (
-            <p className="text-xs text-slate-500 -mt-1">
-              Grupo padrão do gerentia. O novo nome vale só para esta conta.
-            </p>
-          )}
-          {!editingGroup && (
-            <p className="text-xs text-slate-500 -mt-1">
-              Grupo de{" "}
-              <span className="text-slate-700">
-                {direction === "income" ? "receita" : "despesa"}
-              </span>
-              . Depois é só criar as categorias dentro dele.
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={submitGroup} disabled={saving}>
-              {saving ? "Salvando..." : editingGroup ? "Salvar" : "Criar Grupo"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Confirmacao de exclusao de categoria */}
       <ConfirmActionDialog

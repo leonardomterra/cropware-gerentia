@@ -60,28 +60,42 @@ export function AppSidebar({
                 <div aria-hidden className="my-2 h-px bg-slate-100" />
               )}
               <Tooltip>
+                {/* O gatilho do tooltip envolve um <span>, e NÃO o NavLink.
+                    `asChild` usa o Slot do Radix, que junta os className do pai
+                    e do filho com join(" ") — e o className do NavLink é uma
+                    FUNÇÃO. A junção transformava a função em string, e o <a>
+                    saía com o código-fonte dela no atributo class.
+
+                    O estrago era silencioso: pedaços do texto ainda são classes
+                    válidas ("w-full", "flex", "h-10"), então o trilho parecia
+                    certo — mas `relative` virava `"relative`, com aspa colada, e
+                    não valia. Sem pai posicionado, o badge `absolute` do sino ia
+                    ancorar no canto da PÁGINA e aparecia flutuando no topo à
+                    direita, em todas as telas. */}
                 <TooltipTrigger asChild>
-                  <NavLink
-                    to={it.to}
-                    end={it.end}
-                    aria-label={it.label}
-                    className={({ isActive }) =>
-                      cn(
-                        "relative w-full flex items-center justify-center h-10 rounded-md transition-colors",
-                        isActive ? "bg-slate-200" : "hover:bg-slate-100",
-                      )
-                    }
-                  >
-                    <it.Icon className={cn("size-6 shrink-0", it.cor)} />
-                    {it.badge ? (
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center tabular-nums"
-                      >
-                        {it.badge > 9 ? "9+" : it.badge}
-                      </span>
-                    ) : null}
-                  </NavLink>
+                  <span className="relative block w-full">
+                    <NavLink
+                      to={it.to}
+                      end={it.end}
+                      aria-label={it.label}
+                      className={({ isActive }) =>
+                        cn(
+                          "relative w-full flex items-center justify-center h-10 rounded-md transition-colors",
+                          isActive ? "bg-slate-200" : "hover:bg-slate-100",
+                        )
+                      }
+                    >
+                      <it.Icon className={cn("size-6 shrink-0", it.cor)} />
+                      {it.badge ? (
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center tabular-nums"
+                        >
+                          {it.badge > 9 ? "9+" : it.badge}
+                        </span>
+                      ) : null}
+                    </NavLink>
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>
                   {it.label}

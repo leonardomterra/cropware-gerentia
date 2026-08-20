@@ -11,20 +11,20 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
+import { cn } from "@/components/ui/utils";
+import { BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
 import { useCostCenters } from "@/modules/cost-centers/hooks/useCostCenters";
 import {
   CC_COLORS,
   MAX_COST_CENTERS,
   type CostCenter,
 } from "@/modules/cost-centers/types";
-import { CC_ICONS, CostCenterChip, ccTextColor } from "@/modules/cost-centers/ccIcons";
+import {
+  CC_ICONS,
+  CostCenterChip,
+  ccTextColor,
+} from "@/modules/cost-centers/ccIcons";
 
 interface FormState {
   name: string;
@@ -42,7 +42,11 @@ export function CostCentersManager() {
     useCostCenters();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CostCenter | null>(null);
-  const [form, setForm] = useState<FormState>({ name: "", color: CC_COLORS[0], icon: CC_ICONS[0].slug });
+  const [form, setForm] = useState<FormState>({
+    name: "",
+    color: CC_COLORS[0],
+    icon: CC_ICONS[0].slug,
+  });
   const [saving, setSaving] = useState(false);
   const [pendingDefault, setPendingDefault] = useState<CostCenter | null>(null);
   const [settingDefault, setSettingDefault] = useState(false);
@@ -70,7 +74,11 @@ export function CostCentersManager() {
 
   function openEdit(cc: CostCenter) {
     setEditing(cc);
-    setForm({ name: cc.name, color: cc.color || CC_COLORS[0], icon: cc.icon || CC_ICONS[0].slug });
+    setForm({
+      name: cc.name,
+      color: cc.color || CC_COLORS[0],
+      icon: cc.icon || CC_ICONS[0].slug,
+    });
     setDialogOpen(true);
   }
 
@@ -82,9 +90,17 @@ export function CostCentersManager() {
     setSaving(true);
     let ok = false;
     if (editing) {
-      ok = await update(editing.id, { name: form.name.trim(), color: form.color, icon: form.icon });
+      ok = await update(editing.id, {
+        name: form.name.trim(),
+        color: form.color,
+        icon: form.icon,
+      });
     } else {
-      const created = await create({ name: form.name.trim(), color: form.color, icon: form.icon });
+      const created = await create({
+        name: form.name.trim(),
+        color: form.color,
+        icon: form.icon,
+      });
       ok = !!created;
     }
     setSaving(false);
@@ -125,16 +141,117 @@ export function CostCentersManager() {
     }
   }
 
+  // Criar/editar SUBSTITUI a lista, dentro da aba — as abas de Configurações
+  // continuam à vista, que é o contexto que o diálogo tapava. Ver
+  // docs/PADRAO-DE-PAGINA.md §6.
+  if (dialogOpen) {
+    return (
+      <PaginaDeFormulario
+        formId="form-centro-de-custo"
+        rotuloSalvar={editing ? "Salvar" : "Criar Centro"}
+        descricao={
+          editing ? `Editando ${editing.name}` : "Novo centro de custo"
+        }
+        aoVoltar={() => setDialogOpen(false)}
+        salvando={saving}
+      >
+        <form
+          id="form-centro-de-custo"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-1">
+              Nome
+            </label>
+            <Input
+              placeholder="Pessoal, Fazenda, Escritório..."
+              value={form.name}
+              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+              maxLength={60}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-2">
+              Cor
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {CC_COLORS.map((c) => {
+                const selected = form.color === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setForm((s) => ({ ...s, color: c }))}
+                    aria-label={`Cor ${c}`}
+                    className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
+                      selected ? "border-transparent" : "border-slate-200"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  >
+                    {selected && (
+                      <SelectedIcon
+                        className="size-5"
+                        style={{ color: ccTextColor(c) }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-2">
+              Ícone
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {CC_ICONS.map(({ slug, label, Icon }) => {
+                const selected = form.icon === slug;
+                return (
+                  <button
+                    key={slug}
+                    type="button"
+                    onClick={() => setForm((s) => ({ ...s, icon: slug }))}
+                    title={label}
+                    aria-label={label}
+                    className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
+                      selected
+                        ? "border-transparent"
+                        : "border-slate-200 hover:bg-slate-50"
+                    }`}
+                    style={
+                      selected ? { backgroundColor: form.color } : undefined
+                    }
+                  >
+                    <Icon
+                      className="size-5"
+                      style={{
+                        color: selected ? ccTextColor(form.color) : "#737373",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </form>
+      </PaginaDeFormulario>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-2">
         <Button
-          variant="outline"
+          variant="default"
           onClick={openNew}
           disabled={!canCreate}
-          className="gap-1 w-full sm:w-auto"
+          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
         >
-          <Plus className="size-4" />
+          <Plus className="size-[18px] shrink-0" />
           <span className="sm:hidden">Novo Centro</span>
           <span className="hidden sm:inline">Novo Centro de Custo</span>
         </Button>
@@ -170,130 +287,40 @@ export function CostCentersManager() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 border-t border-slate-100 -mx-4 px-4 pt-3">
-                  {/* Estrela primeiro: indicador (padrao, inerte) ou acao (tornar padrao) */}
-                  {cc.is_default ? (
-                    <span
-                      title="Centro padrão"
-                      aria-label="Centro padrão"
-                      className="size-9 inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-500"
-                    >
-                      <StarFilled className="size-5" />
-                    </span>
-                  ) : (
-                    <ActionIconButton
-                      icon={Star}
-                      label="Tornar padrão"
-                      onClick={() => setPendingDefault(cc)}
-                    />
-                  )}
+                {/* Estrela primeiro: indicador (padrao, inerte) ou acao (tornar padrao) */}
+                {cc.is_default ? (
+                  <span
+                    title="Centro padrão"
+                    aria-label="Centro padrão"
+                    className="size-9 inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-500"
+                  >
+                    <StarFilled className="size-5" />
+                  </span>
+                ) : (
                   <ActionIconButton
-                    icon={Pencil}
-                    label="Editar"
-                    onClick={() => openEdit(cc)}
+                    icon={Star}
+                    label="Tornar padrão"
+                    onClick={() => setPendingDefault(cc)}
                   />
-                  {!cc.is_default && (
-                    <ActionIconButton
-                      icon={Archive}
-                      label="Arquivar"
-                      tone="danger"
-                      onClick={() => handleArchive(cc)}
-                    />
-                  )}
+                )}
+                <ActionIconButton
+                  icon={Pencil}
+                  label="Editar"
+                  onClick={() => openEdit(cc)}
+                />
+                {!cc.is_default && (
+                  <ActionIconButton
+                    icon={Archive}
+                    label="Arquivar"
+                    tone="danger"
+                    onClick={() => handleArchive(cc)}
+                  />
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Editar Centro de Custo" : "Novo Centro de Custo"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nome
-              </label>
-              <Input
-                placeholder="Pessoal, Fazenda, Escritório..."
-                value={form.name}
-                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                maxLength={60}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-2">
-                Cor
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {CC_COLORS.map((c) => {
-                  const selected = form.color === c;
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setForm((s) => ({ ...s, color: c }))}
-                      aria-label={`Cor ${c}`}
-                      className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
-                        selected ? "border-transparent" : "border-slate-200"
-                      }`}
-                      style={{ backgroundColor: c }}
-                    >
-                      {selected && (
-                        <SelectedIcon
-                          className="size-5"
-                          style={{ color: ccTextColor(c) }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-2">
-                Ícone
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {CC_ICONS.map(({ slug, label, Icon }) => {
-                  const selected = form.icon === slug;
-                  return (
-                    <button
-                      key={slug}
-                      type="button"
-                      onClick={() => setForm((s) => ({ ...s, icon: slug }))}
-                      title={label}
-                      aria-label={label}
-                      className={`size-9 rounded-md border flex items-center justify-center transition-colors ${
-                        selected
-                          ? "border-transparent"
-                          : "border-slate-200 hover:bg-slate-50"
-                      }`}
-                      style={selected ? { backgroundColor: form.color } : undefined}
-                    >
-                      <Icon
-                        className="size-5"
-                        style={{ color: selected ? ccTextColor(form.color) : "#737373" }}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar Centro"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <ConfirmActionDialog
         open={pendingDefault !== null}
