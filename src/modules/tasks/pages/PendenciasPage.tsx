@@ -8,8 +8,6 @@ import FilterList from "~icons/ph/funnel";
 import X from "~icons/ph/x";
 import ChevronDown from "~icons/ph/caret-down";
 import ArrowsDownUp from "~icons/ph/arrows-down-up";
-import RepeatDuotone from "~icons/ph/arrows-clockwise-duotone";
-import WhatsappDuotone from "~icons/ph/whatsapp-logo-duotone";
 import CheckCircle from "~icons/ph/check-circle";
 import Undo from "~icons/ph/arrow-u-up-left";
 import Archive from "~icons/ph/archive";
@@ -31,11 +29,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,8 +54,13 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import type { CostCenter } from "@/modules/cost-centers/types";
+import {
+  MarcaDeOrigem,
+  origemDoLancamento,
+  origemDoLembrete,
+} from "../components/MarcaDeOrigem";
 import { useTasks } from "../hooks/useTasks";
-import type { Task, TaskInput, TaskPriority } from "../types";
+import type { Task, TaskInput } from "../types";
 import {
   useReceipts,
   updateReceipt,
@@ -79,16 +77,30 @@ import {
 } from "@/modules/receipts/components/ReceiptFormDialog";
 import type { Receipt } from "@/modules/receipts/types";
 
-const PRIORITY_LABEL: Record<TaskPriority, string> = {
-  low: "Baixa",
-  normal: "Normal",
-  high: "Alta",
-};
-const PRIORITY_CLASS: Record<TaskPriority, string> = {
-  low: "text-slate-400",
-  normal: "text-slate-400",
-  high: "text-amber-600 font-medium",
-};
+/**
+ * Horizonte da tela, em dias. TETO de 3 meses: além disso a coluna vira lista
+ * de projeção de recorrência, não pendência — e "pendência" é o que exige
+ * decisão agora. Sem opção "tudo" pelo mesmo motivo.
+ */
+type Prazo = "7" | "30" | "90";
+const PRAZO_PADRAO: Prazo = "30";
+
+/**
+ * O item cabe no horizonte?
+ *
+ * VENCIDO PASSA SEMPRE, e sem data também. O horizonte corta o FUTURO: esconder
+ * uma conta vencida porque o prazo escolhido foi curto seria esconder
+ * exatamente o que não pode passar batido. E item sem data não tem como ser
+ * comparado — sumir com ele o perderia de vista para sempre.
+ */
+function dentroDoPrazo(due: string | null | undefined, prazo: Prazo): boolean {
+  if (!due) return true;
+  const hoje = todayISO();
+  if (due <= hoje) return true;
+  const limite = new Date(`${hoje}T00:00:00`);
+  limite.setDate(limite.getDate() + Number(prazo));
+  return due <= limite.toLocaleDateString("en-CA");
+}
 
 // Altura fixa única p/ TODOS os cards (lembrete e financeiro, ativos e vazios)
 // ficarem do mesmo tamanho nas 3 colunas.
@@ -107,6 +119,31 @@ function todayISO(): string {
   return new Date().toLocaleDateString("en-CA", {
     timeZone: "America/Sao_Paulo",
   });
+}
+
+/**
+ * Texto e cor da linha de prazo. Um helper só para os dois cards — lembrete e
+ * financeiro — porque a linha diz a mesma coisa nos dois e duplicada ia
+ * divergir na primeira correção.
+ *
+ * O TEXTO carrega o estado, não só a cor: "17/07" sozinho era o mesmo número
+ * quer a data já tivesse passado, quer ainda fosse chegar, e obrigava a pessoa
+ * a comparar com a data de hoje de cabeça.
+ *
+ * Cores: `red-600` é o vermelho MAIS CLARO que passa em 4,5:1 como texto
+ * (4,53:1) — o 500 dá 3,76 e reprova. Vencido vai ao 800 para a diferença
+ * entre os dois estados sobreviver a uma olhada rápida, e não depender de ler
+ * "vence" x "venceu".
+ */
+function prazoDoCard(due: string | null | undefined, resolvido: boolean) {
+  if (!due) return { texto: "sem prazo", classe: "text-slate-400" };
+  const vencido = !resolvido && due < todayISO();
+  if (resolvido)
+    return { texto: `venceu ${fmtDate(due)}`, classe: "text-slate-400" };
+  return {
+    texto: `${vencido ? "venceu" : "vence"} ${fmtDate(due)}`,
+    classe: vencido ? "text-red-800 font-medium" : "text-red-600",
+  };
 }
 
 function fmtDate(yyyymmdd: string): string {
@@ -131,7 +168,6 @@ const NO_CC = "__none__";
 interface FormStateTask {
   title: string;
   due_date: string;
-  priority: TaskPriority;
   notes: string;
   total_value: string; // mascarado (formatBRLInput), igual ao form de lançamento
   cost_center_id: string;
@@ -140,7 +176,6 @@ interface FormStateTask {
 const EMPTY_FORM: FormStateTask = {
   title: "",
   due_date: "",
-  priority: "normal",
   notes: "",
   total_value: "",
   cost_center_id: NO_CC,
@@ -172,9 +207,10 @@ export default function PendenciasPage() {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [hideDone, setHideDone] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>(
-    "all",
-  );
+  // Horizonte em dias. O padrão é 30 porque a tela mostrava TUDO — e uma
+  // recorrência projeta meses à frente, enchendo a coluna de coisas que não são
+  // problema de hoje.
+  const [prazo, setPrazo] = useState<Prazo>("30");
   const [ordem, setOrdem] = useState<
     "vencimento" | "maior" | "menor" | "origem"
   >("vencimento");
@@ -196,7 +232,7 @@ export default function PendenciasPage() {
     seed: Partial<FormState>;
   } | null>(null);
 
-  const activeFilters = (hideDone ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0);
+  const activeFilters = (hideDone ? 1 : 0) + (prazo !== PRAZO_PADRAO ? 1 : 0);
 
   function openNew() {
     setEditing(null);
@@ -208,7 +244,6 @@ export default function PendenciasPage() {
     setForm({
       title: t.title,
       due_date: t.due_date || "",
-      priority: t.priority,
       notes: t.notes || "",
       // Centavos -> mascara, do mesmo jeito que o form de lançamento semeia.
       total_value: t.total_value
@@ -230,7 +265,6 @@ export default function PendenciasPage() {
     const payload: TaskInput = {
       title: title.toUpperCase(),
       due_date: form.due_date || null,
-      priority: form.priority,
       notes: form.notes.trim() || null,
       total_value: Number.isFinite(v) && v > 0 ? v : null,
       cost_center_id:
@@ -338,13 +372,14 @@ export default function PendenciasPage() {
   const taskMatch = (t: Task) =>
     (!q || t.title.toLowerCase().includes(q)) &&
     (!hideDone || !t.done) &&
-    (priorityFilter === "all" || t.priority === priorityFilter);
+    dentroDoPrazo(t.due_date, prazo);
   const finMatch = (r: Receipt) =>
     (!q ||
       [r.vendor, r.description, r.category].some((s) =>
         (s || "").toLowerCase().includes(q),
       )) &&
-    (!hideDone || !isPaid(r));
+    (!hideDone || !isPaid(r)) &&
+    dentroDoPrazo(r.due_date, prazo);
   // RESOLVIDO SEMPRE POR ÚLTIMO, qualquer que seja a ordenação escolhida: um
   // item já pago no topo da coluna é ruído — a coluna existe para mostrar o que
   // falta. A escolha do menu decide só o desempate entre os pendentes.
@@ -408,7 +443,7 @@ export default function PendenciasPage() {
   const limparFiltros = () => {
     setQuery("");
     setHideDone(false);
-    setPriorityFilter("all");
+    setPrazo(PRAZO_PADRAO);
   };
 
   const ccs = user?.costCenters ?? [];
@@ -518,28 +553,6 @@ export default function PendenciasPage() {
                 </Select>
               </div>
             )}
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Prioridade
-              </label>
-              <Select
-                value={form.priority}
-                onValueChange={(v) =>
-                  setForm((s) => ({ ...s, priority: v as TaskPriority }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
-                  <SelectItem value="normal">
-                    {PRIORITY_LABEL.normal}
-                  </SelectItem>
-                  <SelectItem value="high">{PRIORITY_LABEL.high}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
@@ -604,27 +617,18 @@ export default function PendenciasPage() {
               Ocultar resolvidos
             </label>
             <div className="space-y-1.5">
-              <label className={ROTULO_PAINEL_ESCURO}>
-                Prioridade (lembretes)
-              </label>
-              <Select
-                value={priorityFilter}
-                onValueChange={(v) =>
-                  setPriorityFilter(v as "all" | TaskPriority)
-                }
-              >
+              <label className={ROTULO_PAINEL_ESCURO}>Prazo</label>
+              <Select value={prazo} onValueChange={(v) => setPrazo(v as Prazo)}>
                 <SelectTrigger className="h-9 bg-white text-slate-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="high">{PRIORITY_LABEL.high}</SelectItem>
-                  <SelectItem value="normal">
-                    {PRIORITY_LABEL.normal}
-                  </SelectItem>
-                  <SelectItem value="low">{PRIORITY_LABEL.low}</SelectItem>
+                  <SelectItem value="7">Próxima semana</SelectItem>
+                  <SelectItem value="30">Próximo mês</SelectItem>
+                  <SelectItem value="90">Próximos 3 meses</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-sm text-white/60">Vencidos aparecem sempre.</p>
             </div>
           </PopoverContent>
         </Popover>
@@ -904,7 +908,6 @@ function TaskCard({
   onConvert: (kind: ConvertKind) => void;
 }) {
   const [convOpen, setConvOpen] = useState(false);
-  const overdue = !!t.due_date && !t.done && t.due_date < todayISO();
   // Valor é opcional (lembrete nasce de "anota: X"): sem valor, cinza.
   const hasValue = t.total_value !== null && t.total_value > 0;
   return (
@@ -916,32 +919,12 @@ function TaskCard({
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
-        {/* Veio pelo WhatsApp x digitado na tela. A diferença não é decorativa:
-            aqui o título, o valor e a data foram INTERPRETADOS de texto livre
-            pela IA, e podem ter saído errado — é o card que a pessoa deve
-            conferir antes de converter em lançamento. */}
-        {t.source !== "manual" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex shrink-0 text-emerald-500">
-                <WhatsappDuotone className="size-4" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              Anotado pelo WhatsApp — confira os dados
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <MarcaDeOrigem origem={origemDoLembrete(t.source)} />
         <span
           className={`font-medium truncate flex-1 min-w-0 ${t.done ? "line-through text-slate-400" : "text-slate-900"}`}
         >
           {t.title.toUpperCase()}
         </span>
-        {t.priority !== "normal" && (
-          <span className={cn("text-xs shrink-0", PRIORITY_CLASS[t.priority])}>
-            {PRIORITY_LABEL[t.priority]}
-          </span>
-        )}
       </div>
       <div
         className={cn(
@@ -963,10 +946,8 @@ function TaskCard({
           {cc ? cc.name : "Sem centro"}
         </span>
       </div>
-      <div
-        className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}
-      >
-        {t.due_date ? fmtDate(t.due_date) : "sem data"}
+      <div className={cn("text-sm", prazoDoCard(t.due_date, t.done).classe)}>
+        {prazoDoCard(t.due_date, t.done).texto}
       </div>
       <div className="flex items-center gap-1 border-t border-slate-100 -mx-3 px-3 pt-2 mt-auto">
         {t.done ? (
@@ -1055,7 +1036,6 @@ function FinancialCard({
   onArchive: () => void;
 }) {
   const resolved = isPaid(r);
-  const overdue = !resolved && !!r.due_date && r.due_date < todayISO();
   const resolveLabel =
     r.direction === "income" ? "Marcar como recebido" : "Marcar como pago";
   return (
@@ -1067,20 +1047,7 @@ function FinancialCard({
       )}
     >
       <div className="flex items-center gap-1.5 min-w-0">
-        {/* Gerado por recorrência x criado à mão. Sem isso o quadro mistura o
-            que o usuário anotou com o que o sistema projetou, e a diferença
-            importa: a projeção some se a recorrência for removida. O ícone é o
-            mesmo de Recorrências no trilho, para o vínculo ser óbvio. */}
-        {r.is_estimated && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex shrink-0 text-teal-500">
-                <RepeatDuotone className="size-4" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">Gerado por recorrência</TooltipContent>
-          </Tooltip>
-        )}
+        <MarcaDeOrigem origem={origemDoLancamento(r.source, r.is_estimated)} />
         <div
           className={`font-medium truncate ${resolved ? "line-through text-slate-500" : "text-slate-900"}`}
         >
@@ -1105,10 +1072,8 @@ function FinancialCard({
           {categoryLabel !== "—" ? ` - ${categoryLabel}` : ""}
         </span>
       </div>
-      <div
-        className={`text-sm ${overdue ? "text-red-600 font-medium" : "text-slate-400"}`}
-      >
-        {r.due_date ? `vence ${fmtDate(r.due_date)}` : "sem vencimento"}
+      <div className={cn("text-sm", prazoDoCard(r.due_date, resolved).classe)}>
+        {prazoDoCard(r.due_date, resolved).texto}
       </div>
       <div className="flex items-center gap-1 border-t border-slate-100 -mx-3 px-3 pt-2 mt-auto">
         {resolved ? (
