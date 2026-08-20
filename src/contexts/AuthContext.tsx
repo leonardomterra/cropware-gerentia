@@ -132,7 +132,14 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
-  updateProfile: (fields: { fullName?: string; phone?: string | null }) => Promise<void>;
+  updateProfile: (fields: {
+    fullName?: string;
+    phone?: string | null;
+    cpf?: string | null;
+    city?: string | null;
+    state?: string | null;
+    activityArea?: string | null;
+  }) => Promise<void>;
   updateEmail: (email: string) => Promise<void>;
   completePasswordReset: () => void;
 }
@@ -212,7 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             errorParam === "access_denied" ||
             errorDescription?.includes("expired")
           ) {
-            msg = "O link de recuperacao expirou ou e invalido. Solicite um novo.";
+            msg =
+              "O link de recuperacao expirou ou e invalido. Solicite um novo.";
           } else if (errorDescription) {
             msg = decodeURIComponent(errorDescription.replace(/\+/g, " "));
           }
@@ -379,12 +387,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Atualiza nome/telefone direto na users_meta (RLS "user updates own meta"
   // permite o proprio row). Depois re-hidrata o FarmUser.
   const updateProfile = useCallback(
-    async (fields: { fullName?: string; phone?: string | null }) => {
+    async (fields: {
+      fullName?: string;
+      phone?: string | null;
+      cpf?: string | null;
+      city?: string | null;
+      state?: string | null;
+      activityArea?: string | null;
+    }) => {
       if (!user) return;
       const updates: Record<string, unknown> = {};
-      if (fields.fullName !== undefined) updates.full_name = fields.fullName.trim();
+      // Campo em branco vira NULL, não string vazia: "" e null contariam como
+      // valores diferentes em qualquer consulta futura, e ambos significam
+      // "não informado".
+      const texto = (v: string | null | undefined) =>
+        v === undefined ? undefined : v?.trim() || null;
+      if (fields.fullName !== undefined)
+        updates.full_name = fields.fullName.trim();
       if (fields.phone !== undefined)
         updates.phone = fields.phone ? fields.phone.replace(/\D/g, "") : null;
+      if (fields.cpf !== undefined)
+        updates.cpf = fields.cpf ? fields.cpf.replace(/\D/g, "") || null : null;
+      if (fields.city !== undefined) updates.city = texto(fields.city);
+      if (fields.state !== undefined)
+        updates.state = texto(fields.state)?.toUpperCase() ?? null;
+      if (fields.activityArea !== undefined)
+        updates.activity_area = texto(fields.activityArea);
       if (Object.keys(updates).length === 0) return;
 
       const { error } = await supabase

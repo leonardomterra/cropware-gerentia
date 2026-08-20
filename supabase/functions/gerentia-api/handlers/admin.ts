@@ -32,7 +32,7 @@ export function mountAdminRoutes(app: Hono) {
       const { data: metas } = await admin
         .from("users_meta")
         .select(
-          "user_id, full_name, role, phone, whatsapp_linked_at, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
+          "user_id, full_name, role, phone, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
         );
       const metaById: Record<string, any> = {};
       // deno-lint-ignore no-explicit-any

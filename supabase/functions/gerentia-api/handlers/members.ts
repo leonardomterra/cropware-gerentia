@@ -61,7 +61,7 @@ export function mountMemberRoutes(app: Hono) {
 
       const { data: metas, error: metasErr } = await client
         .from("users_meta")
-        .select("user_id, full_name, role, phone, whatsapp_linked_at, created_at")
+        .select("user_id, full_name, role, phone, created_at")
         .eq("organization_id", auth.organizationId!)
         .order("created_at", { ascending: true });
       if (metasErr) return c.json({ error: metasErr.message }, 400);
@@ -74,6 +74,16 @@ export function mountMemberRoutes(app: Hono) {
         const { data: u } = await admin.auth.admin.getUserById(m.user_id);
         emails[m.user_id] = u?.user?.email ?? null;
       }
+
+      // Mesmo defeito que /auth/me tinha: users_meta.whatsapp_linked_at nunca
+      // e' escrito por ninguem, e a lista de membros mostrava TODO MUNDO como
+      // nao vinculado. A fonte real e' farm_whatsapp_links.
+      const { data: waRows } = await admin
+        .from("farm_whatsapp_links")
+        .select("user_id")
+        .eq("organization_id", auth.organizationId!);
+      // deno-lint-ignore no-explicit-any
+      const comWhatsapp = new Set(((waRows as any[]) || []).map((r) => r.user_id));
 
       const { data: fuccRows } = await client
         .from("farm_user_cost_centers")
@@ -91,7 +101,7 @@ export function mountMemberRoutes(app: Hono) {
         email: emails[m.user_id],
         role: m.role,
         phone: m.phone,
-        whatsapp_linked: !!m.whatsapp_linked_at,
+        whatsapp_linked: comWhatsapp.has(m.user_id),
         cost_center_ids: (m.role === "owner" || m.role === "admin" || m.role === "viewer")
           ? "all" as const
           : (ccsByUser[m.user_id] || []),

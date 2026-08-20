@@ -27,8 +27,12 @@ const buttonVariants = cva(
         outline:
           "border border-slate-200 bg-slate-100 text-slate-900 hover:bg-slate-200",
         ghost: "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
-        destructive:
-          "bg-red-600 text-white hover:bg-red-700 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
+        // #f87171 (red-400), por escolha do Leonardo (20/08/2026) — o red-600
+        // ficava mais escuro que qualquer outro botão da interface.
+        //
+        // Sem sombra, como os demais botões do app depois da padronização dos
+        // diálogos: sombra em botão sólido era o resto do visual antigo.
+        destructive: "bg-[#f87171] text-white hover:bg-[#ef4444] shadow-none",
         link: "text-slate-700 underline-offset-2 hover:underline hover:text-slate-900",
       },
       size: {

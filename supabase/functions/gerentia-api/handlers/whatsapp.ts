@@ -234,6 +234,22 @@ async function tryLinkByCode(admin: any, phone: string, code: string): Promise<L
     is_active: true,
     linked_at: new Date().toISOString(),
   }, { onConflict: "phone_number" });
+
+  // UM NUMERO POR CONTA: o vinculo novo substitui o anterior.
+  //
+  // A chave primaria da tabela e' o phone_number, entao o upsert acima sozinho
+  // ACUMULAVA: dois celulares diferentes podiam lancar na mesma conta, sem
+  // nenhuma tela mostrando quais estavam ligados nem como desligar. Era efeito
+  // colateral do schema, nao decisao de produto — decidido em 20/08/2026.
+  //
+  // Depois do upsert, e nao antes: se a limpeza viesse primeiro e o upsert
+  // falhasse, o usuario ficaria sem vinculo nenhum.
+  await admin
+    .from("farm_whatsapp_links")
+    .delete()
+    .eq("user_id", row.user_id)
+    .neq("phone_number", phone);
+
   await admin.from("farm_whatsapp_link_codes").update({ used: true }).eq("id", row.id);
 
   return await getLinkedUser(admin, phone);

@@ -133,6 +133,11 @@ function AlertDialogDescription({
 }
 
 /*
+ * A ação usa `bg-primary` (#525252), o MESMO de "Novo Lançamento" e "Salvar" —
+ * e não um `slate-800` cravado à mão, que deixava o botão de confirmar bem mais
+ * escuro que qualquer outra ação principal da interface. Cor de botão primário
+ * vem do token; cravada, ela só diverge.
+ *
  * Botões do padrão Flag Field: sem sombra. Sombra em botão dentro de um dialog
  * que já flutua é sombra sobre sombra — o elemento parecia descolar do cartão.
  *
@@ -149,7 +154,7 @@ function AlertDialogAction({
   return (
     <AlertDialogPrimitive.Action
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-slate-800 text-white hover:bg-slate-900 border-0 h-9 px-4 py-2 rounded-md shadow-none outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:ring-offset-0",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-normal transition-colors disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 border-0 h-9 px-4 py-2 rounded-md shadow-none outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:ring-offset-0",
         className,
       )}
       {...props}

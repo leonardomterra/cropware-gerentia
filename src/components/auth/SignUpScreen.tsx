@@ -1,4 +1,12 @@
 import { useMemo, useState, type FormEvent } from "react";
+import {
+  MIN_SENHA,
+  corDaForca,
+  corDoTextoDaForca,
+  dicaDeSenha,
+  forcaDaSenha,
+  rotuloDaForca,
+} from "@/utils/senha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,18 +18,7 @@ interface SignUpScreenProps {
   onGoToLogin: () => void;
 }
 
-const MIN_PASSWORD = 8;
-
 /** Pontua a senha de 0 a 4 (tamanho + variedade de caracteres). */
-function scorePassword(pw: string): number {
-  let score = 0;
-  if (pw.length >= MIN_PASSWORD) score++;
-  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return score;
-}
-
 export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   const { signUp } = useAuth();
   const [email, setEmail] = useState("");
@@ -36,38 +33,25 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   }>(null);
 
   const strength = useMemo(
-    () => (password ? scorePassword(password) : 0),
+    () => (password ? forcaDaSenha(password) : 0),
     [password],
   );
-  const strengthColor =
-    strength <= 1 ? "bg-red-500" : strength === 2 ? "bg-amber-500" : "bg-emerald-500";
-  const strengthLabel =
-    strength <= 1 ? "Fraca" : strength === 2 ? "Média" : "Forte";
-  const strengthText =
-    strength <= 1 ? "text-red-600" : strength === 2 ? "text-amber-600" : "text-emerald-600";
+  const strengthColor = corDaForca(strength);
+  const strengthLabel = rotuloDaForca(strength);
+  const strengthText = corDoTextoDaForca(strength);
 
-  // Dica dinâmica: aponta o próximo passo pra fortalecer a senha.
-  const passwordHint = useMemo(() => {
-    if (!password) return "";
-    if (password.length < MIN_PASSWORD)
-      return `Use pelo menos ${MIN_PASSWORD} caracteres.`;
-    if (!(/[a-z]/.test(password) && /[A-Z]/.test(password)))
-      return "Misture letras maiúsculas e minúsculas.";
-    if (!/\d/.test(password)) return "Inclua ao menos um número.";
-    if (!/[^A-Za-z0-9]/.test(password))
-      return "Inclua um símbolo, como ! @ # $.";
-    return "Senha forte — está ótima.";
-  }, [password]);
+  const passwordHint = useMemo(() => dicaDeSenha(password), [password]);
 
-  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMatch =
+    confirmPassword.length > 0 && password === confirmPassword;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
 
-    if (password.length < MIN_PASSWORD) {
-      setError(`A senha precisa ter ao menos ${MIN_PASSWORD} caracteres.`);
+    if (password.length < MIN_SENHA) {
+      setError(`A senha precisa ter ao menos ${MIN_SENHA} caracteres.`);
       setSubmitting(false);
       return;
     }
@@ -120,7 +104,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   }
 
   return (
-    <AuthLayout title="Criar Conta" subtitle="14 dias grátis. Sem cartão agora.">
+    <AuthLayout
+      title="Criar Conta"
+      subtitle="14 dias grátis. Sem cartão agora."
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor="fullName">Seu nome</Label>
@@ -156,7 +143,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
-            placeholder={`Mínimo ${MIN_PASSWORD} caracteres`}
+            placeholder={`Mínimo ${MIN_SENHA} caracteres`}
             required
             disabled={submitting}
           />
@@ -193,13 +180,16 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             disabled={submitting}
           />
           {confirmPassword && !passwordsMatch ? (
-            <p className="text-xs text-red-600 mt-0.5">As senhas não coincidem.</p>
+            <p className="text-xs text-red-600 mt-0.5">
+              As senhas não coincidem.
+            </p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
           <Label htmlFor="phone">
-            Telefone <span className="text-slate-400 font-normal">(opcional)</span>
+            Telefone{" "}
+            <span className="text-slate-400 font-normal">(opcional)</span>
           </Label>
           <Input
             id="phone"
@@ -226,7 +216,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             submitting ||
             !email ||
             !fullName ||
-            password.length < MIN_PASSWORD ||
+            password.length < MIN_SENHA ||
             !passwordsMatch
           }
           className="mt-2"

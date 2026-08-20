@@ -16,7 +16,7 @@ export function mountAuthRoutes(app: Hono) {
       if (auth.error) return auth.error;
 
       const admin = getSupabaseAdmin();
-      const [allowed, costCenters, orgRes, metaRes] = await Promise.all([
+      const [allowed, costCenters, orgRes, metaRes, waRes] = await Promise.all([
         getAllowedCostCenterIds(admin, auth.user!.id, auth.organizationId!),
         listUserCostCenters(admin, auth.user!.id, auth.organizationId!),
         admin
@@ -26,9 +26,19 @@ export function mountAuthRoutes(app: Hono) {
           .maybeSingle(),
         admin
           .from("users_meta")
-          .select("full_name, phone, whatsapp_linked_at")
+          .select("full_name, phone")
           .eq("user_id", auth.user!.id)
           .maybeSingle(),
+        // O vinculo do WhatsApp vem de farm_whatsapp_links, a tabela que a
+        // integracao REALMENTE usa (webhook, IA, cron). users_meta tem uma
+        // coluna whatsapp_linked_at que ninguem nunca escreveu: em 20/08/2026
+        // ela estava NULL para os 14 usuarios da base, entao este campo sempre
+        // respondeu "nao vinculado" mesmo com o WhatsApp funcionando. So
+        // apareceu quando a tela de Conta passou a mostrar o status.
+        admin
+          .from("farm_whatsapp_links")
+          .select("user_id", { head: true, count: "exact" })
+          .eq("user_id", auth.user!.id),
       ]);
 
       // Assentos ocupados: so faz sentido (e so e exposto) pra quem gerencia.
@@ -47,7 +57,7 @@ export function mountAuthRoutes(app: Hono) {
           email: auth.user!.email,
           full_name: metaRes.data?.full_name ?? null,
           phone: metaRes.data?.phone ?? null,
-          whatsapp_linked: !!metaRes.data?.whatsapp_linked_at,
+          whatsapp_linked: (waRes.count ?? 0) > 0,
         },
         role: auth.role,
         organization: orgRes.data ? { ...orgRes.data, seats_used: seatsUsed } : null,
