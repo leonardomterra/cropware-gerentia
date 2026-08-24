@@ -21,6 +21,7 @@ import { mountNotificationRoutes } from "./handlers/notifications.ts";
 import { mountAdminRoutes } from "./handlers/admin.ts";
 import { mountAdminOrgRoutes } from "./handlers/adminOrgs.ts";
 import { mountAdminExportRoutes } from "./handlers/adminExport.ts";
+import { mountBackupRoutes } from "./handlers/backups.ts";
 
 const app = new Hono().basePath("/gerentia-api");
 
@@ -51,6 +52,7 @@ mountNotificationRoutes(app);
 mountAdminRoutes(app);
 mountAdminOrgRoutes(app);
 mountAdminExportRoutes(app);
+mountBackupRoutes(app);
 
 app.onError((err, c) => {
   // Loga o detalhe no servidor; ao cliente devolve só genérico (não vaza
@@ -59,8 +61,6 @@ app.onError((err, c) => {
   return c.json({ error: "internal_error" }, 500);
 });
 
-app.notFound((c) =>
-  c.json({ error: "not_found", path: c.req.path }, 404),
-);
+app.notFound((c) => c.json({ error: "not_found", path: c.req.path }, 404));
 
 Deno.serve(app.fetch);
