@@ -70,6 +70,24 @@ export const TABELAS_DO_PACOTE: ReadonlyArray<{
   { nome: "farm_category_hidden", porUsuario: "contexto" },
 ] as const;
 
+/** Ordem de dependência, para a restauração percorrer igual à coleta. */
+export const ORDEM_DAS_TABELAS: string[] = TABELAS_DO_PACOTE.map((t) => t.nome);
+
+/**
+ * Tabelas que a restauração pode INSERIR mas não SOBRESCREVER.
+ *
+ * Só no pacote de usuário, e só o contexto da organização: se o centro de custo
+ * sumiu junto, sem repor não há como inserir o lançamento dele; mas se ainda
+ * existe e outra pessoa editou, não é dele para sobrescrever. Ver §3 do doc.
+ */
+export function tabelasSomenteInserir(escopo: EscopoBackup): string[] {
+  return escopo === "usuario"
+    ? TABELAS_DO_PACOTE.filter((t) => t.porUsuario === "contexto").map(
+        (t) => t.nome,
+      )
+    : [];
+}
+
 export interface Pacote {
   versao: number;
   gerado_em: string;

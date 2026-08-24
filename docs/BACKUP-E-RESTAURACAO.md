@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapas 0 e 1 concluídas** em 24/08/2026 · **Próxima:** 2 (restauração)
+**Início:** 24/08/2026 · **Etapas 0, 1 e 2 concluídas** em 24/08/2026 · **Próxima:** 3
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -195,7 +195,7 @@ e `farm_whatsapp_link_codes` (efêmeros), `plans`, `subscriptions`,
 | ----- | ------------------------------------------------------------------------ | ------------- |
 | **0** | Coletor, formato v1, gravação no R2, índice `farm_backups`               | ✅ 24/08/2026 |
 | **1** | Diário automático via `pg_cron`, com hash e expurgo                      | ✅ 24/08/2026 |
-| **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela |               |
+| **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela | ✅ 24/08/2026 |
 | **3** | Backup pré-operação destrutiva (§7)                                      |               |
 | **4** | Tela do usuário em Configurações                                         |               |
 | **5** | Tela do master                                                           |               |
@@ -250,7 +250,43 @@ backup nenhum justamente por nada ter acontecido com ele**. Pular agora **renova
 o prazo** do arquivo que ficou valendo. `criado_em` não se mexe: o conteúdo
 continua sendo o do dia em que foi capturado; o que muda é até quando vale.
 
-## 12. Validação — 24/08/2026
+## 12. A restauração (etapa 2)
+
+`public.farm_restaurar_backup(p_ordem, p_tabelas, p_somente_inserir, p_aplicar)`.
+
+**É uma função no banco, não código na edge.** A restauração toca várias tabelas
+em ordem de dependência; feita por chamadas REST soltas, uma falha no meio
+deixaria metade restaurada — o pior estado possível, porque parece que deu
+certo. Uma função é uma transação: ou entra tudo, ou não entra nada.
+
+Três cuidados que valem a leitura do SQL:
+
+**A chave primária vem do catálogo**, não escrita à mão. Três tabelas do pacote
+têm chave composta (`farm_category_hidden`, `farm_org_former_members`,
+`farm_user_cost_centers`); uma lista fixa envelheceria em silêncio.
+
+**As colunas são a interseção** entre o que o pacote traz e o que a tabela tem
+hoje. Coluna que sumiu é ignorada; coluna criada depois do backup **não é
+mexida**, em vez de virar NULL — restaurar um pacote antigo não pode apagar dado
+de uma coluna que ele nem conhecia.
+
+**Os dois lados passam pelo mesmo tipo de linha antes de comparar**
+(`jsonb_populate_recordset` + `to_jsonb`). Comparar o JSON cru do pacote contra
+`to_jsonb` da tabela daria falso "sobrescrita" toda vez que a serialização de
+data ou numérico diferisse por um detalhe de formato — e a pré-visualização
+prometeria mudanças que não existem.
+
+A lista de tabelas aceitas é fixa dentro da função. Ela é `SECURITY DEFINER` e
+monta SQL dinâmico: sem essa trava, um nome de tabela arbitrário em `p_ordem`
+viraria escrita arbitrária no banco. Execute revogado de `anon` e
+`authenticated` — só a edge chama, e quem decide o recorte é o handler.
+
+### Rotas
+
+    GET  /admin/backups/:id/url      link presigned de 5 min para baixar
+    POST /admin/backups/:id/restore  { aplicar: false } pré-visualiza
+
+## 13. Validação — 24/08/2026
 
 ### Etapa 0 — `POST /admin/backups/run`, três chamadas
 
@@ -282,3 +318,20 @@ Segunda rodada, minutos depois:
 25 alvos, nenhum arquivo novo: a regra do hash vale em escala, não só no caso de
 um usuário. E o `status_code: 200` com o resumo dentro de `net._http_response` é
 a observabilidade que faltava aos outros dois jobs.
+
+### Etapa 2 — quatro cenários, todos dentro de transação revertida
+
+**Pacote igual ao estado atual** (4 tabelas, 78 linhas): `78 intactas, 0
+repostas, 0 sobrescritas`. Zero falso positivo — é o teste que pega erro de
+serialização.
+
+**Perda total e volta:** 2 lançamentos → apagados → previsão diz `2 repostas` →
+**a previsão não escreveu nada** (contagem seguiu em 0) → aplicado → 2 de volta
+→ aplicado de novo: `2 intactas, 0 repostas`. Idempotente.
+
+**Linha corrompida** (descrição e valor trocados por lixo): previsão acusou
+`1 sobrescrita, 1 intacta`, e aplicar devolveu o valor original.
+
+**Modo somente-inserir sobre a mesma linha corrompida:** previsão prometeu
+`0 sobrescritas, 2 intactas`, e aplicar de fato **não tocou** na linha errada —
+o contexto da organização fica protegido no pacote de usuário, como manda o §3.
