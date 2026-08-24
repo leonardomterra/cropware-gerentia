@@ -27,6 +27,7 @@ type SecaoDeConfig =
   | "cat-despesa"
   | "cat-receita"
   | "backups"
+  | "backups-master"
   | "usuarios"
   | "organizacoes";
 
@@ -77,6 +78,14 @@ const ATALHOS: Atalho[] = [
     cor: "text-sky-500",
     titulo: "Backups",
     descricao: "Consultar, baixar e restaurar",
+  },
+  {
+    id: "backups-master",
+    Icon: FloppyDiskDuotone,
+    cor: "text-slate-500",
+    titulo: "Backups de Todos",
+    descricao: "Toda organização e toda pessoa",
+    master: true,
   },
   {
     id: "usuarios",
@@ -198,6 +207,7 @@ export default function ConfiguracoesPage() {
 
       {secao === "centros" && <CostCentersManager />}
       {secao === "backups" && <BackupsManager />}
+      {secao === "backups-master" && <BackupsManager master />}
       {(secao === "cat-despesa" || secao === "cat-receita") && (
         <CategoriesManager
           key={secao}

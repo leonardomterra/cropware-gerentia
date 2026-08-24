@@ -310,6 +310,28 @@ backup nenhum justamente por nada ter acontecido com ele**. Pular agora **renova
 o prazo** do arquivo que ficou valendo. `criado_em` não se mexe: o conteúdo
 continua sendo o do dia em que foi capturado; o que muda é até quando vale.
 
+## 11b. PENDENTE — conferir a primeira rodada automática
+
+O `gerentia-daily-backup` foi validado por disparo manual, **nunca por si só**.
+A primeira execução espontânea é às 05:00 UTC do dia seguinte a 24/08/2026.
+
+Confira no SQL Editor:
+
+```sql
+select j.jobname, d.status, d.start_time::timestamp(0), left(d.return_message, 80)
+from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+where d.start_time > now() - interval '2 days'
+order by d.start_time desc;
+```
+
+Três coisas a olhar, e as duas últimas não são sobre backup:
+`gerentia-daily-backup` em `succeeded`, e `farm-process-alerts` e
+`farm-weekly-summary` também — esses dois falhavam todo dia desde junho até a
+correção de 24/08 (`20260824140000_fix_cron_net_schema.sql`), e esta é a primeira
+oportunidade de vê-los funcionando.
+
+Enquanto esta seção existir, o item está em aberto. Apague-a quando conferir.
+
 ## 12. A restauração (etapa 2)
 
 `public.farm_restaurar_backup(p_ordem, p_tabelas, p_somente_inserir, p_aplicar)`.

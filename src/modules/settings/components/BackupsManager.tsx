@@ -10,7 +10,10 @@ import CalendarStarDuotone from "~icons/ph/calendar-star-duotone";
 import HandDuotone from "~icons/ph/hand-duotone";
 import SignOutDuotone from "~icons/ph/sign-out-duotone";
 import ShieldWarningDuotone from "~icons/ph/shield-warning-duotone";
+import Trash from "~icons/ph/trash";
+import GlobeDuotone from "~icons/ph/globe-duotone";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -29,6 +32,7 @@ import { cn } from "@/components/ui/utils";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
+  CAMPO_BARRA,
   ICONE_BOTAO_BARRA,
   PAINEL_ESCURO,
   ROTULO_PAINEL_ESCURO,
@@ -132,7 +136,17 @@ function tamanho(bytes: number): string {
 type FiltroEscopo = "todos" | "meus" | "organizacao";
 type FiltroTipo = "todos" | Backup["tipo"];
 
-export function BackupsManager() {
+/**
+ * Tela de backups. MESMO componente para cliente e master, com `master` mudando
+ * só o que precisa mudar: a rota (o master não passa pela RLS), os filtros por
+ * organização e pessoa, o seletor de alvo ao gerar, e o excluir.
+ *
+ * Duas telas separadas seriam duas listas, dois cards e dois diálogos de
+ * pré-visualização para divergir — e a pré-visualização é a peça que não pode
+ * ficar diferente entre quem opera e quem é operado.
+ */
+export function BackupsManager({ master = false }: { master?: boolean }) {
+  const RAIZ = master ? "/admin/backups" : "/backups";
   const [backups, setBackups] = useState<Backup[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [podeRestaurar, setPodeRestaurar] = useState(false);
@@ -142,6 +156,13 @@ export function BackupsManager() {
 
   const [fEscopo, setFEscopo] = useState<FiltroEscopo>("todos");
   const [fTipo, setFTipo] = useState<FiltroTipo>("todos");
+  // Só master: filtro por texto (e-mail ou organização) e alvo do disparo.
+  const [busca, setBusca] = useState("");
+  const [alvoEscopo, setAlvoEscopo] = useState<
+    "geral" | "organizacao" | "usuario"
+  >("geral");
+  const [alvoId, setAlvoId] = useState("");
+  const [excluindo, setExcluindo] = useState<Backup | null>(null);
 
   // A restauração é DOIS passos: primeiro pergunta ao servidor o que mudaria,
   // depois confirma com aquele número na frente. Nunca aplica direto.
@@ -156,18 +177,19 @@ export function BackupsManager() {
     try {
       const r = await api<{
         backups: Backup[];
-        pode_restaurar: boolean;
-        meu_user_id: string | null;
-      }>("/backups");
+        pode_restaurar?: boolean;
+        meu_user_id?: string | null;
+      }>(RAIZ);
       setBackups(r.backups ?? []);
-      setPodeRestaurar(r.pode_restaurar);
-      setMeuId(r.meu_user_id);
+      // O master não recebe esses dois: ele sempre pode, e não tem "os meus".
+      setPodeRestaurar(master ? true : (r.pode_restaurar ?? false));
+      setMeuId(r.meu_user_id ?? null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar backups");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [RAIZ, master]);
 
   useEffect(() => {
     void carregar();
@@ -180,13 +202,37 @@ export function BackupsManager() {
         if (fEscopo === "meus" && b.user_id !== meuId) return false;
         if (fEscopo === "organizacao" && b.escopo !== "organizacao")
           return false;
+        if (busca.trim()) {
+          // Procura no que o master conhece o alvo por: e-mail e nome da
+          // organização, congelados no pacote.
+          const q = busca.trim().toLowerCase();
+          const alvo = [
+            b.identidade?.user_email,
+            b.identidade?.user_name,
+            b.identidade?.organization_name,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          if (!alvo.includes(q)) return false;
+        }
         return true;
       }),
-    [backups, fEscopo, fTipo, meuId],
+    [backups, fEscopo, fTipo, meuId, busca],
   );
 
   const filtrosAtivos =
-    (fEscopo !== "todos" ? 1 : 0) + (fTipo !== "todos" ? 1 : 0);
+    (fEscopo !== "todos" ? 1 : 0) +
+    (fTipo !== "todos" ? 1 : 0) +
+    (busca.trim() ? 1 : 0);
+
+  async function excluir() {
+    if (!excluindo) return;
+    await api(`/admin/backups/${excluindo.id}`, { method: "DELETE" });
+    toast.success("Backup excluído");
+    setExcluindo(null);
+    await carregar();
+  }
 
   async function gerarAgora() {
     setGerando(true);
@@ -194,7 +240,12 @@ export function BackupsManager() {
       const r = await api<{
         gravou: boolean;
         contagem: Record<string, number>;
-      }>("/backups/run", { method: "POST", body: { escopo: "usuario" } });
+      }>(master ? "/admin/backups/run" : "/backups/run", {
+        method: "POST",
+        body: master
+          ? { escopo: alvoEscopo, id: alvoId || undefined, tipo: "manual" }
+          : { escopo: "usuario" },
+      });
       // `gravou: false` não é falha: o conteúdo é idêntico ao último backup, e o
       // arquivo anterior continua valendo. Dizer "erro" aqui seria mentira.
       toast.success(
@@ -213,7 +264,7 @@ export function BackupsManager() {
   async function baixar(b: Backup) {
     setBaixando(b.id);
     try {
-      const r = await api<{ url: string }>(`/backups/${b.id}/url`);
+      const r = await api<{ url: string }>(`${RAIZ}/${b.id}/url`);
       window.open(r.url, "_blank", "noopener");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar o link");
@@ -225,7 +276,7 @@ export function BackupsManager() {
   async function pedirPrevisao(b: Backup) {
     setRestaurando(true);
     try {
-      const r = await api<{ resultado: Previsao }>(`/backups/${b.id}/restore`, {
+      const r = await api<{ resultado: Previsao }>(`${RAIZ}/${b.id}/restore`, {
         method: "POST",
         body: { aplicar: false },
       });
@@ -240,7 +291,7 @@ export function BackupsManager() {
   async function aplicar() {
     if (!previsao) return;
     const r = await api<{ resultado: Previsao }>(
-      `/backups/${previsao.backup.id}/restore`,
+      `${RAIZ}/${previsao.backup.id}/restore`,
       { method: "POST", body: { aplicar: true } },
     );
     const t = r.resultado.total;
@@ -258,6 +309,14 @@ export function BackupsManager() {
           DATA, que já está visível em cada card. */}
       <div className="flex flex-wrap items-center gap-2 w-full">
         <div className="grid flex-1 min-w-0 gap-2 grid-cols-1 sm:grid-cols-2">
+          {master && (
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por pessoa ou organização"
+              className={cn(CAMPO_BARRA, "w-full")}
+            />
+          )}
           <Select
             value={fEscopo}
             onValueChange={(v) => setFEscopo(v as FiltroEscopo)}
@@ -267,8 +326,12 @@ export function BackupsManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os backups</SelectItem>
-              <SelectItem value="meus">Só os meus dados</SelectItem>
-              <SelectItem value="organizacao">Da organização</SelectItem>
+              {!master && (
+                <SelectItem value="meus">Só os meus dados</SelectItem>
+              )}
+              <SelectItem value="organizacao">
+                {master ? "Só por organização" : "Da organização"}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -316,10 +379,48 @@ export function BackupsManager() {
 
       {/* 2 — ações. Um botão escuro só. */}
       <header className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
+        {/* O master escolhe O QUE gerar; para o cliente, que só tem os
+            próprios dados, um seletor de um item seria ruído. */}
+        {master && (
+          <>
+            <Select
+              value={alvoEscopo}
+              onValueChange={(v) => {
+                setAlvoEscopo(v as typeof alvoEscopo);
+                setAlvoId("");
+              }}
+            >
+              <SelectTrigger className={cn(BOTAO_BARRA, "lg:w-[190px]")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="geral">Banco inteiro</SelectItem>
+                <SelectItem value="organizacao">Uma organização</SelectItem>
+                <SelectItem value="usuario">Uma pessoa</SelectItem>
+              </SelectContent>
+            </Select>
+            {alvoEscopo !== "geral" && (
+              <Input
+                value={alvoId}
+                onChange={(e) => setAlvoId(e.target.value)}
+                placeholder={
+                  alvoEscopo === "organizacao"
+                    ? "ID da organização"
+                    : "ID da pessoa"
+                }
+                className={cn(CAMPO_BARRA, "lg:w-[300px]")}
+              />
+            )}
+          </>
+        )}
         <Button
           variant="default"
           onClick={gerarAgora}
-          disabled={gerando || !podeRestaurar}
+          disabled={
+            gerando ||
+            !podeRestaurar ||
+            (master && alvoEscopo !== "geral" && !alvoId.trim())
+          }
           className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 lg:w-auto")}
         >
           <FloppyDiskDuotone className="size-4 mr-2" />
@@ -350,6 +451,7 @@ export function BackupsManager() {
             onClick={() => {
               setFEscopo("todos");
               setFTipo("todos");
+              setBusca("");
             }}
             className="h-7 px-2 text-sm font-normal text-slate-500 hover:text-slate-700"
           >
@@ -390,7 +492,11 @@ export function BackupsManager() {
                   key={b.id}
                   className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3"
                 >
-                  <m.Icon className={cn("size-7 shrink-0", m.cor)} />
+                  {b.escopo === "geral" ? (
+                    <GlobeDuotone className="size-7 shrink-0 text-slate-500" />
+                  ) : (
+                    <m.Icon className={cn("size-7 shrink-0", m.cor)} />
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-slate-900">
@@ -400,10 +506,16 @@ export function BackupsManager() {
                       </span>
                     </div>
                     <div className="text-sm text-slate-500 truncate">
-                      {daOrg ? "Organização" : "Meus dados"} -{" "}
-                      {resumo(b.contagem)}
-                      {" - "}
-                      {tamanho(b.bytes)}
+                      {/* Para o master QUEM é o alvo importa mais que o
+                          escopo: ele olha uma lista de gente, não a própria. */}
+                      {master
+                        ? (b.identidade?.user_email ??
+                          b.identidade?.organization_name ??
+                          (b.escopo === "geral" ? "Banco inteiro" : "—"))
+                        : daOrg
+                          ? "Organização"
+                          : "Meus dados"}{" "}
+                      - {resumo(b.contagem)} - {tamanho(b.bytes)}
                     </div>
                   </div>
 
@@ -428,6 +540,17 @@ export function BackupsManager() {
                       >
                         <ArrowCounterClockwise className={ICONE_BOTAO_BARRA} />
                         Restaurar
+                      </Button>
+                    )}
+                    {master && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setExcluindo(b)}
+                        className="h-9 px-4 font-normal rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:text-red-800"
+                      >
+                        <Trash className={ICONE_BOTAO_BARRA} />
+                        Excluir
                       </Button>
                     )}
                   </div>
@@ -463,6 +586,23 @@ export function BackupsManager() {
         cancelLabel="Cancelar"
         loadingLabel="Restaurando..."
         onConfirm={aplicar}
+      />
+
+      <ConfirmActionDialog
+        open={excluindo !== null}
+        onOpenChange={(o) => {
+          if (!o) setExcluindo(null);
+        }}
+        title="Excluir este backup?"
+        description={
+          excluindo
+            ? `O arquivo de ${dataLonga(excluindo.criado_em)} sai do R2 e do índice. Não tem como desfazer, e é o único lugar onde aquele estado existia.`
+            : ""
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        loadingLabel="Excluindo..."
+        onConfirm={excluir}
       />
     </div>
   );

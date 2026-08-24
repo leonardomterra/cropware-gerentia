@@ -11,7 +11,7 @@ import {
   VERSAO_PACOTE,
   type TipoBackup,
 } from "../lib/backupColeta.ts";
-import { getFromR2, presignGetUrl } from "../lib/r2.ts";
+import { deleteFromR2, getFromR2, presignGetUrl } from "../lib/r2.ts";
 import { gravarPacote } from "../lib/backupGravacao.ts";
 import { expurgarVencidos } from "../lib/backupExpurgo.ts";
 import { requireCronSecret } from "../lib/cronGuard.ts";
@@ -24,6 +24,7 @@ import type { Pacote } from "../lib/backupColeta.ts";
  *   GET  /admin/backups              lista o índice (master)
  *   GET  /admin/backups/:id/url      link temporário para baixar (master)
  *   POST /admin/backups/:id/restore  pré-visualiza e restaura (master)
+ *   DEL  /admin/backups/:id          apaga do R2 e do índice (master)
  *   POST /cron/daily-backup          o diário automático (pg_cron, 05:00 UTC)
  *
  * As telas (etapas 4 e 5) entram depois.
@@ -334,6 +335,57 @@ export function mountBackupRoutes(app: Hono) {
     // 200 mesmo com falha parcial: o pg_cron não tem para onde reportar, e
     // marcar a rodada inteira como erro esconderia o que funcionou.
     return c.json(resumo);
+  });
+
+  /**
+   * Apaga um pacote. Serve para o master limpar antes do prazo — um `saida` de
+   * teste, um `manual` gerado por engano.
+   *
+   * Mesma ordem do expurgo automático: R2 primeiro, índice depois. O pior
+   * estado é linha apontando para arquivo que não existe, e nesta ordem a
+   * falha se cura sozinha (deleteFromR2 trata 404 como sucesso).
+   */
+  app.delete("/admin/backups/:id", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireMaster(client);
+      if (auth.error) return auth.error;
+
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from("farm_backups")
+        .select("chave, escopo, tipo, identidade")
+        .eq("id", c.req.param("id"))
+        .maybeSingle();
+      if (error) return c.json({ error: error.message }, 400);
+      if (!data) return c.json({ error: "not_found" }, 404);
+
+      await deleteFromR2(data.chave as string, "backups");
+      const { error: eDel } = await admin
+        .from("farm_backups")
+        .delete()
+        .eq("id", c.req.param("id"));
+      if (eDel) return c.json({ error: eDel.message }, 400);
+
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "backup_delete",
+        {
+          email:
+            (data.identidade as Record<string, string> | null)?.user_email ??
+            null,
+        },
+        { chave: data.chave, escopo: data.escopo, tipo: data.tipo },
+      );
+
+      return c.json({ ok: true });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      const msg = resp instanceof Error ? resp.message : String(resp);
+      return c.json({ error: "exclusao_falhou", detalhe: msg }, 500);
+    }
   });
 
   /** Índice dos pacotes, mais recentes primeiro. Filtros opcionais. */
