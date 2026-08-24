@@ -149,6 +149,7 @@ export default function AdminOrgsPage({
   const [novoNome, setNovoNome] = useState("");
   const [novoPapel, setNovoPapel] = useState("member");
   const [criando, setCriando] = useState(false);
+  const [confirmarCriacao, setConfirmarCriacao] = useState(false);
 
   const [addEmail, setAddEmail] = useState("");
   const [addRole, setAddRole] = useState("member");
@@ -189,7 +190,7 @@ export default function AdminOrgsPage({
     try {
       const d = await loadDetail(org.id);
       setDetail(d);
-      setSeatsDraft(String(d.organization.seats_limit));
+      setSeatsDraft(String(d.organization.seats_limit).padStart(2, "0"));
       setAddEmail("");
       setAddRole("member");
     } catch {
@@ -406,6 +407,37 @@ export default function AdminOrgsPage({
         </DialogContent>
       </Dialog>
 
+      {/* Confirma criar-e-vincular.
+          VINCULAR conta existente não pede confirmação: é reversível pelo
+          próprio "desvincular" ao lado. CRIAR, não — a conta passa a existir e
+          um e-mail sai para a pessoa. E-mail enviado não volta. */}
+      <ConfirmActionDialog
+        open={confirmarCriacao}
+        onOpenChange={setConfirmarCriacao}
+        title="Criar conta e vincular"
+        description="A conta é criada e um convite é enviado por e-mail para a pessoa definir a senha. O e-mail sai na hora e não dá para cancelar."
+        infoItems={[
+          { label: "E-mail", value: novoEmail.trim() },
+          { label: "Nome", value: novoNome.trim() || "(sem nome)" },
+          {
+            label: "Perfil",
+            value:
+              ROLE_LABEL[novoPapel as keyof typeof ROLE_LABEL] ?? novoPapel,
+          },
+          {
+            label: "Organização",
+            value: detail?.organization.name ?? "",
+          },
+        ]}
+        confirmLabel="Criar e Enviar Convite"
+        loading={criando}
+        loadingLabel="Criando..."
+        onConfirm={() => {
+          setConfirmarCriacao(false);
+          void handleCriarEVincular();
+        }}
+      />
+
       {/* Confirma desvincular */}
       <ConfirmActionDialog
         open={!!pendingRemove}
@@ -459,11 +491,31 @@ export default function AdminOrgsPage({
                   <label className="text-sm font-medium text-slate-700 block mb-1">
                     Acessos contratados
                   </label>
+                  {/* Dois dígitos e sem as setinhas do `type="number"`: o
+                      valor é um punhado de acessos, não uma quantia. Com
+                      `type="text"` + `inputMode` o teclado do celular ainda
+                      abre numérico, e o filtro impede letra.
+
+                      A formatação para "05" acontece ao SAIR do campo, não a
+                      cada tecla: no `onChange` o zero à esquerda apareceria
+                      enquanto a pessoa ainda digita o segundo dígito. */}
                   <Input
-                    type="number"
-                    min={1}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
                     value={seatsDraft}
-                    onChange={(e) => setSeatsDraft(e.target.value)}
+                    onChange={(e) =>
+                      setSeatsDraft(
+                        e.target.value.replace(/\D/g, "").slice(0, 2),
+                      )
+                    }
+                    onBlur={() => {
+                      const n = Number(seatsDraft);
+                      if (Number.isFinite(n) && n > 0) {
+                        setSeatsDraft(String(n).padStart(2, "0"));
+                      }
+                    }}
+                    className="tabular-nums"
                   />
                 </div>
                 <Button
@@ -473,10 +525,6 @@ export default function AdminOrgsPage({
                   Salvar
                 </Button>
               </div>
-              <p className="text-sm text-slate-500 -mt-3">
-                {detail.organization.seats_used} em uso. Salvar também marca a
-                organização como <strong>Equipe</strong>.
-              </p>
 
               {/* Membros */}
               <div>
@@ -494,9 +542,9 @@ export default function AdminOrgsPage({
                       key={m.user_id}
                       className="bg-white rounded-xl border border-slate-200 p-4"
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-center gap-4">
                         {/* 1 — quem */}
-                        <div className="min-w-0 flex-[1.4] flex flex-col gap-0.5">
+                        <div className="min-w-0 flex-[1.4] self-center flex flex-col gap-0.5">
                           <p className="h-5 text-sm font-medium text-slate-900 truncate">
                             {m.full_name || "(sem nome)"}
                           </p>
@@ -505,18 +553,19 @@ export default function AdminOrgsPage({
                           </p>
                         </div>
 
-                        {/* 2 — quanto lançou */}
-                        <div className="min-w-0 flex-[0.7] hidden sm:flex flex-col gap-0.5">
-                          <p className="h-5 text-sm text-slate-900 truncate tabular-nums">
-                            {m.receipts}
-                          </p>
-                          <p className="text-sm leading-5 text-slate-700 truncate">
+                        {/* 2 — quanto lançou. UMA linha e centrado: quebrar
+                            "1 lançamento" em número e palavra lia como erro de
+                            quebra, não como duas informações. */}
+                        <div className="min-w-0 flex-1 self-center hidden sm:block">
+                          <p className="text-sm text-slate-700 truncate tabular-nums">
+                            {m.receipts}{" "}
                             {m.receipts === 1 ? "lançamento" : "lançamentos"}
                           </p>
                         </div>
 
-                        {/* 3 — papel na organização */}
-                        <div className="shrink-0 self-center w-[150px]">
+                        {/* 3 — papel na organização. 176px porque "Gestor
+                            (titular)" é o rótulo mais longo e truncava. */}
+                        <div className="shrink-0 self-center w-[176px]">
                           <Select
                             value={m.role}
                             onValueChange={(v) => void handleRole(m, v)}
@@ -541,7 +590,10 @@ export default function AdminOrgsPage({
                           </Select>
                         </div>
 
-                        <div className="shrink-0 self-center flex items-center gap-1">
+                        {/* Largura FIXA: o titular não tem "desvincular", e
+                            sem a reserva a fileira de botões dele encolhia e
+                            desalinhava o seletor de papel da linha inteira. */}
+                        <div className="shrink-0 self-center w-[124px] flex items-center justify-end gap-1">
                           {/* Editar leva à tela de Usuários já filtrada nesta
                               pessoa: gerir a conta (nome, trial, senha) é lá, e
                               duplicar aquele formulário aqui criaria duas telas
@@ -579,37 +631,58 @@ export default function AdminOrgsPage({
                 </div>
               </div>
 
-              {/* Vincular alguém */}
-              <div>
+              {/* Os dois blocos de adicionar gente são CARDS TINGIDOS, e não
+                  brancos como os das pessoas: card branco aqui leria como mais
+                  um membro da lista, e não como um formulário. A cor separa
+                  "quem já está" de "como pôr alguém".
+
+                  Azul = ligar o que existe; verde = criar algo novo. */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <h3 className="text-sm font-medium text-slate-900 mb-2">
                   Vincular conta existente
                 </h3>
-                <div className="flex gap-2">
+                {/* Uma linha: campo esticando, seletor de 176px e a ação
+                    encostada nele.
+
+                    O seletor é o Select do app, e não um <select> nativo: o
+                    nativo desenha a PRÓPRIA seta, com tamanho e alinhamento
+                    diferentes de todos os outros seletores da tela. */}
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     placeholder="email@da.pessoa"
                     value={addEmail}
                     onChange={(e) => setAddEmail(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 min-w-[200px]"
                   />
-                  <select
-                    value={addRole}
-                    onChange={(e) => setAddRole(e.target.value)}
-                    className="text-sm border border-slate-200 rounded px-2 bg-white"
-                  >
-                    <option value="member">{ROLE_LABEL.member}</option>
-                    <option value="admin">{ROLE_LABEL.admin}</option>
-                    <option value="viewer">{ROLE_LABEL.viewer}</option>
-                  </select>
-                  <Button
-                    variant="ghost"
+                  <div className="shrink-0 w-[176px]">
+                    <Select value={addRole} onValueChange={setAddRole}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="member">
+                          {ROLE_LABEL.member}
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          {ROLE_LABEL.admin}
+                        </SelectItem>
+                        <SelectItem value="viewer">
+                          {ROLE_LABEL.viewer}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <ActionIconButton
+                    icon={UserPlus}
+                    label="Vincular à organização"
+                    disabled={adding || !addEmail.trim()}
                     onClick={() => void handleAddMember("ask")}
-                    disabled={adding}
-                    className={cn(BOTAO_BARRA, "rounded-md")}
-                  >
-                    <UserPlus className="size-4" />
-                  </Button>
+                    className="bg-white shrink-0"
+                  />
                 </div>
-                <p className="text-sm text-slate-500 mt-1">
+                {/* slate-600, e não o 500 dos cards brancos: sobre o fundo
+                    tingido o 500 cai abaixo de 4,5:1. */}
+                <p className="text-sm text-slate-600 mt-1">
                   A primeira pessoa vinculada vira a titular. Para o resto da
                   equipe, o gestor convida pela tela de Equipe.
                 </p>
@@ -624,24 +697,27 @@ export default function AdminOrgsPage({
                   que já existem — sem rota nova no backend. Se o vínculo
                   falhar, a conta fica criada e a mensagem diz isso: some com o
                   passo, não com a informação. */}
-              <div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                 <h3 className="text-sm font-medium text-slate-900 mb-2">
                   Criar conta nova e vincular
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Tudo numa linha só. Quebra para duas no celular pelo
+                    `flex-wrap`, com `min-w` garantindo que nenhum campo fique
+                    ilegível antes disso. */}
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     placeholder="email@da.pessoa"
                     value={novoEmail}
                     onChange={(e) => setNovoEmail(e.target.value)}
+                    className="flex-1 min-w-[200px]"
                   />
                   <Input
                     placeholder="Nome completo (opcional)"
                     value={novoNome}
                     onChange={(e) => setNovoNome(e.target.value)}
+                    className="flex-1 min-w-[180px]"
                   />
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <div className="w-[150px]">
+                  <div className="shrink-0 w-[176px]">
                     <Select value={novoPapel} onValueChange={setNovoPapel}>
                       <SelectTrigger className="h-9">
                         <SelectValue />
@@ -659,16 +735,15 @@ export default function AdminOrgsPage({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button
-                    onClick={() => void handleCriarEVincular()}
+                  <ActionIconButton
+                    icon={UserPlus}
+                    label="Criar a conta e vincular"
                     disabled={criando || !novoEmail.trim()}
-                    className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
-                  >
-                    <UserPlus className="size-[18px] shrink-0" />
-                    {criando ? "Criando..." : "Criar e Vincular"}
-                  </Button>
+                    onClick={() => setConfirmarCriacao(true)}
+                    className="bg-white shrink-0"
+                  />
                 </div>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-slate-600 mt-1">
                   A pessoa recebe um convite por e-mail para definir a senha.
                 </p>
               </div>

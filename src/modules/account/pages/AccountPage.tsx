@@ -37,6 +37,7 @@ import {
   rotuloDaForca,
   senhaAceita,
 } from "@/utils/senha";
+import { AREAS_DE_ATUACAO } from "@/utils/areasDeAtuacao";
 import { supabase } from "@/utils/supabase/client";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
 import { SubscriptionCard } from "../components/SubscriptionCard";
@@ -57,25 +58,6 @@ function formatPhoneBR(value: string): string {
     return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
-
-/**
- * Áreas de atuação. Lista fechada, e não campo livre: "profissão" digitada à
- * mão vira mil grafias para a mesma coisa ("produtor", "agricultor",
- * "fazendeiro") e não serve para agrupar nada depois.
- *
- * O banco guarda o SLUG; o rótulo pode mudar sem migração de dado.
- */
-const AREAS_DE_ATUACAO: { valor: string; rotulo: string }[] = [
-  { valor: "produtor_rural", rotulo: "Produtor Rural" },
-  { valor: "autonomo", rotulo: "Autônomo" },
-  { valor: "empresario", rotulo: "Empresário" },
-  { valor: "profissional_liberal", rotulo: "Profissional Liberal" },
-  { valor: "servidor_publico", rotulo: "Servidor Público" },
-  { valor: "assalariado", rotulo: "Assalariado (CLT)" },
-  { valor: "aposentado", rotulo: "Aposentado" },
-  { valor: "estudante", rotulo: "Estudante" },
-  { valor: "outro", rotulo: "Outro" },
-];
 
 /** "12345678901" -> "123.456.789-01". Formata enquanto digita. */
 function formatCpf(value: string): string {

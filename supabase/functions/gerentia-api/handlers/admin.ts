@@ -32,7 +32,7 @@ export function mountAdminRoutes(app: Hono) {
       const { data: metas } = await admin
         .from("users_meta")
         .select(
-          "user_id, full_name, role, phone, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
+          "user_id, full_name, role, phone, cpf, city, state, activity_area, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
         );
       const metaById: Record<string, any> = {};
       // deno-lint-ignore no-explicit-any
@@ -56,6 +56,13 @@ export function mountAdminRoutes(app: Hono) {
           organization_id: m?.organization_id ?? null,
           organization_name: org?.name ?? null,
           trial_ends_at: org?.trial_ends_at ?? null,
+          // Campos do perfil que ja viviam em users_meta e nunca tinham
+          // chegado ao painel: o master editava so nome e trial, e para ver
+          // cidade ou area de atuacao precisava do banco.
+          cpf: m?.cpf ?? null,
+          city: m?.city ?? null,
+          state: m?.state ?? null,
+          activity_area: m?.activity_area ?? null,
           plan_code: org?.plan_code ?? null,
         };
       });
@@ -151,6 +158,14 @@ export function mountAdminRoutes(app: Hono) {
         metaUpdate.role = body.role;
       }
       if (typeof body.phone === "string") metaUpdate.phone = body.phone;
+      // Campo em branco vira NULL, nao string vazia: os dois significam "nao
+      // informado", e conviver com os dois quebra qualquer consulta futura.
+      const texto = (v: unknown) =>
+        typeof v === "string" ? v.trim() || null : undefined;
+      for (const campo of ["cpf", "city", "state", "activity_area"] as const) {
+        const v = texto(body[campo]);
+        if (v !== undefined) metaUpdate[campo] = v;
+      }
       if (Object.keys(metaUpdate).length > 0) {
         const { error } = await admin
           .from("users_meta")

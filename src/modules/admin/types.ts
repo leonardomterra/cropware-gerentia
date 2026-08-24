@@ -13,6 +13,11 @@ export interface AdminUser {
   organization_name: string | null;
   trial_ends_at: string | null;
   plan_code: string | null;
+  /** Perfil (users_meta) — o master também edita daqui. */
+  cpf: string | null;
+  city: string | null;
+  state: string | null;
+  activity_area: string | null;
 }
 
 export interface CreateUserInput {

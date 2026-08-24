@@ -35,7 +35,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { AREAS_DE_ATUACAO } from "@/utils/areasDeAtuacao";
+import { dicaDeSenha, senhaAceita } from "@/utils/senha";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { CardSensivel } from "../components/CardSensivel";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
 import {
@@ -131,19 +134,23 @@ export default function AdminUsersPage({
     full_name: "",
     role: "owner",
     trial_ends_at: "",
+    email: "",
+    // Vazio = não mexer na senha. Trocar senha e salvar o perfil viraram a
+    // MESMA ação: eram dois diálogos, e alterar e-mail exigia três cliques
+    // para uma edição que já estava aberta.
+    password: "",
+    password2: "",
+    phone: "",
+    cpf: "",
+    city: "",
+    state: "",
+    activity_area: "",
   });
   const [editPending, setEditPending] = useState(false);
-
-  const [changingPasswordFor, setChangingPasswordFor] =
-    useState<AdminUser | null>(null);
-  const [pwForm, setPwForm] = useState({ password: "", password_confirm: "" });
-  const [savingPw, setSavingPw] = useState(false);
-
-  const [changingEmailFor, setChangingEmailFor] = useState<AdminUser | null>(
-    null,
-  );
-  const [emailForm, setEmailForm] = useState({ email: "" });
-  const [savingEmail, setSavingEmail] = useState(false);
+  // Travas dos cards sensíveis (e-mail e senha). Ver CardSensivel: os campos só
+  // aceitam digitação depois de um "sim" explícito.
+  const [emailDestravado, setEmailDestravado] = useState(false);
+  const [senhaDestravada, setSenhaDestravada] = useState(false);
 
   type SortBy = "name" | "last_access" | "trial";
   type FilterStatus = "suspended" | "trial_expired" | "pending_invite";
@@ -278,10 +285,20 @@ export default function AdminUsersPage({
 
   function openEdit(u: AdminUser) {
     setEditing(u);
+    setEmailDestravado(false);
+    setSenhaDestravada(false);
     setEForm({
       full_name: u.full_name ?? "",
       role: u.role ?? "owner",
       trial_ends_at: u.trial_ends_at ? u.trial_ends_at.slice(0, 10) : "",
+      email: u.email ?? "",
+      password: "",
+      password2: "",
+      phone: u.phone ?? "",
+      cpf: u.cpf ?? "",
+      city: u.city ?? "",
+      state: u.state ?? "",
+      activity_area: u.activity_area ?? "",
     });
   }
 
@@ -292,10 +309,16 @@ export default function AdminUsersPage({
       const patch: Record<string, unknown> = {
         full_name: eForm.full_name.trim(),
         role: eForm.role,
+        phone: eForm.phone.replace(/\D/g, ""),
+        cpf: eForm.cpf.replace(/\D/g, ""),
+        city: eForm.city,
+        state: eForm.state.toUpperCase(),
+        activity_area: eForm.activity_area,
       };
       if (eForm.trial_ends_at) {
         patch.trial_ends_at = new Date(eForm.trial_ends_at).toISOString();
       }
+      // E-mail e senha NÃO entram aqui: têm ação própria, nos cards sensíveis.
       await updateUser(editing.id, patch);
       toast.success("Usuário atualizado");
       setEditing(null);
@@ -306,49 +329,91 @@ export default function AdminUsersPage({
     }
   }
 
-  async function handleSavePassword() {
-    if (!changingPasswordFor) return;
-    if (!pwForm.password.trim()) {
-      toast.error("Informe a nova senha");
-      return;
-    }
-    if (pwForm.password !== pwForm.password_confirm) {
-      toast.error("As senhas não coincidem");
-      return;
-    }
-    setSavingPw(true);
-    try {
-      await updateUser(changingPasswordFor.id, {
-        password: pwForm.password.trim(),
-      });
-      toast.success("Senha alterada");
-      setChangingPasswordFor(null);
-      setPwForm({ password: "", password_confirm: "" });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao alterar senha");
-    } finally {
-      setSavingPw(false);
-    }
+  /**
+   * E-mail e senha são CREDENCIAL, não campo de perfil, e por isso têm ação
+   * própria em vez de irem junto no "Salvar". Cada uma passa por duas
+   * perguntas: uma para destravar os campos e outra para aplicar — a primeira
+   * separa "abri para ver" de "vim mexer", a segunda mostra o valor final e o
+   * nome de quem vai recebê-lo, que é onde o erro de verdade acontece (o
+   * master edita muita gente em sequência).
+   */
+  function pedirDestravar(alvo: "email" | "senha") {
+    if (!editing) return;
+    const quem = editing.full_name || editing.email || "este usuário";
+    setConfirmState({
+      title: alvo === "email" ? "Alterar E-mail" : "Alterar Senha",
+      description:
+        alvo === "email"
+          ? `Deseja realmente alterar o e-mail de ${quem}? É com ele que a pessoa entra no app.`
+          : `Deseja realmente alterar a senha de ${quem}? A senha atual deixa de funcionar.`,
+      confirmLabel: "Sim, alterar",
+      loadingLabel: "Abrindo...",
+      errorLabel: "Erro",
+      run: async () => {
+        if (alvo === "email") setEmailDestravado(true);
+        else setSenhaDestravada(true);
+      },
+    });
   }
 
-  async function handleSaveEmail() {
-    if (!changingEmailFor) return;
-    const email = emailForm.email.trim();
-    if (!email) {
-      toast.error("Informe o novo email");
+  function pedirTrocarEmail() {
+    if (!editing) return;
+    const novo = eForm.email.trim();
+    // As checagens ficam ANTES do diálogo: perguntar "confirma?" para depois
+    // recusar por e-mail inválido gastaria a confirmação à toa.
+    if (!novo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novo)) {
+      toast.error("Informe um e-mail válido.");
       return;
     }
-    setSavingEmail(true);
-    try {
-      await updateUser(changingEmailFor.id, { email });
-      toast.success("Email alterado");
-      setChangingEmailFor(null);
-      setEmailForm({ email: "" });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao alterar email");
-    } finally {
-      setSavingEmail(false);
+    if (novo === (editing.email ?? "")) {
+      toast.error("O e-mail é o mesmo de agora.");
+      return;
     }
+    const id = editing.id;
+    setConfirmState({
+      title: "Confirmar Novo E-mail",
+      description: `O acesso de ${editing.full_name || editing.email} passa a ser ${novo}. Confirma?`,
+      confirmLabel: "Confirmar",
+      loadingLabel: "Alterando...",
+      errorLabel: "Erro ao alterar o e-mail",
+      run: async () => {
+        await updateUser(id, { email: novo });
+        // `editing` é um retrato tirado ao abrir a tela; sem isto o cabeçalho
+        // do card continuaria mostrando o e-mail antigo.
+        setEditing((u) => (u ? { ...u, email: novo } : u));
+        setEmailDestravado(false);
+        toast.success("E-mail alterado");
+      },
+    });
+  }
+
+  function pedirTrocarSenha() {
+    if (!editing) return;
+    if (!senhaAceita(eForm.password)) {
+      toast.error(dicaDeSenha(eForm.password) || "Informe a nova senha.");
+      return;
+    }
+    if (eForm.password !== eForm.password2) {
+      toast.error("As senhas não conferem.");
+      return;
+    }
+    const id = editing.id;
+    const nova = eForm.password;
+    setConfirmState({
+      title: "Confirmar Nova Senha",
+      description: `Definir uma nova senha para ${editing.full_name || editing.email}? A senha atual deixa de funcionar imediatamente.`,
+      confirmLabel: "Confirmar",
+      loadingLabel: "Alterando...",
+      errorLabel: "Erro ao alterar a senha",
+      run: async () => {
+        await updateUser(id, { password: nova });
+        // Limpa e volta a travar: senha na tela não fica à mostra, e um segundo
+        // clique sem querer não reenvia.
+        setEForm((f) => ({ ...f, password: "", password2: "" }));
+        setSenhaDestravada(false);
+        toast.success("Senha alterada");
+      },
+    });
   }
 
   function askReset(u: AdminUser) {
@@ -422,110 +487,7 @@ export default function AdminUsersPage({
    */
   const dialogosDaEdicao = (
     <>
-      <Dialog
-        open={!!changingPasswordFor}
-        onOpenChange={(o) => {
-          if (!o) {
-            setChangingPasswordFor(null);
-            setPwForm({ password: "", password_confirm: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Senha</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nova senha
-              </label>
-              <Input
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={pwForm.password}
-                onChange={(e) =>
-                  setPwForm((s) => ({ ...s, password: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Confirmar nova senha
-              </label>
-              <Input
-                type="password"
-                placeholder="Repita a senha"
-                value={pwForm.password_confirm}
-                onChange={(e) =>
-                  setPwForm((s) => ({ ...s, password_confirm: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setChangingPasswordFor(null);
-                setPwForm({ password: "", password_confirm: "" });
-              }}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePassword} disabled={savingPw}>
-              {savingPw ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Alterar email */}
-      <Dialog
-        open={!!changingEmailFor}
-        onOpenChange={(o) => {
-          if (!o) {
-            setChangingEmailFor(null);
-            setEmailForm({ email: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Email</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Novo email
-              </label>
-              <Input
-                type="email"
-                placeholder="novo@email.com"
-                value={emailForm.email}
-                onChange={(e) => setEmailForm({ email: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setChangingEmailFor(null);
-                setEmailForm({ email: "" });
-              }}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEmail} disabled={savingEmail}>
-              {savingEmail ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <ConfirmActionDialog
         open={confirmState !== null}
         onOpenChange={(o) => {
@@ -576,73 +538,251 @@ export default function AdminUsersPage({
 
         <div className="bg-white rounded-lg border border-slate-200 p-4 md:p-6">
           <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nome
-              </label>
-              <Input
-                value={eForm.full_name}
-                onChange={(e) =>
-                  setEForm((s) => ({ ...s, full_name: e.target.value }))
-                }
-              />
+            {/* Só PERFIL nesta grade. E-mail e senha desceram para os cards
+                de atenção, com trava e confirmação próprias. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Nome
+                </label>
+                <Input
+                  value={eForm.full_name}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, full_name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Trial termina em
+                </label>
+                <Input
+                  type="date"
+                  value={eForm.trial_ends_at}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Telefone
+                </label>
+                <Input
+                  value={eForm.phone}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, phone: e.target.value }))
+                  }
+                  inputMode="tel"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  CPF
+                </label>
+                <Input
+                  value={eForm.cpf}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, cpf: e.target.value }))
+                  }
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Cidade
+                </label>
+                <Input
+                  value={eForm.city}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, city: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Estado
+                </label>
+                <Input
+                  value={eForm.state}
+                  onChange={(e) =>
+                    setEForm((s) => ({
+                      ...s,
+                      state: e.target.value
+                        .replace(/[^a-zA-Z]/g, "")
+                        .toUpperCase(),
+                    }))
+                  }
+                  maxLength={2}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Área de Atuação
+                </label>
+                <Select
+                  value={eForm.activity_area || "nenhuma"}
+                  onValueChange={(v) =>
+                    setEForm((s) => ({
+                      ...s,
+                      activity_area: v === "nenhuma" ? "" : v,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">Não informada</SelectItem>
+                    {AREAS_DE_ATUACAO.map((a) => (
+                      <SelectItem key={a.valor} value={a.valor}>
+                        {a.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Trial termina em
-              </label>
-              <Input
-                type="date"
-                value={eForm.trial_ends_at}
-                onChange={(e) =>
-                  setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))
-                }
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className={cn(
-                  BOTAO_BARRA,
-                  "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                )}
-                onClick={() => {
-                  setChangingEmailFor(editing);
-                  setEmailForm({ email: editing?.email ?? "" });
-                }}
-              >
-                Alterar Email
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className={cn(
-                  BOTAO_BARRA,
-                  "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                )}
-                onClick={() => {
-                  setChangingPasswordFor(editing);
-                  setPwForm({ password: "", password_confirm: "" });
-                }}
-              >
-                Alterar Senha
-              </Button>
-            </div>
+
+            <CardSensivel
+              titulo="Alterar E-mail"
+              descricao={editing.email || "sem e-mail"}
+              destravado={emailDestravado}
+              aoDestravar={() => pedirDestravar("email")}
+              rotuloDestravar="Alterar E-mail"
+              avisoTravado="Campo bloqueado. Clique em Alterar E-mail para liberar."
+              acao={
+                <>
+                  <Button
+                    type="button"
+                    onClick={pedirTrocarEmail}
+                    className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
+                  >
+                    Confirmar Novo E-mail
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setEmailDestravado(false);
+                      setEForm((f) => ({ ...f, email: editing.email ?? "" }));
+                    }}
+                    className={cn(BOTAO_BARRA, "rounded-md bg-white")}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              }
+            >
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Novo e-mail
+                </label>
+                <Input
+                  type="email"
+                  autoComplete="off"
+                  value={eForm.email}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, email: e.target.value }))
+                  }
+                  disabled={!emailDestravado}
+                  className="bg-white"
+                />
+              </div>
+            </CardSensivel>
+
+            <CardSensivel
+              titulo="Alterar Senha"
+              descricao="Substitui a senha de acesso desta pessoa"
+              destravado={senhaDestravada}
+              aoDestravar={() => pedirDestravar("senha")}
+              rotuloDestravar="Alterar Senha"
+              avisoTravado="Campos bloqueados. Clique em Alterar Senha para liberar."
+              acao={
+                <>
+                  <Button
+                    type="button"
+                    onClick={pedirTrocarSenha}
+                    className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
+                  >
+                    Confirmar Nova Senha
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setSenhaDestravada(false);
+                      setEForm((f) => ({ ...f, password: "", password2: "" }));
+                    }}
+                    className={cn(BOTAO_BARRA, "rounded-md bg-white")}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              }
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 block">
+                    Nova senha
+                  </label>
+                  <Input
+                    type="password"
+                    /* `new-password` desliga o preenchimento automático do
+                       navegador. Sem isso o gerenciador de senhas via um campo
+                       de senha num formulário com e-mail, tentava preencher e o
+                       campo piscava ao abrir a tela. */
+                    autoComplete="new-password"
+                    value={eForm.password}
+                    onChange={(e) =>
+                      setEForm((s) => ({ ...s, password: e.target.value }))
+                    }
+                    disabled={!senhaDestravada}
+                    className="bg-white"
+                  />
+                  {/* Altura RESERVADA: a dica aparece e some conforme se
+                      digita, e sem a reserva a grade pulava a cada tecla. */}
+                  <p className="text-sm text-slate-600 min-h-5">
+                    {eForm.password ? dicaDeSenha(eForm.password) : ""}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 block">
+                    Confirmar senha
+                  </label>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={eForm.password2}
+                    onChange={(e) =>
+                      setEForm((s) => ({ ...s, password2: e.target.value }))
+                    }
+                    disabled={!senhaDestravada || !eForm.password}
+                    className="bg-white"
+                  />
+                  <p className="text-sm text-red-600 min-h-5">
+                    {eForm.password &&
+                    eForm.password2 &&
+                    eForm.password !== eForm.password2
+                      ? "As senhas não conferem."
+                      : ""}
+                  </p>
+                </div>
+              </div>
+            </CardSensivel>
 
             {!editing?.is_master && (
               <>
-                <hr className="border-slate-100" />
-                <div className="flex flex-wrap gap-2">
+                {/* Uma linha só: com "Alterar Email" e "Alterar Senha" fora
+                    daqui (viraram campos), sobraram poucas ações e a grade de
+                    dois por linha deixava buracos. */}
+                <div className="flex flex-wrap items-center gap-2">
                   {!editing?.email_confirmed_at &&
                     !editing?.last_sign_in_at && (
                       <Button
                         type="button"
                         variant="ghost"
-                        className={cn(
-                          BOTAO_BARRA,
-                          "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                        )}
+                        className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                         disabled={editPending}
                         onClick={async () => {
                           setEditPending(true);
@@ -668,10 +808,7 @@ export default function AdminUsersPage({
                   <Button
                     type="button"
                     variant="ghost"
-                    className={cn(
-                      BOTAO_BARRA,
-                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                    )}
+                    className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                     disabled={editPending}
                     onClick={() => {
                       askImpersonate(editing!);
@@ -684,10 +821,7 @@ export default function AdminUsersPage({
                   <Button
                     type="button"
                     variant="ghost"
-                    className={cn(
-                      BOTAO_BARRA,
-                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                    )}
+                    className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                     disabled={editPending}
                     onClick={() => {
                       askReset(editing!);
@@ -700,10 +834,7 @@ export default function AdminUsersPage({
                   <Button
                     type="button"
                     variant="ghost"
-                    className={cn(
-                      BOTAO_BARRA,
-                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                    )}
+                    className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                     disabled={editPending}
                     onClick={() => {
                       handleSuspend(editing!);
@@ -724,8 +855,11 @@ export default function AdminUsersPage({
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+                    variant="ghost"
+                    /* Tingido, e não só contornado: é a única ação
+                       irreversível da fileira, e contorno fino dava a ela o
+                       mesmo peso das demais. */
+                    className="flex-1 h-9 px-4 font-normal rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:text-red-800"
                     disabled={editPending}
                     onClick={() => {
                       askDelete(editing!);
