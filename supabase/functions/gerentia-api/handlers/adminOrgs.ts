@@ -1,6 +1,7 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireMaster } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
+import { retratoDeSaida } from "../lib/backupSaida.ts";
 import { logAdminAction } from "../lib/adminAudit.ts";
 
 /**
@@ -42,9 +43,17 @@ async function seedDefaultCostCenter(admin: any, orgId: string) {
  * pessoa continua lançando lá pelo bot sem nem perceber.
  */
 // deno-lint-ignore no-explicit-any
-async function moveUserBindings(admin: any, userId: string, fromOrg: string, toOrg: string) {
-  await admin.from("farm_user_cost_centers").delete()
-    .eq("user_id", userId).eq("organization_id", fromOrg);
+async function moveUserBindings(
+  admin: any,
+  userId: string,
+  fromOrg: string,
+  toOrg: string,
+) {
+  await admin
+    .from("farm_user_cost_centers")
+    .delete()
+    .eq("user_id", userId)
+    .eq("organization_id", fromOrg);
 
   // farm_wa_pending é chaveada por telefone, não por usuário: descobre os
   // números da pessoa antes de limpar o rascunho em andamento (um wizard aberto
@@ -59,10 +68,11 @@ async function moveUserBindings(admin: any, userId: string, fromOrg: string, toO
     await admin.from("farm_wa_pending").delete().in("phone_number", phones);
   }
 
-  await admin.from("farm_whatsapp_links").update({ organization_id: toOrg })
+  await admin
+    .from("farm_whatsapp_links")
+    .update({ organization_id: toOrg })
     .eq("user_id", userId);
 }
-
 
 /**
  * Traz os DADOS da pessoa junto com ela para a organização nova.
@@ -77,7 +87,12 @@ async function moveUserBindings(admin: any, userId: string, fromOrg: string, toO
  * passa pelo lançamento (que já terá mudado de org).
  */
 // deno-lint-ignore no-explicit-any
-async function moveUserData(admin: any, userId: string, fromOrg: string, toOrg: string) {
+async function moveUserData(
+  admin: any,
+  userId: string,
+  fromOrg: string,
+  toOrg: string,
+) {
   const { data: destCcs } = await admin
     .from("farm_cost_centers")
     .select("id, is_default")
@@ -89,17 +104,25 @@ async function moveUserData(admin: any, userId: string, fromOrg: string, toOrg: 
 
   // Categorias customizadas em uso: copia as que faltam no destino.
   const { data: mine } = await admin
-    .from("farm_receipts").select("category")
-    .eq("organization_id", fromOrg).eq("created_by", userId);
+    .from("farm_receipts")
+    .select("category")
+    .eq("organization_id", fromOrg)
+    .eq("created_by", userId);
   // deno-lint-ignore no-explicit-any
-  const slugs = [...new Set(((mine as any[]) ?? []).map((r) => r.category).filter(Boolean))];
+  const slugs = [
+    ...new Set(((mine as any[]) ?? []).map((r) => r.category).filter(Boolean)),
+  ];
   if (slugs.length > 0) {
     const { data: custom } = await admin
-      .from("farm_categories").select("*")
-      .eq("organization_id", fromOrg).in("slug", slugs);
+      .from("farm_categories")
+      .select("*")
+      .eq("organization_id", fromOrg)
+      .in("slug", slugs);
     const { data: already } = await admin
-      .from("farm_categories").select("slug")
-      .eq("organization_id", toOrg).in("slug", slugs);
+      .from("farm_categories")
+      .select("slug")
+      .eq("organization_id", toOrg)
+      .in("slug", slugs);
     // deno-lint-ignore no-explicit-any
     const have = new Set(((already as any[]) ?? []).map((c) => c.slug));
     // deno-lint-ignore no-explicit-any
@@ -123,19 +146,27 @@ async function moveUserData(admin: any, userId: string, fromOrg: string, toOrg: 
     .eq("created_by", userId)
     .select("id");
   // deno-lint-ignore no-explicit-any
-  const receiptIds = ((movedReceipts as any[]) ?? []).map((r) => r.id as string);
+  const receiptIds = ((movedReceipts as any[]) ?? []).map(
+    (r) => r.id as string,
+  );
 
   if (receiptIds.length > 0) {
-    await admin.from("farm_receipt_items")
-      .update({ organization_id: toOrg }).in("receipt_id", receiptIds);
+    await admin
+      .from("farm_receipt_items")
+      .update({ organization_id: toOrg })
+      .in("receipt_id", receiptIds);
     // CC só onde existia: quem não classificou continua sem classificação.
     if (destCc) {
-      await admin.from("farm_receipts")
+      await admin
+        .from("farm_receipts")
         .update({ cost_center_id: destCc })
-        .in("id", receiptIds).not("cost_center_id", "is", null);
-      await admin.from("farm_receipt_items")
+        .in("id", receiptIds)
+        .not("cost_center_id", "is", null);
+      await admin
+        .from("farm_receipt_items")
         .update({ cost_center_id: destCc })
-        .in("receipt_id", receiptIds).not("cost_center_id", "is", null);
+        .in("receipt_id", receiptIds)
+        .not("cost_center_id", "is", null);
     }
   }
 
@@ -151,9 +182,11 @@ async function moveUserData(admin: any, userId: string, fromOrg: string, toOrg: 
     const ids = ((data as any[]) ?? []).map((x) => x.id as string);
     moved[t] = ids.length;
     if (destCc && ids.length > 0) {
-      await admin.from(t)
+      await admin
+        .from(t)
         .update({ cost_center_id: destCc })
-        .in("id", ids).not("cost_center_id", "is", null);
+        .in("id", ids)
+        .not("cost_center_id", "is", null);
     }
   }
 
@@ -250,7 +283,11 @@ export function mountAdminOrgRoutes(app: Hono) {
         .order("removed_at", { ascending: false });
 
       return c.json({
-        organization: { ...org, seats_limit: org.seats_limit ?? 1, seats_used: rows.length },
+        organization: {
+          ...org,
+          seats_limit: org.seats_limit ?? 1,
+          seats_used: rows.length,
+        },
         members,
         former_members: former ?? [],
       });
@@ -280,7 +317,8 @@ export function mountAdminOrgRoutes(app: Hono) {
           cnpj: body?.cnpj ? String(body.cnpj).replace(/\D/g, "") : null,
           type: "farm",
           kind: body?.kind === "individual" ? "individual" : "company",
-          seats_limit: Number.isFinite(seats) && seats > 0 ? Math.floor(seats) : 5,
+          seats_limit:
+            Number.isFinite(seats) && seats > 0 ? Math.floor(seats) : 5,
           plan_code: body?.plan_code ?? null,
           trial_started_at: new Date().toISOString(),
           trial_ends_at: body?.trial_ends_at ?? null,
@@ -290,10 +328,17 @@ export function mountAdminOrgRoutes(app: Hono) {
       if (error) return c.json({ error: error.message }, 400);
 
       await seedDefaultCostCenter(admin, org.id);
-      await logAdminAction(admin, c, auth.user, "create_org", { id: org.id }, {
-        name,
-        seats_limit: org.seats_limit,
-      });
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "create_org",
+        { id: org.id },
+        {
+          name,
+          seats_limit: org.seats_limit,
+        },
+      );
       return c.json({ organization: org }, 201);
     } catch (resp) {
       if (resp instanceof Response) return resp;
@@ -310,20 +355,27 @@ export function mountAdminOrgRoutes(app: Hono) {
 
       const id = c.req.param("id");
       const body = await c.req.json().catch(() => null);
-      if (!body || typeof body !== "object") return c.json({ error: "invalid_body" }, 400);
+      if (!body || typeof body !== "object")
+        return c.json({ error: "invalid_body" }, 400);
 
       const patch: Record<string, unknown> = {};
-      if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
-      if (typeof body.cnpj === "string") patch.cnpj = body.cnpj.replace(/\D/g, "") || null;
-      if (body.kind === "company" || body.kind === "individual") patch.kind = body.kind;
+      if (typeof body.name === "string" && body.name.trim())
+        patch.name = body.name.trim();
+      if (typeof body.cnpj === "string")
+        patch.cnpj = body.cnpj.replace(/\D/g, "") || null;
+      if (body.kind === "company" || body.kind === "individual")
+        patch.kind = body.kind;
       if (body.seats_limit !== undefined) {
         const n = Number(body.seats_limit);
-        if (!Number.isFinite(n) || n < 1) return c.json({ error: "invalid_seats_limit" }, 400);
+        if (!Number.isFinite(n) || n < 1)
+          return c.json({ error: "invalid_seats_limit" }, 400);
         patch.seats_limit = Math.floor(n);
       }
       if ("plan_code" in body) patch.plan_code = body.plan_code || null;
-      if ("trial_ends_at" in body) patch.trial_ends_at = body.trial_ends_at || null;
-      if (Object.keys(patch).length === 0) return c.json({ error: "no_fields_to_update" }, 400);
+      if ("trial_ends_at" in body)
+        patch.trial_ends_at = body.trial_ends_at || null;
+      if (Object.keys(patch).length === 0)
+        return c.json({ error: "no_fields_to_update" }, 400);
 
       const admin = getSupabaseAdmin();
 
@@ -335,10 +387,13 @@ export function mountAdminOrgRoutes(app: Hono) {
           .select("user_id", { count: "exact", head: true })
           .eq("organization_id", id);
         if ((count ?? 0) > (patch.seats_limit as number)) {
-          return c.json({
-            error: "seats_below_current_members",
-            seats_used: count ?? 0,
-          }, 400);
+          return c.json(
+            {
+              error: "seats_below_current_members",
+              seats_used: count ?? 0,
+            },
+            400,
+          );
         }
       }
 
@@ -377,8 +432,13 @@ export function mountAdminOrgRoutes(app: Hono) {
 
       const orgId = c.req.param("id");
       const body = await c.req.json().catch(() => null);
-      const email = String(body?.email ?? "").trim().toLowerCase();
-      let role = ROLES.includes(body?.role) && body.role !== "owner" ? body.role : "member";
+      const email = String(body?.email ?? "")
+        .trim()
+        .toLowerCase();
+      let role =
+        ROLES.includes(body?.role) && body.role !== "owner"
+          ? body.role
+          : "member";
       if (!email) return c.json({ error: "email_required" }, 400);
 
       const admin = getSupabaseAdmin();
@@ -405,16 +465,24 @@ export function mountAdminOrgRoutes(app: Hono) {
         .select("user_id", { count: "exact", head: true })
         .eq("organization_id", orgId);
       if ((seatsUsed ?? 0) >= (org.seats_limit ?? 1)) {
-        return c.json({
-          error: "seats_limit_reached",
-          seats_limit: org.seats_limit ?? 1,
-          seats_used: seatsUsed ?? 0,
-        }, 400);
+        return c.json(
+          {
+            error: "seats_limit_reached",
+            seats_limit: org.seats_limit ?? 1,
+            seats_used: seatsUsed ?? 0,
+          },
+          400,
+        );
       }
 
       // auth.admin não busca por e-mail: varre a lista (base pequena e dedicada).
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const target = (list?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email);
+      const { data: list } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      const target = (list?.users ?? []).find(
+        (u) => (u.email ?? "").toLowerCase() === email,
+      );
       if (!target) return c.json({ error: "user_not_found" }, 404);
 
       const { data: meta } = await admin
@@ -434,14 +502,24 @@ export function mountAdminOrgRoutes(app: Hono) {
           .eq("organization_id", meta.organization_id)
           .eq("created_by", target.id);
         leftBehind = count ?? 0;
-        if (leftBehind > 0 && body?.confirm !== true && body?.move_data !== true) {
+        if (
+          leftBehind > 0 &&
+          body?.confirm !== true &&
+          body?.move_data !== true
+        ) {
           const { data: oldOrg } = await admin
-            .from("organizations").select("name").eq("id", meta.organization_id).maybeSingle();
-          return c.json({
-            error: "user_has_data",
-            receipts: leftBehind,
-            current_organization: oldOrg?.name ?? null,
-          }, 409);
+            .from("organizations")
+            .select("name")
+            .eq("id", meta.organization_id)
+            .maybeSingle();
+          return c.json(
+            {
+              error: "user_has_data",
+              receipts: leftBehind,
+              current_organization: oldOrg?.name ?? null,
+            },
+            409,
+          );
         }
       }
 
@@ -471,26 +549,42 @@ export function mountAdminOrgRoutes(app: Hono) {
         } else if (leftBehind > 0) {
           // Histórico ficou pra trás: registra como ex-membro de lá, pra a lista
           // da org antiga continuar sabendo de quem era o lançamento.
-          await admin.from("farm_org_former_members").upsert({
-            organization_id: previousOrg,
-            user_id: target.id,
-            full_name: meta?.full_name ?? null,
-            removed_by: auth.user?.id ?? null,
-          }, { onConflict: "organization_id,user_id" });
+          await admin.from("farm_org_former_members").upsert(
+            {
+              organization_id: previousOrg,
+              user_id: target.id,
+              full_name: meta?.full_name ?? null,
+              removed_by: auth.user?.id ?? null,
+            },
+            { onConflict: "organization_id,user_id" },
+          );
         }
       }
-      await admin.from("farm_org_former_members").delete()
-        .eq("organization_id", orgId).eq("user_id", target.id);
+      await admin
+        .from("farm_org_former_members")
+        .delete()
+        .eq("organization_id", orgId)
+        .eq("user_id", target.id);
 
-      await logAdminAction(admin, c, auth.user, "org_add_member",
-        { id: target.id, email: target.email }, {
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "org_add_member",
+        { id: target.id, email: target.email },
+        {
           organization_id: orgId,
           role,
           previous_organization_id: previousOrg,
           receipts_left_behind: leftBehind,
           moved_data: movedData,
-        });
-      return c.json({ ok: true, receipts_left_behind: leftBehind, moved_data: movedData });
+        },
+      );
+      return c.json({
+        ok: true,
+        receipts_left_behind: leftBehind,
+        moved_data: movedData,
+      });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
@@ -524,8 +618,11 @@ export function mountAdminOrgRoutes(app: Hono) {
       if (!meta) return c.json({ error: "not_found" }, 404);
 
       if (role === "owner" && meta.role !== "owner") {
-        await admin.from("users_meta").update({ role: "admin" })
-          .eq("organization_id", orgId).eq("role", "owner");
+        await admin
+          .from("users_meta")
+          .update({ role: "admin" })
+          .eq("organization_id", orgId)
+          .eq("role", "owner");
       }
       if (role !== "owner" && meta.role === "owner") {
         return c.json({ error: "transfer_ownership_first" }, 400);
@@ -538,11 +635,18 @@ export function mountAdminOrgRoutes(app: Hono) {
         .eq("organization_id", orgId);
       if (error) return c.json({ error: error.message }, 400);
 
-      await logAdminAction(admin, c, auth.user, "org_set_role", { id: userId }, {
-        organization_id: orgId,
-        from: meta.role,
-        to: role,
-      });
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "org_set_role",
+        { id: userId },
+        {
+          organization_id: orgId,
+          from: meta.role,
+          to: role,
+        },
+      );
       return c.json({ ok: true });
     } catch (resp) {
       if (resp instanceof Response) return resp;
@@ -578,6 +682,25 @@ export function mountAdminOrgRoutes(app: Hono) {
         return c.json({ error: "transfer_ownership_first" }, 400);
       }
 
+      // RETRATO ANTES DE DESVINCULAR. Aqui nada é apagado — os lançamentos
+      // ficam com a organização (decisão 3 de ORGANIZACOES-E-PERFIS §3) —, mas
+      // os VÍNCULOS mudam de dono e a pessoa sai para uma organização nova.
+      // Desfazer isso na mão depois é trabalhoso; o retrato torna reversível.
+      // Falhou o backup, não desvincula.
+      let retrato;
+      try {
+        retrato = await retratoDeSaida(admin, userId, auth.user?.id ?? null);
+      } catch (e) {
+        return c.json(
+          {
+            error: "backup_de_saida_falhou",
+            detalhe: e instanceof Error ? e.message : String(e),
+            aviso: "Desvínculo abortado: sem backup, não há como desfazer.",
+          },
+          500,
+        );
+      }
+
       const { data: newOrg, error: orgErr } = await admin
         .from("organizations")
         .insert({
@@ -598,17 +721,28 @@ export function mountAdminOrgRoutes(app: Hono) {
       if (error) return c.json({ error: error.message }, 400);
 
       await moveUserBindings(admin, userId, orgId, newOrg.id);
-      await admin.from("farm_org_former_members").upsert({
-        organization_id: orgId,
-        user_id: userId,
-        full_name: meta.full_name,
-        removed_by: auth.user?.id ?? null,
-      }, { onConflict: "organization_id,user_id" });
+      await admin.from("farm_org_former_members").upsert(
+        {
+          organization_id: orgId,
+          user_id: userId,
+          full_name: meta.full_name,
+          removed_by: auth.user?.id ?? null,
+        },
+        { onConflict: "organization_id,user_id" },
+      );
 
-      await logAdminAction(admin, c, auth.user, "org_remove_member", { id: userId }, {
-        organization_id: orgId,
-        new_organization_id: newOrg.id,
-      });
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "org_remove_member",
+        { id: userId },
+        {
+          backup: retrato.chave,
+          organization_id: orgId,
+          new_organization_id: newOrg.id,
+        },
+      );
       return c.json({ ok: true, new_organization_id: newOrg.id });
     } catch (resp) {
       if (resp instanceof Response) return resp;

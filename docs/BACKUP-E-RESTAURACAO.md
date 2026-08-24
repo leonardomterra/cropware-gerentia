@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapas 0, 1 e 2 concluídas** em 24/08/2026 · **Próxima:** 3
+**Início:** 24/08/2026 · **Etapas 0 a 3 concluídas** em 24/08/2026 · **Próxima:** 4 (telas)
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -128,9 +128,27 @@ com expurgo automático é defensável, "para sempre" não é.
 ## 7. Backup antes de operação destrutiva
 
 Antes de excluir usuário (`DELETE /admin/users/:id`) e de desvincular membro
-(`DELETE /admin/orgs/:id/members/:userId`), gerar pacote `saida` do alvo. **Se a
-gravação falhar, a operação é abortada** — não se apaga o que não se sabe
-repor. Ideia emprestada do CDM, que é a parte que lá funciona de verdade.
+(`DELETE /admin/orgs/:id/members/:userId`), gera-se um pacote `saida` do alvo
+(`lib/backupSaida.ts`). **Se a gravação falhar, a operação é abortada** — não se
+apaga o que não se sabe repor. Ideia emprestada do CDM, que é a parte que lá
+funciona de verdade.
+
+A chave do pacote entra no `farm_admin_audit` junto da ação e volta na resposta,
+para o registro de "excluí o fulano" já trazer onde está o retrato dele.
+
+**É pacote de USUÁRIO, não de organização, e o momento importa.** Ao excluir a
+conta, as linhas do banco ficam órfãs — não há FK para `auth.users` — e o e-mail
+desaparece junto. O pacote de usuário congela a identidade, e é o único artefato
+que depois amarra aquelas linhas a uma pessoa. Tirado um segundo depois, já não
+seria possível.
+
+No desvínculo nada é apagado (os lançamentos ficam com a organização, decisão 3
+de `ORGANIZACOES-E-PERFIS.md` §3), mas os vínculos mudam de dono e a pessoa vai
+para uma organização nova. Desfazer isso à mão é trabalhoso; o retrato torna
+reversível.
+
+`DELETE /members/:userId` não precisa de retrato: já responde 403 desde que o
+fluxo correto passou a ser o do painel master.
 
 ## 8. Formato do pacote — versão 1
 
@@ -196,7 +214,7 @@ e `farm_whatsapp_link_codes` (efêmeros), `plans`, `subscriptions`,
 | **0** | Coletor, formato v1, gravação no R2, índice `farm_backups`               | ✅ 24/08/2026 |
 | **1** | Diário automático via `pg_cron`, com hash e expurgo                      | ✅ 24/08/2026 |
 | **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela | ✅ 24/08/2026 |
-| **3** | Backup pré-operação destrutiva (§7)                                      |               |
+| **3** | Backup pré-operação destrutiva (§7)                                      | ✅ 24/08/2026 |
 | **4** | Tela do usuário em Configurações                                         |               |
 | **5** | Tela do master                                                           |               |
 

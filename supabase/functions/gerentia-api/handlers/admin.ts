@@ -2,6 +2,7 @@ import type { Hono } from "npm:hono";
 import { getUserClient, requireMaster } from "../lib/userClient.ts";
 import { getSupabaseAdmin } from "../lib/supabaseAdmin.ts";
 import { isMasterUser } from "../lib/masterUsers.ts";
+import { retratoDeSaida } from "../lib/backupSaida.ts";
 import { logAdminAction } from "../lib/adminAudit.ts";
 
 /**
@@ -50,7 +51,7 @@ export function mountAdminRoutes(app: Hono) {
           // deno-lint-ignore no-explicit-any
           banned_until: (u as any).banned_until ?? null,
           is_master: isMasterUser(u.email),
-          full_name: m?.full_name ?? (u.user_metadata?.full_name ?? null),
+          full_name: m?.full_name ?? u.user_metadata?.full_name ?? null,
           role: m?.role ?? null,
           phone: m?.phone ?? null,
           organization_id: m?.organization_id ?? null,
@@ -205,8 +206,8 @@ export function mountAdminRoutes(app: Hono) {
 
       const id = c.req.param("id");
       const admin = getSupabaseAdmin();
-      const newPassword = crypto.randomUUID().replace(/-/g, "").slice(0, 12) +
-        "Aa1!";
+      const newPassword =
+        crypto.randomUUID().replace(/-/g, "").slice(0, 12) + "Aa1!";
       const { error } = await admin.auth.admin.updateUserById(id, {
         password: newPassword,
       });
@@ -240,7 +241,13 @@ export function mountAdminRoutes(app: Hono) {
         ban_duration: suspended ? "876000h" : "none",
       });
       if (error) return c.json({ error: error.message }, 400);
-      await logAdminAction(admin, c, auth.user, suspended ? "suspend" : "unsuspend", { id, email: u?.user?.email });
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        suspended ? "suspend" : "unsuspend",
+        { id, email: u?.user?.email },
+      );
       return c.json({ ok: true, suspended });
     } catch (resp) {
       if (resp instanceof Response) return resp;
@@ -307,8 +314,10 @@ export function mountAdminRoutes(app: Hono) {
       const { data: u } = await admin.auth.admin.getUserById(id);
       const email = u?.user?.email;
       if (!email) return c.json({ error: "user_not_found" }, 404);
-      if (isMasterUser(email)) return c.json({ error: "cannot_invite_master" }, 400);
-      if (u?.user?.email_confirmed_at) return c.json({ error: "already_confirmed" }, 400);
+      if (isMasterUser(email))
+        return c.json({ error: "cannot_invite_master" }, 400);
+      if (u?.user?.email_confirmed_at)
+        return c.json({ error: "already_confirmed" }, 400);
 
       const { error } = await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo: "https://gerentia.app",
@@ -340,10 +349,38 @@ export function mountAdminRoutes(app: Hono) {
         return c.json({ error: "cannot_delete_self" }, 400);
       }
 
+      // RETRATO ANTES DE APAGAR. Se falhar, a exclusão NÃO acontece: não se
+      // apaga o que não se sabe repor. E é o único momento possível — depois de
+      // `deleteUser` o e-mail some, e as linhas do banco ficam órfãs (não há FK
+      // para auth.users), sem nada que diga de quem eram.
+      let retrato;
+      try {
+        retrato = await retratoDeSaida(admin, id, auth.user?.id ?? null);
+      } catch (e) {
+        return c.json(
+          {
+            error: "backup_de_saida_falhou",
+            detalhe: e instanceof Error ? e.message : String(e),
+            aviso: "Exclusão abortada: sem backup, não há como desfazer.",
+          },
+          500,
+        );
+      }
+
       const { error } = await admin.auth.admin.deleteUser(id);
       if (error) return c.json({ error: error.message }, 400);
-      await logAdminAction(admin, c, auth.user, "delete_user", { id, email: u?.user?.email });
-      return c.json({ ok: true });
+      await logAdminAction(
+        admin,
+        c,
+        auth.user,
+        "delete_user",
+        { id, email: u?.user?.email },
+        {
+          backup: retrato.chave,
+          backup_contagem: retrato.contagem,
+        },
+      );
+      return c.json({ ok: true, backup: retrato.chave });
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
