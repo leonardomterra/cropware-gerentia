@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapas 0 a 3 concluídas** em 24/08/2026 · **Próxima:** 4 (telas)
+**Início:** 24/08/2026 · **Etapas 0 a 4 concluídas** em 24/08/2026 · **Próxima:** 5 (tela do master)
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -250,7 +250,7 @@ e `farm_whatsapp_link_codes` (efêmeros), `plans`, `subscriptions`,
 | **1** | Diário automático via `pg_cron`, com hash e expurgo                      | ✅ 24/08/2026 |
 | **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela | ✅ 24/08/2026 |
 | **3** | Backup pré-operação destrutiva (§7)                                      | ✅ 24/08/2026 |
-| **4** | Tela do usuário em Configurações                                         |               |
+| **4** | Tela do usuário em Configurações                                         | ✅ 24/08/2026 |
 | **5** | Tela do master                                                           |               |
 
 Restauração vem **antes** das telas de propósito. Backup que nunca foi
@@ -338,6 +338,35 @@ viraria escrita arbitrária no banco. Execute revogado de `anon` e
 
     GET  /admin/backups/:id/url      link presigned de 5 min para baixar
     POST /admin/backups/:id/restore  { aplicar: false } pré-visualiza
+
+## 13. A tela do usuário (etapa 4)
+
+`Configurações → Backups`, no hub de atalhos. Segue `docs/PADRAO-DE-PAGINA.md`.
+
+Rotas próprias, separadas das do master:
+
+    GET  /backups              lista — a RLS faz o recorte
+    POST /backups/run          backup manual agora
+    GET  /backups/:id/url      link temporário
+    POST /backups/:id/restore  pré-visualiza e restaura
+
+**A listagem confia na RLS** e não repete a regra de quem vê o quê: duas fontes
+divergiriam no primeiro ajuste. **A restauração não pode fazer o mesmo** — roda
+com `service_role`, que passa por cima da RLS —, então a permissão é conferida à
+mão contra o registro do backup, numa função só (`podeRestaurar`).
+
+**A pré-visualização É o diálogo.** Clicar em Restaurar não restaura: chama o
+servidor com `aplicar: false` e abre a confirmação já com os números calculados
+— quantas linhas voltam, quantas são sobrescritas, quantas ficam. A frase
+"restaurar nunca apaga" vai junto, porque é a dúvida que trava a mão de quem
+está com medo.
+
+**Sem busca, de propósito:** a lista é curta e o que se procura é uma data, que
+já está em cada card. Os filtros são escopo (meus / da organização) e tipo.
+
+Uma sutileza de linguagem: quando `gravou: false`, a tela diz _"nada mudou desde
+o último backup; o anterior continua valendo"_, não "erro". É o comportamento
+correto do §3 e chamá-lo de falha faria o cliente gerar backup até desistir.
 
 ## 13. Validação — 24/08/2026
 

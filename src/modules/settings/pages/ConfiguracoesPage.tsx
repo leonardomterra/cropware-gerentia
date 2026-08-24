@@ -5,6 +5,7 @@ import TrendDownDuotone from "~icons/ph/trend-down-duotone";
 import TrendUpDuotone from "~icons/ph/trend-up-duotone";
 import UsersThreeDuotone from "~icons/ph/users-three-duotone";
 import BuildingOfficeDuotone from "~icons/ph/building-office-duotone";
+import FloppyDiskDuotone from "~icons/ph/floppy-disk-duotone";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
@@ -12,6 +13,7 @@ import { BOTAO_BARRA } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
+import { BackupsManager } from "../components/BackupsManager";
 
 // As telas do master são grandes e só o master abre: carregam sob demanda, para
 // não entrarem no bundle de quem nunca vai vê-las.
@@ -24,6 +26,7 @@ type SecaoDeConfig =
   | "centros"
   | "cat-despesa"
   | "cat-receita"
+  | "backups"
   | "usuarios"
   | "organizacoes";
 
@@ -67,6 +70,13 @@ const ATALHOS: Atalho[] = [
     cor: "text-teal-500",
     titulo: "Categorias de Receita",
     descricao: "Grupos e categorias do que entra",
+  },
+  {
+    id: "backups",
+    Icon: FloppyDiskDuotone,
+    cor: "text-sky-500",
+    titulo: "Backups",
+    descricao: "Consultar, baixar e restaurar",
   },
   {
     id: "usuarios",
@@ -187,6 +197,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {secao === "centros" && <CostCentersManager />}
+      {secao === "backups" && <BackupsManager />}
       {(secao === "cat-despesa" || secao === "cat-receita") && (
         <CategoriesManager
           key={secao}
