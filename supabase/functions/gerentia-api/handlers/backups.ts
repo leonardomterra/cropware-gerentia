@@ -9,18 +9,22 @@ import {
   type TipoBackup,
 } from "../lib/backupColeta.ts";
 import { gravarPacote } from "../lib/backupGravacao.ts";
+import { expurgarVencidos } from "../lib/backupExpurgo.ts";
+import { requireCronSecret } from "../lib/cronGuard.ts";
+import type { Pacote } from "../lib/backupColeta.ts";
 
 /**
- * Backups — Etapa 0 de docs/BACKUP-E-RESTAURACAO.md.
+ * Backups — etapas 0 e 1 de docs/BACKUP-E-RESTAURACAO.md.
  *
- * Por enquanto SÓ o disparo manual do master. O diário automático (etapa 1), a
- * restauração (etapa 2) e as telas (4 e 5) entram depois, cada um na sua etapa.
+ *   POST /admin/backups/run    disparo manual (master)
+ *   GET  /admin/backups        lista o índice (master)
+ *   POST /cron/daily-backup    o diário automático (pg_cron, 05:00 UTC)
  *
- *   POST /admin/backups/run   { escopo, id?, tipo? }
- *   GET  /admin/backups       lista o índice
+ * A restauração (etapa 2) e as telas (4 e 5) entram depois.
  *
- * Só master de propósito: enquanto não existe pré-visualização de restauração,
- * ninguém além de quem entende o formato deveria conseguir gerar pacote.
+ * As rotas de master existem de propósito enquanto não há tela: enquanto a
+ * restauração não tem pré-visualização, ninguém além de quem entende o formato
+ * deveria conseguir gerar pacote.
  */
 export function mountBackupRoutes(app: Hono) {
   /**
@@ -92,6 +96,102 @@ export function mountBackupRoutes(app: Hono) {
       const msg = resp instanceof Error ? resp.message : String(resp);
       return c.json({ error: "backup_falhou", detalhe: msg }, 500);
     }
+  });
+
+  /**
+   * O DIÁRIO. Chamado pelo pg_cron às 05:00 UTC (02:00 de Brasília) — antes das
+   * recorrências, que rodam 07:00 UTC e ESCREVEM lançamentos: o retrato do dia
+   * tem que ser anterior a qualquer escrita automática.
+   *
+   * Faz um pacote por organização e um por usuário. A regra do hash cuida de
+   * não gerar arquivo em dia sem mudança.
+   *
+   * No dia 1 do mês grava também um `mensal`, REAPROVEITANDO a mesma coleta —
+   * é o mesmo conteúdo com outro prazo (12 meses contra 30 dias), então
+   * coletar duas vezes seria só dobrar leitura do banco.
+   *
+   * Um alvo que falha NÃO derruba a rodada: numa tarefa que roda sozinha de
+   * madrugada, parar tudo porque uma organização deu erro significaria perder o
+   * backup de todas as outras. As falhas voltam na resposta e ficam no log.
+   */
+  app.post("/cron/daily-backup", async (c) => {
+    const negado = requireCronSecret(c);
+    if (negado) return negado;
+
+    const admin = getSupabaseAdmin();
+    const agora = new Date();
+    // Dia 1: o mensal é o que sobrevive aos 30 dias do diário.
+    const tipos: TipoBackup[] =
+      agora.getUTCDate() === 1 ? ["diario", "mensal"] : ["diario"];
+
+    const falhas: { alvo: string; erro: string }[] = [];
+    let arquivos = 0;
+    let inalterados = 0;
+
+    async function rodar(rotulo: string, coletar: () => Promise<Pacote>) {
+      try {
+        const pacote = await coletar();
+        for (const tipo of tipos) {
+          const r = await gravarPacote(admin, { ...pacote, tipo });
+          if (r.gravou) arquivos++;
+          else inalterados++;
+        }
+      } catch (e) {
+        falhas.push({
+          alvo: rotulo,
+          erro: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    // Organizações COM membro. As sem ninguém dentro não têm o que proteger, e
+    // gerariam um arquivo por dia para sempre.
+    const { data: membros } = await admin
+      .from("users_meta")
+      .select("user_id, organization_id")
+      .not("organization_id", "is", null);
+
+    const orgs = [
+      ...new Set((membros ?? []).map((m) => m.organization_id as string)),
+    ];
+    for (const orgId of orgs) {
+      await rodar(`org:${orgId}`, () =>
+        coletarOrganizacao(admin, orgId, "diario", null),
+      );
+    }
+    for (const m of membros ?? []) {
+      const uid = m.user_id as string;
+      await rodar(`usuario:${uid}`, () =>
+        coletarUsuario(admin, uid, "diario", null),
+      );
+    }
+
+    // Expurgo na mesma passada: quem cria e quem limpa juntos, para não haver a
+    // hipótese de um rodar por meses sem o outro.
+    let expurgo: Awaited<ReturnType<typeof expurgarVencidos>> | null = null;
+    try {
+      expurgo = await expurgarVencidos(admin, agora);
+    } catch (e) {
+      falhas.push({
+        alvo: "expurgo",
+        erro: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    const resumo = {
+      ok: falhas.length === 0,
+      tipos,
+      organizacoes: orgs.length,
+      usuarios: (membros ?? []).length,
+      arquivos_gravados: arquivos,
+      sem_alteracao: inalterados,
+      expurgados: expurgo?.apagados ?? 0,
+      falhas,
+    };
+    console.log("[daily-backup]", JSON.stringify(resumo));
+    // 200 mesmo com falha parcial: o pg_cron não tem para onde reportar, e
+    // marcar a rodada inteira como erro esconderia o que funcionou.
+    return c.json(resumo);
   });
 
   /** Índice dos pacotes, mais recentes primeiro. Filtros opcionais. */

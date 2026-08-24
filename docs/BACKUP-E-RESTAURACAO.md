@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapa 0 concluída** em 24/08/2026 · **Próxima:** 1
+**Início:** 24/08/2026 · **Etapas 0 e 1 concluídas** em 24/08/2026 · **Próxima:** 2 (restauração)
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -194,7 +194,7 @@ e `farm_whatsapp_link_codes` (efêmeros), `plans`, `subscriptions`,
 |       | o que                                                                    | estado        |
 | ----- | ------------------------------------------------------------------------ | ------------- |
 | **0** | Coletor, formato v1, gravação no R2, índice `farm_backups`               | ✅ 24/08/2026 |
-| **1** | Diário automático via `pg_cron`, com hash e expurgo                      |               |
+| **1** | Diário automático via `pg_cron`, com hash e expurgo                      | ✅ 24/08/2026 |
 | **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela |               |
 | **3** | Backup pré-operação destrutiva (§7)                                      |               |
 | **4** | Tela do usuário em Configurações                                         |               |
@@ -206,9 +206,53 @@ controle do que depois de uma tela ter prometido o botão para o cliente.
 
 As telas das etapas 4 e 5 seguem `docs/PADRAO-DE-PAGINA.md`.
 
-## 11. Validação da etapa 0 — 24/08/2026
+## 11. O diário (etapa 1)
 
-Disparo manual por `POST /admin/backups/run`, três chamadas:
+Job `gerentia-daily-backup`, **05:00 UTC = 02:00 de Brasília**. O fuso do
+`pg_cron` neste projeto é GMT — conferido em `current_setting('cron.timezone')`,
+não suposto.
+
+O horário é antes das recorrências (07:00 UTC), que **escrevem** lançamentos: o
+retrato do dia tem que ser anterior a qualquer escrita automática, senão o
+backup já vem com o que o robô criou em vez do que existia.
+
+Um pacote por organização com membro e um por usuário. No dia 1 do mês grava
+também um `mensal`, reaproveitando a mesma coleta — mesmo conteúdo, prazo
+diferente. O expurgo roda na mesma passada.
+
+Um alvo que falha não derruba a rodada: numa tarefa que roda sozinha de
+madrugada, parar tudo porque uma organização deu erro significaria perder o
+backup de todas as outras.
+
+### Duas armadilhas que a rodada de teste revelou
+
+**`extensions.net.http_post` não existe.** O `pg_net` cria as funções em `net`.
+Com o prefixo, o Postgres lê banco.schema.função e recusa. E isto não era erro
+novo: `farm-process-alerts` falhava assim **83 vezes desde 03/06/2026** e
+`farm-weekly-summary` **12 vezes** — o alerta de vencimento por WhatsApp e o
+resumo semanal **nunca dispararam em produção**. Corrigido em
+`20260824140000_fix_cron_net_schema.sql`.
+
+**O default de `net.http_post` é 5 s.** A rodada leva ~17 s. A edge não morre
+junto (o backup completa), mas a resposta se perde — e aí o único registro é um
+"timeout" que tem a mesma aparência de sucesso e de desastre. Subido para 120 s
+em `20260824150000_cron_backup_timeout.sql`.
+
+As duas têm a mesma moral: **cron que falha é silencioso**. Um job quebrado e um
+job sem trabalho são indistinguíveis de fora. É também a razão de a etapa 2 vir
+antes das telas.
+
+### Buraco na retenção, fechado junto
+
+Alvo que nunca muda tem o backup pulado pela regra do hash todo dia — e o único
+arquivo que existe acabaria vencendo pelo `expira_em`, deixando o alvo **sem
+backup nenhum justamente por nada ter acontecido com ele**. Pular agora **renova
+o prazo** do arquivo que ficou valendo. `criado_em` não se mexe: o conteúdo
+continua sendo o do dia em que foi capturado; o que muda é até quando vale.
+
+## 12. Validação — 24/08/2026
+
+### Etapa 0 — `POST /admin/backups/run`, três chamadas
 
 | verificação                                         | resultado                                                                                     |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -224,3 +268,17 @@ membro e os três lançamentos são dele, então os dois recortes contêm exatam
 as mesmas linhas. Os arquivos diferem em 126 bytes — o bloco `alvo`, que carrega
 o e-mail e fica **fora** do hash de propósito. Prova acidental de que o hash
 cobre só `tabelas`.
+
+### Etapa 1 — disparo por `pg_net`, igual ao cron, com o segredo do Vault
+
+Primeira rodada: **11 organizações e 14 usuários**, todos gravados — batendo com
+`count(distinct organization_id)` e `count(*)` em `users_meta`.
+
+Segunda rodada, minutos depois:
+
+    {"ok":true,"organizacoes":11,"usuarios":14,
+     "sem_alteracao":25,"arquivos_gravados":0,"expurgados":0,"falhas":[]}
+
+25 alvos, nenhum arquivo novo: a regra do hash vale em escala, não só no caso de
+um usuário. E o `status_code: 200` com o resumo dentro de `net._http_response` é
+a observabilidade que faltava aos outros dois jobs.

@@ -83,6 +83,20 @@ export async function gravarPacote(
 
   const ultimo = anteriores?.[0];
   if (ultimo && ultimo.hash === pacote.hash) {
+    // RENOVA O PRAZO do arquivo que ficou valendo.
+    //
+    // Sem isto a retenção tem um buraco que só aparece meses depois: alvo que
+    // não muda nada faz o backup ser pulado todo dia, e o único arquivo que
+    // existe acaba vencendo pelo `expira_em` — o expurgo apaga, e o alvo fica
+    // SEM backup nenhum, justamente por nada ter acontecido com ele.
+    //
+    // O conteúdo continua sendo o do dia em que foi capturado, então
+    // `criado_em` não se mexe: o que muda é até quando ele vale.
+    await admin
+      .from("farm_backups")
+      .update({ expira_em: expiraEm(pacote.tipo, new Date(pacote.gerado_em)) })
+      .eq("id", ultimo.id);
+
     return {
       gravou: false,
       chave: ultimo.chave as string,
