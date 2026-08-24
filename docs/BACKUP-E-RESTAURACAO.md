@@ -55,9 +55,16 @@ Três consequências:
    `users_meta`, o perfil some junto com a conta, e o pacote vira o único lugar
    que guarda o e-mail.
 
-Cuidado adicional: `farm_categories.created_by_user_id` é **CASCADE**. Apagar
-quem criou um plano de contas apagaria o plano junto — hoje são 67 categorias
-com essa coluna preenchida.
+Um achado desta mesma conferência, já corrigido: `farm_categories.
+created_by_user_id` era **CASCADE**, enquanto a tabela irmã
+`farm_category_groups` usava `SET NULL` para a mesma coluna e o mesmo papel. A
+migração 20260819150000 dizia que a coluna é "só autoria", mas a constraint
+discordava: apagar o autor apagaria categorias que são da organização.
+
+Risco concreto — as 67 categorias com autor preenchido são todas do mesmo
+usuário (o plano de contas da Querência), e os 12 grupos dele sobreviveriam com
+autor nulo. Meio destruído, pior que qualquer extremo. Alinhado para `SET NULL`
+em `20260824170000_farm_categories_autoria_set_null.sql`.
 
 **`organizations` cascateia em tudo.** Apagar uma linha lá derruba categorias,
 grupos, centros de custo, lançamentos, itens, recorrências, pendências e
