@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapas 0 a 4 concluídas** em 24/08/2026 · **Próxima:** 5 (tela do master)
+**Início:** 24/08/2026 · **Etapas 0 a 5 concluídas** em 24/08/2026 · **Pendente:** conferir a 1ª rodada automática (§11b)
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -258,7 +258,7 @@ e `farm_whatsapp_link_codes` (efêmeros), `plans`, `subscriptions`,
 | **2** | Restauração: pré-visualização, transação, auditoria. Só master, sem tela | ✅ 24/08/2026 |
 | **3** | Backup pré-operação destrutiva (§7)                                      | ✅ 24/08/2026 |
 | **4** | Tela do usuário em Configurações                                         | ✅ 24/08/2026 |
-| **5** | Tela do master                                                           |               |
+| **5** | Tela do master                                                           | ✅ 24/08/2026 |
 
 Restauração vem **antes** das telas de propósito. Backup que nunca foi
 restaurado é fé, não backup — melhor descobrir os problemas dela com o master no
@@ -397,7 +397,28 @@ Uma sutileza de linguagem: quando `gravou: false`, a tela diz _"nada mudou desde
 o último backup; o anterior continua valendo"_, não "erro". É o comportamento
 correto do §3 e chamá-lo de falha faria o cliente gerar backup até desistir.
 
-## 13. Validação — 24/08/2026
+## 14. A tela do master (etapa 5)
+
+`Configurações → Backups de Todos`, só para master. **É o mesmo componente**
+(`BackupsManager`, com `master`), não uma segunda tela.
+
+Duas telas separadas seriam duas listas, dois cards e dois diálogos de
+pré-visualização para divergir — e a pré-visualização é justamente a peça que
+não pode ficar diferente entre quem opera e quem é operado. O flag troca só o
+necessário: a rota (`/admin/backups`, que não passa pela RLS), a busca por
+pessoa ou organização, o seletor de alvo ao gerar, o rótulo do card (o e-mail do
+alvo em vez de "meus dados", porque o master olha uma lista de gente e não a
+própria) e o botão de excluir.
+
+`DELETE /admin/backups/:id` apaga do R2 e depois do índice — mesma ordem do
+expurgo automático, e pelo mesmo motivo.
+
+**Limitação assumida:** o alvo do disparo manual é um campo de UUID, não um
+seletor de organizações e pessoas. É o único ponto da tela abaixo do padrão. O
+caso é raro (o diário cobre o dia a dia) e os IDs estão à mão nas telas de
+Usuários e Organizações. Vira seletor quando incomodar.
+
+## 15. Validação — 24/08/2026
 
 ### Etapa 0 — `POST /admin/backups/run`, três chamadas
 
