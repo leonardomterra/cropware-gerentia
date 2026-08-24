@@ -8,6 +8,11 @@ import LoginIcon from "~icons/ph/sign-in";
 import MailIcon from "~icons/ph/envelope-simple";
 import Download from "~icons/ph/download-simple";
 import ChevronDown from "~icons/ph/caret-down";
+import Search from "~icons/ph/magnifying-glass";
+import FilterList from "~icons/ph/funnel";
+import ArrowsDownUp from "~icons/ph/arrows-down-up";
+import Plus from "~icons/ph/plus";
+import X from "~icons/ph/x";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +33,28 @@ import {
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  ICONE_BOTAO_BARRA,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import { downloadBackup } from "../hooks/useAdminOrgs";
 import type { AdminUser } from "../types";
@@ -95,11 +121,14 @@ export default function AdminUsersPage() {
   });
   const [editPending, setEditPending] = useState(false);
 
-  const [changingPasswordFor, setChangingPasswordFor] = useState<AdminUser | null>(null);
+  const [changingPasswordFor, setChangingPasswordFor] =
+    useState<AdminUser | null>(null);
   const [pwForm, setPwForm] = useState({ password: "", password_confirm: "" });
   const [savingPw, setSavingPw] = useState(false);
 
-  const [changingEmailFor, setChangingEmailFor] = useState<AdminUser | null>(null);
+  const [changingEmailFor, setChangingEmailFor] = useState<AdminUser | null>(
+    null,
+  );
   const [emailForm, setEmailForm] = useState({ email: "" });
   const [savingEmail, setSavingEmail] = useState(false);
 
@@ -108,6 +137,7 @@ export default function AdminUsersPage() {
 
   const [sortBy, setSortBy] = useState<SortBy>("name");
   const [filterStatus, setFilterStatus] = useState<FilterStatus | null>(null);
+  const isMobile = useIsMobile();
 
   // Confirmação genérica (reset/excluir/impersonar) — substitui confirm() nativo.
   const [confirmState, setConfirmState] = useState<{
@@ -143,29 +173,45 @@ export default function AdminUsersPage() {
           (u.organization_name ?? "").toLowerCase().includes(q);
         if (!matchSearch) return false;
         if (filterStatus === "suspended" && !isSuspended(u)) return false;
-        if (filterStatus === "trial_expired" && (
-          !u.trial_ends_at || new Date(u.trial_ends_at).getTime() > Date.now()
-        )) return false;
-        if (filterStatus === "pending_invite" && (!!u.email_confirmed_at || !!u.last_sign_in_at)) return false;
+        if (
+          filterStatus === "trial_expired" &&
+          (!u.trial_ends_at || new Date(u.trial_ends_at).getTime() > Date.now())
+        )
+          return false;
+        if (
+          filterStatus === "pending_invite" &&
+          (!!u.email_confirmed_at || !!u.last_sign_in_at)
+        )
+          return false;
         return true;
       })
       .sort((a, b) => {
         if (a.is_master !== b.is_master) return a.is_master ? 1 : -1;
         if (sortBy === "name") {
-          return (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? "", "pt-BR");
+          return (a.full_name ?? a.email ?? "").localeCompare(
+            b.full_name ?? b.email ?? "",
+            "pt-BR",
+          );
         }
         if (sortBy === "last_access") {
-          return (b.last_sign_in_at ?? "").localeCompare(a.last_sign_in_at ?? "");
+          return (b.last_sign_in_at ?? "").localeCompare(
+            a.last_sign_in_at ?? "",
+          );
         }
         if (sortBy === "trial") {
-          return (a.trial_ends_at ?? "9999").localeCompare(b.trial_ends_at ?? "9999");
+          return (a.trial_ends_at ?? "9999").localeCompare(
+            b.trial_ends_at ?? "9999",
+          );
         }
         return 0;
       });
   }, [users, search, sortBy, filterStatus]);
 
   async function handleInvite() {
-    if (!iForm.email.trim()) { toast.error("Email é obrigatório"); return; }
+    if (!iForm.email.trim()) {
+      toast.error("Email é obrigatório");
+      return;
+    }
     setInviting(true);
     try {
       await createUser({
@@ -203,7 +249,13 @@ export default function AdminUsersPage() {
       });
       toast.success(cForm.invite ? "Convite enviado" : "Usuário criado");
       setCreateOpen(false);
-      setCForm({ email: "", full_name: "", farm_name: "", password: "", invite: false });
+      setCForm({
+        email: "",
+        full_name: "",
+        farm_name: "",
+        password: "",
+        invite: false,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao criar usuário");
     } finally {
@@ -253,7 +305,9 @@ export default function AdminUsersPage() {
     }
     setSavingPw(true);
     try {
-      await updateUser(changingPasswordFor.id, { password: pwForm.password.trim() });
+      await updateUser(changingPasswordFor.id, {
+        password: pwForm.password.trim(),
+      });
       toast.success("Senha alterada");
       setChangingPasswordFor(null);
       setPwForm({ password: "", password_confirm: "" });
@@ -267,7 +321,10 @@ export default function AdminUsersPage() {
   async function handleSaveEmail() {
     if (!changingEmailFor) return;
     const email = emailForm.email.trim();
-    if (!email) { toast.error("Informe o novo email"); return; }
+    if (!email) {
+      toast.error("Informe o novo email");
+      return;
+    }
     setSavingEmail(true);
     try {
       await updateUser(changingEmailFor.id, { email });
@@ -291,7 +348,9 @@ export default function AdminUsersPage() {
       run: async () => {
         const r = await resetPassword(u.id);
         await navigator.clipboard.writeText(r.password).catch(() => {});
-        toast.success(`Nova senha: ${r.password} (copiada)`, { duration: 12000 });
+        toast.success(`Nova senha: ${r.password} (copiada)`, {
+          duration: 12000,
+        });
       },
     });
   }
@@ -341,91 +400,146 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
-        {/* Busca: full width no mobile, cresce no desktop */}
-        <div className="sm:flex-1 sm:min-w-0">
+      {/* Barra no padrão do app (docs/PADRAO-DE-PAGINA.md): busca esticando,
+          Filtros e Ordenar encostados à direita. Antes eram três gatilhos
+          soltos, com o de filtro pintando de escuro quando ativo — sinal que
+          nenhuma outra tela usa. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div className="relative flex-1 min-w-0">
+          <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <Input
-            placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full"
+            placeholder="Buscar por nome, e-mail ou organização..."
+            className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
           />
         </div>
 
-        {/* Filtros: 2 colunas no mobile, inline no desktop */}
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2 sm:shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  TOOLBAR_TRIGGER_CLASS,
-                  "w-full sm:w-auto justify-between",
-                  filterStatus && "bg-slate-800 text-white hover:bg-slate-700",
-                )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            >
+              <FilterList className={ICONE_BOTAO_BARRA} />
+              Filtros
+              <FilterCountBadge count={filterStatus ? 1 : 0} />
+              <ChevronDown className={SETA_BOTAO_BARRA} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className={PAINEL_ESCURO}
+            style={
+              isMobile
+                ? { width: "var(--radix-popover-trigger-width)" }
+                : undefined
+            }
+          >
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>Situação</label>
+              <Select
+                value={filterStatus ?? "all"}
+                onValueChange={(v) =>
+                  setFilterStatus(v === "all" ? null : (v as FilterStatus))
+                }
               >
-                {filterStatus === "suspended" && "Suspensos"}
-                {filterStatus === "trial_expired" && "Expirado"}
-                {filterStatus === "pending_invite" && "Pendentes"}
-                {!filterStatus && "Filtrar"}
-                <ChevronDown className="size-4 opacity-60" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem onClick={() => setFilterStatus(null)} className={!filterStatus ? "bg-white/10 font-medium" : ""}>
-                Todos
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("suspended")} className={filterStatus === "suspended" ? "bg-white/10 font-medium" : ""}>
-                Suspensos
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("trial_expired")} className={filterStatus === "trial_expired" ? "bg-white/10 font-medium" : ""}>
-                Trial Expirado
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("pending_invite")} className={filterStatus === "pending_invite" ? "bg-white/10 font-medium" : ""}>
-                Aguardando Convite
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <SelectTrigger className="h-9 bg-white text-slate-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as situações</SelectItem>
+                  <SelectItem value="suspended">Suspensos</SelectItem>
+                  <SelectItem value="trial_expired">Trial Expirado</SelectItem>
+                  <SelectItem value="pending_invite">
+                    Aguardando Convite
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </PopoverContent>
+        </Popover>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(TOOLBAR_TRIGGER_CLASS, "w-full sm:w-auto justify-between")}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {/* Rótulo FIXO: mostrar a opção ativa fazia o botão mudar de
+                largura a cada escolha. */}
+            <button
+              type="button"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            >
+              <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
+              Ordenar
+              <ChevronDown className={SETA_BOTAO_BARRA} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {(
+              [
+                ["name", "Nome"],
+                ["last_access", "Último Acesso"],
+                ["trial", "Trial"],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <DropdownMenuItem
+                key={valor}
+                onClick={() => setSortBy(valor)}
+                className={
+                  sortBy === valor ? "bg-white/10 font-medium" : undefined
+                }
               >
-                {sortBy === "name" && "Nome"}
-                {sortBy === "last_access" && "Acesso"}
-                {sortBy === "trial" && "Trial"}
-                <ChevronDown className="size-4 text-slate-500" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem onClick={() => setSortBy("name")} className={sortBy === "name" ? "bg-white/10 font-medium" : ""}>
-                Nome
+                {rotulo}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("last_access")} className={sortBy === "last_access" ? "bg-white/10 font-medium" : ""}>
-                Último Acesso
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy("trial")} className={sortBy === "trial" ? "bg-white/10 font-medium" : ""}>
-                Trial
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-        {/* Botões: 2 colunas no mobile, inline no desktop */}
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2 sm:shrink-0">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setInviteOpen(true)}>
-            <MailIcon className="size-4 mr-1.5" />
-            <span className="sm:hidden">Convidar</span>
-            <span className="hidden sm:inline">Convidar Usuário</span>
+      {/* Linha de ações: UM botão escuro — criar. Convidar é o caminho
+          alternativo para o mesmo fim e fica em cinza. */}
+      <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
+        <Button
+          variant="default"
+          onClick={() => setCreateOpen(true)}
+          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+        >
+          <Plus className="size-[18px] shrink-0" />
+          Novo Usuário
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => setInviteOpen(true)}
+          className={cn(BOTAO_BARRA, "gap-1.5 rounded-md")}
+        >
+          <MailIcon className={ICONE_BOTAO_BARRA} />
+          Convidar Usuário
+        </Button>
+      </div>
+
+      {/* Contador e "Limpar Filtros" à direita, com altura reservada. */}
+      <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+        <p className="text-sm text-slate-500">
+          {filtered.length === 0
+            ? "Nenhum usuário encontrado"
+            : `Mostrando ${filtered.length} ${
+                filtered.length === 1 ? "Usuário" : "Usuários"
+              }`}
+        </p>
+        {(filterStatus || search.trim()) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setFilterStatus(null);
+            }}
+            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Limpar filtros"
+          >
+            <X className="size-4 mr-1.5" />
+            Limpar Filtros
           </Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
-            <span className="mr-1 text-base leading-none">+</span>
-            <span className="sm:hidden">Novo</span>
-            <span className="hidden sm:inline">Novo Usuário</span>
-          </Button>
-        </div>
+        )}
       </div>
 
       {error && (
@@ -439,12 +553,18 @@ export default function AdminUsersPage() {
           <LoadingState />
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-xs">
+            <thead className="bg-slate-50 text-slate-600 text-sm">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Usuário</th>
-                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell">Trial</th>
-                <th className="text-left px-4 py-2 font-medium hidden md:table-cell">Último Acesso</th>
-                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell">Ações</th>
+                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell">
+                  Trial
+                </th>
+                <th className="text-left px-4 py-2 font-medium hidden md:table-cell">
+                  Último Acesso
+                </th>
+                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -454,7 +574,11 @@ export default function AdminUsersPage() {
                   !!u.trial_ends_at &&
                   new Date(u.trial_ends_at).getTime() > Date.now();
                 return (
-                  <tr key={u.id} className="border-t border-slate-100 cursor-pointer hover:bg-slate-50 sm:cursor-default" onClick={() => openEdit(u)}>
+                  <tr
+                    key={u.id}
+                    className="border-t border-slate-100 cursor-pointer hover:bg-slate-50 sm:cursor-default"
+                    onClick={() => openEdit(u)}
+                  >
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900 flex items-center gap-2">
                         {u.full_name || "(sem nome)"}
@@ -464,23 +588,35 @@ export default function AdminUsersPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500">{u.email}</div>
-                      <div className="text-xs text-slate-400 mt-0.5 sm:hidden">
+                      <div className="text-sm text-slate-500">{u.email}</div>
+                      <div className="text-sm text-slate-400 mt-0.5 sm:hidden">
                         {u.is_master ? (
-                          <Badge size="compact" colorScheme="amber">master</Badge>
+                          <Badge size="compact" colorScheme="amber">
+                            master
+                          </Badge>
                         ) : u.trial_ends_at ? (
-                          <span className={trialActive ? "text-slate-500" : "text-rose-500"}>
+                          <span
+                            className={
+                              trialActive ? "text-slate-500" : "text-rose-500"
+                            }
+                          >
                             {trialActive ? "trial até " : "trial expirou "}
                             {fmtDate(u.trial_ends_at)}
                           </span>
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs hidden sm:table-cell">
+                    <td className="px-4 py-3 text-sm hidden sm:table-cell">
                       {u.is_master ? (
-                        <Badge size="compact" colorScheme="amber">master</Badge>
+                        <Badge size="compact" colorScheme="amber">
+                          master
+                        </Badge>
                       ) : u.trial_ends_at ? (
-                        <span className={trialActive ? "text-slate-600" : "text-rose-500"}>
+                        <span
+                          className={
+                            trialActive ? "text-slate-600" : "text-rose-500"
+                          }
+                        >
                           {trialActive ? "até " : "expirou "}
                           {fmtDate(u.trial_ends_at)}
                         </span>
@@ -488,14 +624,17 @@ export default function AdminUsersPage() {
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-sm text-slate-500 hidden md:table-cell">
                       {fmtDate(u.last_sign_in_at)}
                     </td>
                     <td className="px-4 py-3 text-right hidden sm:table-cell">
                       <div className="inline-flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); void handleBackup(u); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleBackup(u);
+                          }}
                           disabled={backingUp === u.id}
                           className="text-slate-400 hover:text-slate-900"
                           title="Baixar o que essa pessoa cadastrou (JSON)"
@@ -504,8 +643,11 @@ export default function AdminUsersPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); openEdit(u); }}
-                          className="text-xs text-slate-600 hover:text-slate-900"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(u);
+                          }}
+                          className="text-sm text-slate-600 hover:text-slate-900"
                         >
                           Editar
                         </button>
@@ -516,7 +658,10 @@ export default function AdminUsersPage() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-sm text-slate-500"
+                  >
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
@@ -527,34 +672,58 @@ export default function AdminUsersPage() {
       </section>
 
       {/* Convidar usuário */}
-      <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setIForm({ email: "", full_name: "" }); }}>
+      <Dialog
+        open={inviteOpen}
+        onOpenChange={(o) => {
+          setInviteOpen(o);
+          if (!o) setIForm({ email: "", full_name: "" });
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Convidar Usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Email *</label>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Email *
+              </label>
               <Input
                 type="email"
                 placeholder="email@exemplo.com"
                 value={iForm.email}
-                onChange={(e) => setIForm((s) => ({ ...s, email: e.target.value }))}
+                onChange={(e) =>
+                  setIForm((s) => ({ ...s, email: e.target.value }))
+                }
                 autoFocus
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Nome <span className="text-slate-400 font-normal">(opcional)</span></label>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Nome{" "}
+                <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
               <Input
                 placeholder="Nome completo"
                 value={iForm.full_name}
-                onChange={(e) => setIForm((s) => ({ ...s, full_name: e.target.value }))}
+                onChange={(e) =>
+                  setIForm((s) => ({ ...s, full_name: e.target.value }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={handleInvite} disabled={inviting || !iForm.email.trim()}>
+            <Button
+              variant="ghost"
+              onClick={() => setInviteOpen(false)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleInvite}
+              disabled={inviting || !iForm.email.trim()}
+            >
               {inviting ? "Enviando..." : "Enviar Convite"}
             </Button>
           </DialogFooter>
@@ -576,7 +745,9 @@ export default function AdminUsersPage() {
                 type="email"
                 placeholder="email@exemplo.com"
                 value={cForm.email}
-                onChange={(e) => setCForm((s) => ({ ...s, email: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, email: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -586,7 +757,9 @@ export default function AdminUsersPage() {
               <Input
                 placeholder="Nome completo"
                 value={cForm.full_name}
-                onChange={(e) => setCForm((s) => ({ ...s, full_name: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, full_name: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -596,19 +769,23 @@ export default function AdminUsersPage() {
               <Input
                 placeholder="Minha Fazenda"
                 value={cForm.farm_name}
-                onChange={(e) => setCForm((s) => ({ ...s, farm_name: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, farm_name: e.target.value }))
+                }
               />
             </div>
             <label className="flex items-start gap-2 text-sm cursor-pointer rounded-md border border-slate-200 bg-slate-50 p-3">
               <input
                 type="checkbox"
                 checked={cForm.invite}
-                onChange={(e) => setCForm((s) => ({ ...s, invite: e.target.checked }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, invite: e.target.checked }))
+                }
                 className="mt-0.5"
               />
               <span className="text-slate-700">
-                Convidar por email (em vez de definir senha). O usuário recebe um
-                link e define a própria senha.
+                Convidar por email (em vez de definir senha). O usuário recebe
+                um link e define a própria senha.
               </span>
             </label>
             {!cForm.invite && (
@@ -620,17 +797,27 @@ export default function AdminUsersPage() {
                   type="text"
                   placeholder="Mínimo 6 caracteres"
                   value={cForm.password}
-                  onChange={(e) => setCForm((s) => ({ ...s, password: e.target.value }))}
+                  onChange={(e) =>
+                    setCForm((s) => ({ ...s, password: e.target.value }))
+                  }
                 />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setCreateOpen(false)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
               Cancelar
             </Button>
             <Button onClick={handleCreate} disabled={creating}>
-              {creating ? "Criando..." : cForm.invite ? "Enviar Convite" : "Criar"}
+              {creating
+                ? "Criando..."
+                : cForm.invite
+                  ? "Enviar Convite"
+                  : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -642,7 +829,9 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>
               <span className="sm:hidden">Editar</span>
-              <span className="hidden sm:inline">Editar {editing?.full_name || editing?.email}</span>
+              <span className="hidden sm:inline">
+                Editar {editing?.full_name || editing?.email}
+              </span>
             </DialogTitle>
           </DialogHeader>
           {editing && (
@@ -653,7 +842,9 @@ export default function AdminUsersPage() {
                 </label>
                 <Input
                   value={eForm.full_name}
-                  onChange={(e) => setEForm((s) => ({ ...s, full_name: e.target.value }))}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, full_name: e.target.value }))
+                  }
                 />
               </div>
               <div>
@@ -663,14 +854,19 @@ export default function AdminUsersPage() {
                 <Input
                   type="date"
                   value={eForm.trial_ends_at}
-                  onChange={(e) => setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))}
+                  onChange={(e) =>
+                    setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))
+                  }
                 />
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant="outline"
-                  className="flex-1 min-w-[calc(50%-4px)]"
+                  variant="ghost"
+                  className={cn(
+                    BOTAO_BARRA,
+                    "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                  )}
                   onClick={() => {
                     setChangingEmailFor(editing);
                     setEmailForm({ email: editing?.email ?? "" });
@@ -680,8 +876,11 @@ export default function AdminUsersPage() {
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="flex-1 min-w-[calc(50%-4px)]"
+                  variant="ghost"
+                  className={cn(
+                    BOTAO_BARRA,
+                    "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                  )}
                   onClick={() => {
                     setChangingPasswordFor(editing);
                     setPwForm({ password: "", password_confirm: "" });
@@ -695,64 +894,92 @@ export default function AdminUsersPage() {
                 <>
                   <hr className="border-slate-100" />
                   <div className="flex flex-wrap gap-2">
-                    {!editing?.email_confirmed_at && !editing?.last_sign_in_at && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1 min-w-[calc(50%-4px)]"
-                        disabled={editPending}
-                        onClick={async () => {
-                          setEditPending(true);
-                          try {
-                            await resendInvite(editing!.id);
-                            toast.success("Convite reenviado");
-                          } catch (e) {
-                            const msg = e instanceof Error ? e.message : "";
-                            if (msg.includes("already_confirmed")) {
-                              toast.info("Usuário já confirmou a conta");
-                            } else {
-                              toast.error(msg || "Erro ao reenviar convite");
+                    {!editing?.email_confirmed_at &&
+                      !editing?.last_sign_in_at && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className={cn(
+                            BOTAO_BARRA,
+                            "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                          )}
+                          disabled={editPending}
+                          onClick={async () => {
+                            setEditPending(true);
+                            try {
+                              await resendInvite(editing!.id);
+                              toast.success("Convite reenviado");
+                            } catch (e) {
+                              const msg = e instanceof Error ? e.message : "";
+                              if (msg.includes("already_confirmed")) {
+                                toast.info("Usuário já confirmou a conta");
+                              } else {
+                                toast.error(msg || "Erro ao reenviar convite");
+                              }
+                            } finally {
+                              setEditPending(false);
                             }
-                          } finally {
-                            setEditPending(false);
-                          }
-                        }}
-                      >
-                        <MailIcon className="size-4 mr-1.5" />
-                        Convidar
-                      </Button>
-                    )}
+                          }}
+                        >
+                          <MailIcon className="size-4 mr-1.5" />
+                          Convidar
+                        </Button>
+                      )}
                     <Button
                       type="button"
-                      variant="outline"
-                      className="flex-1 min-w-[calc(50%-4px)]"
+                      variant="ghost"
+                      className={cn(
+                        BOTAO_BARRA,
+                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                      )}
                       disabled={editPending}
-                      onClick={() => { askImpersonate(editing!); setEditing(null); }}
+                      onClick={() => {
+                        askImpersonate(editing!);
+                        setEditing(null);
+                      }}
                     >
                       <LoginIcon className="size-4 mr-1.5" />
                       Entrar
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
-                      className="flex-1 min-w-[calc(50%-4px)]"
+                      variant="ghost"
+                      className={cn(
+                        BOTAO_BARRA,
+                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                      )}
                       disabled={editPending}
-                      onClick={() => { askReset(editing!); setEditing(null); }}
+                      onClick={() => {
+                        askReset(editing!);
+                        setEditing(null);
+                      }}
                     >
                       <KeyIcon className="size-4 mr-1.5" />
                       Resetar
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
-                      className="flex-1 min-w-[calc(50%-4px)]"
+                      variant="ghost"
+                      className={cn(
+                        BOTAO_BARRA,
+                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                      )}
                       disabled={editPending}
-                      onClick={() => { handleSuspend(editing!); setEditing(null); }}
+                      onClick={() => {
+                        handleSuspend(editing!);
+                        setEditing(null);
+                      }}
                     >
                       {isSuspended(editing!) ? (
-                        <><CheckIcon className="size-4 mr-1.5" />Reativar</>
+                        <>
+                          <CheckIcon className="size-4 mr-1.5" />
+                          Reativar
+                        </>
                       ) : (
-                        <><BlockIcon className="size-4 mr-1.5" />Suspender</>
+                        <>
+                          <BlockIcon className="size-4 mr-1.5" />
+                          Suspender
+                        </>
                       )}
                     </Button>
                     <Button
@@ -760,7 +987,10 @@ export default function AdminUsersPage() {
                       variant="outline"
                       className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                       disabled={editPending}
-                      onClick={() => { askDelete(editing!); setEditing(null); }}
+                      onClick={() => {
+                        askDelete(editing!);
+                        setEditing(null);
+                      }}
                     >
                       <Trash2 className="size-4 mr-1.5" />
                       Excluir
@@ -771,7 +1001,12 @@ export default function AdminUsersPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" disabled={editPending} onClick={() => setEditing(null)}>
+            <Button
+              variant="ghost"
+              disabled={editPending}
+              onClick={() => setEditing(null)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
               Cancelar
             </Button>
             <Button onClick={handleSaveEdit} disabled={editPending}>
@@ -804,7 +1039,9 @@ export default function AdminUsersPage() {
                 type="password"
                 placeholder="Mínimo 6 caracteres"
                 value={pwForm.password}
-                onChange={(e) => setPwForm((s) => ({ ...s, password: e.target.value }))}
+                onChange={(e) =>
+                  setPwForm((s) => ({ ...s, password: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -815,17 +1052,20 @@ export default function AdminUsersPage() {
                 type="password"
                 placeholder="Repita a senha"
                 value={pwForm.password_confirm}
-                onChange={(e) => setPwForm((s) => ({ ...s, password_confirm: e.target.value }))}
+                onChange={(e) =>
+                  setPwForm((s) => ({ ...s, password_confirm: e.target.value }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => {
                 setChangingPasswordFor(null);
                 setPwForm({ password: "", password_confirm: "" });
               }}
+              className={cn(BOTAO_BARRA, "rounded-md")}
             >
               Cancelar
             </Button>
@@ -840,7 +1080,10 @@ export default function AdminUsersPage() {
       <Dialog
         open={!!changingEmailFor}
         onOpenChange={(o) => {
-          if (!o) { setChangingEmailFor(null); setEmailForm({ email: "" }); }
+          if (!o) {
+            setChangingEmailFor(null);
+            setEmailForm({ email: "" });
+          }
         }}
       >
         <DialogContent className="max-w-sm">
@@ -862,8 +1105,12 @@ export default function AdminUsersPage() {
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => { setChangingEmailFor(null); setEmailForm({ email: "" }); }}
+              variant="ghost"
+              onClick={() => {
+                setChangingEmailFor(null);
+                setEmailForm({ email: "" });
+              }}
+              className={cn(BOTAO_BARRA, "rounded-md")}
             >
               Cancelar
             </Button>

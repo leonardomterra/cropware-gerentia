@@ -1,5 +1,8 @@
 import { useState } from "react";
 import Trash2 from "~icons/ph/trash";
+import Search from "~icons/ph/magnifying-glass";
+import FilterList from "~icons/ph/funnel";
+import X from "~icons/ph/x";
 import UserPlus from "~icons/ph/user-plus";
 import Plus from "~icons/ph/plus";
 import Download from "~icons/ph/download-simple";
@@ -8,14 +11,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import ChevronDown from "~icons/ph/caret-down";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/components/ui/utils";
-import { TOOLBAR_TRIGGER_CLASS } from "@/components/ui/toolbarTrigger";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  ICONE_BOTAO_BARRA,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import {
   Dialog,
   DialogContent,
@@ -55,11 +73,14 @@ function apiMessage(e: unknown, fallback: string): string {
   const body = errorBody(e);
   const code = typeof body?.error === "string" ? body.error : null;
   const MESSAGES: Record<string, string> = {
-    seats_limit_reached: "Os assentos desta organização acabaram. Aumente o limite antes.",
-    seats_below_current_members: "O limite não pode ficar abaixo de quem já está dentro.",
+    seats_limit_reached:
+      "Os assentos desta organização acabaram. Aumente o limite antes.",
+    seats_below_current_members:
+      "O limite não pode ficar abaixo de quem já está dentro.",
     user_not_found: "Não existe conta com esse e-mail.",
     already_member: "Essa pessoa já está nesta organização.",
-    transfer_ownership_first: "Transfira a titularidade antes de mexer neste usuário.",
+    transfer_ownership_first:
+      "Transfira a titularidade antes de mexer neste usuário.",
     org_not_found: "Organização não encontrada.",
   };
   return (code && MESSAGES[code]) || fallback;
@@ -81,12 +102,17 @@ export default function AdminOrgsPage() {
 
   // A lista é dominada por assinante avulso (1 org por conta), então o que o
   // master quer ver primeiro é o punhado de organizações com equipe.
-  const [kindFilter, setKindFilter] = useState<"company" | "individual" | "all">(
-    "company",
-  );
-  const visibleOrgs = orgs.filter(
-    (o) => kindFilter === "all" || o.kind === kindFilter,
-  );
+  const [kindFilter, setKindFilter] = useState<
+    "company" | "individual" | "all"
+  >("company");
+  const [busca, setBusca] = useState("");
+  const isMobile = useIsMobile();
+  const visibleOrgs = orgs.filter((o) => {
+    if (kindFilter !== "all" && o.kind !== kindFilter) return false;
+    const q = busca.trim().toLowerCase();
+    if (!q) return true;
+    return [o.name, o.cnpj].some((c) => (c ?? "").toLowerCase().includes(q));
+  });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [cForm, setCForm] = useState({ name: "", cnpj: "", seats: "5" });
@@ -99,15 +125,24 @@ export default function AdminOrgsPage() {
   const [addRole, setAddRole] = useState("member");
   const [adding, setAdding] = useState(false);
   // Pendência do 409 "user_has_data": segura os dados até o master confirmar.
-  const [pendingMove, setPendingMove] = useState<
-    { email: string; role: string; receipts: number; from: string | null } | null
-  >(null);
+  const [pendingMove, setPendingMove] = useState<{
+    email: string;
+    role: string;
+    receipts: number;
+    from: string | null;
+  } | null>(null);
 
-  const [pendingRemove, setPendingRemove] = useState<AdminOrgMember | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<AdminOrgMember | null>(
+    null,
+  );
   const [seatsDraft, setSeatsDraft] = useState("");
   const [backingUp, setBackingUp] = useState<string | null>(null);
 
-  async function handleBackup(scope: "org" | "user", id: string, label: string) {
+  async function handleBackup(
+    scope: "org" | "user",
+    id: string,
+    label: string,
+  ) {
     setBackingUp(id);
     try {
       await downloadBackup(scope, id, label);
@@ -231,7 +266,10 @@ export default function AdminOrgsPage() {
       return;
     }
     try {
-      await updateOrg(detail.organization.id, { seats_limit: n, kind: "company" });
+      await updateOrg(detail.organization.id, {
+        seats_limit: n,
+        kind: "company",
+      });
       toast.success("Acessos atualizados");
       await reloadDetail();
     } catch (e) {
@@ -241,58 +279,95 @@ export default function AdminOrgsPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-4">
-        <p className="text-sm text-slate-500">
-          Organizações da plataforma. O assinante avulso é uma organização de 1
-          acesso; a do cliente com equipe tem vários.
-        </p>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4 mr-1" />
-          Nova
-        </Button>
-      </header>
+      {/* Barra no padrão do app: busca esticando, Filtros à direita. A tela
+          não tinha busca — só um seletor de tipo —, e achar uma organização
+          numa lista crescente dependia de rolar. */}
+      <div className="flex flex-wrap items-center gap-2 w-full">
+        <div className="relative flex-1 min-w-0">
+          <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome ou CNPJ..."
+            className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
+          />
+        </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <Popover>
+          <PopoverTrigger asChild>
             <button
               type="button"
-              className={cn(
-                TOOLBAR_TRIGGER_CLASS,
-                "w-full sm:w-auto justify-between",
-                kindFilter !== "all" && "bg-slate-800 text-white hover:bg-slate-700",
-              )}
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
             >
-              {kindFilter === "company" && "Com equipe"}
-              {kindFilter === "individual" && "Avulsos"}
-              {kindFilter === "all" && "Todas"}
-              <ChevronDown className="size-4 opacity-60" />
+              <FilterList className={ICONE_BOTAO_BARRA} />
+              Filtros
+              <FilterCountBadge count={kindFilter === "all" ? 0 : 1} />
+              <ChevronDown className={SETA_BOTAO_BARRA} />
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem
-              onClick={() => setKindFilter("company")}
-              className={kindFilter === "company" ? "bg-white/10 font-medium" : ""}
-            >
-              Com equipe
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setKindFilter("individual")}
-              className={kindFilter === "individual" ? "bg-white/10 font-medium" : ""}
-            >
-              Avulsos
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setKindFilter("all")}
-              className={kindFilter === "all" ? "bg-white/10 font-medium" : ""}
-            >
-              Todas
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <span className="hidden sm:inline-flex items-center text-xs text-slate-500">
-          {visibleOrgs.length} de {orgs.length}
-        </span>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className={PAINEL_ESCURO}
+            style={
+              isMobile
+                ? { width: "var(--radix-popover-trigger-width)" }
+                : undefined
+            }
+          >
+            <div className="space-y-1.5">
+              <label className={ROTULO_PAINEL_ESCURO}>Tipo de conta</label>
+              <Select
+                value={kindFilter}
+                onValueChange={(v) => setKindFilter(v as typeof kindFilter)}
+              >
+                <SelectTrigger className="h-9 bg-white text-slate-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="company">Com equipe</SelectItem>
+                  <SelectItem value="individual">Avulsos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
+        <Button
+          variant="default"
+          onClick={() => setCreateOpen(true)}
+          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+        >
+          <Plus className="size-[18px] shrink-0" />
+          Nova Organização
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+        <p className="text-sm text-slate-500">
+          {visibleOrgs.length === 0
+            ? "Nenhuma organização encontrada"
+            : `Mostrando ${visibleOrgs.length} ${
+                visibleOrgs.length === 1 ? "Organização" : "Organizações"
+              }`}
+        </p>
+        {(kindFilter !== "all" || busca.trim()) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setBusca("");
+              setKindFilter("all");
+            }}
+            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Limpar filtros"
+          >
+            <X className="size-4 mr-1.5" />
+            Limpar Filtros
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -306,7 +381,7 @@ export default function AdminOrgsPage() {
           <LoadingState />
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-xs">
+            <thead className="bg-slate-50 text-slate-600 text-sm">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Organização</th>
                 <th className="text-left px-4 py-2 font-medium">Tipo</th>
@@ -326,7 +401,7 @@ export default function AdminOrgsPage() {
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900">{o.name}</div>
                     {o.cnpj && (
-                      <div className="text-xs text-slate-500">{o.cnpj}</div>
+                      <div className="text-sm text-slate-500">{o.cnpj}</div>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -340,10 +415,10 @@ export default function AdminOrgsPage() {
                   <td className="px-4 py-3 tabular-nums text-slate-700">
                     {o.seats_used}/{o.seats_limit}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-600 hidden md:table-cell">
+                  <td className="px-4 py-3 text-sm text-slate-600 hidden md:table-cell">
                     {o.plan_code ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-600 hidden md:table-cell">
+                  <td className="px-4 py-3 text-sm text-slate-600 hidden md:table-cell">
                     {fmtDate(o.trial_ends_at)}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -352,7 +427,7 @@ export default function AdminOrgsPage() {
                         type="button"
                         onClick={() => void handleBackup("org", o.id, o.name)}
                         disabled={backingUp === o.id}
-                        className="text-xs text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                        className="text-sm text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
                         title="Baixar backup JSON da organização"
                       >
                         <Download className="size-4" />
@@ -361,7 +436,7 @@ export default function AdminOrgsPage() {
                       <button
                         type="button"
                         onClick={() => void openDetail(o)}
-                        className="text-xs text-slate-600 hover:text-slate-900"
+                        className="text-sm text-slate-600 hover:text-slate-900"
                       >
                         Gerenciar
                       </button>
@@ -371,7 +446,10 @@ export default function AdminOrgsPage() {
               ))}
               {visibleOrgs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-sm text-slate-500"
+                  >
                     {kindFilter === "company"
                       ? "Nenhuma organização com equipe ainda."
                       : "Nenhuma organização neste filtro."}
@@ -397,7 +475,9 @@ export default function AdminOrgsPage() {
               <Input
                 placeholder="Fazenda Santa Rita"
                 value={cForm.name}
-                onChange={(e) => setCForm((s) => ({ ...s, name: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, name: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -406,7 +486,9 @@ export default function AdminOrgsPage() {
               </label>
               <Input
                 value={cForm.cnpj}
-                onChange={(e) => setCForm((s) => ({ ...s, cnpj: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, cnpj: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -417,16 +499,22 @@ export default function AdminOrgsPage() {
                 type="number"
                 min={1}
                 value={cForm.seats}
-                onChange={(e) => setCForm((s) => ({ ...s, seats: e.target.value }))}
+                onChange={(e) =>
+                  setCForm((s) => ({ ...s, seats: e.target.value }))
+                }
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Teto de pessoas na organização, contando o gestor. O gestor
                 convida a equipe pelo código de 6 dígitos.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setCreateOpen(false)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
               Cancelar
             </Button>
             <Button onClick={handleCreate} disabled={creating}>
@@ -460,11 +548,14 @@ export default function AdminOrgsPage() {
                     onChange={(e) => setSeatsDraft(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" onClick={handleSeats}>
+                <Button
+                  onClick={handleSeats}
+                  className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
+                >
                   Salvar
                 </Button>
               </div>
-              <p className="text-xs text-slate-500 -mt-3">
+              <p className="text-sm text-slate-500 -mt-3">
                 {detail.organization.seats_used} em uso. Salvar também marca a
                 organização como <strong>Equipe</strong>.
               </p>
@@ -476,19 +567,22 @@ export default function AdminOrgsPage() {
                 </h3>
                 <ul className="divide-y divide-slate-100 border border-slate-200 rounded">
                   {detail.members.map((m) => (
-                    <li key={m.user_id} className="px-3 py-2.5 flex items-center gap-3">
+                    <li
+                      key={m.user_id}
+                      className="px-3 py-2.5 flex items-center gap-3"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-slate-900 truncate">
                           {m.full_name || "(sem nome)"}
                         </div>
-                        <div className="text-xs text-slate-500 truncate">
+                        <div className="text-sm text-slate-500 truncate">
                           {m.email} — {m.receipts} lançamento(s)
                         </div>
                       </div>
                       <select
                         value={m.role}
                         onChange={(e) => void handleRole(m, e.target.value)}
-                        className="text-xs border border-slate-200 rounded px-2 py-1 bg-white"
+                        className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
                       >
                         <option value="owner">{ROLE_LABEL.owner}</option>
                         <option value="admin">{ROLE_LABEL.admin}</option>
@@ -498,7 +592,11 @@ export default function AdminOrgsPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          void handleBackup("user", m.user_id, m.full_name || m.email || "usuario")
+                          void handleBackup(
+                            "user",
+                            m.user_id,
+                            m.full_name || m.email || "usuario",
+                          )
                         }
                         disabled={backingUp === m.user_id}
                         className="text-slate-400 hover:text-slate-900"
@@ -543,14 +641,15 @@ export default function AdminOrgsPage() {
                     <option value="viewer">{ROLE_LABEL.viewer}</option>
                   </select>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => void handleAddMember("ask")}
                     disabled={adding}
+                    className={cn(BOTAO_BARRA, "rounded-md")}
                   >
                     <UserPlus className="size-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   A conta precisa já existir (crie em Usuários). A primeira
                   pessoa vinculada vira a titular. Para o resto da equipe, o
                   gestor convida pela tela de Equipe.
@@ -563,7 +662,7 @@ export default function AdminOrgsPage() {
                   <h3 className="text-sm font-medium text-slate-900 mb-2">
                     Já passaram por aqui
                   </h3>
-                  <ul className="text-xs text-slate-500 space-y-1">
+                  <ul className="text-sm text-slate-500 space-y-1">
                     {detail.former_members.map((f) => (
                       <li key={f.user_id}>
                         {f.full_name || "(sem nome)"} — saiu em{" "}
@@ -577,7 +676,11 @@ export default function AdminOrgsPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetail(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => setDetail(null)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
               Fechar
             </Button>
           </DialogFooter>
@@ -585,7 +688,10 @@ export default function AdminOrgsPage() {
       </Dialog>
 
       {/* Conta com histórico: as duas saídas, explicadas */}
-      <Dialog open={!!pendingMove} onOpenChange={(o) => !o && setPendingMove(null)}>
+      <Dialog
+        open={!!pendingMove}
+        onOpenChange={(o) => !o && setPendingMove(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Essa conta já tem histórico</DialogTitle>
@@ -593,9 +699,8 @@ export default function AdminOrgsPage() {
           {pendingMove && (
             <div className="space-y-3 py-2 text-sm text-slate-700">
               <p>
-                <strong>{pendingMove.email}</strong> tem{" "}
-                {pendingMove.receipts} lançamento(s) em{" "}
-                {pendingMove.from ?? "outra organização"}.
+                <strong>{pendingMove.email}</strong> tem {pendingMove.receipts}{" "}
+                lançamento(s) em {pendingMove.from ?? "outra organização"}.
               </p>
               <p className="text-slate-600">
                 <strong>Trazer junto</strong> move os lançamentos para esta
@@ -604,23 +709,31 @@ export default function AdminOrgsPage() {
                 sem ninguém dentro, então o histórico ficaria inacessível.
               </p>
               <p className="text-slate-600">
-                <strong>Deixar lá</strong> mantém o histórico na conta antiga e a
-                pessoa entra aqui com a lista vazia.
+                <strong>Deixar lá</strong> mantém o histórico na conta antiga e
+                a pessoa entra aqui com a lista vazia.
               </p>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingMove(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => setPendingMove(null)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
               Cancelar
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => void handleAddMember("keep")}
               disabled={adding}
+              className={cn(BOTAO_BARRA, "rounded-md")}
             >
               Deixar lá
             </Button>
-            <Button onClick={() => void handleAddMember("move")} disabled={adding}>
+            <Button
+              onClick={() => void handleAddMember("move")}
+              disabled={adding}
+            >
               Trazer junto
             </Button>
           </DialogFooter>

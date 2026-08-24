@@ -1,81 +1,174 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import ArrowLeft from "~icons/ph/arrow-left";
+import WrenchDuotone from "~icons/ph/wrench-duotone";
+import TrendDownDuotone from "~icons/ph/trend-down-duotone";
+import TrendUpDuotone from "~icons/ph/trend-up-duotone";
+import UsersThreeDuotone from "~icons/ph/users-three-duotone";
+import BuildingsDuotone from "~icons/ph/buildings-duotone";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
-import { useIsMobile } from "@/components/ui/use-mobile";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { BOTAO_BARRA } from "@/lib/ui-tokens";
+import { useAuth } from "@/contexts/AuthContext";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
 
-type SubTab = "centros" | "cat-despesa" | "cat-receita";
+// As telas do master são grandes e só o master abre: carregam sob demanda, para
+// não entrarem no bundle de quem nunca vai vê-las.
+const AdminUsersPage = lazy(
+  () => import("@/modules/admin/pages/AdminUsersPage"),
+);
+const AdminOrgsPage = lazy(() => import("@/modules/admin/pages/AdminOrgsPage"));
 
-const SUB_TABS: { id: SubTab; label: string }[] = [
-  { id: "centros", label: "Centros de Custo" },
-  { id: "cat-despesa", label: "Categorias de Despesa" },
-  { id: "cat-receita", label: "Categorias de Receita" },
+type SecaoDeConfig =
+  | "centros"
+  | "cat-despesa"
+  | "cat-receita"
+  | "usuarios"
+  | "organizacoes";
+
+interface Atalho {
+  id: SecaoDeConfig;
+  Icon: typeof WrenchDuotone;
+  cor: string;
+  titulo: string;
+  descricao: string;
+  /** Só o master enxerga. */
+  master?: boolean;
+}
+
+/**
+ * Atalhos de Configurações. Ícones duotone coloridos, como no trilho e na tela
+ * de Conta — cada assunto com a própria cor, para o olho achar pelo desenho
+ * antes de ler o rótulo.
+ *
+ * As entradas do MASTER moram aqui em vez de terem ícone próprio no trilho: são
+ * duas telas que só uma pessoa no mundo abre, e ocupavam permanentemente duas
+ * posições de uma coluna que todo usuário vê.
+ */
+const ATALHOS: Atalho[] = [
+  {
+    id: "centros",
+    Icon: WrenchDuotone,
+    cor: "text-emerald-500",
+    titulo: "Centros de Custo",
+    descricao: "Como você separa as despesas",
+  },
+  {
+    id: "cat-despesa",
+    Icon: TrendDownDuotone,
+    cor: "text-red-500",
+    titulo: "Categorias de Despesa",
+    descricao: "Grupos e categorias do que sai",
+  },
+  {
+    id: "cat-receita",
+    Icon: TrendUpDuotone,
+    cor: "text-teal-500",
+    titulo: "Categorias de Receita",
+    descricao: "Grupos e categorias do que entra",
+  },
+  {
+    id: "usuarios",
+    Icon: UsersThreeDuotone,
+    cor: "text-fuchsia-500",
+    titulo: "Usuários",
+    descricao: "Assinantes e acessos do sistema",
+    master: true,
+  },
+  {
+    id: "organizacoes",
+    Icon: BuildingsDuotone,
+    cor: "text-amber-600",
+    titulo: "Organizações",
+    descricao: "Contas, membros e backups",
+    master: true,
+  },
 ];
 
 /**
- * Pagina de Configuracoes - central de organizacao financeira.
- * Sub-tabs internas: Centros de Custo + Categorias. Cada uma e' um
- * "manager" autonomo (CRUD proprio). A aba substituiu a antiga "Centros"
- * e absorveu o gerenciamento de categorias (decisao 2026-05-30).
+ * Configurações — HUB de atalhos.
+ *
+ * Era um conjunto de abas com os três managers. Virou hub em 20/08/2026, no
+ * mesmo molde da tela de Conta, para absorver as telas do master: com abas, cada
+ * assunto novo espremia os títulos (que já não cabiam no celular e viravam um
+ * Select).
+ *
+ * O conteúdo de cada atalho abre INLINE, substituindo a grade — o mesmo padrão
+ * do resto do app (docs/PADRAO-DE-PAGINA.md §6).
  */
 export default function ConfiguracoesPage() {
-  const [active, setActive] = useState<SubTab>("centros");
-  const isMobile = useIsMobile();
+  // `isMaster` vem do contexto (lista em utils/masterUsers), não de um papel na
+  // organização — master é operação do produto, não cargo do cliente.
+  const { isMaster } = useAuth();
+  const [secao, setSecao] = useState<SecaoDeConfig | null>(null);
+
+  const atalhos = ATALHOS.filter((a) => !a.master || isMaster);
+
+  if (!secao) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {atalhos.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => setSecao(a.id)}
+            className="text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          >
+            <a.Icon className={cn("size-7 shrink-0", a.cor)} />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-slate-900">
+                {a.titulo}
+              </span>
+              <span className="block text-sm text-slate-500">
+                {a.descricao}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const atalho = atalhos.find((a) => a.id === secao)!;
 
   return (
     <div className="space-y-4">
-      {/* Mobile: Select (3 labels longos não cabem como tabs). Desktop: sub-tabs
-          pill underline estilo leve (nao confundir com a tab bar principal). */}
-      {isMobile ? (
-        <Select value={active} onValueChange={(v) => setActive(v as SubTab)}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SUB_TABS.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <div className="border-b border-slate-200 flex items-center gap-1">
-          {SUB_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActive(t.id)}
-              className={cn(
-                "relative px-3 py-2 text-sm transition-colors -mb-px",
-                active === t.id
-                  ? "text-slate-900 font-medium"
-                  : "text-slate-500 hover:text-slate-800",
-              )}
-            >
-              {t.label}
-              {active === t.id && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-700" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-3 w-full">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setSecao(null)}
+          className={cn(BOTAO_BARRA, "rounded-md")}
+        >
+          <ArrowLeft className="size-4 mr-2" />
+          Voltar
+        </Button>
 
-      {active === "centros" ? (
-        <CostCentersManager />
-      ) : (
+        {/* Assunto à direita, como em Conta: à esquerda ficam as ações, e o
+            título é rótulo — não coisa para clicar. */}
+        <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+          <atalho.Icon className={cn("size-[18px] shrink-0", atalho.cor)} />
+          <span className="truncate">{atalho.titulo}</span>
+        </span>
+      </div>
+
+      {secao === "centros" && <CostCentersManager />}
+      {(secao === "cat-despesa" || secao === "cat-receita") && (
         <CategoriesManager
-          key={active}
-          direction={active === "cat-receita" ? "income" : "expense"}
+          key={secao}
+          direction={secao === "cat-receita" ? "income" : "expense"}
         />
+      )}
+      {secao === "usuarios" && (
+        <Suspense fallback={<LoadingState />}>
+          <AdminUsersPage />
+        </Suspense>
+      )}
+      {secao === "organizacoes" && (
+        <Suspense fallback={<LoadingState />}>
+          <AdminOrgsPage />
+        </Suspense>
       )}
     </div>
   );

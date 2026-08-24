@@ -373,13 +373,20 @@ export default function MinhaPagina() {
 | Dashboard | ✅ parcial | — | — | período + centro; sem busca, por natureza |
 | Pendências | ✅ | ✅ | ✅ | alinhada em 19/08/2026 (quadro de 3 colunas) |
 | Notificações | ❌ | ❌ | — | sem barra |
+| Admin › Organizações | ✅ | — | ✅ | alinhada em 20/08/2026; ganhou busca |
 | Equipe | ❌ | ❌ | ❌ | sem barra |
-| Admin › Usuários | ❌ | ❌ | ❌ | dois botões `outline` de mesmo peso |
-| Configurações | ❌ | — | — | página de ajustes, não de lista |
+| Admin › Usuários | ✅ | ✅ | ✅ | alinhada em 20/08/2026 |
+| Configurações | — | — | — | HUB de atalhos (20/08/2026); absorveu as telas do master |
 
-**Próximas candidatas: Equipe e Admin › Usuários** — ambas têm lista e botão de
-criar, nenhuma usa os tokens, e Admin › Usuários ainda tem dois botões `outline`
-de mesmo peso disputando a linha.
+**Próxima candidata: Equipe** — tem lista e botão de criar, e não usa os tokens.
+
+### Hub de atalhos
+
+Conta e Configurações não são listas: são ÍNDICES. Em vez da barra, mostram
+cards (3 por linha, ícone duotone colorido) que abrem o assunto inline, com
+`Voltar` à esquerda e o nome do assunto à direita. Use quando a tela reúne
+assuntos independentes — com abas, cada assunto novo espreme os títulos, e no
+celular elas viram um `<select>` que esconde o que existe.
 
 Pendências mostra que o padrão não exige tabela: é um quadro de três colunas, e
 a barra funciona igual — a ordenação escolhida vale dentro de cada coluna, e o

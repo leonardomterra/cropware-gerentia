@@ -118,7 +118,17 @@ const NAV_ITEMS: NavItem[] = [
   // "Fazendas" escondido do menu (CRUD orfao); rota /fazendas segue válida via URL.
 ];
 
-// Só-master (allowlist MASTER_EMAILS): gestão de plataforma de todos os usuários.
+/**
+ * Só-master (allowlist MASTER_EMAILS): gestão de plataforma.
+ *
+ * FORA DO TRILHO desde 20/08/2026 — as duas telas viraram atalhos dentro de
+ * Configurações. São telas que uma pessoa no mundo abre, e ocupavam
+ * permanentemente duas posições numa coluna que todo usuário vê.
+ *
+ * A lista continua existindo porque o BREADCRUMB resolve o rótulo por ela: as
+ * rotas /admin e /admin/organizacoes seguem válidas por URL (link direto,
+ * favorito, histórico), e sem isto o cabeçalho mostraria "admin".
+ */
 const MASTER_NAV_ITEMS: NavItem[] = [
   { to: "/admin", label: "Usuários", icon: ManageAccounts, end: true },
   { to: "/admin/organizacoes", label: "Organizações", icon: Domain },
@@ -171,13 +181,11 @@ const RAIL_ORDEM = [
   "/notificacoes",
   "/configuracoes",
   "/equipe",
-  "/admin",
-  "/admin/organizacoes",
 ];
 
 /** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
 export function AppShell() {
-  const { user, signOut, isAdmin, isMaster, isViewer, isTeamOrg } = useAuth();
+  const { user, signOut, isAdmin, isViewer, isTeamOrg } = useAuth();
   // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
   // mesmo estado que a página lê — marcar lida lá atualiza o badge aqui.
   const { unread } = useNotifications();
@@ -207,7 +215,6 @@ export function AppShell() {
         (!i.teamOnly || isTeamOrg) &&
         (!i.hideForViewer || !isViewer),
     ),
-    ...(isMaster ? MASTER_NAV_ITEMS : []),
   ];
 
   const breadcrumbSegments = useMemo(() => {
