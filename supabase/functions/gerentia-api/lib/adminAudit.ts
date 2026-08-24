@@ -15,7 +15,10 @@ export async function logAdminAction(
 ) {
   try {
     const fwd = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
-    await admin.from("farm_admin_audit").insert({
+    // `insert()` do supabase-js NÃO lança: devolve { error }. Sem checar, o
+    // catch abaixo nunca dispara e uma auditoria que falha some sem deixar
+    // rastro — foi assim que `delete_user` nunca chegou a ser registrado.
+    const { error } = await admin.from("farm_admin_audit").insert({
       actor_user_id: actor?.id ?? null,
       actor_email: actor?.email ?? null,
       action,
@@ -25,6 +28,7 @@ export async function logAdminAction(
       ip: fwd || c.req.header("cf-connecting-ip") || null,
       user_agent: c.req.header("user-agent") ?? null,
     });
+    if (error) throw new Error(error.message);
   } catch (e) {
     console.error("[admin audit] falha ao registrar:", e);
   }

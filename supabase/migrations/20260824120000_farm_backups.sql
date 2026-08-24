@@ -54,9 +54,9 @@ create table if not exists public.farm_backups (
   -- tamanho do estrago sem baixar nada.
   contagem jsonb not null default '{}'::jsonb,
 
-  -- Identidade CONGELADA do alvo (e-mail, nome da organização). Não há FK para
-  -- auth.users em lugar nenhum deste banco: quando a conta some, este bloco é a
-  -- única forma de saber de quem eram as linhas.
+  -- Identidade CONGELADA do alvo (e-mail, nome da organizacao). users_meta
+  -- cascateia quando a conta de auth e apagada, entao este bloco vira o unico
+  -- lugar que guarda quem era a pessoa.
   identidade jsonb not null default '{}'::jsonb,
 
   criado_em timestamptz not null default now(),

@@ -12,9 +12,10 @@
  *    a mesma ordem; se divergirem, o restore quebra em FK e ninguém entende por
  *    quê. Por isso a lista é UMA só, exportada, e não duas cópias.
  *
- *  - IDENTIDADE CONGELADA. Não há FK para auth.users neste banco: quando a
- *    conta some, o e-mail gravado aqui é a única forma de saber de quem eram as
- *    linhas.
+ *  - IDENTIDADE CONGELADA. `users_meta` cascateia quando a conta de auth e
+ *    apagada, entao o e-mail gravado aqui vira o unico lugar que guarda quem
+ *    era a pessoa. (Ver §2 do doc: as FK para auth.users EXISTEM — a nota
+ *    anterior dizendo o contrario estava errada.)
  *
  *  - HASH cobre só `tabelas`. Se cobrisse o arquivo, `gerado_em` mudaria o hash
  *    todo dia e a regra de "não gravar backup igual ao anterior" nunca

@@ -21,11 +21,43 @@ pessoa sem tocar no resto) e **operável pelo próprio usuário**.
 
 Quatro fatos levantados no banco em 24/08/2026 que determinam o desenho.
 
-**Não existe FK para `auth.users`.** `created_by` e `user_id` são UUID solto.
-Dá para restaurar os dados de alguém cuja conta de acesso já foi apagada — o
-dado não depende da conta existir. Em troca, apagar um usuário deixa linhas
-órfãs sem erro e sem aviso: **o pacote precisa congelar a identidade**
-(id, e-mail, nome), senão restaura-se a linha sem saber de quem era.
+**As FKs para `auth.users` existem, e mudam o que a restauração alcança.**
+
+> ⚠️ **Correção de 24/08/2026.** Até a etapa 3 este documento afirmava o
+> contrário — "não existe FK para `auth.users`" — e a afirmação chegou a três
+> mensagens de commit. Veio de uma consulta a `information_schema`, que só
+> mostra constraints sobre objetos em que o papel tem privilégio: o usuário
+> somente-leitura não enxerga `auth.users` e o resultado voltou vazio.
+> `pg_constraint` não tem esse filtro. **Verifique FK por `pg_constraint`.**
+
+O que existe de fato:
+
+| tabela                                                                | coluna               | ao apagar o usuário              |
+| --------------------------------------------------------------------- | -------------------- | -------------------------------- |
+| `farm_receipts`                                                       | `created_by`         | **NO ACTION — barra a exclusão** |
+| `farm_recurring_receipts`                                             | `created_by`         | NO ACTION                        |
+| `farm_tasks`                                                          | `created_by`         | NO ACTION                        |
+| `users_meta`                                                          | `user_id`            | CASCADE                          |
+| `farm_categories`                                                     | `created_by_user_id` | **CASCADE**                      |
+| `farm_whatsapp_links`, `farm_notifications`, `farm_user_cost_centers` | `user_id`            | CASCADE                          |
+| `farm_admin_audit`                                                    | `target_user_id`     | SET NULL                         |
+
+Três consequências:
+
+1. **Usuário com lançamento não é apagável.** O banco recusa. É uma rede que
+   ninguém tinha documentado, e é boa: o caminho certo para tirar alguém de uma
+   organização é o desvínculo, não a exclusão.
+2. **Restaurar dado de conta já apagada não funciona por si só.** O `created_by`
+   do pacote aponta para um `auth.users` que não existe mais, e o insert é
+   recusado. Recriar a conta dá um UUID novo, que não casa. **Limitação
+   conhecida**, tolerável enquanto (1) impede o caso comum de chegar aqui.
+3. **O pacote precisa congelar a identidade** de qualquer forma: pelo CASCADE de
+   `users_meta`, o perfil some junto com a conta, e o pacote vira o único lugar
+   que guarda o e-mail.
+
+Cuidado adicional: `farm_categories.created_by_user_id` é **CASCADE**. Apagar
+quem criou um plano de contas apagaria o plano junto — hoje são 67 categorias
+com essa coluna preenchida.
 
 **`organizations` cascateia em tudo.** Apagar uma linha lá derruba categorias,
 grupos, centros de custo, lançamentos, itens, recorrências, pendências e
@@ -137,10 +169,13 @@ A chave do pacote entra no `farm_admin_audit` junto da ação e volta na respost
 para o registro de "excluí o fulano" já trazer onde está o retrato dele.
 
 **É pacote de USUÁRIO, não de organização, e o momento importa.** Ao excluir a
-conta, as linhas do banco ficam órfãs — não há FK para `auth.users` — e o e-mail
-desaparece junto. O pacote de usuário congela a identidade, e é o único artefato
-que depois amarra aquelas linhas a uma pessoa. Tirado um segundo depois, já não
-seria possível.
+conta, `users_meta` cascateia junto e o e-mail desaparece. O pacote congela a
+identidade e vira o único lugar que guarda quem era a pessoa.
+
+Vale o alerta do §2: usuário com lançamento **não é apagável** — o banco recusa
+—, então o retrato da exclusão cobre contas sem movimento. Para quem tem dados o
+caminho é o desvínculo, e aí o retrato é plenamente restaurável, porque a conta
+continua existindo.
 
 No desvínculo nada é apagado (os lançamentos ficam com a organização, decisão 3
 de `ORGANIZACOES-E-PERFIS.md` §3), mas os vínculos mudam de dono e a pessoa vai

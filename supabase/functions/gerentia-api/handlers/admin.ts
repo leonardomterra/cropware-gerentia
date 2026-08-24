@@ -367,8 +367,10 @@ export function mountAdminRoutes(app: Hono) {
         );
       }
 
-      const { error } = await admin.auth.admin.deleteUser(id);
-      if (error) return c.json({ error: error.message }, 400);
+      // AUDITAR ANTES DE APAGAR. `farm_admin_audit.target_user_id` tem FK para
+      // auth.users: depois do deleteUser o insert viola a constraint e o
+      // registro nunca acontece. Era por isso que nenhuma exclusao aparecia no
+      // log — e como logAdminAction engolia o erro, ninguem percebeu.
       await logAdminAction(
         admin,
         c,
@@ -380,6 +382,20 @@ export function mountAdminRoutes(app: Hono) {
           backup_contagem: retrato.contagem,
         },
       );
+
+      const { error } = await admin.auth.admin.deleteUser(id);
+      if (error) {
+        // Barrado quase sempre pela FK de farm_receipts.created_by, que e NO
+        // ACTION: usuario com lancamento nao e apagavel, e isso e bom.
+        return c.json(
+          {
+            error: error.message,
+            aviso:
+              "Se houver lancamentos, use o desvinculo em vez da exclusao.",
+          },
+          400,
+        );
+      }
       return c.json({ ok: true, backup: retrato.chave });
     } catch (resp) {
       if (resp instanceof Response) return resp;

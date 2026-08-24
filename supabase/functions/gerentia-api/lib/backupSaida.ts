@@ -13,10 +13,14 @@
  * guardar dado pessoal indefinidamente é exatamente o que um pedido de LGPD vai
  * cobrar (§6 do doc).
  *
- * Por que o pacote de USUÁRIO e não o da organização: ao excluir a conta, as
- * linhas ficam órfãs — não há FK para `auth.users` neste banco. O pacote de
- * usuário é o único artefato que amarra aquelas linhas a um e-mail, porque
- * congela a identidade.
+ * Por que o pacote de USUÁRIO e não o da organização: ao excluir a conta,
+ * `users_meta` cascateia junto e o e-mail some. O pacote congela a identidade e
+ * vira o único lugar que guarda quem era a pessoa.
+ *
+ * Limite conhecido (§2 do doc): `farm_receipts.created_by` tem FK NO ACTION
+ * para auth.users, entao usuario COM lancamento nem chega a ser apagavel — o
+ * banco recusa. Este retrato cobre a exclusao de contas sem movimento e o
+ * desvinculo, que e onde ele e plenamente restauravel.
  */
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
