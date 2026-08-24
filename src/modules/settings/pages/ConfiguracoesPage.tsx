@@ -4,7 +4,7 @@ import WrenchDuotone from "~icons/ph/wrench-duotone";
 import TrendDownDuotone from "~icons/ph/trend-down-duotone";
 import TrendUpDuotone from "~icons/ph/trend-up-duotone";
 import UsersThreeDuotone from "~icons/ph/users-three-duotone";
-import BuildingsDuotone from "~icons/ph/buildings-duotone";
+import BuildingOfficeDuotone from "~icons/ph/building-office-duotone";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
@@ -78,7 +78,7 @@ const ATALHOS: Atalho[] = [
   },
   {
     id: "organizacoes",
-    Icon: BuildingsDuotone,
+    Icon: BuildingOfficeDuotone,
     cor: "text-amber-600",
     titulo: "Organizações",
     descricao: "Contas, membros e backups",

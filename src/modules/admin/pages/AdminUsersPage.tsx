@@ -7,6 +7,9 @@ import Trash2 from "~icons/ph/trash";
 import LoginIcon from "~icons/ph/sign-in";
 import MailIcon from "~icons/ph/envelope-simple";
 import Download from "~icons/ph/download-simple";
+import Pencil from "~icons/ph/pencil-simple";
+import ArrowLeft from "~icons/ph/arrow-left";
+import Save from "~icons/ph/floppy-disk";
 import ChevronDown from "~icons/ph/caret-down";
 import Search from "~icons/ph/magnifying-glass";
 import FilterList from "~icons/ph/funnel";
@@ -30,6 +33,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
@@ -398,6 +402,339 @@ export default function AdminUsersPage() {
     });
   }
 
+  // Editar SUBSTITUI a lista, como no resto do app (docs/PADRAO-DE-PAGINA.md
+  // §6). Era um dialog com formulário, grade de ações e zona destrutiva — muita
+  // coisa para uma caixa que o teclado do celular espreme.
+  /**
+   * Diálogos disparados de DENTRO da tela de edição (alterar e-mail, alterar
+   * senha, confirmações). Ficam numa variável porque a edição usa `return`
+   * antecipado: deixados só no return principal, eles não seriam montados
+   * enquanto a edição está aberta — o botão setava o estado e nada aparecia.
+   */
+  const dialogosDaEdicao = (
+    <>
+      <Dialog
+        open={!!changingPasswordFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setChangingPasswordFor(null);
+            setPwForm({ password: "", password_confirm: "" });
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Nova senha
+              </label>
+              <Input
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={pwForm.password}
+                onChange={(e) =>
+                  setPwForm((s) => ({ ...s, password: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Confirmar nova senha
+              </label>
+              <Input
+                type="password"
+                placeholder="Repita a senha"
+                value={pwForm.password_confirm}
+                onChange={(e) =>
+                  setPwForm((s) => ({ ...s, password_confirm: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setChangingPasswordFor(null);
+                setPwForm({ password: "", password_confirm: "" });
+              }}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePassword} disabled={savingPw}>
+              {savingPw ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alterar email */}
+      <Dialog
+        open={!!changingEmailFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setChangingEmailFor(null);
+            setEmailForm({ email: "" });
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Novo email
+              </label>
+              <Input
+                type="email"
+                placeholder="novo@email.com"
+                value={emailForm.email}
+                onChange={(e) => setEmailForm({ email: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setChangingEmailFor(null);
+                setEmailForm({ email: "" });
+              }}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEmail} disabled={savingEmail}>
+              {savingEmail ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        open={confirmState !== null}
+        onOpenChange={(o) => {
+          if (!o) setConfirmState(null);
+        }}
+        title={confirmState?.title}
+        description={confirmState?.description ?? ""}
+        confirmLabel={confirmState?.confirmLabel}
+        cancelLabel="Cancelar"
+        loading={confirmRunning}
+        loadingLabel={confirmState?.loadingLabel}
+        onConfirm={runConfirm}
+      />
+    </>
+  );
+
+  if (editing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={editPending}
+            onClick={() => setEditing(null)}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowLeft className="size-4 mr-2" />
+            Voltar
+          </Button>
+          <Button
+            onClick={handleSaveEdit}
+            disabled={editPending}
+            className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
+          >
+            <Save className="size-4 mr-2" />
+            {editPending ? "Salvando..." : "Salvar"}
+          </Button>
+          <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+            <Pencil className="size-[18px] shrink-0 text-fuchsia-500" />
+            <span className="truncate">
+              {editing.full_name || editing.email}
+            </span>
+          </span>
+        </div>
+
+        {dialogosDaEdicao}
+
+        <div className="bg-white rounded-lg border border-slate-200 p-4 md:p-6">
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Nome
+              </label>
+              <Input
+                value={eForm.full_name}
+                onChange={(e) =>
+                  setEForm((s) => ({ ...s, full_name: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Trial termina em
+              </label>
+              <Input
+                type="date"
+                value={eForm.trial_ends_at}
+                onChange={(e) =>
+                  setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))
+                }
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className={cn(
+                  BOTAO_BARRA,
+                  "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                )}
+                onClick={() => {
+                  setChangingEmailFor(editing);
+                  setEmailForm({ email: editing?.email ?? "" });
+                }}
+              >
+                Alterar Email
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className={cn(
+                  BOTAO_BARRA,
+                  "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                )}
+                onClick={() => {
+                  setChangingPasswordFor(editing);
+                  setPwForm({ password: "", password_confirm: "" });
+                }}
+              >
+                Alterar Senha
+              </Button>
+            </div>
+
+            {!editing?.is_master && (
+              <>
+                <hr className="border-slate-100" />
+                <div className="flex flex-wrap gap-2">
+                  {!editing?.email_confirmed_at &&
+                    !editing?.last_sign_in_at && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className={cn(
+                          BOTAO_BARRA,
+                          "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                        )}
+                        disabled={editPending}
+                        onClick={async () => {
+                          setEditPending(true);
+                          try {
+                            await resendInvite(editing!.id);
+                            toast.success("Convite reenviado");
+                          } catch (e) {
+                            const msg = e instanceof Error ? e.message : "";
+                            if (msg.includes("already_confirmed")) {
+                              toast.info("Usuário já confirmou a conta");
+                            } else {
+                              toast.error(msg || "Erro ao reenviar convite");
+                            }
+                          } finally {
+                            setEditPending(false);
+                          }
+                        }}
+                      >
+                        <MailIcon className="size-4 mr-1.5" />
+                        Convidar
+                      </Button>
+                    )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={cn(
+                      BOTAO_BARRA,
+                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                    )}
+                    disabled={editPending}
+                    onClick={() => {
+                      askImpersonate(editing!);
+                      setEditing(null);
+                    }}
+                  >
+                    <LoginIcon className="size-4 mr-1.5" />
+                    Entrar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={cn(
+                      BOTAO_BARRA,
+                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                    )}
+                    disabled={editPending}
+                    onClick={() => {
+                      askReset(editing!);
+                      setEditing(null);
+                    }}
+                  >
+                    <KeyIcon className="size-4 mr-1.5" />
+                    Resetar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={cn(
+                      BOTAO_BARRA,
+                      "flex-1 min-w-[calc(50%-4px)] rounded-md",
+                    )}
+                    disabled={editPending}
+                    onClick={() => {
+                      handleSuspend(editing!);
+                      setEditing(null);
+                    }}
+                  >
+                    {isSuspended(editing!) ? (
+                      <>
+                        <CheckIcon className="size-4 mr-1.5" />
+                        Reativar
+                      </>
+                    ) : (
+                      <>
+                        <BlockIcon className="size-4 mr-1.5" />
+                        Suspender
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+                    disabled={editPending}
+                    onClick={() => {
+                      askDelete(editing!);
+                      setEditing(null);
+                    }}
+                  >
+                    <Trash2 className="size-4 mr-1.5" />
+                    Excluir
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Barra no padrão do app (docs/PADRAO-DE-PAGINA.md): busca esticando,
@@ -554,15 +891,19 @@ export default function AdminUsersPage() {
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-600 text-sm">
+              {/* Larguras fixas nas colunas de medida conhecida (data, data,
+                  dois botões) e o resto para "Usuário": sem isso a tabela
+                  distribuía por conteúdo e sobrava espaço morto no meio,
+                  enquanto nome e e-mail — o que se lê — ficavam apertados. */}
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Usuário</th>
-                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell">
+                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell w-[180px]">
                   Trial
                 </th>
-                <th className="text-left px-4 py-2 font-medium hidden md:table-cell">
+                <th className="text-left px-4 py-2 font-medium hidden md:table-cell w-[150px]">
                   Último Acesso
                 </th>
-                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell">
+                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell w-[130px]">
                   Ações
                 </th>
               </tr>
@@ -627,30 +968,25 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-sm text-slate-500 hidden md:table-cell">
                       {fmtDate(u.last_sign_in_at)}
                     </td>
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <div className="inline-flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleBackup(u);
-                          }}
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      {/* Botões de ícone no padrão do app (ActionIconButton):
+                          eram um ícone cinza fino e um link de texto, que não
+                          se liam como ação nem tinham área de toque. */}
+                      <div
+                        className="flex items-center justify-end gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ActionIconButton
+                          icon={Download}
+                          label="Baixar o que essa pessoa cadastrou (JSON)"
                           disabled={backingUp === u.id}
-                          className="text-slate-400 hover:text-slate-900"
-                          title="Baixar o que essa pessoa cadastrou (JSON)"
-                        >
-                          <Download className="size-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEdit(u);
-                          }}
-                          className="text-sm text-slate-600 hover:text-slate-900"
-                        >
-                          Editar
-                        </button>
+                          onClick={() => void handleBackup(u)}
+                        />
+                        <ActionIconButton
+                          icon={Pencil}
+                          label="Editar"
+                          onClick={() => openEdit(u)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -824,316 +1160,9 @@ export default function AdminUsersPage() {
       </Dialog>
 
       {/* Editar usuário */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <span className="sm:hidden">Editar</span>
-              <span className="hidden sm:inline">
-                Editar {editing?.full_name || editing?.email}
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-          {editing && (
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Nome
-                </label>
-                <Input
-                  value={eForm.full_name}
-                  onChange={(e) =>
-                    setEForm((s) => ({ ...s, full_name: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Trial termina em
-                </label>
-                <Input
-                  type="date"
-                  value={eForm.trial_ends_at}
-                  onChange={(e) =>
-                    setEForm((s) => ({ ...s, trial_ends_at: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    BOTAO_BARRA,
-                    "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                  )}
-                  onClick={() => {
-                    setChangingEmailFor(editing);
-                    setEmailForm({ email: editing?.email ?? "" });
-                  }}
-                >
-                  Alterar Email
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    BOTAO_BARRA,
-                    "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                  )}
-                  onClick={() => {
-                    setChangingPasswordFor(editing);
-                    setPwForm({ password: "", password_confirm: "" });
-                  }}
-                >
-                  Alterar Senha
-                </Button>
-              </div>
-
-              {!editing?.is_master && (
-                <>
-                  <hr className="border-slate-100" />
-                  <div className="flex flex-wrap gap-2">
-                    {!editing?.email_confirmed_at &&
-                      !editing?.last_sign_in_at && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className={cn(
-                            BOTAO_BARRA,
-                            "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                          )}
-                          disabled={editPending}
-                          onClick={async () => {
-                            setEditPending(true);
-                            try {
-                              await resendInvite(editing!.id);
-                              toast.success("Convite reenviado");
-                            } catch (e) {
-                              const msg = e instanceof Error ? e.message : "";
-                              if (msg.includes("already_confirmed")) {
-                                toast.info("Usuário já confirmou a conta");
-                              } else {
-                                toast.error(msg || "Erro ao reenviar convite");
-                              }
-                            } finally {
-                              setEditPending(false);
-                            }
-                          }}
-                        >
-                          <MailIcon className="size-4 mr-1.5" />
-                          Convidar
-                        </Button>
-                      )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={cn(
-                        BOTAO_BARRA,
-                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                      )}
-                      disabled={editPending}
-                      onClick={() => {
-                        askImpersonate(editing!);
-                        setEditing(null);
-                      }}
-                    >
-                      <LoginIcon className="size-4 mr-1.5" />
-                      Entrar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={cn(
-                        BOTAO_BARRA,
-                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                      )}
-                      disabled={editPending}
-                      onClick={() => {
-                        askReset(editing!);
-                        setEditing(null);
-                      }}
-                    >
-                      <KeyIcon className="size-4 mr-1.5" />
-                      Resetar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={cn(
-                        BOTAO_BARRA,
-                        "flex-1 min-w-[calc(50%-4px)] rounded-md",
-                      )}
-                      disabled={editPending}
-                      onClick={() => {
-                        handleSuspend(editing!);
-                        setEditing(null);
-                      }}
-                    >
-                      {isSuspended(editing!) ? (
-                        <>
-                          <CheckIcon className="size-4 mr-1.5" />
-                          Reativar
-                        </>
-                      ) : (
-                        <>
-                          <BlockIcon className="size-4 mr-1.5" />
-                          Suspender
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1 min-w-[calc(50%-4px)] text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
-                      disabled={editPending}
-                      onClick={() => {
-                        askDelete(editing!);
-                        setEditing(null);
-                      }}
-                    >
-                      <Trash2 className="size-4 mr-1.5" />
-                      Excluir
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              disabled={editPending}
-              onClick={() => setEditing(null)}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={editPending}>
-              {editPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Alterar senha */}
-      <Dialog
-        open={!!changingPasswordFor}
-        onOpenChange={(o) => {
-          if (!o) {
-            setChangingPasswordFor(null);
-            setPwForm({ password: "", password_confirm: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Senha</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nova senha
-              </label>
-              <Input
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={pwForm.password}
-                onChange={(e) =>
-                  setPwForm((s) => ({ ...s, password: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Confirmar nova senha
-              </label>
-              <Input
-                type="password"
-                placeholder="Repita a senha"
-                value={pwForm.password_confirm}
-                onChange={(e) =>
-                  setPwForm((s) => ({ ...s, password_confirm: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setChangingPasswordFor(null);
-                setPwForm({ password: "", password_confirm: "" });
-              }}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePassword} disabled={savingPw}>
-              {savingPw ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Alterar email */}
-      <Dialog
-        open={!!changingEmailFor}
-        onOpenChange={(o) => {
-          if (!o) {
-            setChangingEmailFor(null);
-            setEmailForm({ email: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Alterar Email</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Novo email
-              </label>
-              <Input
-                type="email"
-                placeholder="novo@email.com"
-                value={emailForm.email}
-                onChange={(e) => setEmailForm({ email: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setChangingEmailFor(null);
-                setEmailForm({ email: "" });
-              }}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEmail} disabled={savingEmail}>
-              {savingEmail ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmActionDialog
-        open={confirmState !== null}
-        onOpenChange={(o) => {
-          if (!o) setConfirmState(null);
-        }}
-        title={confirmState?.title}
-        description={confirmState?.description ?? ""}
-        confirmLabel={confirmState?.confirmLabel}
-        cancelLabel="Cancelar"
-        loading={confirmRunning}
-        loadingLabel={confirmState?.loadingLabel}
-        onConfirm={runConfirm}
-      />
+      {dialogosDaEdicao}
     </div>
   );
 }

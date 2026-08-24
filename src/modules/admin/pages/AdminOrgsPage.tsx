@@ -6,11 +6,14 @@ import X from "~icons/ph/x";
 import UserPlus from "~icons/ph/user-plus";
 import Plus from "~icons/ph/plus";
 import Download from "~icons/ph/download-simple";
+import ArrowLeft from "~icons/ph/arrow-left";
+import Gear from "~icons/ph/gear-six";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import ChevronDown from "~icons/ph/caret-down";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { cn } from "@/components/ui/utils";
 import {
   Popover,
@@ -120,6 +123,9 @@ export default function AdminOrgsPage() {
 
   const [detail, setDetail] = useState<AdminOrgDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Separado de `detail` porque a tela abre ANTES de os dados chegarem: com um
+  // estado só, o clique não mostrava nada até a resposta e parecia travado.
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const [addEmail, setAddEmail] = useState("");
   const [addRole, setAddRole] = useState("member");
@@ -155,6 +161,7 @@ export default function AdminOrgsPage() {
   }
 
   async function openDetail(org: AdminOrg) {
+    setDetailOpen(true);
     setDetailLoading(true);
     try {
       const d = await loadDetail(org.id);
@@ -275,6 +282,261 @@ export default function AdminOrgsPage() {
     } catch (e) {
       toast.error(apiMessage(e, "Erro ao salvar"));
     }
+  }
+
+  // Gerenciar SUBSTITUI a lista. Era um dialog com assentos, lista de membros
+  // com seletor de papel por linha e vínculo de conta — conteúdo de tela, não
+  // de caixa: no celular a rolagem interna brigava com a da página.
+  /**
+   * Diálogos disparados de DENTRO da tela de gerenciar (mover conta com
+   * histórico, desvincular membro). Ficam numa variável porque a tela usa
+   * `return` antecipado: deixados só no return principal, não seriam montados
+   * enquanto o gerenciamento está aberto — o botão setava o estado e nada
+   * aparecia.
+   */
+  const dialogosDoGerenciar = (
+    <>
+      <Dialog
+        open={!!pendingMove}
+        onOpenChange={(o) => !o && setPendingMove(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Essa conta já tem histórico</DialogTitle>
+          </DialogHeader>
+          {pendingMove && (
+            <div className="space-y-3 py-2 text-sm text-slate-700">
+              <p>
+                <strong>{pendingMove.email}</strong> tem {pendingMove.receipts}{" "}
+                lançamento(s) em {pendingMove.from ?? "outra organização"}.
+              </p>
+              <p className="text-slate-600">
+                <strong>Trazer junto</strong> move os lançamentos para esta
+                organização e o centro de custo vira o padrão daqui (a pessoa
+                reclassifica depois). É o que ela espera — a conta antiga fica
+                sem ninguém dentro, então o histórico ficaria inacessível.
+              </p>
+              <p className="text-slate-600">
+                <strong>Deixar lá</strong> mantém o histórico na conta antiga e
+                a pessoa entra aqui com a lista vazia.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setPendingMove(null)}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => void handleAddMember("keep")}
+              disabled={adding}
+              className={cn(BOTAO_BARRA, "rounded-md")}
+            >
+              Deixar lá
+            </Button>
+            <Button
+              onClick={() => void handleAddMember("move")}
+              disabled={adding}
+            >
+              Trazer junto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirma desvincular */}
+      <ConfirmActionDialog
+        open={!!pendingRemove}
+        onOpenChange={(o) => !o && setPendingRemove(null)}
+        title="Desvincular da organização?"
+        description={
+          pendingRemove
+            ? `${pendingRemove.full_name || pendingRemove.email} sai da organização e recebe uma conta avulsa vazia. Os ${pendingRemove.receipts} lançamento(s) que cadastrou FICAM aqui, com o nome preservado no histórico.`
+            : ""
+        }
+        confirmLabel="Desvincular"
+        onConfirm={handleRemove}
+      />
+    </>
+  );
+
+  if (detailOpen) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setDetail(null);
+              setDetailOpen(false);
+            }}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowLeft className="size-4 mr-2" />
+            Voltar
+          </Button>
+          <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+            <Gear className="size-[18px] shrink-0 text-amber-600" />
+            <span className="truncate">
+              {detail?.organization.name ?? "Organização"}
+            </span>
+          </span>
+        </div>
+
+        {dialogosDoGerenciar}
+
+        <div className="bg-white rounded-lg border border-slate-200 p-4 md:p-6">
+          {detailLoading || !detail ? (
+            <LoadingState />
+          ) : (
+            <div className="space-y-5 py-2">
+              {/* Acessos */}
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-700 block mb-1">
+                    Acessos contratados
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={seatsDraft}
+                    onChange={(e) => setSeatsDraft(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={handleSeats}
+                  className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
+                >
+                  Salvar
+                </Button>
+              </div>
+              <p className="text-sm text-slate-500 -mt-3">
+                {detail.organization.seats_used} em uso. Salvar também marca a
+                organização como <strong>Equipe</strong>.
+              </p>
+
+              {/* Membros */}
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 mb-2">
+                  Pessoas ({detail.members.length})
+                </h3>
+                <ul className="divide-y divide-slate-100 border border-slate-200 rounded">
+                  {detail.members.map((m) => (
+                    <li
+                      key={m.user_id}
+                      className="px-3 py-2.5 flex items-center gap-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-slate-900 truncate">
+                          {m.full_name || "(sem nome)"}
+                        </div>
+                        <div className="text-sm text-slate-500 truncate">
+                          {m.email} — {m.receipts} lançamento(s)
+                        </div>
+                      </div>
+                      <select
+                        value={m.role}
+                        onChange={(e) => void handleRole(m, e.target.value)}
+                        className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
+                      >
+                        <option value="owner">{ROLE_LABEL.owner}</option>
+                        <option value="admin">{ROLE_LABEL.admin}</option>
+                        <option value="member">{ROLE_LABEL.member}</option>
+                        <option value="viewer">{ROLE_LABEL.viewer}</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleBackup(
+                            "user",
+                            m.user_id,
+                            m.full_name || m.email || "usuario",
+                          )
+                        }
+                        disabled={backingUp === m.user_id}
+                        className="text-slate-400 hover:text-slate-900"
+                        title="Baixar o que essa pessoa cadastrou (JSON)"
+                      >
+                        <Download className="size-4" />
+                      </button>
+                      {m.role !== "owner" && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingRemove(m)}
+                          className="text-slate-400 hover:text-red-600"
+                          title="Desvincular"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Vincular alguém */}
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 mb-2">
+                  Vincular conta existente
+                </h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="email@da.pessoa"
+                    value={addEmail}
+                    onChange={(e) => setAddEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <select
+                    value={addRole}
+                    onChange={(e) => setAddRole(e.target.value)}
+                    className="text-sm border border-slate-200 rounded px-2 bg-white"
+                  >
+                    <option value="member">{ROLE_LABEL.member}</option>
+                    <option value="admin">{ROLE_LABEL.admin}</option>
+                    <option value="viewer">{ROLE_LABEL.viewer}</option>
+                  </select>
+                  <Button
+                    variant="ghost"
+                    onClick={() => void handleAddMember("ask")}
+                    disabled={adding}
+                    className={cn(BOTAO_BARRA, "rounded-md")}
+                  >
+                    <UserPlus className="size-4" />
+                  </Button>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  A conta precisa já existir (crie em Usuários). A primeira
+                  pessoa vinculada vira a titular. Para o resto da equipe, o
+                  gestor convida pela tela de Equipe.
+                </p>
+              </div>
+
+              {/* Ex-membros */}
+              {detail.former_members.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 mb-2">
+                    Já passaram por aqui
+                  </h3>
+                  <ul className="text-sm text-slate-500 space-y-1">
+                    {detail.former_members.map((f) => (
+                      <li key={f.user_id}>
+                        {f.full_name || "(sem nome)"} — saiu em{" "}
+                        {fmtDate(f.removed_at)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -421,25 +683,26 @@ export default function AdminOrgsPage() {
                   <td className="px-4 py-3 text-sm text-slate-600 hidden md:table-cell">
                     {fmtDate(o.trial_ends_at)}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void handleBackup("org", o.id, o.name)}
+                  <td className="px-4 py-3">
+                    {/* Botões de ícone no padrão do app, como na tabela de
+                        Usuários: eram dois links de texto, que numa tabela leem
+                        como conteúdo da linha, não como ação. */}
+                    <div className="flex items-center justify-end gap-1">
+                      <ActionIconButton
+                        icon={Download}
+                        label={
+                          backingUp === o.id
+                            ? "Gerando backup…"
+                            : "Baixar backup JSON da organização"
+                        }
                         disabled={backingUp === o.id}
-                        className="text-sm text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
-                        title="Baixar backup JSON da organização"
-                      >
-                        <Download className="size-4" />
-                        {backingUp === o.id ? "Gerando…" : "Backup"}
-                      </button>
-                      <button
-                        type="button"
+                        onClick={() => void handleBackup("org", o.id, o.name)}
+                      />
+                      <ActionIconButton
+                        icon={Gear}
+                        label="Gerenciar"
                         onClick={() => void openDetail(o)}
-                        className="text-sm text-slate-600 hover:text-slate-900"
-                      >
-                        Gerenciar
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
@@ -525,234 +788,9 @@ export default function AdminOrgsPage() {
       </Dialog>
 
       {/* Detalhe / gestão */}
-      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{detail?.organization.name}</DialogTitle>
-          </DialogHeader>
-
-          {detailLoading || !detail ? (
-            <LoadingState />
-          ) : (
-            <div className="space-y-5 py-2">
-              {/* Acessos */}
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-slate-700 block mb-1">
-                    Acessos contratados
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={seatsDraft}
-                    onChange={(e) => setSeatsDraft(e.target.value)}
-                  />
-                </div>
-                <Button
-                  onClick={handleSeats}
-                  className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
-                >
-                  Salvar
-                </Button>
-              </div>
-              <p className="text-sm text-slate-500 -mt-3">
-                {detail.organization.seats_used} em uso. Salvar também marca a
-                organização como <strong>Equipe</strong>.
-              </p>
-
-              {/* Membros */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-900 mb-2">
-                  Pessoas ({detail.members.length})
-                </h3>
-                <ul className="divide-y divide-slate-100 border border-slate-200 rounded">
-                  {detail.members.map((m) => (
-                    <li
-                      key={m.user_id}
-                      className="px-3 py-2.5 flex items-center gap-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-slate-900 truncate">
-                          {m.full_name || "(sem nome)"}
-                        </div>
-                        <div className="text-sm text-slate-500 truncate">
-                          {m.email} — {m.receipts} lançamento(s)
-                        </div>
-                      </div>
-                      <select
-                        value={m.role}
-                        onChange={(e) => void handleRole(m, e.target.value)}
-                        className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
-                      >
-                        <option value="owner">{ROLE_LABEL.owner}</option>
-                        <option value="admin">{ROLE_LABEL.admin}</option>
-                        <option value="member">{ROLE_LABEL.member}</option>
-                        <option value="viewer">{ROLE_LABEL.viewer}</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleBackup(
-                            "user",
-                            m.user_id,
-                            m.full_name || m.email || "usuario",
-                          )
-                        }
-                        disabled={backingUp === m.user_id}
-                        className="text-slate-400 hover:text-slate-900"
-                        title="Baixar o que essa pessoa cadastrou (JSON)"
-                      >
-                        <Download className="size-4" />
-                      </button>
-                      {m.role !== "owner" && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingRemove(m)}
-                          className="text-slate-400 hover:text-red-600"
-                          title="Desvincular"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Vincular alguém */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-900 mb-2">
-                  Vincular conta existente
-                </h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="email@da.pessoa"
-                    value={addEmail}
-                    onChange={(e) => setAddEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <select
-                    value={addRole}
-                    onChange={(e) => setAddRole(e.target.value)}
-                    className="text-sm border border-slate-200 rounded px-2 bg-white"
-                  >
-                    <option value="member">{ROLE_LABEL.member}</option>
-                    <option value="admin">{ROLE_LABEL.admin}</option>
-                    <option value="viewer">{ROLE_LABEL.viewer}</option>
-                  </select>
-                  <Button
-                    variant="ghost"
-                    onClick={() => void handleAddMember("ask")}
-                    disabled={adding}
-                    className={cn(BOTAO_BARRA, "rounded-md")}
-                  >
-                    <UserPlus className="size-4" />
-                  </Button>
-                </div>
-                <p className="text-sm text-slate-500 mt-1">
-                  A conta precisa já existir (crie em Usuários). A primeira
-                  pessoa vinculada vira a titular. Para o resto da equipe, o
-                  gestor convida pela tela de Equipe.
-                </p>
-              </div>
-
-              {/* Ex-membros */}
-              {detail.former_members.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-900 mb-2">
-                    Já passaram por aqui
-                  </h3>
-                  <ul className="text-sm text-slate-500 space-y-1">
-                    {detail.former_members.map((f) => (
-                      <li key={f.user_id}>
-                        {f.full_name || "(sem nome)"} — saiu em{" "}
-                        {fmtDate(f.removed_at)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setDetail(null)}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Conta com histórico: as duas saídas, explicadas */}
-      <Dialog
-        open={!!pendingMove}
-        onOpenChange={(o) => !o && setPendingMove(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Essa conta já tem histórico</DialogTitle>
-          </DialogHeader>
-          {pendingMove && (
-            <div className="space-y-3 py-2 text-sm text-slate-700">
-              <p>
-                <strong>{pendingMove.email}</strong> tem {pendingMove.receipts}{" "}
-                lançamento(s) em {pendingMove.from ?? "outra organização"}.
-              </p>
-              <p className="text-slate-600">
-                <strong>Trazer junto</strong> move os lançamentos para esta
-                organização e o centro de custo vira o padrão daqui (a pessoa
-                reclassifica depois). É o que ela espera — a conta antiga fica
-                sem ninguém dentro, então o histórico ficaria inacessível.
-              </p>
-              <p className="text-slate-600">
-                <strong>Deixar lá</strong> mantém o histórico na conta antiga e
-                a pessoa entra aqui com a lista vazia.
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setPendingMove(null)}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => void handleAddMember("keep")}
-              disabled={adding}
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              Deixar lá
-            </Button>
-            <Button
-              onClick={() => void handleAddMember("move")}
-              disabled={adding}
-            >
-              Trazer junto
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirma desvincular */}
-      <ConfirmActionDialog
-        open={!!pendingRemove}
-        onOpenChange={(o) => !o && setPendingRemove(null)}
-        title="Desvincular da organização?"
-        description={
-          pendingRemove
-            ? `${pendingRemove.full_name || pendingRemove.email} sai da organização e recebe uma conta avulsa vazia. Os ${pendingRemove.receipts} lançamento(s) que cadastrou FICAM aqui, com o nome preservado no histórico.`
-            : ""
-        }
-        confirmLabel="Desvincular"
-        onConfirm={handleRemove}
-      />
+      {dialogosDoGerenciar}
     </div>
   );
 }
