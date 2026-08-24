@@ -9,7 +9,11 @@ import { lazy, type ComponentType } from "react";
  * Em caso de falha, faz um hard reload assumindo que o ServiceWorker / cache
  * vai puxar a versao nova.
  */
-export function lazyWithRetry<T extends ComponentType<unknown>>(
+// `ComponentType<any>` e nao `<unknown>`: com unknown, so aceita componente sem
+// props — e telas que recebem props (ex.: AdminOrgsPage com `aoSair`) deixavam
+// de caber aqui.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ) {
   return lazy(async () => {

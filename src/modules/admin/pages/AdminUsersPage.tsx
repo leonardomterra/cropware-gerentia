@@ -9,6 +9,7 @@ import MailIcon from "~icons/ph/envelope-simple";
 import Download from "~icons/ph/download-simple";
 import Pencil from "~icons/ph/pencil-simple";
 import ArrowLeft from "~icons/ph/arrow-left";
+import UsersThree from "~icons/ph/users-three-duotone";
 import Save from "~icons/ph/floppy-disk";
 import ChevronDown from "~icons/ph/caret-down";
 import Search from "~icons/ph/magnifying-glass";
@@ -72,7 +73,15 @@ function isSuspended(u: AdminUser): boolean {
   return !!u.banned_until && new Date(u.banned_until).getTime() > Date.now();
 }
 
-export default function AdminUsersPage() {
+/** Ver `aoSair` em AdminOrgsPage: a tela tem um nível a mais que o hub. */
+export default function AdminUsersPage({
+  aoSair,
+  buscaInicial = "",
+}: {
+  aoSair?: () => void;
+  /** Preenche a busca ao abrir — usado por "editar" vindo de Organizações. */
+  buscaInicial?: string;
+}) {
   const {
     users,
     loading,
@@ -101,7 +110,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(buscaInicial);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [cForm, setCForm] = useState({
@@ -737,6 +746,24 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      {aoSair && (
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={aoSair}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowLeft className="size-4 mr-2" />
+            Voltar
+          </Button>
+          <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+            <UsersThree className="size-[18px] shrink-0 text-fuchsia-500" />
+            <span className="truncate">Usuários</span>
+          </span>
+        </div>
+      )}
+
       {/* Barra no padrão do app (docs/PADRAO-DE-PAGINA.md): busca esticando,
           Filtros e Ordenar encostados à direita. Antes eram três gatilhos
           soltos, com o de filtro pintando de escuro quando ativo — sinal que

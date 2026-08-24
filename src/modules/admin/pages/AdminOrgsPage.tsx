@@ -7,8 +7,11 @@ import UserPlus from "~icons/ph/user-plus";
 import Plus from "~icons/ph/plus";
 import Download from "~icons/ph/download-simple";
 import ArrowLeft from "~icons/ph/arrow-left";
+import Pencil from "~icons/ph/pencil-simple";
+import BuildingOffice from "~icons/ph/building-office-duotone";
 import Gear from "~icons/ph/gear-six";
 import { toast } from "sonner";
+import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +92,23 @@ function apiMessage(e: unknown, fallback: string): string {
   return (code && MESSAGES[code]) || fallback;
 }
 
-export default function AdminOrgsPage() {
+/**
+ * `aoSair` existe porque esta tela vive dentro do hub de Configurações e tem um
+ * nível a mais: lista → uma organização. O Voltar da LISTA precisa devolver ao
+ * hub; o do detalhe, à lista. Sem isso o hub desenhava um Voltar e a tela
+ * desenhava outro, empilhados e fazendo coisas diferentes.
+ *
+ * Opcional: pela rota /admin/organizacoes a tela abre sozinha e não há para
+ * onde sair.
+ */
+export default function AdminOrgsPage({
+  aoSair,
+  aoEditarUsuario,
+}: {
+  aoSair?: () => void;
+  /** Leva à tela de Usuários já buscando por este e-mail. */
+  aoEditarUsuario?: (email: string) => void;
+}) {
   const {
     orgs,
     loading,
@@ -126,6 +145,10 @@ export default function AdminOrgsPage() {
   // Separado de `detail` porque a tela abre ANTES de os dados chegarem: com um
   // estado só, o clique não mostrava nada até a resposta e parecia travado.
   const [detailOpen, setDetailOpen] = useState(false);
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoPapel, setNovoPapel] = useState("member");
+  const [criando, setCriando] = useState(false);
 
   const [addEmail, setAddEmail] = useState("");
   const [addRole, setAddRole] = useState("member");
@@ -203,6 +226,41 @@ export default function AdminOrgsPage() {
       toast.error(apiMessage(e, "Erro ao criar organização"));
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleCriarEVincular() {
+    if (!detail) return;
+    const email = novoEmail.trim();
+    if (!email) return;
+    setCriando(true);
+    try {
+      // Endpoint direto em vez do hook `useAdminUsers`: ele carrega a lista
+      // inteira de usuários da plataforma, e aqui só precisamos criar um.
+      await api("/admin/users", {
+        method: "POST",
+        body: {
+          email,
+          full_name: novoNome.trim() || undefined,
+          invite: true,
+        },
+      });
+      // "keep": conta recém-criada não tem histórico para trazer, e perguntar
+      // seria uma pergunta sem resposta possível.
+      await addMember(detail.organization.id, email, novoPapel, "keep");
+      toast.success("Conta criada e vinculada. O convite foi enviado.");
+      setNovoEmail("");
+      setNovoNome("");
+      await reloadDetail();
+    } catch (e) {
+      const body = errorBody(e);
+      toast.error(
+        body?.error === "user_exists"
+          ? "Já existe conta com esse e-mail — use Vincular conta existente."
+          : "Não consegui criar. A conta pode ter sido criada sem o vínculo; confira em Usuários.",
+      );
+    } finally {
+      setCriando(false);
     }
   }
 
@@ -425,58 +483,100 @@ export default function AdminOrgsPage() {
                 <h3 className="text-sm font-medium text-slate-900 mb-2">
                   Pessoas ({detail.members.length})
                 </h3>
-                <ul className="divide-y divide-slate-100 border border-slate-200 rounded">
+                {/* Card por pessoa, no molde do Flag Field (o mesmo de
+                    Recorrências): colunas de duas linhas, um tamanho só, tom
+                    por posição — 900 em cima, 700 embaixo —, peso apenas na
+                    primeira linha da primeira coluna. A lista era uma <ul> com
+                    divisórias, e o papel de cada um se perdia no meio. */}
+                <div className="space-y-2">
                   {detail.members.map((m) => (
-                    <li
+                    <div
                       key={m.user_id}
-                      className="px-3 py-2.5 flex items-center gap-3"
+                      className="bg-white rounded-xl border border-slate-200 p-4"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-slate-900 truncate">
-                          {m.full_name || "(sem nome)"}
+                      <div className="flex items-start gap-4">
+                        {/* 1 — quem */}
+                        <div className="min-w-0 flex-[1.4] flex flex-col gap-0.5">
+                          <p className="h-5 text-sm font-medium text-slate-900 truncate">
+                            {m.full_name || "(sem nome)"}
+                          </p>
+                          <p className="text-sm leading-5 text-slate-700 truncate">
+                            {m.email}
+                          </p>
                         </div>
-                        <div className="text-sm text-slate-500 truncate">
-                          {m.email} — {m.receipts} lançamento(s)
+
+                        {/* 2 — quanto lançou */}
+                        <div className="min-w-0 flex-[0.7] hidden sm:flex flex-col gap-0.5">
+                          <p className="h-5 text-sm text-slate-900 truncate tabular-nums">
+                            {m.receipts}
+                          </p>
+                          <p className="text-sm leading-5 text-slate-700 truncate">
+                            {m.receipts === 1 ? "lançamento" : "lançamentos"}
+                          </p>
+                        </div>
+
+                        {/* 3 — papel na organização */}
+                        <div className="shrink-0 self-center w-[150px]">
+                          <Select
+                            value={m.role}
+                            onValueChange={(v) => void handleRole(m, v)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="owner">
+                                {ROLE_LABEL.owner}
+                              </SelectItem>
+                              <SelectItem value="admin">
+                                {ROLE_LABEL.admin}
+                              </SelectItem>
+                              <SelectItem value="member">
+                                {ROLE_LABEL.member}
+                              </SelectItem>
+                              <SelectItem value="viewer">
+                                {ROLE_LABEL.viewer}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="shrink-0 self-center flex items-center gap-1">
+                          {/* Editar leva à tela de Usuários já filtrada nesta
+                              pessoa: gerir a conta (nome, trial, senha) é lá, e
+                              duplicar aquele formulário aqui criaria duas telas
+                              que divergem. */}
+                          <ActionIconButton
+                            icon={Pencil}
+                            label="Editar esta pessoa em Usuários"
+                            onClick={() => aoEditarUsuario?.(m.email ?? "")}
+                            disabled={!aoEditarUsuario || !m.email}
+                          />
+                          <ActionIconButton
+                            icon={Download}
+                            label="Baixar o que essa pessoa cadastrou (JSON)"
+                            disabled={backingUp === m.user_id}
+                            onClick={() =>
+                              void handleBackup(
+                                "user",
+                                m.user_id,
+                                m.full_name || m.email || "usuario",
+                              )
+                            }
+                          />
+                          {m.role !== "owner" && (
+                            <ActionIconButton
+                              icon={Trash2}
+                              label="Desvincular"
+                              tone="danger"
+                              onClick={() => setPendingRemove(m)}
+                            />
+                          )}
                         </div>
                       </div>
-                      <select
-                        value={m.role}
-                        onChange={(e) => void handleRole(m, e.target.value)}
-                        className="text-sm border border-slate-200 rounded px-2 py-1 bg-white"
-                      >
-                        <option value="owner">{ROLE_LABEL.owner}</option>
-                        <option value="admin">{ROLE_LABEL.admin}</option>
-                        <option value="member">{ROLE_LABEL.member}</option>
-                        <option value="viewer">{ROLE_LABEL.viewer}</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleBackup(
-                            "user",
-                            m.user_id,
-                            m.full_name || m.email || "usuario",
-                          )
-                        }
-                        disabled={backingUp === m.user_id}
-                        className="text-slate-400 hover:text-slate-900"
-                        title="Baixar o que essa pessoa cadastrou (JSON)"
-                      >
-                        <Download className="size-4" />
-                      </button>
-                      {m.role !== "owner" && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingRemove(m)}
-                          className="text-slate-400 hover:text-red-600"
-                          title="Desvincular"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
 
               {/* Vincular alguém */}
@@ -510,9 +610,66 @@ export default function AdminOrgsPage() {
                   </Button>
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
-                  A conta precisa já existir (crie em Usuários). A primeira
-                  pessoa vinculada vira a titular. Para o resto da equipe, o
-                  gestor convida pela tela de Equipe.
+                  A primeira pessoa vinculada vira a titular. Para o resto da
+                  equipe, o gestor convida pela tela de Equipe.
+                </p>
+              </div>
+
+              {/* Criar já vinculando.
+                  Antes só dava para vincular conta EXISTENTE: para pôr alguém
+                  novo numa organização era preciso sair daqui, criar em
+                  Usuários, voltar e vincular. Três telas para uma intenção só.
+
+                  Cria e vincula em sequência, reaproveitando os dois endpoints
+                  que já existem — sem rota nova no backend. Se o vínculo
+                  falhar, a conta fica criada e a mensagem diz isso: some com o
+                  passo, não com a informação. */}
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 mb-2">
+                  Criar conta nova e vincular
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    placeholder="email@da.pessoa"
+                    value={novoEmail}
+                    onChange={(e) => setNovoEmail(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Nome completo (opcional)"
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="w-[150px]">
+                    <Select value={novoPapel} onValueChange={setNovoPapel}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="member">
+                          {ROLE_LABEL.member}
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          {ROLE_LABEL.admin}
+                        </SelectItem>
+                        <SelectItem value="viewer">
+                          {ROLE_LABEL.viewer}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={() => void handleCriarEVincular()}
+                    disabled={criando || !novoEmail.trim()}
+                    className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
+                  >
+                    <UserPlus className="size-[18px] shrink-0" />
+                    {criando ? "Criando..." : "Criar e Vincular"}
+                  </Button>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  A pessoa recebe um convite por e-mail para definir a senha.
                 </p>
               </div>
 
@@ -541,6 +698,24 @@ export default function AdminOrgsPage() {
 
   return (
     <div className="space-y-4">
+      {aoSair && (
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={aoSair}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowLeft className="size-4 mr-2" />
+            Voltar
+          </Button>
+          <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+            <BuildingOffice className="size-[18px] shrink-0 text-amber-600" />
+            <span className="truncate">Organizações</span>
+          </span>
+        </div>
+      )}
+
       {/* Barra no padrão do app: busca esticando, Filtros à direita. A tela
           não tinha busca — só um seletor de tipo —, e achar uma organização
           numa lista crescente dependia de rolar. */}

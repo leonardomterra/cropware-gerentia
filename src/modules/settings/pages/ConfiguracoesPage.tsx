@@ -102,6 +102,7 @@ export default function ConfiguracoesPage() {
   // organização — master é operação do produto, não cargo do cliente.
   const { isMaster } = useAuth();
   const [secao, setSecao] = useState<SecaoDeConfig | null>(null);
+  const [buscaDeUsuario, setBuscaDeUsuario] = useState("");
 
   const atalhos = ATALHOS.filter((a) => !a.master || isMaster);
 
@@ -132,6 +133,38 @@ export default function ConfiguracoesPage() {
 
   const atalho = atalhos.find((a) => a.id === secao)!;
 
+  /**
+   * As telas do master desenham a PRÓPRIA barra, porque elas têm um nível a
+   * mais (lista → um usuário / uma organização) e o Voltar precisa saber para
+   * onde ir. Se o hub também desenhasse a dele, apareceriam dois "Voltar"
+   * empilhados fazendo coisas diferentes.
+   */
+  const desenhaPropriaBarra = secao === "usuarios" || secao === "organizacoes";
+
+  if (desenhaPropriaBarra) {
+    return (
+      <Suspense fallback={<LoadingState />}>
+        {secao === "usuarios" ? (
+          <AdminUsersPage
+            aoSair={() => setSecao(null)}
+            buscaInicial={buscaDeUsuario}
+          />
+        ) : (
+          <AdminOrgsPage
+            aoSair={() => setSecao(null)}
+            // Editar alguém dentro de uma organização atravessa para a tela de
+            // Usuários já buscando por aquele e-mail — em vez de duplicar
+            // aquele formulário aqui, o que daria duas telas para divergir.
+            aoEditarUsuario={(email) => {
+              setBuscaDeUsuario(email);
+              setSecao("usuarios");
+            }}
+          />
+        )}
+      </Suspense>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 w-full">
@@ -159,16 +192,6 @@ export default function ConfiguracoesPage() {
           key={secao}
           direction={secao === "cat-receita" ? "income" : "expense"}
         />
-      )}
-      {secao === "usuarios" && (
-        <Suspense fallback={<LoadingState />}>
-          <AdminUsersPage />
-        </Suspense>
-      )}
-      {secao === "organizacoes" && (
-        <Suspense fallback={<LoadingState />}>
-          <AdminOrgsPage />
-        </Suspense>
       )}
     </div>
   );
