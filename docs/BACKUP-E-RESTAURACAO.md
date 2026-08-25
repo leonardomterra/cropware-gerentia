@@ -1,6 +1,6 @@
 # Backup e restauração — gerentia.app
 
-**Início:** 24/08/2026 · **Etapas 0 a 5 concluídas** em 24/08/2026 · **Pendente:** conferir a 1ª rodada automática (§11b)
+**Início:** 24/08/2026 · **Etapas 0 a 5 concluídas** em 24/08/2026 · **Sistema completo e conferido em produção** (§11b)
 
 Documento-contrato. As etapas seguintes seguem o que está aqui; mudança de
 regra se decide neste arquivo antes de virar código.
@@ -310,27 +310,27 @@ backup nenhum justamente por nada ter acontecido com ele**. Pular agora **renova
 o prazo** do arquivo que ficou valendo. `criado_em` não se mexe: o conteúdo
 continua sendo o do dia em que foi capturado; o que muda é até quando vale.
 
-## 11b. PENDENTE — conferir a primeira rodada automática
+## 11b. CONFERIDO — primeira rodada automática, 25/08/2026 05:00 UTC
 
-O `gerentia-daily-backup` foi validado por disparo manual, **nunca por si só**.
-A primeira execução espontânea é às 05:00 UTC do dia seguinte a 24/08/2026.
+O `gerentia-daily-backup` rodou **sozinho**, sem ninguém disparar:
 
-Confira no SQL Editor:
-
-```sql
-select j.jobname, d.status, d.start_time::timestamp(0), left(d.return_message, 80)
-from cron.job_run_details d join cron.job j on j.jobid = d.jobid
-where d.start_time > now() - interval '2 days'
-order by d.start_time desc;
+```
+{"ok":true,"organizacoes":11,"usuarios":14,
+ "arquivos_gravados":0,"sem_alteracao":25,"expurgados":0,"falhas":[]}
 ```
 
-Três coisas a olhar, e as duas últimas não são sobre backup:
-`gerentia-daily-backup` em `succeeded`, e `farm-process-alerts` e
-`farm-weekly-summary` também — esses dois falhavam todo dia desde junho até a
-correção de 24/08 (`20260824140000_fix_cron_net_schema.sql`), e esta é a primeira
-oportunidade de vê-los funcionando.
+Zero arquivos é o resultado CERTO: nada havia mudado desde a rodada manual da
+véspera, então a regra do hash pulou os 25 alvos e renovou o prazo de cada um.
 
-Enquanto esta seção existir, o item está em aberto. Apague-a quando conferir.
+E há uma confirmação melhor, por acidente. Às 09:00 o cron de alertas criou 2
+notificações no app para uma conta. Uma rodada de backup disparada às 10:43
+regravou exatamente **2 pacotes** — o daquela pessoa e o da organização dela — e
+deixou os outros 23 intactos. O hash pegou uma mudança de 2 linhas em 94 e
+ignorou o resto: não está frouxo.
+
+No mesmo dia, `farm-process-alerts` teve o **primeiro `succeeded` da história**
+(24/08 09:00 `failed`, 25/08 09:00 `succeeded`), com `notified: 2` — a primeira
+vez que o app avisou alguém por conta própria.
 
 ## 12. A restauração (etapa 2)
 
