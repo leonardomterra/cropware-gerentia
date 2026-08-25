@@ -1,5 +1,11 @@
 import { Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isNativeCapacitorApp } from "@/utils/platform";
 import { PaywallGate } from "@/components/billing/PaywallGate";
@@ -24,9 +30,7 @@ const ReceiptsPage = lazyWithRetry(
 const NotasRecibosPage = lazyWithRetry(
   () => import("@/modules/receipts/pages/NotasRecibosPage"),
 );
-const FaturasPage = lazyWithRetry(
-  () => import("@/modules/receipts/pages/FaturasPage"),
-);
+const CartoesPage = lazyWithRetry(() => import("@/modules/cards/CartoesPage"));
 const AnexosPage = lazyWithRetry(
   () => import("@/modules/receipts/pages/AnexosPage"),
 );
@@ -88,6 +92,19 @@ function LoadingScreen() {
       <p className="text-slate-500 text-sm">Carregando...</p>
     </main>
   );
+}
+
+/**
+ * /faturas → /cartoes PRESERVANDO a query.
+ *
+ * `<Navigate to="/cartoes">` sozinho descarta a busca, e "Gerenciar itens" de
+ * uma fatura navega para `/faturas?open=<id>`. Sem isto o link cairia no hub em
+ * vez de abrir a fatura — e continuaria "funcionando", só que na tela errada,
+ * que é o tipo de quebra que ninguém reporta.
+ */
+function RedirecionaFaturas() {
+  const { search } = useLocation();
+  return <Navigate to={`/cartoes${search}`} replace />;
 }
 
 function RootRoutes() {
@@ -208,13 +225,17 @@ function RootRoutes() {
             }
           />
           <Route
-            path="faturas"
+            path="cartoes"
             element={
               <Suspense fallback={<LoadingScreen />}>
-                <FaturasPage />
+                <CartoesPage />
               </Suspense>
             }
           />
+          {/* /faturas virou /cartoes em 25/08/2026. O redirect fica: o caminho
+              antigo está em link salvo, em histórico de navegador e no atalho
+              que alguém fixou — e um 404 não explica que a tela mudou de nome. */}
+          <Route path="faturas" element={<RedirecionaFaturas />} />
           <Route
             path="anexos"
             element={

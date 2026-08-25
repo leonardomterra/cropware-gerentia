@@ -1,6 +1,6 @@
 # Cartões e faturas — gerentia.app
 
-**Início:** 25/08/2026 · **Etapas 1 e 2 concluídas** em 25/08/2026 · **Próxima:** 3 (aba Cartões)
+**Início:** 25/08/2026 · **Etapas 1 a 3 concluídas** em 25/08/2026 · **Próxima:** 4 (WhatsApp)
 
 Documento-contrato. Mudança de regra se decide aqui antes de virar código.
 
@@ -131,7 +131,7 @@ vira lentidão sem causa aparente. Resolver junto da etapa 3.
 | ----- | -------------------------------------------------------------- | ------------- |
 | **1** | Inverter a regra, ajustar os textos, aposentar o desmembrar    | ✅ 25/08/2026 |
 | **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         | ✅ 25/08/2026 |
-| **3** | Aba **Cartões**: hub no molde de Configurações                 |               |
+| **3** | Aba **Cartões**: hub no molde de Configurações                 | ✅ 25/08/2026 |
 | **4** | WhatsApp: escolher cartão, registrar fatura                    |               |
 | **5** | Conciliação: casar itens da fatura com as compras informativas |               |
 
@@ -182,6 +182,30 @@ Duas recusas deliberadas: cartão **com lançamento** não se apaga (409
 `cartao_em_uso`) — desativar preserva o vínculo do histórico; e editar cartão de
 outra pessoa devolve **404**, não 403, porque dizer "existe mas não é seu"
 conta a quem não pode ver que ele existe.
+
+## 6c. A aba Cartões (etapa 3)
+
+`/faturas` virou `/cartoes`, e a lista virou HUB no molde de Configurações:
+**Meus Cartões** e **Faturas**.
+
+Três decisões tomadas ao desenhar:
+
+**O hub aparece mesmo com um cartão só.** A alternativa — ir direto na lista com
+um cartão, no hub com dois — são dois caminhos para manter por um clique de
+economia num caso que dura pouco.
+
+**Fatura sem cartão vinculado não bloqueia.** Ela aparece como está; bloquear
+deixaria penduradas as faturas que já existem e impediria lançar fatura antes de
+cadastrar o cartão.
+
+**Fatura continua aparecendo em Lançamentos.** Agora ela É o gasto; tirá-la de lá
+esconderia dinheiro que saiu. A aba Cartões é a visão POR CARTÃO, não um
+esconderijo.
+
+O caminho antigo `/faturas` redireciona **preservando a query**. Isso não é
+zelo: o botão "Gerenciar itens" navega para `/faturas?open=<id>`, e um
+`<Navigate>` simples descarta a busca — o link continuaria "funcionando" e
+abriria a tela errada, que é o tipo de quebra que ninguém reporta.
 
 ## 7. Ideias para as etapas seguintes
 

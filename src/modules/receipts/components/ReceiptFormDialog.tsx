@@ -903,7 +903,7 @@ export function ReceiptFormDialog({
             onClick={() => {
               onOpenChange(false);
               const base =
-                receipt.doc_type === "fatura" ? "/faturas" : "/notas";
+                receipt.doc_type === "fatura" ? "/cartoes" : "/notas";
               navigate(`${base}?open=${receipt.id}`);
             }}
           >

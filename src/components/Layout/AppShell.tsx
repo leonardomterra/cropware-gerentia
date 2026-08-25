@@ -25,7 +25,7 @@ import Domain from "~icons/ph/buildings";
 import RailDashboard from "~icons/ph/squares-four-duotone";
 import RailLancamentos from "~icons/ph/arrows-left-right-duotone";
 import RailNotas from "~icons/ph/receipt-duotone";
-import RailFaturas from "~icons/ph/credit-card-duotone";
+import RailCartoes from "~icons/ph/credit-card-duotone";
 import RailRecorrencias from "~icons/ph/arrows-clockwise-duotone";
 import RailRelatorios from "~icons/ph/file-text-duotone";
 import RailAnexos from "~icons/ph/folder-open-duotone";
@@ -100,7 +100,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/relatorios", label: "Relatórios", icon: Assessment },
   { to: "/anexos", label: "Anexos", icon: FolderOpen },
-  { to: "/faturas", label: "Faturas", icon: CreditCard },
+  { to: "/cartoes", label: "Cartões", icon: CreditCard },
   { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
   {
     to: "/configuracoes",
@@ -156,7 +156,7 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/": { Icon: RailDashboard, cor: "text-sky-600" },
   "/lancamentos": { Icon: RailLancamentos, cor: "text-indigo-600" },
   "/notas": { Icon: RailNotas, cor: "text-amber-600" },
-  "/faturas": { Icon: RailFaturas, cor: "text-violet-600" },
+  "/cartoes": { Icon: RailCartoes, cor: "text-violet-600" },
   "/recorrencias": { Icon: RailRecorrencias, cor: "text-cyan-600" },
   "/relatorios": { Icon: RailRelatorios, cor: "text-blue-600" },
   "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
@@ -173,7 +173,7 @@ const RAIL_ORDEM = [
   "/",
   "/lancamentos",
   "/notas",
-  "/faturas",
+  "/cartoes",
   "/recorrencias",
   "/relatorios",
   "/anexos",
