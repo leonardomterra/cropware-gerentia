@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import ChevronDown from "~icons/ph/caret-down";
 import ArrowClockwise from "~icons/ph/arrow-clockwise";
 import DownloadSimple from "~icons/ph/download-simple";
 import Funnel from "~icons/ph/funnel";
@@ -30,6 +31,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
 import { Ajuda } from "@/components/ui/Ajuda";
+import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
@@ -306,10 +308,21 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
 
   return (
     <div className="space-y-4">
-      {/* 1 — filtros. Sem busca: a lista é curta e o que se procura é uma
+      {/* 1 — BARRA ÚNICA: campos à vista esticando à esquerda, botões
+          encostados à direita. Mesma anatomia da barra de Lançamentos (§2 e §3
+          do padrão de página) — grade e não flex nos campos, porque num flex a
+          largura mínima do item é o `min-content` e um rótulo maior espremia o
+          vizinho.
+
+          Sem busca no modo cliente: a lista é curta e o que se procura é uma
           DATA, que já está visível em cada card. */}
       <div className="flex flex-wrap items-center gap-2 w-full">
-        <div className="grid flex-1 min-w-0 gap-2 grid-cols-1 sm:grid-cols-2">
+        <div
+          className={cn(
+            "grid flex-1 min-w-0 gap-2 grid-cols-1",
+            master && "sm:grid-cols-2",
+          )}
+        >
           {master && (
             <Input
               value={busca}
@@ -322,7 +335,7 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
             value={fEscopo}
             onValueChange={(v) => setFEscopo(v as FiltroEscopo)}
           >
-            <SelectTrigger className={cn(BOTAO_BARRA, "w-full")}>
+            <SelectTrigger className={cn(CAMPO_BARRA, "w-full")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -346,12 +359,10 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
             >
               <Funnel className={ICONE_BOTAO_BARRA} />
               Filtros
-              {filtrosAtivos > 0 && (
-                <span className="ml-1.5 text-xs text-slate-500">
-                  ({filtrosAtivos})
-                </span>
-              )}
-              <span className={SETA_BOTAO_BARRA} />
+              {/* O mesmo badge de Lançamentos. Antes era um "(2)" escrito à
+                  mão, e a seta era um <span> VAZIO — a seta nunca apareceu. */}
+              <FilterCountBadge count={filtrosAtivos} />
+              <ChevronDown className={SETA_BOTAO_BARRA} />
             </Button>
           </PopoverTrigger>
           <PopoverContent className={cn(PAINEL_ESCURO, "w-64")} align="end">
@@ -376,44 +387,7 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
             </div>
           </PopoverContent>
         </Popover>
-      </div>
 
-      {/* 2 — ações. Um botão escuro só. */}
-      <header className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
-        {/* O master escolhe O QUE gerar; para o cliente, que só tem os
-            próprios dados, um seletor de um item seria ruído. */}
-        {master && (
-          <>
-            <Select
-              value={alvoEscopo}
-              onValueChange={(v) => {
-                setAlvoEscopo(v as typeof alvoEscopo);
-                setAlvoId("");
-              }}
-            >
-              <SelectTrigger className={cn(BOTAO_BARRA, "lg:w-[190px]")}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="geral">Banco inteiro</SelectItem>
-                <SelectItem value="organizacao">Uma organização</SelectItem>
-                <SelectItem value="usuario">Uma pessoa</SelectItem>
-              </SelectContent>
-            </Select>
-            {alvoEscopo !== "geral" && (
-              <Input
-                value={alvoId}
-                onChange={(e) => setAlvoId(e.target.value)}
-                placeholder={
-                  alvoEscopo === "organizacao"
-                    ? "ID da organização"
-                    : "ID da pessoa"
-                }
-                className={cn(CAMPO_BARRA, "lg:w-[300px]")}
-              />
-            )}
-          </>
-        )}
         <Button
           variant="default"
           onClick={gerarAgora}
@@ -422,28 +396,65 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
             !podeRestaurar ||
             (master && alvoEscopo !== "geral" && !alvoId.trim())
           }
-          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 lg:w-auto")}
+          className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
         >
-          <FloppyDiskDuotone className="size-4 mr-2" />
+          <FloppyDiskDuotone className={ICONE_BOTAO_BARRA} />
           {gerando ? "Gerando..." : "Gerar Backup Agora"}
         </Button>
+
         <Button
           type="button"
           variant="ghost"
           onClick={() => void carregar()}
           disabled={loading}
-          className={cn(BOTAO_BARRA, "rounded-md lg:w-auto")}
+          className={cn(BOTAO_BARRA, "rounded-md")}
         >
           <ArrowClockwise className={ICONE_BOTAO_BARRA} />
           Atualizar
         </Button>
-      </header>
+      </div>
 
-      {/* 3 — contador */}
-      <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
-        {/* À ESQUERDA da linha, e não colado no contador: a explicação é da
-            tela toda (quando roda, quanto tempo guarda, o que restaurar faz),
-            não do número de backups. */}
+      {/* 2 — ALVO, só do master. Fica em linha própria de propósito: não é
+          filtro, é entrada da ação "Gerar Backup Agora" — ao lado da busca,
+          "ID da organização" leria como mais um jeito de filtrar a lista. */}
+      {master && (
+        <div className="flex flex-wrap items-center gap-2 w-full">
+          <Select
+            value={alvoEscopo}
+            onValueChange={(v) => {
+              setAlvoEscopo(v as typeof alvoEscopo);
+              setAlvoId("");
+            }}
+          >
+            <SelectTrigger className={cn(CAMPO_BARRA, "w-full sm:w-[190px]")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="geral">Banco inteiro</SelectItem>
+              <SelectItem value="organizacao">Uma organização</SelectItem>
+              <SelectItem value="usuario">Uma pessoa</SelectItem>
+            </SelectContent>
+          </Select>
+          {alvoEscopo !== "geral" && (
+            <Input
+              value={alvoId}
+              onChange={(e) => setAlvoId(e.target.value)}
+              placeholder={
+                alvoEscopo === "organizacao"
+                  ? "ID da organização"
+                  : "ID da pessoa"
+              }
+              className={cn(CAMPO_BARRA, "flex-1 min-w-0 sm:max-w-[300px]")}
+            />
+          )}
+        </div>
+      )}
+
+      {/* 3 — título da lista e contador. O título existe para o (?) ter em
+          que se apoiar: sozinho na linha ele ficava boiando, sem dizer do que
+          era a explicação. */}
+      <div className="flex items-center gap-1.5 px-1 min-h-[28px]">
+        <h2 className="text-sm font-medium text-slate-900">Backups Salvos</h2>
         <Ajuda className="mr-auto">
           O backup automático roda todo dia de madrugada. Os diários ficam 30
           dias e os mensais, 12 meses. Restaurar repõe o que está no pacote e
