@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { cn } from "@/components/ui/utils";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
+import { Ajuda } from "@/components/ui/Ajuda";
 import ArrowLeft from "~icons/ph/arrow-left";
 // Mesmo disquete do Salvar de PaginaDeFormulario — um só ícone para "salvar"
 // em todo o app.
@@ -756,8 +757,17 @@ export default function AccountPage() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-red-900">
+              {/* O AVISO fica à vista, sempre. O §7b do padrão de página é
+                  explícito: aviso que muda o que a pessoa deve fazer não vai
+                  para o (?) — esconder atrás de um clique é esconder o
+                  problema. O (?) leva o que COMPLEMENTA o aviso: o que dá para
+                  fazer antes, enquanto ainda dá. */}
+              <p className="flex items-center gap-1.5 text-sm font-medium text-red-900">
                 Ação Irreversível
+                <Ajuda>
+                  Antes de excluir, gere e baixe um backup em Configurações →
+                  Backups. Depois da exclusão não há de onde recuperar.
+                </Ajuda>
               </p>
               {/* slate-600, e não o 500 dos demais cards: sobre o fundo red-50
                   o 500 cai para 4,4:1 e reprova no AA. */}

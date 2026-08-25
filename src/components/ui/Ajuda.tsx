@@ -55,6 +55,15 @@ export function Ajuda({
           // pode truncar — sem isso o ícone é o primeiro a ser espremido.
           className={cn(
             "shrink-0 inline-flex items-center justify-center size-5 rounded-full",
+            // A MARGEM NEGATIVA é o que mantém os campos alinhados. O <Label>
+            // do app é `leading-none` — 14px de altura de linha para texto de
+            // 14px —, e este botão tem 20px. Sem isso, a linha do rótulo que
+            // tem (?) fica 2px mais alta que a do vizinho, e o campo abaixo
+            // dela desce 2px: numa grade de duas colunas o desalinho salta aos
+            // olhos. Com `-my-[3px]` o botão contribui 14px para a linha e
+            // transborda 3px para cada lado, onde não há nada. A área de
+            // clique continua com 20px, que é o que importa no celular.
+            "-my-[3px]",
             // Cinza, e não colorido: o ícone acompanha um título e não pode
             // competir com ele. Quem procura ajuda acha; quem não procura não
             // tropeça. Escurece no hover para confirmar que é clicável.

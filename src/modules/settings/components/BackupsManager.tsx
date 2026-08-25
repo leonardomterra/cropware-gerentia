@@ -29,6 +29,7 @@ import {
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
+import { Ajuda } from "@/components/ui/Ajuda";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
@@ -440,6 +441,14 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
 
       {/* 3 — contador */}
       <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+        {/* À ESQUERDA da linha, e não colado no contador: a explicação é da
+            tela toda (quando roda, quanto tempo guarda, o que restaurar faz),
+            não do número de backups. */}
+        <Ajuda className="mr-auto">
+          O backup automático roda todo dia de madrugada. Os diários ficam 30
+          dias e os mensais, 12 meses. Restaurar repõe o que está no pacote e
+          nunca apaga o que você criou depois.
+        </Ajuda>
         <span className="text-sm text-slate-500">
           {visiveis.length} {visiveis.length === 1 ? "backup" : "backups"}
           {filtrosAtivos > 0 && ` de ${backups.length}`}

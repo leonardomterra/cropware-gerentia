@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/utils";
+import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
 import {
   Dialog,
   DialogContent,
@@ -300,18 +302,16 @@ export default function TeamPage() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
-                  className="flex-1"
+                  className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                   onClick={() => copyCode(lastInviteCode)}
                 >
-                  <Copy className="size-4 mr-1" /> Código
+                  <Copy className={ICONE_BOTAO_BARRA} /> Código
                 </Button>
                 <Button
-                  variant="outline"
-                  className="flex-1"
+                  className={cn(BOTAO_BARRA, "flex-1 rounded-md")}
                   onClick={() => copyLink(lastInviteCode)}
                 >
-                  <Copy className="size-4 mr-1" /> Link
+                  <Copy className={ICONE_BOTAO_BARRA} /> Link
                 </Button>
               </div>
               <p className="text-xs text-slate-500">

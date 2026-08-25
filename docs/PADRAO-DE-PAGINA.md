@@ -374,6 +374,14 @@ ponto, já que o objetivo do componente é a tela PARAR de parecer tutorial. De
 quebra, deixa o ponto de interrogação livre para onde ele significa outra coisa
 (o "não registrada" da fatura).
 
+**Ele não desalinha o campo.** O `<Label>` do app é `leading-none` — 14px de
+altura de linha para texto de 14px — e o botão do `(?)` tem 20px. Sem cuidado, a
+linha do rótulo que tem `(?)` fica mais alta que a do vizinho e o campo abaixo
+dela desce junto; numa grade de duas colunas isso salta aos olhos. O componente
+resolve sozinho, com margem vertical negativa: ele contribui 14px para a linha e
+transborda para onde não há nada, mantendo 20px de área de clique. Não copie o
+botão à mão — use o componente, e o alinhamento vem junto.
+
 **Uma ou duas frases.** O que não couber aí é documentação, não dica, e o lugar
 dela é outro.
 

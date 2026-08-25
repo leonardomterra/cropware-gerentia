@@ -37,7 +37,7 @@ import { ReceiptItemsTable } from "./ReceiptItemsTable";
 import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
-import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
+import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -973,7 +973,10 @@ export function ReceiptFormDialog({
           </p>
           <Button
             type="button"
-            className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+            className={cn(
+              BOTAO_BARRA_PRIMARIO,
+              "inline-flex items-center rounded-md w-auto",
+            )}
             onClick={() => {
               onOpenChange(false);
               const base =
@@ -982,7 +985,7 @@ export function ReceiptFormDialog({
             }}
           >
             <OpenInNew className={ICONE_BOTAO_BARRA} />
-            Gerenciar itens
+            Gerenciar Itens
           </Button>
         </div>
       )}
@@ -1159,12 +1162,14 @@ export function ReceiptFormDialog({
             <div className="col-span-2">
               <Button
                 type="button"
-                variant="outline"
-                className="gap-1.5"
+                className={cn(
+                  BOTAO_BARRA,
+                  "inline-flex items-center rounded-md",
+                )}
                 onClick={() => setVerAnexo(true)}
               >
-                <AttachFile className="size-4" />
-                Ver arquivo
+                <AttachFile className={ICONE_BOTAO_BARRA} />
+                Ver Arquivo
               </Button>
             </div>
           ) : null}
