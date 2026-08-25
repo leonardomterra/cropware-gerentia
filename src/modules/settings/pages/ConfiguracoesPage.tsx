@@ -1,5 +1,4 @@
 import { lazy, Suspense, useState } from "react";
-import Plus from "~icons/ph/plus";
 import ArrowLeft from "~icons/ph/arrow-left";
 import WrenchDuotone from "~icons/ph/wrench-duotone";
 // Saída/entrada, e não alta/baixa: a seta que SAI do quadrado é o dinheiro
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
 import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
+import type { AcaoDeSecao } from "@/lib/acaoDeSecao";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
@@ -129,11 +129,11 @@ export default function ConfiguracoesPage() {
   // Salvar). A do hub some enquanto isso, senão ficam dois "Voltar" empilhados.
   const [formAberto, setFormAberto] = useState(false);
   /**
-   * Ação principal da seção aberta, entregue pela própria seção. Guardada como
-   * `setAcao(() => fn)` porque `setState` trata função como updater — passar
-   * `fn` direto faria o React CHAMAR a ação em vez de guardá-la.
+   * Ação principal da seção aberta, entregue pela própria seção — com rótulo,
+   * ícone e estado desligado, porque quem sabe o que ela faz é a seção. Ver
+   * `src/lib/acaoDeSecao.ts`.
    */
-  const [acao, setAcao] = useState<(() => void) | null>(null);
+  const [acao, setAcao] = useState<AcaoDeSecao | null>(null);
   const [buscaDeUsuario, setBuscaDeUsuario] = useState("");
 
   const atalhos = ATALHOS.filter((a) => !a.master || isMaster);
@@ -221,12 +221,15 @@ export default function ConfiguracoesPage() {
           {acao && (
             <Button
               variant="default"
-              onClick={acao}
+              onClick={acao.executar}
+              disabled={acao.desabilitado}
               className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
             >
-              <Plus className="size-4 mr-2" />
-              <span className="sm:hidden">Novo Centro</span>
-              <span className="hidden sm:inline">Novo Centro de Custo</span>
+              <acao.Icon className="size-4 mr-2" />
+              <span className="sm:hidden">
+                {acao.rotuloCurto ?? acao.rotulo}
+              </span>
+              <span className="hidden sm:inline">{acao.rotulo}</span>
             </Button>
           )}
 
@@ -245,8 +248,10 @@ export default function ConfiguracoesPage() {
           aoRegistrarAcao={setAcao}
         />
       )}
-      {secao === "backups" && <BackupsManager />}
-      {secao === "backups-master" && <BackupsManager master />}
+      {secao === "backups" && <BackupsManager aoRegistrarAcao={setAcao} />}
+      {secao === "backups-master" && (
+        <BackupsManager master aoRegistrarAcao={setAcao} />
+      )}
       {(secao === "cat-despesa" || secao === "cat-receita") && (
         <CategoriesManager
           key={secao}

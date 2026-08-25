@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Plus from "~icons/ph/plus";
 import Star from "~icons/ph/star";
 import StarFilled from "~icons/ph/star-fill";
 import Archive from "~icons/ph/archive";
@@ -17,6 +18,7 @@ import {
   MAX_COST_CENTERS,
   type CostCenter,
 } from "@/modules/cost-centers/types";
+import type { AcaoDeSecao } from "@/lib/acaoDeSecao";
 import {
   CC_ICONS,
   CostCenterChip,
@@ -48,7 +50,7 @@ export function CostCentersManager({
    * Registra `null` quando o limite foi atingido: em vez de um botão desligado
    * que não diz por quê, o lugar dele recebe a explicação.
    */
-  aoRegistrarAcao?: (acao: (() => void) | null) => void;
+  aoRegistrarAcao?: (acao: AcaoDeSecao | null) => void;
 } = {}) {
   const { costCenters, loading, error, create, update, archive } =
     useCostCenters();
@@ -83,7 +85,16 @@ export function CostCentersManager({
   const canCreate = activeCount < MAX_COST_CENTERS;
 
   useEffect(() => {
-    aoRegistrarAcao?.(canCreate ? () => openNew : null);
+    aoRegistrarAcao?.(
+      canCreate
+        ? {
+            rotulo: "Novo Centro de Custo",
+            rotuloCurto: "Novo Centro",
+            Icon: Plus,
+            executar: openNew,
+          }
+        : null,
+    );
     return () => aoRegistrarAcao?.(null);
   }, [aoRegistrarAcao, canCreate]);
 

@@ -34,13 +34,13 @@ import { Ajuda } from "@/components/ui/Ajuda";
 import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
 import {
   BOTAO_BARRA,
-  BOTAO_BARRA_PRIMARIO,
   CAMPO_BARRA,
   ICONE_BOTAO_BARRA,
   PAINEL_ESCURO,
   ROTULO_PAINEL_ESCURO,
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
+import type { AcaoDeSecao } from "@/lib/acaoDeSecao";
 import { api } from "@/utils/api";
 
 interface Backup {
@@ -148,7 +148,14 @@ type FiltroTipo = "todos" | Backup["tipo"];
  * pré-visualização para divergir — e a pré-visualização é a peça que não pode
  * ficar diferente entre quem opera e quem é operado.
  */
-export function BackupsManager({ master = false }: { master?: boolean }) {
+export function BackupsManager({
+  master = false,
+  aoRegistrarAcao,
+}: {
+  master?: boolean;
+  /** Entrega "Gerar Backup" ao hub, para o botão morar na barra do Voltar. */
+  aoRegistrarAcao?: (acao: AcaoDeSecao | null) => void;
+}) {
   const RAIZ = master ? "/admin/backups" : "/backups";
   const [backups, setBackups] = useState<Backup[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
@@ -263,6 +270,26 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
       setGerando(false);
     }
   }
+
+  // O rótulo e o estado desligado viajam com a ação: quem sabe que está
+  // gerando, e que o master ainda não escolheu o alvo, é esta seção.
+  useEffect(() => {
+    aoRegistrarAcao?.({
+      rotulo: gerando ? "Gerando..." : "Gerar Backup",
+      Icon: FloppyDiskDuotone,
+      desabilitado:
+        gerando ||
+        !podeRestaurar ||
+        (master && alvoEscopo !== "geral" && !alvoId.trim()),
+      executar: () => void gerarAgora(),
+    });
+    return () => aoRegistrarAcao?.(null);
+    // `gerarAgora` fica FORA das dependências de propósito: ela é recriada a
+    // cada render, e incluí-la registraria a ação em laço infinito. O fecho não
+    // envelhece porque tudo o que ela lê de estado — master, alvoEscopo, alvoId
+    // — já está na lista, e `carregar` é useCallback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aoRegistrarAcao, gerando, podeRestaurar, master, alvoEscopo, alvoId]);
 
   async function baixar(b: Backup) {
     setBaixando(b.id);
@@ -397,20 +424,6 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
         >
           <ArrowClockwise className={ICONE_BOTAO_BARRA} />
           Atualizar
-        </Button>
-
-        <Button
-          variant="default"
-          onClick={gerarAgora}
-          disabled={
-            gerando ||
-            !podeRestaurar ||
-            (master && alvoEscopo !== "geral" && !alvoId.trim())
-          }
-          className={cn(BOTAO_BARRA_PRIMARIO, "w-auto")}
-        >
-          <FloppyDiskDuotone className={ICONE_BOTAO_BARRA} />
-          {gerando ? "Gerando..." : "Gerar Backup Agora"}
         </Button>
       </div>
 
