@@ -344,6 +344,13 @@ O vidro é o `SUPERFICIE_TOOLTIP` que já existe — cinza quente, que distingue
 "dica passageira" de "menu com que dá pra interagir" sem inventar linguagem
 visual nova.
 
+**O ícone é AZUL e duotone**, não o cinza dos rótulos. O `(?)` existe para ser
+achado: em cinza ele desaparecia dentro do título, e explicação que ninguém vê
+não explica nada. Se na mesma tela houver outro ícone de interrogação com
+sentido próprio (como o "não registrada" da fatura), use uma variante diferente
+naquele — dois pontos de interrogação lado a lado com significados diferentes
+confundem mais do que ajudam.
+
 **Uma ou duas frases.** O que não couber aí é documentação, não dica, e o lugar
 dela é outro.
 

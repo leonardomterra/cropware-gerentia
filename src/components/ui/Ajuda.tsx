@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Question from "~icons/ph/question";
+import QuestionDuotone from "~icons/ph/question-duotone";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { cn } from "./utils";
 import { SUPERFICIE_TOOLTIP } from "@/lib/ui-tokens";
@@ -49,13 +49,16 @@ export function Ajuda({
           // `shrink-0` porque ele quase sempre fica ao lado de um título que
           // pode truncar — sem isso o ícone é o primeiro a ser espremido.
           className={cn(
-            "shrink-0 inline-flex items-center justify-center size-[18px] rounded-full",
-            "text-slate-400 hover:text-slate-600 transition-colors",
+            "shrink-0 inline-flex items-center justify-center size-5 rounded-full",
+            // Azul, e não o cinza dos rótulos: o (?) é para ser ACHADO. Em
+            // cinza ele desaparecia no título, e uma explicação que ninguém vê
+            // não explica nada. Duotone como o resto dos ícones do app.
+            "text-sky-500 hover:text-sky-600 transition-colors",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
             className,
           )}
         >
-          <Question className="size-[15px]" />
+          <QuestionDuotone className="size-5" />
         </button>
       </PopoverTrigger>
       <PopoverContent
