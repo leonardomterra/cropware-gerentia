@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { Ajuda } from "@/components/ui/Ajuda";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
@@ -202,8 +203,12 @@ export function CardsManager({
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 block">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 Nome *
+                <Ajuda>
+                  Como você chama esse cartão no dia a dia. É esse nome que
+                  aparece nos seletores e no topo de cada fatura.
+                </Ajuda>
               </label>
               <Input
                 value={form.nome}
@@ -213,9 +218,6 @@ export function CardsManager({
                 placeholder="Nubank pessoal, Corporativo Ana..."
                 maxLength={60}
               />
-              <p className="text-sm text-slate-500">
-                Como você chama esse cartão no dia a dia.
-              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -257,8 +259,14 @@ export function CardsManager({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 block">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 Últimos 4 dígitos
+                {/* É por eles que a fatura fotografada reconhece o cartão —
+                    vale explicar, senão parece campo decorativo. */}
+                <Ajuda>
+                  É por eles que o sistema reconhece de qual cartão é uma fatura
+                  fotografada.
+                </Ajuda>
               </label>
               <Input
                 value={form.ultimos_digitos}
@@ -273,16 +281,17 @@ export function CardsManager({
                 placeholder="4821"
                 inputMode="numeric"
               />
-              {/* É por eles que a fatura fotografada vai reconhecer o cartão —
-                  vale explicar, senão parece campo decorativo. */}
-              <p className="text-sm text-slate-500">
-                É por eles que o sistema reconhece de qual cartão é uma fatura.
-              </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 block">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 Dia do fechamento
+                {/* Fechamento e vencimento são coisas diferentes; sem os dois,
+                    "a fatura de agosto" fica ambíguo. */}
+                <Ajuda>
+                  A compra feita depois do fechamento não entra na fatura deste
+                  mês — cai na seguinte.
+                </Ajuda>
               </label>
               <Input
                 value={form.dia_fechamento}
@@ -316,22 +325,17 @@ export function CardsManager({
                 placeholder="05"
                 inputMode="numeric"
               />
-              {/* Fechamento e vencimento são coisas diferentes; sem os dois,
-                  "a fatura de agosto" fica ambíguo. */}
-              <p className="text-sm text-slate-500">
-                A compra depois do fechamento cai na fatura seguinte.
-              </p>
             </div>
           </div>
 
           {editando && (
             <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
-              <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-sm text-slate-700">Cartão ativo</span>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <Ajuda>
                   Desligado, ele some dos seletores mas continua no histórico —
                   as faturas antigas seguem apontando para ele.
-                </p>
+                </Ajuda>
               </div>
               <Switch
                 checked={form.ativo}

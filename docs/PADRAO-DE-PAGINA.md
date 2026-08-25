@@ -327,32 +327,52 @@ precisava descer dois degraus para se diferenciar e a tela toda pesava.
 Texto explicativo solto ocupa espaço permanente para uma informação que serve
 UMA vez. Depois de lido, vira peso — e o app fica com cara de tutorial.
 
-Use `<Ajuda>` (`components/ui/Ajuda.tsx`): um `(?)` discreto ao lado do título,
-que abre a explicação num vidro translúcido.
+Use `<Ajuda>` (`components/ui/Ajuda.tsx`): um ícone discreto ao lado do título
+ou do rótulo, que abre a explicação num cartão no centro da tela.
 
 ```jsx
 <h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
-  Lançadas no cartão, fora desta fatura
+  Fora desta Fatura
   <Ajuda>Normalmente são compras feitas depois do fechamento.</Ajuda>
 </h2>
+```
+
+Serve igual para RÓTULO DE CAMPO, e é aí que ele mais rende: um formulário com
+um parágrafo cinza embaixo de cada campo fica duas vezes mais alto e desalinha
+as colunas da grade, porque só alguns campos têm o parágrafo. O rótulo vira
+flex e o ícone entra nele:
+
+```jsx
+<label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+  Dia do fechamento
+  <Ajuda>A compra feita depois do fechamento cai na fatura seguinte.</Ajuda>
+</label>
 ```
 
 **Abre no CLIQUE, não no hover.** O app roda no celular, e um tooltip de hover
 simplesmente não abriria lá. O Radix cuida de Esc, clique fora e teclado.
 
-O vidro é o `SUPERFICIE_TOOLTIP` que já existe — cinza quente, que distingue
-"dica passageira" de "menu com que dá pra interagir" sem inventar linguagem
-visual nova.
+**É um dialog no CENTRO, sobre a tela desfocada** — não um balão ancorado no
+ícone. O balão foi tentado primeiro e tinha dois defeitos que só aparecem em
+uso: nascia grudado no título e ia sendo empurrado pela borda da tela, então a
+mesma dica surgia num lugar diferente a cada vez; e no celular ele cobria
+justamente a linha que estava explicando. O véu é `bg-slate-900/20` +
+`backdrop-blur-sm`, e não o `bg-black/50` dos dialogs de verdade: o desfoque é o
+efeito — some com a tela sem escondê-la —, e escurecer forte seria peso demais
+para uma frase. O cartão é o `SUPERFICIE_TOOLTIP` que já existe, cinza quente,
+que distingue "dica passageira" de "dialog com que se opera".
 
-**O ícone é um BALÃO DE FALA duotone, em índigo** — não o cinza dos rótulos. Ele
-existe para ser achado: em cinza desaparecia dentro do título, e explicação que
-ninguém vê não explica nada.
+Dentro do cartão não vai ícone (repetir o do gatilho rouba a primeira linha do
+texto) e o "Entendi" ocupa a largura toda, transparente com borda — é a borda de
+baixo do cartão, e no celular um alvo de toque que não se erra.
 
-O balão, e não um `?`, é deliberado: `?` diz "não entendi isto"; balão diz "tem
-um comentário aqui". O segundo é mais convidativo e menos manual de instruções —
-que é justamente o que se quer, já que o objetivo do componente é a tela PARAR de
-parecer tutorial. De quebra, deixa o ponto de interrogação livre para os lugares
-onde ele significa outra coisa (o "não registrada" da fatura).
+**O ícone é `note-duotone`, em cinza.** Ele acompanha um título e não pode
+competir com ele; escurece no hover para confirmar que é clicável. Um bloco de
+nota, e não um `?`, é deliberado: `?` diz "não entendi isto"; nota diz "tem uma
+observação aqui". O segundo é menos manual de instruções — que é justamente o
+ponto, já que o objetivo do componente é a tela PARAR de parecer tutorial. De
+quebra, deixa o ponto de interrogação livre para onde ele significa outra coisa
+(o "não registrada" da fatura).
 
 **Uma ou duas frases.** O que não couber aí é documentação, não dica, e o lugar
 dela é outro.

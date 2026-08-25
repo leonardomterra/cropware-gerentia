@@ -461,7 +461,7 @@ export function FaturaView({
       <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
           <h2 className="text-sm font-medium text-slate-900">
-            Lançamentos da fatura
+            Lançamentos da Fatura
           </h2>
           <div className="flex items-center gap-3">
             {conc && conc.nao_registrados > 0 && (
@@ -541,7 +541,7 @@ export function FaturaView({
         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
             <h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
-              Fora desta fatura
+              Fora desta Fatura
               <Ajuda>
                 Compras lançadas neste cartão que não apareceram na fatura.
                 Normalmente são as feitas depois do fechamento, que caem na
