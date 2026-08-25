@@ -50,6 +50,7 @@ import {
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
+import { Ajuda } from "@/components/ui/Ajuda";
 import { ApiError } from "@/utils/api";
 import { downloadBackup, useAdminOrgs } from "../hooks/useAdminOrgs";
 import type { AdminOrg, AdminOrgDetail, AdminOrgMember } from "../types";
@@ -489,8 +490,15 @@ export default function AdminOrgsPage({
               {/* Acessos */}
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <label className="text-sm font-medium text-slate-700 block mb-1">
+                  {/* O mesmo (?) do formulário de criar. Aqui a explicação
+                      nunca existiu, e o campo é exatamente o mesmo — quem
+                      aprendeu numa tela não deveria reaprender na outra. */}
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1">
                     Acessos contratados
+                    <Ajuda>
+                      Teto de pessoas na organização, contando o gestor. O
+                      gestor convida a equipe pelo código de 6 dígitos.
+                    </Ajuda>
                   </label>
                   {/* Dois dígitos e sem as setinhas do `type="number"`: o
                       valor é um punhado de acessos, não uma quantia. Com
@@ -1007,8 +1015,12 @@ export default function AdminOrgsPage({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1">
                 Acessos contratados
+                <Ajuda>
+                  Teto de pessoas na organização, contando o gestor. O gestor
+                  convida a equipe pelo código de 6 dígitos.
+                </Ajuda>
               </label>
               <Input
                 type="number"
@@ -1018,10 +1030,6 @@ export default function AdminOrgsPage({
                   setCForm((s) => ({ ...s, seats: e.target.value }))
                 }
               />
-              <p className="text-sm text-slate-500 mt-1">
-                Teto de pessoas na organização, contando o gestor. O gestor
-                convida a equipe pelo código de 6 dígitos.
-              </p>
             </div>
           </div>
           <DialogFooter>
