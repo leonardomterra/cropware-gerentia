@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import Premium from "~icons/ph/medal";
+import Premium from "~icons/material-symbols-light/workspace-premium-outline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
@@ -35,19 +35,6 @@ const PRIVACY_URL = "https://gerentia.app/privacidade.html";
 // EULA padrão da Apple (exigido no fluxo de compra de assinaturas — guideline 3.1.2).
 const TERMS_URL =
   "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
-
-/** Descrição do plano com quebra logo após o "—": "Plano X —" / "detalhe." */
-function PlanDescription({ text }: { text: string }) {
-  const idx = text.indexOf("—");
-  if (idx === -1) return <p className="text-xs text-slate-500">{text}</p>;
-  return (
-    <p className="text-xs text-slate-500">
-      {text.slice(0, idx + 1).trimEnd()}
-      <br />
-      {text.slice(idx + 1).trimStart()}
-    </p>
-  );
-}
 
 /** Divulgação de renovação automática + links obrigatórios (Termos de Uso / Privacidade). */
 function SubscriptionLegal() {
@@ -167,26 +154,12 @@ export function SubscriptionCard({ className }: { className?: string }) {
     }
   }
 
-  // DEV-only: força o estado da tela via ?preview= pra ajustar o visual sem
-  // depender do billing real (ex.: /paywall?preview=expired). Valores:
-  // "expired" (web, sem assinatura), "trial" (web, trial ativo),
-  // "active" (assinatura ativa), "native" (fluxo do app/loja).
-  const devPreview = import.meta.env.DEV
-    ? new URLSearchParams(window.location.search).get("preview")
-    : null;
-
-  const isActive = devPreview
-    ? devPreview === "active"
-    : info?.subscription?.status === "active";
-  const trialActive = devPreview
-    ? devPreview === "trial"
-    : (info?.trial_active ?? false);
+  const isActive = info?.subscription?.status === "active";
+  const trialActive = info?.trial_active ?? false;
   // Regra dura da Play/App Store: o app nativo NÃO pode oferecer pagamento
   // externo (Mercado Pago). No nativo, mostramos só o status; a compra entra
   // via loja (RevenueCat) quando os produtos estiverem configurados.
-  const isNative = devPreview
-    ? devPreview === "native"
-    : isNativeCapacitorApp();
+  const isNative = isNativeCapacitorApp();
 
   return (
     <section
@@ -319,7 +292,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
                     </span>
                   </div>
                   {plan.description ? (
-                    <PlanDescription text={plan.description} />
+                    <p className="text-xs text-slate-500">{plan.description}</p>
                   ) : null}
                   <Button
                     className="mt-1"
