@@ -713,8 +713,6 @@ export default function DashboardPage() {
     const tables: ReportDoc["tables"] = [
       {
         title: "Pendências",
-        icon: "pendencia",
-        accent: ACENTO.alerta,
         columns: [
           { label: "Situação", width: "60%" },
           { label: "Valor", money: true, align: "right", width: "40%" },
@@ -727,8 +725,6 @@ export default function DashboardPage() {
       },
       {
         title: "Entradas × Saídas por mês",
-        icon: "grafico",
-        accent: ACENTO.info,
         // O MESMO gráfico da tela, agora no papel. A tabela continua logo
         // abaixo: a figura mostra a forma do ano, os números ficam com ela.
         chart: {
@@ -758,8 +754,6 @@ export default function DashboardPage() {
     if (topCategories.length) {
       tables.push({
         title: "Onde mais saiu (categorias)",
-        icon: "saida",
-        accent: ACENTO.saida,
         // Rosca, como na tela. As cores acompanham a ordem do ranking, do tom
         // mais forte ao mais claro, para a maior fatia se impor sozinha.
         chart: {
@@ -786,8 +780,6 @@ export default function DashboardPage() {
     if (ccSpend.length) {
       tables.push({
         title: "Gastos por centro",
-        icon: "centro",
-        accent: ACENTO.teal,
         columns: [
           { label: "Centro", width: "70%" },
           { label: "Valor", money: true, align: "right", width: "30%" },
@@ -806,19 +798,16 @@ export default function DashboardPage() {
           label: "Entradas",
           value: fmtBRLfull(monthKpis.income),
           tone: "in",
-          icon: "entrada",
         },
         {
           label: "Saídas",
           value: fmtBRLfull(monthKpis.expense),
           tone: "out",
-          icon: "saida",
         },
         {
           label: "Saldo",
           value: fmtBRLfull(monthKpis.balance),
           tone: monthKpis.balance >= 0 ? "in" : "out",
-          icon: "saldo",
         },
       ],
       tables,

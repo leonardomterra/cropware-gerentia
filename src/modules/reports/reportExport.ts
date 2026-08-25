@@ -3,8 +3,13 @@ import { openReportHtml } from "@/utils/nativeExport";
 import { appRedirectBase } from "@/utils/platform";
 import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import type { ReportCell, ReportColumn, ReportDoc } from "./reportBuilders";
-import { ALTURA_GRAFICO, formasDoGrafico, type Forma } from "./reportCharts";
-import { ACENTO, iconeSvg, NEUTRO, TIPOGRAFIA } from "./reportTheme";
+import {
+  ALTURA_GRAFICO,
+  formasDoGrafico,
+  legendaDeSeries,
+  type Forma,
+} from "./reportCharts";
+import { ACENTO, NEUTRO, TIPOGRAFIA } from "./reportTheme";
 // Fonte padrão do app (Mozilla Text) bundlada — embutida via @font-face pra
 // valer na aba nova de impressão (não depende do Google Fonts).
 import mozillaTextUrl from "@fontsource-variable/mozilla-text/files/mozilla-text-latin-wght-normal.woff2?url";
@@ -90,9 +95,20 @@ function chartHtml(t: ReportDoc["tables"][number]): string {
   const L = 690;
   const formas = formasDoGrafico(t.chart, L, ALTURA_GRAFICO);
   if (!formas.length) return "";
+  const series = legendaDeSeries(t.chart);
+  // A legenda fica num card ABAIXO da figura. Dentro do SVG ela roubava altura
+  // das barras e ficava no corpo de 9,5px do eixo — pequena demais no papel.
+  const legenda = series.length
+    ? `<div class="legenda">${series
+        .map(
+          (x) =>
+            `<span class="li"><i style="background:${x.cor}"></i>${esc(x.nome)}</span>`,
+        )
+        .join("")}</div>`
+    : "";
   return `<svg class="chart" viewBox="0 0 ${L} ${ALTURA_GRAFICO}" width="100%" height="${ALTURA_GRAFICO}" role="img">${formas
     .map(formaSvg)
-    .join("")}</svg>`;
+    .join("")}</svg>${legenda}`;
 }
 
 function tableHtml(t: ReportDoc["tables"][number]): string {
@@ -121,10 +137,7 @@ function tableHtml(t: ReportDoc["tables"][number]): string {
         )
         .join("")}</tr>`
     : "";
-  const icone = t.icon
-    ? `<span class="ic">${iconeSvg(t.icon, t.accent ?? NEUTRO[500], 17)}</span>`
-    : "";
-  return `<section><h2>${icone}${esc(t.title ?? "")}</h2>${chartHtml(t)}<table><thead><tr>${head}</tr></thead><tbody>${body}${total}</tbody></table></section>`;
+  return `<section><h2>${esc(t.title ?? "")}</h2>${chartHtml(t)}<table><thead><tr>${head}</tr></thead><tbody>${body}${total}</tbody></table></section>`;
 }
 
 // Página HTML do relatório no estilo do CDM (laudos): folha A4 com a marca, fonte
@@ -137,19 +150,7 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   const meta = doc.meta
     .map(
       (m) =>
-        `<div class="kpi ${m.tone ?? ""}">${
-          m.icon
-            ? `<span class="ki">${iconeSvg(
-                m.icon,
-                m.tone === "in"
-                  ? ACENTO.entrada
-                  : m.tone === "out"
-                    ? ACENTO.saida
-                    : NEUTRO[400],
-                18,
-              )}</span>`
-            : ""
-        }<span class="kl">${esc(m.label)}</span><span class="kv">${esc(m.value)}</span></div>`,
+        `<div class="kpi ${m.tone ?? ""}"><span class="kl">${esc(m.label)}</span><span class="kv">${esc(m.value)}</span></div>`,
     )
     .join("");
   const tables = doc.tables.map(tableHtml).join("");
@@ -179,22 +180,25 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   h1 { font-size: ${TIPOGRAFIA.h1}px; font-weight: 600; margin: 0 0 2px; }
   .sub { color: ${NEUTRO[500]}; font-size: 13px; margin: 0 0 18px; }
   .kpis { display: flex; gap: 12px; margin-bottom: 22px; }
-  /* O card do KPI ganhou uma faixa de cor à esquerda: é o mesmo recurso que os
-     cards da tela usam pra dizer "entrou" ou "saiu" sem depender de ler. */
-  .kpi { position: relative; flex: 1 1 0; min-width: 0; border: 1px solid ${NEUTRO[200]}; border-radius: 6px; padding: 10px 14px 10px 16px; overflow: hidden; }
-  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: ${NEUTRO[300]}; }
-  .kpi.in::before { background: ${ACENTO.entrada}; }
-  .kpi.out::before { background: ${ACENTO.saida}; }
-  .kpi .ki { position: absolute; right: 10px; top: 10px; line-height: 0; }
+  /* Sem faixa de cor e sem ícone: num relatório impresso o número já está
+     grande e sozinho no card, e a cor do próprio valor basta para dizer o
+     sinal. Enfeite ao redor competia com ele. */
+  .kpi { flex: 1 1 0; min-width: 0; border: 1px solid ${NEUTRO[200]}; border-radius: 6px; padding: 10px 14px; }
   .kpi .kl { display: block; color: ${NEUTRO[500]}; font-size: ${TIPOGRAFIA.rotulo}px; }
   .kpi .kv { display: block; font-size: ${TIPOGRAFIA.kpiValor}px; font-weight: 600; margin-top: 2px; color: ${NEUTRO[900]}; }
   .kpi.in .kv { color: ${ACENTO.entradaEscuro}; }
   .kpi.out .kv { color: ${ACENTO.saidaEscuro}; }
   .kpi.muted .kv { color: ${NEUTRO[600]}; }
-  section { margin-bottom: 22px; page-break-inside: avoid; }
-  h2 { display: flex; align-items: center; gap: 7px; font-size: ${TIPOGRAFIA.h2}px; font-weight: 600; margin: 0 0 8px; color: ${NEUTRO[700]}; }
-  h2 .ic { line-height: 0; }
-  .chart { display: block; margin: 2px 0 12px; }
+  /* Separação entre seções: linha + respiro generoso. Numa folha com quatro
+     tabelas seguidas, só o espaço não basta — o olho precisa de um corte para
+     saber que a contagem recomeçou. */
+  section { margin-bottom: 26px; page-break-inside: avoid; }
+  section + section { border-top: 1px solid ${NEUTRO[200]}; padding-top: 24px; }
+  h2 { font-size: ${TIPOGRAFIA.h2}px; font-weight: 600; margin: 0 0 10px; color: ${NEUTRO[800]}; }
+  .chart { display: block; margin: 2px 0 0; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 8px 0 14px; padding: 9px 12px; border: 1px solid ${NEUTRO[200]}; border-radius: 6px; background: ${NEUTRO[50]}; }
+  .legenda .li { display: inline-flex; align-items: center; gap: 7px; font-size: ${TIPOGRAFIA.corpo}px; color: ${NEUTRO[700]}; }
+  .legenda i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid ${NEUTRO[100]}; font-size: ${TIPOGRAFIA.corpo}px; overflow-wrap: anywhere; }
   th { color: ${NEUTRO[500]}; font-weight: 600; font-size: ${TIPOGRAFIA.rotulo}px; text-transform: uppercase; letter-spacing: .02em; }

@@ -6,15 +6,12 @@ import {
   type AttachmentItem,
 } from "@/modules/receipts/utils/mergeAttachmentsPdf";
 import type { ReportCell, ReportColumn, ReportDoc } from "./reportBuilders";
-import { ALTURA_GRAFICO, formasDoGrafico } from "./reportCharts";
 import {
-  ACENTO,
-  ICONE_VIEWBOX,
-  ICONES,
-  NEUTRO,
-  pdfRgb,
-  type NomeDeIcone,
-} from "./reportTheme";
+  ALTURA_GRAFICO,
+  formasDoGrafico,
+  legendaDeSeries,
+} from "./reportCharts";
+import { ACENTO, NEUTRO, pdfRgb, TIPOGRAFIA } from "./reportTheme";
 
 // Gera o relatório como PDF vetorial (pdf-lib). Usado no app nativo (iOS/Android),
 // onde não dá pra abrir uma aba de impressão — o usuário recebe um PDF real pra
@@ -107,31 +104,6 @@ export async function reportToPdf(
   ) => page.drawText(san(s), { x, y: baseline, size, font: f, color });
 
   /**
-   * Ícone duotone. `drawSvgPath` do pdf-lib desenha o path com y crescendo PARA
-   * BAIXO a partir da âncora — a mesma convenção do SVG —, então a âncora é o
-   * canto SUPERIOR esquerdo, e não o inferior como no resto desta função.
-   */
-  const icone = (
-    nome: NomeDeIcone,
-    x: number,
-    topo: number,
-    px: number,
-    hex: string,
-  ) => {
-    const i = ICONES[nome];
-    const escala = px / ICONE_VIEWBOX;
-    const c = cor(hex);
-    page.drawSvgPath(i.fundo, {
-      x,
-      y: topo,
-      scale: escala,
-      color: c,
-      opacity: 0.2,
-    });
-    page.drawSvgPath(i.frente, { x, y: topo, scale: escala, color: c });
-  };
-
-  /**
    * Gráfico. As formas vêm de reportCharts — o MESMO cálculo da página HTML —
    * em coordenadas com origem no topo e y para baixo. Aqui elas viram
    * coordenadas de PDF (origem embaixo, y para cima) num lugar só.
@@ -171,7 +143,40 @@ export async function reportToPdf(
         draw(txt, M + f.x + dx, py(f.y), f.tamanho, font, cor(f.cor));
       }
     }
-    y = topo - ALTURA_GRAFICO - 10;
+    y = topo - ALTURA_GRAFICO - 9;
+
+    // Legenda num card abaixo da figura, no corpo do texto. Dentro do gráfico
+    // ela ficava no tamanho do rótulo de eixo — pequena demais no papel.
+    const series = legendaDeSeries(t.chart);
+    if (series.length) {
+      const hc = 22;
+      ensure(hc + 8);
+      page.drawRectangle({
+        x: M,
+        y: y - hc,
+        width: CW,
+        height: hc,
+        color: ZEBRA,
+        borderColor: LINE,
+        borderWidth: 1,
+      });
+      let lx = M + 12;
+      for (const se of series) {
+        page.drawRectangle({
+          x: lx,
+          y: y - hc / 2 - 5,
+          width: 10,
+          height: 10,
+          color: cor(se.cor),
+        });
+        const nome = san(se.nome);
+        draw(nome, lx + 16, y - hc / 2 - 4, TIPOGRAFIA.corpo, font, HEAD);
+        lx += 16 + font.widthOfTextAtSize(nome, TIPOGRAFIA.corpo) + 20;
+      }
+      y -= hc + 10;
+    } else {
+      y -= 6;
+    }
   };
 
   // ---- Cabeçalho ----------------------------------------------------------
@@ -210,35 +215,9 @@ export async function reportToPdf(
         borderWidth: 1,
         color: rgb(1, 1, 1),
       });
-      // Faixa de cor à esquerda, igual à do card na tela: diz "entrou" ou
-      // "saiu" antes de o olho chegar no número.
-      const faixa =
-        m.tone === "in"
-          ? ACENTO.entrada
-          : m.tone === "out"
-            ? ACENTO.saida
-            : NEUTRO[300];
-      page.drawRectangle({
-        x: bx,
-        y: top - bh,
-        width: 3,
-        height: bh,
-        color: cor(faixa),
-      });
-      if (m.icon) {
-        icone(
-          m.icon,
-          bx + bw - 24,
-          top - 10,
-          14,
-          m.tone === "in"
-            ? ACENTO.entrada
-            : m.tone === "out"
-              ? ACENTO.saida
-              : NEUTRO[400],
-        );
-      }
-      draw(fit(m.label, font, 9, bw - 40), bx + 13, top - 19, 9, font, MUTED);
+      // Sem faixa e sem ícone: o número já está grande e sozinho no card, e
+      // a cor dele basta para dizer o sinal. Enfeite ao redor competia.
+      draw(fit(m.label, font, 9, bw - 20), bx + 11, top - 19, 9, font, MUTED);
       const vColor =
         m.tone === "in"
           ? IN
@@ -260,20 +239,28 @@ export async function reportToPdf(
   }
 
   // ---- Tabelas ------------------------------------------------------------
+  let primeira = true;
   const drawTable = (t: ReportDoc["tables"][number]) => {
     if (t.title) {
       // Reserva o título E o gráfico JUNTOS. Separados, o `ensure` de cada um
       // deixava o título no fim de uma página e a figura no começo da outra —
-      // um cabeçalho órfão, que é o pior dos dois mundos: ocupa espaço e não
-      // explica nada.
-      ensure(11 + 10 + (t.chart ? ALTURA_GRAFICO + 10 : 0));
-      let tx = M;
-      if (t.icon) {
-        icone(t.icon, M, y - 1, 13, t.accent ?? NEUTRO[500]);
-        tx = M + 18;
+      // um cabeçalho órfão: ocupa espaço e não explica nada.
+      ensure(11 + 12 + (t.chart ? ALTURA_GRAFICO + 45 : 0));
+      // Linha antes de cada seção, menos a primeira: com quatro tabelas
+      // seguidas, só o espaço não diz que a contagem recomeçou.
+      if (!primeira) {
+        y -= 8;
+        page.drawLine({
+          start: { x: M, y },
+          end: { x: A4_W - M, y },
+          thickness: 1,
+          color: LINE,
+        });
+        y -= 16;
       }
-      draw(fit(t.title, bold, 11, CW - (tx - M)), tx, y - 11, 11, bold, HEAD);
-      y -= 11 + 10;
+      primeira = false;
+      draw(fit(t.title, bold, 11.5, CW), M, y - 11, 11.5, bold, INK);
+      y -= 11 + 12;
     }
     grafico(t);
     const widths = colWidths(t.columns, CW);

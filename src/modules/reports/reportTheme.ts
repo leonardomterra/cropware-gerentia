@@ -1,5 +1,3 @@
-import { ICONES, ICONE_VIEWBOX } from "./reportIcons";
-
 /**
  * Tokens dos relatórios — FONTE ÚNICA para os dois renderizadores.
  *
@@ -40,9 +38,14 @@ export const NEUTRO = {
  */
 export const ACENTO = {
   entrada: "#10b981", // emerald-500
-  entradaEscuro: "#047857", // emerald-700 — texto, precisa de 4,5:1
+  /**
+   * Verde e vermelho dos VALORES. Tons 800, e não 600/700: no relatório o
+   * número já está grande e sozinho no card — a cor só precisa dizer o sinal,
+   * não gritar. Saturação alta em texto grande cansa numa folha inteira.
+   */
+  entradaEscuro: "#065f46", // emerald-800
   saida: "#f87171", // red-400 — o mesmo das barras e do botão destrutivo
-  saidaEscuro: "#dc2626", // red-600 — o vermelho mais claro legível como texto
+  saidaEscuro: "#991b1b", // red-800
   alerta: "#d97706", // amber-600
   info: "#0ea5e9", // sky-500
   roxo: "#8b5cf6", // violet-500
@@ -71,8 +74,6 @@ export const TIPOGRAFIA = {
   kpiValor: 18,
 } as const;
 
-export type NomeDeIcone = keyof typeof ICONES;
-
 /** hex "#rrggbb" → [0..1, 0..1, 0..1], que é o que `rgb()` do pdf-lib espera. */
 export function pdfRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
@@ -82,26 +83,3 @@ export function pdfRgb(hex: string): [number, number, number] {
     parseInt(h.slice(4, 6), 16) / 255,
   ];
 }
-
-/**
- * SVG inline do ícone duotone, pronto para embutir no HTML.
- *
- * `cor` pinta as duas camadas: a silhueta sai em opacidade 0.2 e o contorno
- * sólido por cima — é assim que o Phosphor faz, e é o mesmo desenho que o app
- * mostra na tela. O relatório tem que parecer a continuação do app.
- */
-export function iconeSvg(
-  nome: keyof typeof ICONES,
-  cor: string,
-  px = 16,
-): string {
-  const i = ICONES[nome];
-  return (
-    `<svg width="${px}" height="${px}" viewBox="0 0 ${ICONE_VIEWBOX} ${ICONE_VIEWBOX}" fill="none" aria-hidden="true">` +
-    `<path d="${i.fundo}" fill="${cor}" opacity="0.2"/>` +
-    `<path d="${i.frente}" fill="${cor}"/>` +
-    `</svg>`
-  );
-}
-
-export { ICONES, ICONE_VIEWBOX };

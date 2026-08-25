@@ -14,7 +14,6 @@ import { STATUS_LABEL } from "@/modules/receipts/constants";
 // ---- Tipos do documento de relatório (renderizado em tela, CSV e impressão) --
 
 import type { ReportChart } from "./reportCharts";
-import { ACENTO, type NomeDeIcone } from "./reportTheme";
 
 export type ReportKind = "resumo" | "categoria" | "centro" | "contas";
 export type DirectionFilter = "all" | ReceiptDirection;
@@ -35,10 +34,6 @@ export interface ReportTable {
   rows: ReportCell[][];
   /** linha de total (mesmas colunas). */
   total?: ReportCell[];
-  /** ícone duotone ao lado do título (ver reportIcons). */
-  icon?: NomeDeIcone;
-  /** cor do ícone; padrão é o neutro do título. */
-  accent?: string;
   /**
    * Gráfico ACIMA da tabela, ilustrando os mesmos números.
    *
@@ -52,8 +47,6 @@ export interface ReportMeta {
   label: string;
   value: string;
   tone?: "in" | "out" | "muted";
-  /** ícone duotone no canto do card. */
-  icon?: NomeDeIcone;
 }
 export interface ReportDoc {
   title: string;
@@ -165,14 +158,10 @@ function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
     rows: ReportCell[][],
     head: string,
     total: number,
-    icon: NomeDeIcone,
-    accent: string,
   ) => {
     if (rows.length) {
       tables.push({
         title,
-        icon,
-        accent,
         columns: PCT_COLS(head),
         rows,
         total: ["Total", total, ""],
@@ -181,39 +170,29 @@ function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
   };
 
   // Entradas (por categoria + por centro), depois Saídas — espelha os cards.
-  // O ícone repete a direção (entrou/saiu) e a cor separa categoria de centro:
-  // são quatro títulos parecidos, e o desenho distingue antes da leitura.
   pushGroup(
     "Entradas por categoria",
     groupRows(incLines, (l) => l.categoryLabel, income),
     "Categoria",
     income,
-    "entrada",
-    ACENTO.entrada,
   );
   pushGroup(
     "Entradas por centro de custo",
     groupRows(incLines, (l) => l.ccName, income),
     "Centro de custo",
     income,
-    "centro",
-    ACENTO.entrada,
   );
   pushGroup(
     "Saídas por categoria",
     groupRows(expLines, (l) => l.categoryLabel, expense),
     "Categoria",
     expense,
-    "saida",
-    ACENTO.saida,
   );
   pushGroup(
     "Saídas por centro de custo",
     groupRows(expLines, (l) => l.ccName, expense),
     "Centro de custo",
     expense,
-    "centro",
-    ACENTO.saida,
   );
 
   return {
@@ -225,25 +204,21 @@ function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
         label: "Entradas",
         value: formatBRL(income),
         tone: "in",
-        icon: "entrada",
       },
       {
         label: "Saídas",
         value: formatBRL(expense),
         tone: "out",
-        icon: "saida",
       },
       {
         label: "Saldo",
         value: formatBRL(income - expense),
         tone: income - expense >= 0 ? "in" : "out",
-        icon: "saldo",
       },
       {
         label: "Lançamentos",
         value: String(receipts.length),
         tone: "muted",
-        icon: "grupo",
       },
     ],
     tables,
@@ -273,8 +248,6 @@ function buildGrouped(
     .sort((a, b) => b.total - a.total)
     .map(({ key, ls, total }) => ({
       title: key,
-      icon: (groupBy === "categoria" ? "grupo" : "centro") as NomeDeIcone,
-      accent: groupBy === "categoria" ? ACENTO.indigo : ACENTO.teal,
       columns: [
         { label: "Data", width: "16%" },
         { label: "Origem", width: "38%" },
@@ -304,13 +277,11 @@ function buildGrouped(
       {
         label: "Total",
         value: formatBRL(sum(lines.map((l) => l.value))),
-        icon: "saldo",
       },
       {
         label: "Lançamentos",
         value: String(lines.length),
         tone: "muted",
-        icon: "grupo",
       },
     ],
     tables,
@@ -350,8 +321,6 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
   if (pagar.length)
     tables.push({
       title: "A pagar",
-      icon: "saida",
-      accent: ACENTO.saida,
       columns: cols,
       rows: mk(pagar),
       total: ["", "", "", "Total", totalPagar],
@@ -359,8 +328,6 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
   if (receber.length)
     tables.push({
       title: "A receber",
-      icon: "entrada",
-      accent: ACENTO.entrada,
       columns: cols,
       rows: mk(receber),
       total: ["", "", "", "Total", totalReceber],
@@ -375,13 +342,11 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
         label: "A pagar",
         value: formatBRL(totalPagar),
         tone: "out",
-        icon: "saida",
       },
       {
         label: "A receber",
         value: formatBRL(totalReceber),
         tone: "in",
-        icon: "entrada",
       },
     ],
     tables,

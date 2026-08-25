@@ -45,7 +45,14 @@ export type ReportChart = ChartBarras | ChartRosca;
 export type Forma =
   | { tipo: "ret"; x: number; y: number; w: number; h: number; cor: string }
   | { tipo: "path"; d: string; cor: string }
-  | { tipo: "linha"; x1: number; y1: number; x2: number; y2: number; cor: string }
+  | {
+      tipo: "linha";
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      cor: string;
+    }
   | {
       tipo: "texto";
       x: number;
@@ -58,7 +65,20 @@ export type Forma =
       italico?: boolean;
     };
 
+/** Rótulo de eixo — pequeno de propósito, é referência e não leitura. */
 const ROTULO = 9.5;
+/** Legenda. Maior que o rótulo do eixo: é o que explica a cor, e cor sem
+ *  explicação legível não informa nada. */
+const LEGENDA = 11.5;
+
+/**
+ * Séries de um gráfico de barras, para o renderizador montar a legenda FORA da
+ * figura. Ela saiu de dentro do SVG em 25/08/2026: no topo do gráfico, roubava
+ * altura útil das barras e ficava pequena demais para se ler no papel.
+ */
+export function legendaDeSeries(c: ReportChart): SerieDeBarras[] {
+  return c.tipo === "barras" && c.series.length > 1 ? c.series : [];
+}
 
 /**
  * Barras agrupadas. Sem eixo Y de propósito: a tabela logo abaixo tem os
@@ -73,33 +93,16 @@ export function formasDeBarras(
 ): Forma[] {
   const formas: Forma[] = [];
   const alturaRotulo = 14;
-  const alturaLegenda = c.series.length > 1 ? 16 : 0;
   const base = altura - alturaRotulo;
-  const topo = alturaLegenda;
-  const util = base - topo;
+  // Sem reserva para legenda: ela agora é um card abaixo da figura, montado
+  // pelo renderizador (ver `legendaDeSeries`). Toda a altura vira barra.
+  const util = base;
   if (util <= 0 || !c.grupos.length) return formas;
 
   const max = Math.max(
     1,
     ...c.grupos.flatMap((g) => g.valores.map((v) => Math.abs(v) || 0)),
   );
-
-  // Legenda no topo: bolinha + nome, uma ao lado da outra.
-  if (alturaLegenda) {
-    let lx = 0;
-    for (const s of c.series) {
-      formas.push({ tipo: "ret", x: lx, y: 2, w: 7, h: 7, cor: s.cor });
-      formas.push({
-        tipo: "texto",
-        x: lx + 11,
-        y: 9,
-        texto: s.nome,
-        tamanho: ROTULO,
-        cor: NEUTRO[500],
-      });
-      lx += 11 + s.nome.length * 5.2 + 14;
-    }
-  }
 
   const larguraGrupo = largura / c.grupos.length;
   // 0.62 do grupo é barra e o resto é respiro. Menos que isso e as barras de
@@ -197,18 +200,18 @@ export function formasDeRosca(
   }
 
   const lx = cx + r + 18;
-  const alturaLinha = 15;
+  const alturaLinha = 19;
   const inicio = cy - (c.fatias.length * alturaLinha) / 2 + alturaLinha / 2;
   c.fatias.forEach((f, i) => {
     const y = inicio + i * alturaLinha;
-    formas.push({ tipo: "ret", x: lx, y: y - 5, w: 8, h: 8, cor: f.cor });
+    formas.push({ tipo: "ret", x: lx, y: y - 6, w: 10, h: 10, cor: f.cor });
     const pct = ((Math.abs(f.valor) / total) * 100).toFixed(0);
     formas.push({
       tipo: "texto",
-      x: lx + 13,
-      y: y + 2,
+      x: lx + 16,
+      y: y + 3,
       texto: `${f.rotulo} — ${pct}%`,
-      tamanho: ROTULO,
+      tamanho: LEGENDA,
       cor: NEUTRO[600],
     });
   });
