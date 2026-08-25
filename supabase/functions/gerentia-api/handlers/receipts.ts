@@ -577,6 +577,24 @@ export function mountReceiptRoutes(app: Hono) {
         .single();
       if (pErr || !parent) return c.json({ error: "not_found" }, 404);
 
+      // FATURA NÃO DESMEMBRA (25/08/2026, ver docs/CARTOES-E-FATURAS.md).
+      //
+      // Desmembrar subtrai o valor do item do total do pai. Isso era inofensivo
+      // quando a fatura era informativa; desde que ela virou O número que tem
+      // que bater com o extrato do banco, mexer no total dela é falsificar o
+      // documento — uma fatura de R$ 1.500 com três itens desmembrados passaria
+      // a dizer R$ 1.200, e nenhuma fatura fechada perde item.
+      //
+      // O recurso existia para "puxar pro total" um gasto que a fatura
+      // informativa escondia. Esse buraco não existe mais: a fatura soma.
+      if (parent.doc_type === "fatura") {
+        return c.json({
+          error: "fatura_nao_desmembra",
+          detalhe:
+            "A fatura precisa fechar com o extrato: o total dela não pode mudar.",
+        }, 400);
+      }
+
       const { data: item, error: iErr } = await client
         .from("farm_receipt_items")
         .select("*")

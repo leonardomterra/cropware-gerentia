@@ -42,10 +42,24 @@ export function ReceiptItemsTable({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const ccById = new Map((user?.costCenters ?? []).map((c) => [c.id, c]));
-  const [pendingPromote, setPendingPromote] = useState<ReceiptItem | null>(null);
+  const [pendingPromote, setPendingPromote] = useState<ReceiptItem | null>(
+    null,
+  );
   const [promoting, setPromoting] = useState(false);
 
   const items = receipt.items ?? [];
+  /**
+   * FATURA NÃO DESMEMBRA (ver docs/CARTOES-E-FATURAS.md). Desmembrar subtrai o
+   * item do total do pai, e desde que a fatura virou O número que fecha com o
+   * extrato do banco, mexer nesse total é falsificar o documento. O backend
+   * recusa também.
+   *
+   * Aqui a ação SOME, em vez de aparecer desabilitada: desabilitada ela promete
+   * algo que nunca vai ser possível naquele documento. O `canPromote` continua
+   * existindo para o outro caso — nota com um item só, onde desmembrar não faz
+   * sentido hoje mas fará quando ela tiver dois.
+   */
+  const mostraDesmembrar = editable && receipt.doc_type !== "fatura";
   const canPromote = (receipt.item_count ?? 0) >= 2;
 
   async function confirmPromote() {
@@ -98,10 +112,15 @@ export function ReceiptItemsTable({
             const cc = it.cost_center_id ? ccById.get(it.cost_center_id) : null;
             const promoted = !!it.promoted_to_receipt_id;
             return (
-              <div key={it.id} className={cn("p-3", promoted && "bg-slate-50/60")}>
+              <div
+                key={it.id}
+                className={cn("p-3", promoted && "bg-slate-50/60")}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 text-sm">
-                    <span className={promoted ? "text-slate-400" : "text-slate-700"}>
+                    <span
+                      className={promoted ? "text-slate-400" : "text-slate-700"}
+                    >
                       {it.description || "—"}
                     </span>
                     {it.quantity != null && it.unit_value != null ? (
@@ -113,7 +132,7 @@ export function ReceiptItemsTable({
                   </div>
                   {promoted ? (
                     promotedBadge(it)
-                  ) : editable ? (
+                  ) : mostraDesmembrar ? (
                     <ActionIconButton
                       icon={CallMade}
                       label="Converter em lançamento"
@@ -139,7 +158,9 @@ export function ReceiptItemsTable({
                             color={cc.color}
                             className="size-4 shrink-0"
                           />
-                          <span className="truncate text-slate-600">{cc.name}</span>
+                          <span className="truncate text-slate-600">
+                            {cc.name}
+                          </span>
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
@@ -201,7 +222,7 @@ export function ReceiptItemsTable({
             <th className="text-left px-3 py-2 font-medium">Categoria</th>
             <th className="text-left px-3 py-2 font-medium">Centro</th>
             <th className="text-right px-3 py-2 font-medium">Valor</th>
-            {editable && <th className="px-3 py-2 w-9"></th>}
+            {mostraDesmembrar && <th className="px-3 py-2 w-9"></th>}
           </tr>
         </thead>
         <tbody>
@@ -237,12 +258,16 @@ export function ReceiptItemsTable({
                       className="ml-2 align-middle cursor-pointer hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
                       title="Ver o lançamento que este item virou"
                       onClick={() =>
-                        navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`)
+                        navigate(
+                          `/lancamentos?open=${it.promoted_to_receipt_id}`,
+                        )
                       }
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          navigate(`/lancamentos?open=${it.promoted_to_receipt_id}`);
+                          navigate(
+                            `/lancamentos?open=${it.promoted_to_receipt_id}`,
+                          );
                         }
                       }}
                     >
@@ -275,7 +300,7 @@ export function ReceiptItemsTable({
                 >
                   {formatBRL(it.total_value)}
                 </td>
-                {editable && (
+                {mostraDesmembrar && (
                   <td className="px-3 py-2 text-right">
                     {!promoted && (
                       <ActionIconButton
@@ -299,7 +324,7 @@ export function ReceiptItemsTable({
             <td className="px-3 py-2 text-right font-medium tabular-nums text-slate-900">
               {formatBRL(receipt.total_value)}
             </td>
-            {editable && <td></td>}
+            {mostraDesmembrar && <td></td>}
           </tr>
         </tfoot>
       </table>

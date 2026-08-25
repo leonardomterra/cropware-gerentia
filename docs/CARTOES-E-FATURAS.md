@@ -1,6 +1,6 @@
 # Cartões e faturas — gerentia.app
 
-**Início:** 25/08/2026 · **Etapa atual:** 1
+**Início:** 25/08/2026 · **Etapa 1 concluída** em 25/08/2026 · **Próxima:** 2 (cadastro de cartões)
 
 Documento-contrato. Mudança de regra se decide aqui antes de virar código.
 
@@ -22,9 +22,9 @@ usuário não teve paciência de digitar. Nunca fecha com o extrato do banco.
 
 ### O app já se contradizia
 
-Antes da mudança, o WhatsApp respondia a uma compra no cartão com *"Vai fechar
-na fatura"* (`handlers/whatsapp.ts`) e o comentário do código dizia *"Crédito
-NÃO conta — sai via fatura"*. Mas `counts_in_total` era gravado como `true`.
+Antes da mudança, o WhatsApp respondia a uma compra no cartão com _"Vai fechar
+na fatura"_ (`handlers/whatsapp.ts`) e o comentário do código dizia _"Crédito
+NÃO conta — sai via fatura"_. Mas `counts_in_total` era gravado como `true`.
 
 O app dizia uma coisa e calculava outra. A inversão não muda o rumo — faz o
 cálculo obedecer o que já estava escrito na tela.
@@ -33,11 +33,11 @@ cálculo obedecer o que já estava escrito na tela.
 
 > **A fatura é o lançamento. As compras no cartão são o extrato.**
 
-| lançamento | conta? |
-|---|---|
-| `doc_type = "fatura"` | **sim** |
-| compra com `payment_method = "cartao_credito"` | **não** — informativa |
-| todo o resto (PIX, dinheiro, débito, boleto, transferência) | sim |
+| lançamento                                                  | conta?                |
+| ----------------------------------------------------------- | --------------------- |
+| `doc_type = "fatura"`                                       | **sim**               |
+| compra com `payment_method = "cartao_credito"`              | **não** — informativa |
+| todo o resto (PIX, dinheiro, débito, boleto, transferência) | sim                   |
 
 **Boleto e débito automático seguem contando na compra**, de propósito: ali o
 lançamento JÁ É a conta, e pagá-la é o mesmo documento. Não existe um segundo
@@ -59,8 +59,8 @@ ferramenta de finanças isso é regressão, não simplificação.
 
 A fatura conta **pelos itens**: cada compra dentro dela com sua categoria, e o
 total batendo com a fatura por construção. O motor já existe (`farm_receipt_items`
-e o "desmembrar"), e o prompt de OCR já extrai: *"FATURA de cartão de crédito:
-CADA COMPRA da fatura vira um item"*.
+e o "desmembrar"), e o prompt de OCR já extrai: _"FATURA de cartão de crédito:
+CADA COMPRA da fatura vira um item"_.
 
 Uma fatura lançada à mão ("paguei 1.500 do Mastercard") fica com uma linha só.
 É a troca consciente de detalhe por velocidade.
@@ -87,15 +87,53 @@ ativos, e o alternativo seria pior — migrar mudaria totais de meses já fechad
 e onde o cliente não cadastrou a fatura antiga o gasto do cartão sumiria do
 histórico dele.
 
+## 5b. Fatura não desmembra
+
+Existia um "desmembrar": um item da fatura virava lançamento próprio que soma, e
+o valor era **subtraído do total do pai**. Era o jeito de puxar para o total um
+gasto que a fatura informativa escondia.
+
+**Aposentado em 25/08/2026**, por dois motivos que se somam:
+
+1. O buraco que ele tapava não existe mais — a fatura soma inteira.
+2. A fatura passou a ser **o número que fecha com o extrato do banco**, e mexer
+   no total dela é falsificar o documento: uma fatura de R$ 1.500 com três itens
+   desmembrados passaria a dizer R$ 1.200. **Fatura fechada não perde item.**
+
+Segue valendo para nota e cupom, onde não existe um extrato para conferir.
+
+O front esconde a ação (em vez de mostrá-la desabilitada, o que prometeria algo
+impossível naquele documento) e o backend recusa com `fatura_nao_desmembra` —
+porque esconder botão não é regra, é sugestão.
+
+## 5c. Os itens da fatura NÃO vão para Lançamentos
+
+Uma fatura de quem passa tudo no cartão traz 200 compras. Se elas aparecessem na
+lista de Lançamentos, ela viraria ilegível.
+
+**Já é assim hoje** e não precisou de mudança: a lista renderiza uma linha por
+LANÇAMENTO, nunca por item. A fatura aparece como uma linha com o selo
+"Fatura — 200 itens"; as compras existem só dentro dela.
+
+A regra que fica, para a etapa 5:
+
+> A compra informativa que o usuário lançou fica em **Lançamentos**.
+> A linha que veio da fatura fica **dentro da fatura**.
+> A conciliação **liga as duas**, e não cria uma terceira.
+
+**Pendência conhecida:** a lista busca `*, items(*)`, então os 200 itens viajam
+para o navegador em toda carga só para o selo mostrar o número. Some da tela e
+vira lentidão sem causa aparente. Resolver junto da etapa 3.
+
 ## 6. Etapas
 
-| | o que | estado |
-|---|---|---|
-| **1** | Inverter a regra e ajustar os textos | em andamento |
-| **2** | Cadastro de cartões (tabela + `card_id` no lançamento) | |
-| **3** | Aba **Cartões**: hub no molde de Configurações | |
-| **4** | WhatsApp: escolher cartão, registrar fatura | |
-| **5** | Conciliação: casar itens da fatura com as compras informativas | |
+|       | o que                                                          | estado        |
+| ----- | -------------------------------------------------------------- | ------------- |
+| **1** | Inverter a regra, ajustar os textos, aposentar o desmembrar    | ✅ 25/08/2026 |
+| **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         |               |
+| **3** | Aba **Cartões**: hub no molde de Configurações                 |               |
+| **4** | WhatsApp: escolher cartão, registrar fatura                    |               |
+| **5** | Conciliação: casar itens da fatura com as compras informativas |               |
 
 A etapa 1 vem primeiro porque é pequena e já fecha o buraco: a partir da próxima
 fatura lançada, o total bate. As demais são estrutura.
