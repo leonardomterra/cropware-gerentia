@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import Plus from "~icons/ph/plus";
 import PencilSimple from "~icons/ph/pencil-simple";
 import Trash from "~icons/ph/trash";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
@@ -18,7 +17,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
-import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
+import { BOTAO_BARRA } from "@/lib/ui-tokens";
 import { api } from "@/utils/api";
 import { BANDEIRAS, type Card } from "./types";
 
@@ -61,6 +60,7 @@ function subtitulo(c: Card): string {
  */
 export function CardsManager({
   aoAbrirFormulario,
+  aoRegistrarAcao,
 }: {
   /**
    * Avisa o hub que o formulário assumiu a tela. Sem isto aparecem DOIS
@@ -68,6 +68,12 @@ export function CardsManager({
    * desenha a própria barra. O hub esconde a dele enquanto isto for true.
    */
   aoAbrirFormulario?: (aberto: boolean) => void;
+  /**
+   * Entrega ao hub a função de "Novo Cartão", para o botão morar NA BARRA, ao
+   * lado do Voltar, em vez de numa linha só dele logo abaixo. Uma linha inteira
+   * para um botão só empurra a lista para baixo sem informar nada.
+   */
+  aoRegistrarAcao?: (acao: (() => void) | null) => void;
 } = {}) {
   const [cards, setCards] = useState<Card[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
@@ -100,6 +106,11 @@ export function CardsManager({
   useEffect(() => {
     aoAbrirFormulario?.(aberto);
   }, [aberto, aoAbrirFormulario]);
+
+  useEffect(() => {
+    aoRegistrarAcao?.(() => abrirNovo);
+    return () => aoRegistrarAcao?.(null);
+  }, [aoRegistrarAcao]);
 
   function abrirNovo() {
     setEditando(null);
@@ -336,17 +347,6 @@ export function CardsManager({
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center gap-2">
-        <Button
-          variant="default"
-          onClick={abrirNovo}
-          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
-        >
-          <Plus className="size-4 mr-2" />
-          Novo Cartão
-        </Button>
-      </header>
-
       <div className="flex items-center justify-end px-1 min-h-[28px]">
         <span className="text-sm text-slate-500">
           {cards.length} {cards.length === 1 ? "cartão" : "cartões"}

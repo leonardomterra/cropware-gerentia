@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import CreditCard from "~icons/ph/credit-card";
+import Plus from "~icons/ph/plus";
 import ChevronDown from "~icons/ph/caret-down";
 import {
   DropdownMenu,
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CAMPO_BARRA } from "@/lib/ui-tokens";
+import { BOTAO_BARRA_PRIMARIO, CAMPO_BARRA } from "@/lib/ui-tokens";
 import { rotuloDoCartao, useCards } from "./useCards";
 import ArrowLeft from "~icons/ph/arrow-left";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
@@ -70,6 +71,10 @@ export default function CartoesPage() {
   // O formulário do CardsManager desenha a PRÓPRIA barra (Voltar + Salvar). A
   // do hub some enquanto isso, senão ficam dois "Voltar" empilhados.
   const [formAberto, setFormAberto] = useState(false);
+  // Ação principal da seção, entregue pelo manager para morar NA barra, ao lado
+  // do Voltar. Guardada como função dentro de função porque `setState(fn)` trata
+  // função como updater — sem o embrulho, o React a chamaria na hora.
+  const [acao, setAcao] = useState<(() => void) | null>(null);
   const { cards } = useCards();
   // "todos" | "sem" | <id>. "sem" existe porque as faturas anteriores ao
   // cadastro de cartões não têm vínculo, e achá-las é o primeiro passo para
@@ -101,6 +106,7 @@ export default function CartoesPage() {
             type="button"
             onClick={() => {
               setFormAberto(false);
+              setAcao(null);
               setSecao(a.id);
             }}
             className="text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
@@ -136,6 +142,17 @@ export default function CartoesPage() {
             Voltar
           </Button>
 
+          {acao && (
+            <Button
+              variant="default"
+              onClick={acao}
+              className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
+            >
+              <Plus className="size-4 mr-2" />
+              Novo Cartão
+            </Button>
+          )}
+
           {/* Assunto à direita, como em Conta e Configurações: à esquerda ficam as
             ações, e o título é rótulo — não coisa para clicar. */}
           <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
@@ -146,10 +163,14 @@ export default function CartoesPage() {
       )}
 
       {secao === "cartoes" && (
-        <CardsManager aoAbrirFormulario={setFormAberto} />
+        <CardsManager
+          aoAbrirFormulario={setFormAberto}
+          aoRegistrarAcao={setAcao}
+        />
       )}
       {secao === "faturas" && (
         <ReceiptsListPage
+          aoAbrirFormulario={setFormAberto}
           docFilter={filtroDeFaturas}
           camposExtra={
             // Só aparece quando há cartão cadastrado: com zero, o seletor seria

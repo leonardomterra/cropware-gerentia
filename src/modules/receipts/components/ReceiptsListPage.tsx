@@ -125,6 +125,12 @@ export interface ReceiptsListPageProps {
    * lista só posiciona, e o recorte vem pelo `docFilter`.
    */
   camposExtra?: ReactNode;
+  /**
+   * Avisa o hub que um formulário (ver/editar/anexo) assumiu a tela. Esses
+   * formulários desenham a PRÓPRIA barra; sem isto o hub mantém a dele e
+   * aparecem dois "Voltar" empilhados.
+   */
+  aoAbrirFormulario?: (aberto: boolean) => void;
 }
 
 // Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
@@ -177,6 +183,7 @@ function scanToPrefill(scan: ScanResult): PrefillFromScan {
 export function ReceiptsListPage({
   docFilter,
   camposExtra,
+  aoAbrirFormulario,
   itemized = false,
   defaultDocType,
   showCapture = true,
@@ -539,6 +546,12 @@ export function ReceiptsListPage({
    */
   // Ver anexo também substitui a lista, pelo mesmo motivo do formulário: no
   // celular o diálogo espremia justamente o que se quer olhar grande.
+  // Qualquer uma das telas cheias (anexo ou formulário) substitui o conteúdo e
+  // traz a própria barra.
+  useEffect(() => {
+    aoAbrirFormulario?.(formOpen || viewingAttachment !== null);
+  }, [formOpen, viewingAttachment, aoAbrirFormulario]);
+
   if (viewingAttachment) {
     return (
       <PaginaDeAnexo
