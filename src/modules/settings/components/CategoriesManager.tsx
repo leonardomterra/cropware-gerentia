@@ -15,6 +15,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
+import { Ajuda } from "@/components/ui/Ajuda";
 import type { ReceiptDirection } from "@/modules/receipts/types";
 import {
   FALLBACK_GROUP,
@@ -79,8 +80,12 @@ function NameAndCodeFields({
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-slate-700 block mb-1">
+        <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1">
           Código
+          <Ajuda>
+            Do plano de contas, se você usa um. Aparece junto do nome da
+            categoria.
+          </Ajuda>
         </label>
         <Input
           placeholder={codePlaceholder}
@@ -88,9 +93,6 @@ function NameAndCodeFields({
           onChange={(e) => onChange({ code: e.target.value })}
           maxLength={20}
         />
-        <p className="text-xs text-slate-500 mt-1">
-          Do plano de contas, se você usa um. Aparece junto do nome.
-        </p>
       </div>
     </div>
   );

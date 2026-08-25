@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import Plus from "~icons/ph/plus";
 import ArrowLeft from "~icons/ph/arrow-left";
 import WrenchDuotone from "~icons/ph/wrench-duotone";
 import TrendDownDuotone from "~icons/ph/trend-down-duotone";
@@ -9,7 +10,7 @@ import FloppyDiskDuotone from "~icons/ph/floppy-disk-duotone";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
-import { BOTAO_BARRA } from "@/lib/ui-tokens";
+import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCentersManager } from "../components/CostCentersManager";
 import { CategoriesManager } from "../components/CategoriesManager";
@@ -124,6 +125,12 @@ export default function ConfiguracoesPage() {
   // Formulário aberto dentro do manager desenha a PRÓPRIA barra (Voltar +
   // Salvar). A do hub some enquanto isso, senão ficam dois "Voltar" empilhados.
   const [formAberto, setFormAberto] = useState(false);
+  /**
+   * Ação principal da seção aberta, entregue pela própria seção. Guardada como
+   * `setAcao(() => fn)` porque `setState` trata função como updater — passar
+   * `fn` direto faria o React CHAMAR a ação em vez de guardá-la.
+   */
+  const [acao, setAcao] = useState<(() => void) | null>(null);
   const [buscaDeUsuario, setBuscaDeUsuario] = useState("");
 
   const atalhos = ATALHOS.filter((a) => !a.master || isMaster);
@@ -137,6 +144,7 @@ export default function ConfiguracoesPage() {
             type="button"
             onClick={() => {
               setFormAberto(false);
+              setAcao(null);
               setSecao(a.id);
             }}
             className="text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
@@ -204,6 +212,21 @@ export default function ConfiguracoesPage() {
             Voltar
           </Button>
 
+          {/* A ação da seção mora AQUI, ao lado do Voltar, e não numa linha só
+              dela logo abaixo — uma linha inteira para um botão empurrava a
+              lista para baixo sem informar nada. */}
+          {acao && (
+            <Button
+              variant="default"
+              onClick={acao}
+              className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
+            >
+              <Plus className="size-4 mr-2" />
+              <span className="sm:hidden">Novo Centro</span>
+              <span className="hidden sm:inline">Novo Centro de Custo</span>
+            </Button>
+          )}
+
           {/* Assunto à direita, como em Conta: à esquerda ficam as ações, e o
             título é rótulo — não coisa para clicar. */}
           <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
@@ -214,7 +237,10 @@ export default function ConfiguracoesPage() {
       )}
 
       {secao === "centros" && (
-        <CostCentersManager aoAbrirFormulario={setFormAberto} />
+        <CostCentersManager
+          aoAbrirFormulario={setFormAberto}
+          aoRegistrarAcao={setAcao}
+        />
       )}
       {secao === "backups" && <BackupsManager />}
       {secao === "backups-master" && <BackupsManager master />}

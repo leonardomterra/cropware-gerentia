@@ -1,20 +1,16 @@
 import { useEffect, useState } from "react";
-import Plus from "~icons/ph/plus";
 import Star from "~icons/ph/star";
 import StarFilled from "~icons/ph/star-fill";
 import Archive from "~icons/ph/archive";
 import Pencil from "~icons/ph/pencil-simple";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
-import { cn } from "@/components/ui/utils";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
-import { BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
 import { useCostCenters } from "@/modules/cost-centers/hooks/useCostCenters";
 import {
   CC_COLORS,
@@ -40,9 +36,19 @@ interface FormState {
  */
 export function CostCentersManager({
   aoAbrirFormulario,
+  aoRegistrarAcao,
 }: {
   /** Ver CardsManager: evita dois "Voltar" empilhados no hub. */
   aoAbrirFormulario?: (aberto: boolean) => void;
+  /**
+   * Entrega ao hub a função de "Novo Centro de Custo", para o botão morar NA
+   * BARRA, ao lado do Voltar. Uma linha inteira só para ele empurrava a lista
+   * para baixo sem informar nada.
+   *
+   * Registra `null` quando o limite foi atingido: em vez de um botão desligado
+   * que não diz por quê, o lugar dele recebe a explicação.
+   */
+  aoRegistrarAcao?: (acao: (() => void) | null) => void;
 } = {}) {
   const { costCenters, loading, error, create, update, archive } =
     useCostCenters();
@@ -75,6 +81,11 @@ export function CostCentersManager({
 
   const activeCount = costCenters.length;
   const canCreate = activeCount < MAX_COST_CENTERS;
+
+  useEffect(() => {
+    aoRegistrarAcao?.(canCreate ? () => openNew : null);
+    return () => aoRegistrarAcao?.(null);
+  }, [aoRegistrarAcao, canCreate]);
 
   function openNew() {
     setEditing(null);
@@ -255,18 +266,12 @@ export function CostCentersManager({
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center gap-2">
-        <Button
-          variant="default"
-          onClick={openNew}
-          disabled={!canCreate}
-          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
-        >
-          <Plus className="size-[18px] shrink-0" />
-          <span className="sm:hidden">Novo Centro</span>
-          <span className="hidden sm:inline">Novo Centro de Custo</span>
-        </Button>
-      </header>
+      {!canCreate && (
+        <p className="text-sm text-slate-500">
+          Você chegou ao limite de {MAX_COST_CENTERS} centros de custo. Arquive
+          um que não usa mais para abrir espaço.
+        </p>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">

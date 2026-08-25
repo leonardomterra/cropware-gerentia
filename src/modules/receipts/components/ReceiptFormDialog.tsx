@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -38,6 +37,7 @@ import { ReceiptItemsTable } from "./ReceiptItemsTable";
 import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
+import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -781,6 +781,51 @@ export function ReceiptFormDialog({
             </Select>
           </div>
         )}
+        {/* "Contabilizar no Total" — aparece só onde há risco de duplicar
+            (fatura ou cartão de crédito). Desde 25/08/2026 a FATURA nasce
+            ligada e a compra no cartão, desligada — ver
+            docs/CARTOES-E-FATURAS.md. Desligado = informativo (não soma).
+
+            Era um interruptor num card de largura cheia, embaixo de tudo. Virou
+            select por dois motivos: o card empurrava o campo para fora do fluxo
+            do formulário, como se fosse outra coisa; e um interruptor não diz o
+            que acontece em cada posição — o select diz, no próprio rótulo da
+            opção escolhida.
+
+            A tonalização existe porque este é o único campo do formulário que
+            muda o SALDO. Verde soma, vermelho não soma. É a informação que a
+            pessoa precisa ver sem abrir nada. */}
+        {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
+          <div>
+            <div className="flex items-center gap-1.5 min-h-[1.125rem]">
+              <Label>Contabilizar no Total</Label>
+              <Ajuda>
+                {form.doc_type === "fatura"
+                  ? "A fatura é o que soma no total — é ela que fecha com o extrato do banco. As compras do cartão ficam como detalhe. Desligue só se você lança as compras uma a uma."
+                  : "Compra no cartão: fica como informativo e não soma, porque o gasto entra quando a fatura for lançada. Ligue se você não vai cadastrar a fatura deste cartão."}
+              </Ajuda>
+            </div>
+            <Select
+              value={form.counts_in_total ? "sim" : "nao"}
+              onValueChange={(v) => set("counts_in_total", v === "sim")}
+            >
+              <SelectTrigger
+                className={cn(
+                  "h-9 mt-1",
+                  form.counts_in_total
+                    ? "border-emerald-200 bg-emerald-50/70 text-emerald-900"
+                    : "border-red-200 bg-red-50/70 text-red-900",
+                )}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sim">Sim, soma no total</SelectItem>
+                <SelectItem value="nao">Não, só informativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -915,31 +960,6 @@ export function ReceiptFormDialog({
           </div>
         )}
 
-      {/* "Contabilizar no total" — aparece só onde há risco de duplicar
-              (fatura ou cartão de crédito). Desde 25/08/2026 a FATURA nasce
-              ligada e a compra no cartão, desligada — ver
-              docs/CARTOES-E-FATURAS.md. Desligado = informativo (não soma). */}
-      {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
-        <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Label htmlFor="counts_in_total" className="text-sm">
-              Contabilizar no total
-            </Label>
-            <Ajuda>
-              {form.doc_type === "fatura"
-                ? "A fatura é o que soma no total — é ela que fecha com o extrato do banco. As compras do cartão ficam como detalhe. Desligue só se você lança as compras uma a uma."
-                : "Compra no cartão: fica como informativo e não soma, porque o gasto entra quando a fatura for lançada. Ligue se você não vai cadastrar a fatura deste cartão."}
-            </Ajuda>
-          </div>
-          <Switch
-            id="counts_in_total"
-            checked={form.counts_in_total}
-            onCheckedChange={(v) => set("counts_in_total", v)}
-            className="mt-0.5 shrink-0"
-          />
-        </div>
-      )}
-
       {/* Resumo de itemizado (Lançamentos): atalho pra gerenciar os itens
               na página dedicada (Notas e Recibos / Faturas). */}
       {summaryMode && receipt && (
@@ -953,9 +973,7 @@ export function ReceiptFormDialog({
           </p>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1 shrink-0"
+            className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
             onClick={() => {
               onOpenChange(false);
               const base =
@@ -963,7 +981,7 @@ export function ReceiptFormDialog({
               navigate(`${base}?open=${receipt.id}`);
             }}
           >
-            <OpenInNew className="size-4" />
+            <OpenInNew className={ICONE_BOTAO_BARRA} />
             Gerenciar itens
           </Button>
         </div>
@@ -978,12 +996,10 @@ export function ReceiptFormDialog({
             <Label>{hasItems ? `Itens (${form.items.length})` : "Itens"}</Label>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={addItem}
-              className="gap-1"
+              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
             >
-              <Plus className="size-4" />
+              <Plus className={ICONE_BOTAO_BARRA} />
               Adicionar
             </Button>
           </div>
