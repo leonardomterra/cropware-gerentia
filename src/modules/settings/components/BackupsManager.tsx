@@ -389,6 +389,17 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
         </Popover>
 
         <Button
+          type="button"
+          variant="ghost"
+          onClick={() => void carregar()}
+          disabled={loading}
+          className={cn(BOTAO_BARRA, "rounded-md")}
+        >
+          <ArrowClockwise className={ICONE_BOTAO_BARRA} />
+          Atualizar
+        </Button>
+
+        <Button
           variant="default"
           onClick={gerarAgora}
           disabled={
@@ -400,17 +411,6 @@ export function BackupsManager({ master = false }: { master?: boolean }) {
         >
           <FloppyDiskDuotone className={ICONE_BOTAO_BARRA} />
           {gerando ? "Gerando..." : "Gerar Backup Agora"}
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => void carregar()}
-          disabled={loading}
-          className={cn(BOTAO_BARRA, "rounded-md")}
-        >
-          <ArrowClockwise className={ICONE_BOTAO_BARRA} />
-          Atualizar
         </Button>
       </div>
 
