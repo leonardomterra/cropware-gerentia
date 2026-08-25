@@ -60,6 +60,9 @@ const NotificacoesPage = lazyWithRetry(
 const IconLabPage = lazyWithRetry(
   () => import("@/modules/dev/pages/IconLabPage"),
 );
+const BadgeLabPage = lazyWithRetry(
+  () => import("@/modules/dev/pages/BadgeLabPage"),
+);
 const ErrorTestPage = lazyWithRetry(
   () => import("@/modules/dev/pages/ErrorTestPage"),
 );
@@ -334,6 +337,17 @@ function RootRoutes() {
               element={
                 <Suspense fallback={<LoadingScreen />}>
                   <IconLabPage />
+                </Suspense>
+              }
+            />
+          )}
+          {/* Laboratório de selos, mesma regra do de ícones: só em DEV. */}
+          {import.meta.env.DEV && (
+            <Route
+              path="badges"
+              element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <BadgeLabPage />
                 </Suspense>
               }
             />
