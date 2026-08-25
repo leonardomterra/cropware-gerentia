@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BOTAO_BARRA_PRIMARIO, CAMPO_BARRA } from "@/lib/ui-tokens";
 import { rotuloDoCartao, useCards } from "./useCards";
+import { FaturaView } from "./FaturaView";
 import ArrowLeft from "~icons/ph/arrow-left";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
 import ReceiptDuotone from "~icons/ph/receipt-duotone";
@@ -171,6 +172,14 @@ export default function CartoesPage() {
       {secao === "faturas" && (
         <ReceiptsListPage
           aoAbrirFormulario={setFormAberto}
+          renderLeitura={({ receipt, aoVoltar, aoEditar }) => (
+            <FaturaView
+              receipt={receipt}
+              cards={cards}
+              aoVoltar={aoVoltar}
+              aoEditar={aoEditar}
+            />
+          )}
           docFilter={filtroDeFaturas}
           camposExtra={
             // Só aparece quando há cartão cadastrado: com zero, o seletor seria

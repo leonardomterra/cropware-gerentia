@@ -131,6 +131,19 @@ export interface ReceiptsListPageProps {
    * aparecem dois "Voltar" empilhados.
    */
   aoAbrirFormulario?: (aberto: boolean) => void;
+  /**
+   * Tela própria de LEITURA, no lugar do formulário genérico. A aba Cartões
+   * passa a da fatura: lá o vocabulário é outro (competência, fechamento,
+   * cartão) e o formulário genérico falava de "Número da Nota Fiscal".
+   *
+   * Fica como injeção e não como `if (doc_type === "fatura")` para a lista não
+   * precisar conhecer fatura — ela só sabe que alguém pode desenhar melhor.
+   */
+  renderLeitura?: (args: {
+    receipt: Receipt;
+    aoVoltar: () => void;
+    aoEditar?: () => void;
+  }) => ReactNode;
 }
 
 // Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
@@ -184,6 +197,7 @@ export function ReceiptsListPage({
   docFilter,
   camposExtra,
   aoAbrirFormulario,
+  renderLeitura,
   itemized = false,
   defaultDocType,
   showCapture = true,
@@ -558,6 +572,25 @@ export function ReceiptsListPage({
         receipt={viewingAttachment}
         aoVoltar={() => setViewingAttachment(null)}
       />
+    );
+  }
+
+  // Leitura com desenho próprio (ex.: fatura). Editar continua no formulário
+  // genérico — o que muda é como se OLHA, não como se preenche.
+  if (formOpen && lendo && editing && renderLeitura) {
+    const fechar = () => {
+      setFormOpen(false);
+      setEditing(null);
+      setLendo(false);
+    };
+    return (
+      <>
+        {renderLeitura({
+          receipt: editing,
+          aoVoltar: fechar,
+          aoEditar: canEdit(editing) ? () => setLendo(false) : undefined,
+        })}
+      </>
     );
   }
 
