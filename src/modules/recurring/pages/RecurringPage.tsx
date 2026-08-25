@@ -909,18 +909,16 @@ function Section({
             : null;
           const receita = r.direction === "income";
           return (
+            /* O CARD NÃO É BOTÃO. Ele já era `role="button"` abrindo a
+               visualização, tendo dentro um menu cujo primeiro item é
+               exatamente "Ver" — a mesma ação em dois lugares. Isso obrigava um
+               `stopPropagation` no menu só para o clique não disparar as duas
+               coisas, e transformava qualquer toque no card (inclusive
+               selecionar um valor para copiar) numa navegação. O menu cobre
+               tudo, em qualquer tamanho de tela. */
             <div
               key={r.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openEdit(r, true)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  openEdit(r, true);
-                }
-              }}
-              className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              className="bg-white rounded-xl border border-slate-200 overflow-hidden"
             >
               <div className="flex items-stretch">
                 {/* A faixa carrega a cor do CENTRO DE CUSTO — é o que agrupa
@@ -997,12 +995,7 @@ function Section({
 
                     {/* Ações no menu, como no resto do app: três botões soltos
                         sobre o card branco leem como decoração. */}
-                    {/* `stopPropagation`: o card inteiro abre a visualização,
-                        e sem isso clicar no menu abriria a tela junto. */}
-                    <div
-                      className="shrink-0 self-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="shrink-0 self-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button

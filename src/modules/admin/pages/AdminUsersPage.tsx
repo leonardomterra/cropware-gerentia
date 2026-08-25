@@ -1059,13 +1059,18 @@ export default function AdminUsersPage({
                   enquanto nome e e-mail — o que se lê — ficavam apertados. */}
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Usuário</th>
-                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell w-[180px]">
+                <th className="text-left px-4 py-2 font-medium hidden sm:table-cell w-[180px] whitespace-nowrap">
                   Trial
                 </th>
-                <th className="text-left px-4 py-2 font-medium hidden md:table-cell w-[150px]">
+                <th className="text-left px-4 py-2 font-medium hidden md:table-cell w-[150px] whitespace-nowrap">
                   Último Acesso
                 </th>
-                <th className="text-right px-4 py-2 font-medium hidden sm:table-cell w-[130px]">
+                {/* Ações aparecem em QUALQUER tamanho. Elas ficavam
+                    escondidas no celular, e por isso a linha inteira era
+                    clicável — um gesto que ninguém descobre sozinho. Mais
+                    estreita no celular, onde só a coluna do usuário divide
+                    espaço com ela. */}
+                <th className="text-right px-4 py-2 font-medium w-[104px] sm:w-[130px] whitespace-nowrap">
                   Ações
                 </th>
               </tr>
@@ -1077,21 +1082,32 @@ export default function AdminUsersPage({
                   !!u.trial_ends_at &&
                   new Date(u.trial_ends_at).getTime() > Date.now();
                 return (
-                  <tr
-                    key={u.id}
-                    className="border-t border-slate-100 cursor-pointer hover:bg-slate-50 sm:cursor-default"
-                    onClick={() => openEdit(u)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 flex items-center gap-2">
-                        {u.full_name || "(sem nome)"}
+                  /* A LINHA NÃO É BOTÃO. Ela abria a edição inteira, tendo o
+                     lápis ali na ponta fazendo o mesmo — daí o
+                     `stopPropagation` que existia só para o clique no botão não
+                     abrir a tela duas vezes. E `sm:cursor-default` devolvia o
+                     cursor normal no desktop, então o comportamento ficava
+                     invisível: arrastar para copiar um e-mail abria a edição. */
+                  <tr key={u.id} className="border-t border-slate-100">
+                    {/* `max-w-0 w-full` é o que faz o `truncate` funcionar
+                        dentro de uma célula: sem largura máxima a célula cresce
+                        até caber o conteúdo, e o e-mail longo empurrava a coluna
+                        de ações para fora da tela. O `overflow-hidden` da seção
+                        escondia o estouro, então isso passava despercebido. */}
+                    <td className="px-4 py-3 max-w-0 w-full">
+                      <div className="font-medium text-slate-900 flex items-center gap-2 min-w-0">
+                        <span className="truncate">
+                          {u.full_name || "(sem nome)"}
+                        </span>
                         {suspended && (
                           <Badge size="compact" colorScheme="rose">
                             suspenso
                           </Badge>
                         )}
                       </div>
-                      <div className="text-sm text-slate-500">{u.email}</div>
+                      <div className="text-sm text-slate-500 truncate">
+                        {u.email}
+                      </div>
                       <div className="text-sm text-slate-400 mt-0.5 sm:hidden">
                         {u.is_master ? (
                           <Badge size="compact" colorScheme="amber">
@@ -1130,14 +1146,11 @@ export default function AdminUsersPage({
                     <td className="px-4 py-3 text-sm text-slate-500 hidden md:table-cell">
                       {fmtDate(u.last_sign_in_at)}
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="px-4 py-3">
                       {/* Botões de ícone no padrão do app (ActionIconButton):
                           eram um ícone cinza fino e um link de texto, que não
                           se liam como ação nem tinham área de toque. */}
-                      <div
-                        className="flex items-center justify-end gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="flex items-center justify-end gap-1">
                         <ActionIconButton
                           icon={Download}
                           label="Baixar o que essa pessoa cadastrou (JSON)"
