@@ -72,15 +72,26 @@ function normalizar(s: string | null | undefined): string {
     .trim();
 }
 
-/** Uma contém a outra, ou partilham a primeira palavra significativa. */
-function estabelecimentoParecido(a: string | null, b: string | null): boolean {
+/**
+ * Quão parecidos são dois nomes de estabelecimento.
+ *
+ *  "forte" — uma contém a outra ("OFICINA DIESEL" dentro de "OFICINA DIESEL -
+ *            RETIFICA"). Sozinho já basta para casar.
+ *  "fraco" — só a primeira palavra coincide. NÃO basta sozinho: "POSTO
+ *            IPIRANGA" e "POSTO BEIRA RIO" começam igual e são lugares
+ *            diferentes. Vale como reforço quando a data também está por perto.
+ */
+function semelhancaDeNome(
+  a: string | null,
+  b: string | null,
+): "forte" | "fraco" | null {
   const x = normalizar(a);
   const y = normalizar(b);
-  if (!x || !y) return false;
-  if (x.includes(y) || y.includes(x)) return true;
+  if (!x || !y) return null;
+  if (x.includes(y) || y.includes(x)) return "forte";
   const px = x.split(" ")[0];
   const py = y.split(" ")[0];
-  return px.length > 3 && px === py;
+  return px.length > 3 && px === py ? "fraco" : null;
 }
 
 /**
@@ -113,19 +124,27 @@ export function conciliar(itens: Linha[], compras: Linha[]): Conciliacao {
 
       const dias = diasEntre(it.purchase_date, c.transaction_date);
       const dataBate = dias !== null && dias <= FOLGA_DIAS;
-      const nomeBate = estabelecimentoParecido(it.description, c.vendor);
+      const nome = semelhancaDeNome(it.description, c.vendor);
+
+      // Um nome FRACO (só a primeira palavra) não casa sozinho: dois postos
+      // diferentes começam com "posto", e com o mesmo valor viraria um par
+      // falso. Ele só conta quando a data também aproxima.
+      const nomeBate = nome === "forte" || (nome === "fraco" && dataBate);
       if (!dataBate && !nomeBate) continue;
 
       const por = ["valor"];
       if (dataBate) por.push("data");
       if (nomeBate) por.push("estabelecimento");
+      // Alta confiança pede data E nome FORTE. Data + primeira palavra igual é
+      // sugestivo, não conclusivo.
+      const alta = dataBate && nome === "forte";
       candidatos.push({
         item: it,
         compra: c,
-        conf: dataBate && nomeBate ? "alta" : "media",
+        conf: alta ? "alta" : "media",
         por,
         // Empate por data resolve pelo mais próximo.
-        peso: (dataBate && nomeBate ? 100 : 50) - (dias ?? FOLGA_DIAS),
+        peso: (alta ? 100 : 50) - (dias ?? FOLGA_DIAS),
       });
     }
   }

@@ -9,6 +9,12 @@ import ArrowLeft from "~icons/ph/arrow-left";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Ajuda } from "@/components/ui/Ajuda";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -132,6 +138,27 @@ function Dado({
         {valor}
       </span>
     </div>
+  );
+}
+
+/**
+ * Selo com dica, no vidro do app.
+ *
+ * `TooltipProvider` fica AQUI e não numa casca lá em cima: a tela é montada por
+ * injeção dentro do ReceiptsListPage, e depender de um provider que talvez não
+ * exista no caminho quebraria em silêncio — o Radix simplesmente não mostra
+ * nada. O provider é barato e idempotente.
+ */
+function Marca({ dica, children }: { dica: string; children: ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex shrink-0">{children}</span>
+        </TooltipTrigger>
+        <TooltipContent>{dica}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -444,11 +471,6 @@ export function FaturaView({
                 <QuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
                 {conc.nao_registrados} não{" "}
                 {conc.nao_registrados === 1 ? "registrada" : "registradas"}
-                <Ajuda rotulo="O que significa não registrada?">
-                  São compras que passaram no cartão e você não lançou no app.
-                  Elas contam no total da fatura do mesmo jeito — o que falta é
-                  o detalhe: foto, observação e centro de custo.
-                </Ajuda>
               </span>
             )}
             <span className="text-sm text-slate-500">
@@ -483,23 +505,28 @@ export function FaturaView({
                 // Só marca quando a conciliação JÁ respondeu: antes disso toda
                 // linha pareceria não registrada por um instante.
                 destaque: !!conc && !m?.receipt_id,
+                // O tooltip é o do APP, não o `title` do HTML — aquele
+                // renderiza a caixinha cinza do sistema operacional, que não
+                // tem nada a ver com o resto da interface.
                 marca: m?.receipt_id ? (
-                  <CheckCircleDuotone
-                    className={cn(
-                      "size-[18px] shrink-0",
-                      m.confianca === "alta"
-                        ? "text-emerald-500"
-                        : "text-slate-400",
-                    )}
-                    // O título explica POR QUE casou — sem isso o selo é um
-                    // carimbo em que não dá para confiar.
-                    title={`Você já lançou esta compra (confere ${m.por.join(", ")})`}
-                  />
+                  <Marca
+                    // Explica POR QUE casou: sem isso o selo é um carimbo em
+                    // que não dá para confiar.
+                    dica={`Você já lançou esta compra — confere ${m.por.join(", ")}`}
+                  >
+                    <CheckCircleDuotone
+                      className={cn(
+                        "size-[18px] shrink-0",
+                        m.confianca === "alta"
+                          ? "text-emerald-500"
+                          : "text-slate-400",
+                      )}
+                    />
+                  </Marca>
                 ) : conc ? (
-                  <QuestionDuotone
-                    className="size-[18px] shrink-0 text-amber-500"
-                    title="Não encontrei esta compra nos seus lançamentos"
-                  />
+                  <Marca dica="Não encontrei esta compra nos seus lançamentos">
+                    <QuestionDuotone className="size-[18px] shrink-0 text-amber-500" />
+                  </Marca>
                 ) : null,
               };
             })}
