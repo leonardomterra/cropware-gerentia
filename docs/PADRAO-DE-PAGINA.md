@@ -95,6 +95,37 @@ style={isMobile ? { width: "var(--radix-popover-trigger-width)" } : undefined}
 
 ---
 
+### No celular a barra é outra (e mora num componente só)
+
+Use **`<BarraDeTela>`** (`components/ui/BarraDeTela.tsx`). Não monte a barra à
+mão: em 25/08/2026 havia TREZE telas repetindo a mesma string de classes, e elas
+divergiram sozinhas — a de Backups estava com a seta do "Filtros" sendo um
+`<span>` vazio (o espaço reservado, a seta nunca desenhada) e com a contagem de
+filtros escrita à mão em vez do `FilterCountBadge`.
+
+```
+celular:  [ busca .......... ] [ Filtros ² ]
+          [ ação principal ................. ] [ ações ]
+
+desktop:  [ busca ] [ campos ] [ Filtros ² ] [ ações ] [ ação principal ]
+```
+
+**Os campos à vista DESCEM PARA O PAINEL no celular**, com seus rótulos.
+Espalhados, eles caíam em três ou quatro linhas irregulares, com rótulo
+truncado, e empurravam a lista para fora da tela — e na maioria das visitas pelo
+celular a pessoa só quer consultar, não filtrar.
+
+**Eles não somem: o badge conta os que estão filtrando.** Cada campo declara
+`ativo`, e recolher deixa de esconder que a lista está filtrada — que é o jeito
+de alguém olhar um total errado sem entender por quê.
+
+**O seletor de período não entra na barra no celular.** Toda tela que o usa já
+tem o navegador `‹ Agosto 2026 ›` logo abaixo; repetir os dois gasta uma das
+duas linhas com informação que já está na tela. Quem usa a barra não o passa
+quando `useIsMobile()`.
+
+---
+
 ## 3. Linha 2 — ações
 
 **Exatamente um botão escuro por página: o de criar.** É o que separa "criar"

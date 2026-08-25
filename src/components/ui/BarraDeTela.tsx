@@ -1,0 +1,179 @@
+import { useState, type ReactNode } from "react";
+import Funnel from "~icons/ph/funnel";
+import ChevronDown from "~icons/ph/caret-down";
+import { Button } from "./button";
+import { FilterCountBadge } from "./FilterCountBadge";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { useIsMobile } from "./use-mobile";
+import { cn } from "./utils";
+import {
+  BOTAO_BARRA,
+  ICONE_BOTAO_BARRA,
+  PAINEL_ESCURO,
+  ROTULO_PAINEL_ESCURO,
+  SETA_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
+
+/** Um campo à vista na barra. No CELULAR ele desce para o painel. */
+export interface CampoDaBarra {
+  /** Só aparece no painel — na barra o próprio valor do campo se explica. */
+  rotulo: string;
+  campo: ReactNode;
+  /**
+   * Se este campo está filtrando algo agora. No celular ele some da vista, e
+   * sem isto o badge mentiria: o usuário veria a lista curta sem nada indicando
+   * por quê. Quem sabe a resposta é a tela, não a barra.
+   */
+  ativo?: boolean;
+}
+
+export interface BarraDeTelaProps {
+  /** Busca. Fica sempre à vista, inclusive no celular — é o filtro mais usado. */
+  busca?: ReactNode;
+  /** Campos à vista no desktop; no celular, dentro do painel. */
+  campos?: CampoDaBarra[];
+  /** O que já morava no painel escuro. */
+  painel?: ReactNode;
+  /** Filtros ativos que vivem no painel. Os `campos` ativos entram sozinhos. */
+  filtrosAtivos?: number;
+  /** Secundárias (Ordenar, Atualizar). */
+  acoes?: ReactNode;
+  /** A principal (Novo, Exportar). No celular ocupa a largura da linha. */
+  acaoPrincipal?: ReactNode;
+  className?: string;
+}
+
+/**
+ * A barra de filtros e ações — UMA implementação para o app inteiro.
+ *
+ * POR QUE EXISTE. Treze telas montavam esta barra à mão, repetindo a mesma
+ * string de classes. Ninguém errou de propósito: elas divergiram. Em 25/08/2026
+ * a de Backups foi encontrada com a seta do "Filtros" sendo um `<span>` VAZIO —
+ * o espaço reservado, a seta nunca desenhada — e com a contagem de filtros
+ * escrita à mão em vez do `FilterCountBadge`. Enquanto o layout for copiado,
+ * cada tela nova nasce com a chance de divergir de novo.
+ *
+ * O CELULAR é o motivo de ela ter nascido agora. Espalhados, os controles caíam
+ * em três ou quatro linhas irregulares, com rótulo truncado, e empurravam a
+ * lista para fora da tela — na maioria das visitas pelo celular a pessoa só quer
+ * consultar, não filtrar. A regra mora aqui dentro:
+ *
+ *   celular:  [ busca .......... ] [ Filtros ² ]
+ *             [ ação principal .................. ] [ ações ]
+ *
+ *   desktop:  [ busca ] [ campos ] [ Filtros ² ] [ ações ] [ ação principal ]
+ *
+ * Os campos à vista DESCEM PARA O PAINEL no celular, com seus rótulos. Não
+ * somem: o badge conta os que estão filtrando, então recolher não esconde que a
+ * lista está filtrada — que é o jeito de alguém olhar um total errado sem
+ * entender por quê.
+ *
+ * O que NÃO entra aqui: seletor de período. Ele já tem o navegador
+ * `‹ Agosto 2026 ›` logo abaixo em toda tela que o usa, e no celular repetir os
+ * dois é gastar uma das duas linhas com informação que já está na tela. Quem
+ * usa a barra decide não passá-lo quando `useIsMobile()`.
+ */
+export function BarraDeTela({
+  busca,
+  campos = [],
+  painel,
+  filtrosAtivos = 0,
+  acoes,
+  acaoPrincipal,
+  className,
+}: BarraDeTelaProps) {
+  const isMobile = useIsMobile();
+  const [aberto, setAberto] = useState(false);
+
+  const camposNaBarra = isMobile ? [] : campos;
+  const camposNoPainel = isMobile ? campos : [];
+  const temPainel = painel != null || camposNoPainel.length > 0;
+  const contagem = filtrosAtivos + camposNoPainel.filter((c) => c.ativo).length;
+
+  const botaoFiltros = temPainel ? (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className={cn(BOTAO_BARRA, "rounded-md", isMobile && "shrink-0")}
+        >
+          <Funnel className={ICONE_BOTAO_BARRA} />
+          Filtros
+          <FilterCountBadge count={contagem} />
+          <ChevronDown className={SETA_BOTAO_BARRA} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className={PAINEL_ESCURO}
+        // No celular o painel acompanha a largura da tela, e não a do botão:
+        // um campo espremido em 120px não se preenche com o polegar.
+        style={
+          isMobile
+            ? { width: "calc(100vw - 2rem)", maxWidth: "24rem" }
+            : undefined
+        }
+      >
+        {camposNoPainel.map((c) => (
+          <div key={c.rotulo} className="space-y-1.5">
+            <label className={ROTULO_PAINEL_ESCURO}>{c.rotulo}</label>
+            {c.campo}
+          </div>
+        ))}
+        {painel}
+      </PopoverContent>
+    </Popover>
+  ) : null;
+
+  if (isMobile) {
+    return (
+      <div className={cn("space-y-2 w-full", className)}>
+        {(busca || botaoFiltros) && (
+          <div className="flex items-center gap-2 w-full">
+            {busca && <div className="flex-1 min-w-0">{busca}</div>}
+            {/* Sem busca, o "Filtros" ocupa a linha: um botão pequeno sozinho
+                numa faixa vazia lê como sobra, não como controle. */}
+            <div className={busca ? "shrink-0" : "flex-1 [&>button]:w-full"}>
+              {botaoFiltros}
+            </div>
+          </div>
+        )}
+        {(acaoPrincipal || acoes) && (
+          <div className="flex items-center gap-2 w-full">
+            {acaoPrincipal && (
+              <div className="flex-1 min-w-0 [&>button]:w-full">
+                {acaoPrincipal}
+              </div>
+            )}
+            {acoes && (
+              <div className="shrink-0 flex items-center gap-2">{acoes}</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-wrap items-center gap-2 w-full", className)}>
+      {/* Grade e não flex: num flex a largura mínima do item é o `min-content`,
+          e bastava um nome de centro maior para a busca encolher. */}
+      <div
+        className={cn(
+          "grid flex-1 min-w-0 gap-2 grid-cols-1",
+          camposNaBarra.length === 1 && "sm:grid-cols-2",
+          camposNaBarra.length >= 2 && "sm:grid-cols-2 lg:grid-cols-3",
+        )}
+      >
+        {busca}
+        {camposNaBarra.map((c) => (
+          <div key={c.rotulo}>{c.campo}</div>
+        ))}
+      </div>
+      {botaoFiltros}
+      {acoes}
+      {acaoPrincipal}
+    </div>
+  );
+}
