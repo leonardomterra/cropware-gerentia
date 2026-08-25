@@ -1,6 +1,6 @@
 # Cartões e faturas — gerentia.app
 
-**Início:** 25/08/2026 · **Etapas 1 a 3 concluídas** em 25/08/2026 · **Próxima:** 4 (WhatsApp)
+**Início:** 25/08/2026 · **Etapas 1, 2, 3 e 5 concluídas** em 25/08/2026 · **Falta:** 4 (WhatsApp)
 
 Documento-contrato. Mudança de regra se decide aqui antes de virar código.
 
@@ -132,8 +132,8 @@ vira lentidão sem causa aparente. Resolver junto da etapa 3.
 | **1** | Inverter a regra, ajustar os textos, aposentar o desmembrar    | ✅ 25/08/2026 |
 | **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         | ✅ 25/08/2026 |
 | **3** | Aba **Cartões**: hub no molde de Configurações                 | ✅ 25/08/2026 |
-| **4** | WhatsApp: escolher cartão, registrar fatura                    |               |
-| **5** | Conciliação: casar itens da fatura com as compras informativas |               |
+| **4** | WhatsApp: escolher cartão, registrar fatura                    | pendente      |
+| **5** | Conciliação: casar itens da fatura com as compras informativas | ✅ 25/08/2026 |
 
 A etapa 1 vem primeiro porque é pequena e já fecha o buraco: a partir da próxima
 fatura lançada, o total bate. As demais são estrutura.
