@@ -21,8 +21,10 @@ export interface GrupoDeBarras {
   rotulo: string;
   /** um valor por série, na mesma ordem de `series` */
   valores: number[];
-  /** projeção, não realizado — sai em tom neutro e com o rótulo em itálico */
+  /** projeção, não realizado — barras em cinza */
   esmaecido?: boolean;
+  /** o mês em foco: ganha a faixa escura, como no gráfico da tela */
+  ativo?: boolean;
 }
 export interface ChartBarras {
   tipo: "barras";
@@ -44,7 +46,14 @@ export type ReportChart = ChartBarras | ChartRosca;
 
 export type Forma =
   | { tipo: "ret"; x: number; y: number; w: number; h: number; cor: string }
-  | { tipo: "path"; d: string; cor: string }
+  | {
+      tipo: "path";
+      d: string;
+      /** preenchimento; ausente = só contorno */
+      cor?: string;
+      contorno?: string;
+      opacidade?: number;
+    }
   | {
       tipo: "linha";
       x1: number;
@@ -62,7 +71,7 @@ export type Forma =
       cor: string;
       /** "inicio" (padrão), "meio" ou "fim" — âncora horizontal */
       ancora?: "inicio" | "meio" | "fim";
-      italico?: boolean;
+      negrito?: boolean;
     };
 
 /** Rótulo de eixo — pequeno de propósito, é referência e não leitura. */
@@ -81,6 +90,39 @@ export function legendaDeSeries(c: ReportChart): SerieDeBarras[] {
 }
 
 /**
+ * Retângulo arredondado. `rx` de um <rect> arredonda os QUATRO cantos de uma
+ * vez, e a faixa do mês em foco precisa só dos de baixo — daí o path, que
+ * também é o que o pdf-lib sabe traçar.
+ */
+function retanguloArredondado(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  soEmbaixo = false,
+): string {
+  const raio = Math.max(0, Math.min(r, w / 2, h / 2));
+  if (soEmbaixo) {
+    return `M${x},${y} H${x + w} V${y + h - raio} A${raio},${raio} 0 0 1 ${x + w - raio},${y + h} H${x + raio} A${raio},${raio} 0 0 1 ${x},${y + h - raio} Z`;
+  }
+  return (
+    `M${x + raio},${y} H${x + w - raio} A${raio},${raio} 0 0 1 ${x + w},${y + raio} ` +
+    `V${y + h - raio} A${raio},${raio} 0 0 1 ${x + w - raio},${y + h} ` +
+    `H${x + raio} A${raio},${raio} 0 0 1 ${x},${y + h - raio} ` +
+    `V${y + raio} A${raio},${raio} 0 0 1 ${x + raio},${y} Z`
+  );
+}
+
+/**
+ * Vidro escuro da faixa do mês em foco. É o MESMO do gráfico da tela
+ * (`bg-slate-900/65`): os dois dizem "mês selecionado", e tons diferentes
+ * fariam parecer que dizem coisas diferentes.
+ */
+const FOCO_FUNDO = NEUTRO[900];
+const FOCO_OPACIDADE = 0.65;
+
+/**
  * Barras agrupadas. Sem eixo Y de propósito: a tabela logo abaixo tem os
  * números exatos, e um eixo com escala repetiria a informação ocupando altura
  * que o A4 não tem sobrando. O gráfico aqui serve para ver a FORMA — em que mês
@@ -92,7 +134,10 @@ export function formasDeBarras(
   altura: number,
 ): Forma[] {
   const formas: Forma[] = [];
-  const alturaRotulo = 14;
+  // Faixa do mês, abaixo da base das barras. Mais alta que um rótulo solto
+  // porque no mês em foco ela é um bloco pintado, e texto colado na borda de
+  // um bloco escuro fica sujo.
+  const alturaRotulo = 20;
   const base = altura - alturaRotulo;
   // Sem reserva para legenda: ela agora é um card abaixo da figura, montado
   // pelo renderizador (ver `legendaDeSeries`). Toda a altura vira barra.
@@ -111,6 +156,43 @@ export function formasDeBarras(
     2,
     (larguraGrupo * 0.62) / Math.max(1, c.series.length),
   );
+
+  // MOLDURAS primeiro: são fundo, e SVG e PDF pintam na ordem em que recebem.
+  // Desenhadas depois, cobririam as barras.
+  const folga = Math.min(6, larguraGrupo * 0.12);
+  c.grupos.forEach((g, gi) => {
+    const esq = gi * larguraGrupo + folga / 2;
+    const larg = larguraGrupo - folga;
+    if (g.ativo) {
+      formas.push({
+        tipo: "path",
+        d: retanguloArredondado(esq, base, larg, alturaRotulo, 6, true),
+        cor: FOCO_FUNDO,
+        opacidade: FOCO_OPACIDADE,
+      });
+      // Contorno DEPOIS da faixa: antes, a faixa comeria a metade de dentro da
+      // linha de baixo.
+      formas.push({
+        tipo: "path",
+        d: retanguloArredondado(esq, 0, larg, altura, 6),
+        contorno: NEUTRO[200],
+      });
+    } else {
+      formas.push({
+        tipo: "path",
+        d: retanguloArredondado(esq, 0, larg, altura, 6),
+        contorno: NEUTRO[100],
+      });
+      formas.push({
+        tipo: "linha",
+        x1: esq,
+        y1: base,
+        x2: esq + larg,
+        y2: base,
+        cor: NEUTRO[100],
+      });
+    }
+  });
 
   c.grupos.forEach((g, gi) => {
     const centro = gi * larguraGrupo + larguraGrupo / 2;
@@ -131,23 +213,18 @@ export function formasDeBarras(
     formas.push({
       tipo: "texto",
       x: centro,
-      y: altura - 3,
+      // Centrado na faixa, e não pendurado na base: assim a folga não depende
+      // de adivinhar a altura da fonte.
+      y: base + alturaRotulo / 2 + ROTULO * 0.35,
       texto: g.rotulo,
       tamanho: ROTULO,
-      cor: NEUTRO[500],
+      // Sobre o vidro escuro só o branco tem contraste.
+      cor: g.ativo ? "#ffffff" : NEUTRO[500],
       ancora: "meio",
-      italico: g.esmaecido,
+      negrito: g.ativo,
     });
   });
 
-  formas.push({
-    tipo: "linha",
-    x1: 0,
-    y1: base,
-    x2: largura,
-    y2: base,
-    cor: NEUTRO[200],
-  });
   return formas;
 }
 
@@ -229,4 +306,4 @@ export function formasDoGrafico(
 }
 
 /** Altura reservada para o gráfico, em px/pt. Igual nos dois renderizadores. */
-export const ALTURA_GRAFICO = 120;
+export const ALTURA_GRAFICO = 132;

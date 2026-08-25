@@ -134,13 +134,27 @@ export async function reportToPdf(
       } else if (f.tipo === "path") {
         // O path já está em coordenadas y-para-baixo: drawSvgPath usa a mesma
         // convenção, então basta ancorar no topo do gráfico.
-        page.drawSvgPath(f.d, { x: M, y: topo, scale: 1, color: cor(f.cor) });
+        page.drawSvgPath(f.d, {
+          x: M,
+          y: topo,
+          scale: 1,
+          ...(f.cor ? { color: cor(f.cor) } : {}),
+          ...(f.opacidade !== undefined ? { opacity: f.opacidade } : {}),
+          ...(f.contorno
+            ? { borderColor: cor(f.contorno), borderWidth: 0.8 }
+            : {}),
+        });
       } else {
         const txt = san(f.texto);
-        const larg = font.widthOfTextAtSize(txt, f.tamanho);
+        const fonte = f.negrito ? bold : font;
+        const largura = fonte.widthOfTextAtSize(txt, f.tamanho);
         const dx =
-          f.ancora === "meio" ? -larg / 2 : f.ancora === "fim" ? -larg : 0;
-        draw(txt, M + f.x + dx, py(f.y), f.tamanho, font, cor(f.cor));
+          f.ancora === "meio"
+            ? -largura / 2
+            : f.ancora === "fim"
+              ? -largura
+              : 0;
+        draw(txt, M + f.x + dx, py(f.y), f.tamanho, fonte, cor(f.cor));
       }
     }
     y = topo - ALTURA_GRAFICO - 9;

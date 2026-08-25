@@ -79,13 +79,16 @@ function dispVal(v: ReportCell, col: ReportColumn): string {
 function formaSvg(f: Forma): string {
   if (f.tipo === "ret")
     return `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="1.5" fill="${f.cor}"/>`;
-  if (f.tipo === "path") return `<path d="${f.d}" fill="${f.cor}"/>`;
+  if (f.tipo === "path")
+    return `<path d="${f.d}" fill="${f.cor ?? "none"}"${
+      f.opacidade !== undefined ? ` fill-opacity="${f.opacidade}"` : ""
+    }${f.contorno ? ` stroke="${f.contorno}" stroke-width="1"` : ""}/>`;
   if (f.tipo === "linha")
     return `<line x1="${f.x1}" y1="${f.y1}" x2="${f.x2}" y2="${f.y2}" stroke="${f.cor}" stroke-width="1"/>`;
   const anc =
     f.ancora === "meio" ? "middle" : f.ancora === "fim" ? "end" : "start";
   return `<text x="${f.x}" y="${f.y}" font-size="${f.tamanho}" fill="${f.cor}" text-anchor="${anc}"${
-    f.italico ? ' font-style="italic"' : ""
+    f.negrito ? ' font-weight="600"' : ""
   }>${esc(f.texto)}</text>`;
 }
 

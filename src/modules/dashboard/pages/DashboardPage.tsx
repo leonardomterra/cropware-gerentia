@@ -737,6 +737,10 @@ export default function DashboardPage() {
             rotulo: d.mes,
             valores: [d.entradas, d.saidas],
             esmaecido: d.previsto,
+            // Mesma moldura da tela: o mês em foco ganha a faixa escura, e o
+            // relatório mostra qual período está sendo lido sem depender do
+            // subtítulo lá em cima.
+            ativo: d.sel,
           })),
         },
         columns: [
