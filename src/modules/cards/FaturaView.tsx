@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
 import WarningDuotone from "~icons/ph/warning-duotone";
 import CheckCircleDuotone from "~icons/ph/check-circle-duotone";
@@ -18,7 +18,7 @@ import {
   formatBRL,
   getCategoryLabel,
 } from "@/modules/receipts/utils/receiptFormatters";
-import type { Receipt } from "@/modules/receipts/types";
+import type { FarmCategory, Receipt } from "@/modules/receipts/types";
 import { rotuloDoCartao } from "./useCards";
 import type { Card } from "./types";
 
@@ -72,7 +72,24 @@ interface Conciliacao {
     vendor: string | null;
     value: number;
     date: string | null;
+    category: string | null;
+    cost_center_id: string | null;
   }[];
+}
+
+/** Uma compra, no formato que a tabela desenha — venha ela da fatura ou de
+ *  fora dela. */
+interface LinhaDeCompra {
+  id: string;
+  date: string | null;
+  descricao: string | null;
+  category: string | null;
+  cost_center_id: string | null;
+  value: number;
+  /** Ícone à esquerda da descrição (o selo de conciliação). */
+  marca?: ReactNode;
+  /** Fundo âmbar da linha não registrada. */
+  destaque?: boolean;
 }
 
 const STATUS: Record<string, { rotulo: string; cor: string }> = {
@@ -114,6 +131,140 @@ function Dado({
       >
         {valor}
       </span>
+    </div>
+  );
+}
+
+/**
+ * A tabela de compras, usada pelas DUAS seções — as da fatura e as de fora.
+ *
+ * É um componente só de propósito: o pedido foi que as duas ficassem parecidas,
+ * e duas cópias divergiriam na primeira coluna que alguém acrescentasse. O que
+ * muda entre elas é `esmaecida`, que é o jeito de dizer "isto aqui não compõe o
+ * valor desta fatura" sem precisar de outro desenho.
+ */
+function TabelaDeCompras({
+  linhas,
+  ccById,
+  categories,
+  esmaecida = false,
+}: {
+  linhas: LinhaDeCompra[];
+  ccById: Map<
+    string,
+    { icon?: string | null; color?: string | null; name: string }
+  >;
+  categories: FarmCategory[];
+  esmaecida?: boolean;
+}) {
+  const total = linhas.reduce((s, l) => s + l.value, 0);
+  const tinta = esmaecida ? "text-slate-400" : "text-slate-900";
+  const tintaFraca = esmaecida ? "text-slate-400" : "text-slate-600";
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-slate-100">
+            <th className="text-left px-4 py-2 text-sm font-medium text-slate-500 whitespace-nowrap">
+              Data
+            </th>
+            <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
+              Estabelecimento
+            </th>
+            <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
+              Categoria
+            </th>
+            <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
+              Centro de Custo
+            </th>
+            <th className="text-right px-4 py-2 text-sm font-medium text-slate-500 whitespace-nowrap">
+              Valor R$
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((l, i) => {
+            const cc = l.cost_center_id ? ccById.get(l.cost_center_id) : null;
+            return (
+              <tr
+                key={l.id}
+                className={cn(
+                  "border-b border-slate-100",
+                  i % 2 === 1 && "bg-slate-50/60",
+                  l.destaque && "bg-amber-50/60",
+                )}
+              >
+                <td
+                  className={cn(
+                    "px-4 py-2.5 text-sm tabular-nums whitespace-nowrap",
+                    tintaFraca,
+                  )}
+                >
+                  {diaMes(l.date)}
+                </td>
+                <td className={cn("px-4 py-2.5 text-sm", tinta)}>
+                  <span className="inline-flex items-center gap-2 min-w-0">
+                    {l.marca}
+                    <span className="truncate">{l.descricao || "—"}</span>
+                  </span>
+                </td>
+                <td className={cn("px-4 py-2.5 text-sm", tintaFraca)}>
+                  {getCategoryLabel(l.category, categories)}
+                </td>
+                <td className="px-4 py-2.5 text-sm">
+                  {cc ? (
+                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                      <CostCenterChip
+                        icon={cc.icon}
+                        color={cc.color}
+                        // Esmaecido o chip perde a cor junto com o resto —
+                        // senão ele é a única coisa viva numa linha apagada.
+                        className={cn(
+                          "size-4 shrink-0",
+                          esmaecida && "opacity-40 grayscale",
+                        )}
+                      />
+                      <span className={cn("truncate", tintaFraca)}>
+                        {cc.name}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
+                </td>
+                <td
+                  className={cn(
+                    "px-4 py-2.5 text-sm text-right tabular-nums whitespace-nowrap",
+                    tinta,
+                  )}
+                >
+                  {formatBRL(l.value)}
+                </td>
+              </tr>
+            );
+          })}
+          <tr>
+            <td
+              colSpan={4}
+              className={cn(
+                "px-4 py-3 text-sm font-medium",
+                esmaecida ? "text-slate-400" : "text-slate-700",
+              )}
+            >
+              Total
+            </td>
+            <td
+              className={cn(
+                "px-4 py-3 text-sm font-semibold text-right tabular-nums whitespace-nowrap",
+                esmaecida ? "text-slate-400" : "text-slate-900",
+              )}
+            >
+              {formatBRL(total)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -317,149 +468,77 @@ export function FaturaView({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left px-4 py-2 text-sm font-medium text-slate-500 whitespace-nowrap">
-                    Data
-                  </th>
-                  <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
-                    Estabelecimento
-                  </th>
-                  <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
-                    Categoria
-                  </th>
-                  <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
-                    Centro de Custo
-                  </th>
-                  <th className="text-right px-4 py-2 text-sm font-medium text-slate-500 whitespace-nowrap">
-                    Valor R$
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map((it, i) => {
-                  const cc = it.cost_center_id
-                    ? ccById.get(it.cost_center_id)
-                    : null;
-                  const m = porItem.get(it.id);
-                  // Só destaca quando a conciliação JÁ respondeu: antes disso,
-                  // toda linha pareceria não registrada por um instante.
-                  const naoRegistrada = !!conc && !m?.receipt_id;
-                  return (
-                    <tr
-                      key={it.id}
-                      className={cn(
-                        "border-b border-slate-100",
-                        i % 2 === 1 && "bg-slate-50/60",
-                        naoRegistrada && "bg-amber-50/60",
-                      )}
-                    >
-                      {/* Sem data: a compra veio de uma fatura antiga ou de um
-                          lançamento à mão. Um traço é honesto; inventar a data
-                          do pai faria o item mentir. */}
-                      <td className="px-4 py-2.5 text-sm tabular-nums whitespace-nowrap text-slate-600">
-                        {diaMes(it.purchase_date)}
-                      </td>
-                      <td className="px-4 py-2.5 text-sm text-slate-900">
-                        <span className="inline-flex items-center gap-2 min-w-0">
-                          {m?.receipt_id ? (
-                            <CheckCircleDuotone
-                              className={cn(
-                                "size-[18px] shrink-0",
-                                m.confianca === "alta"
-                                  ? "text-emerald-500"
-                                  : "text-slate-400",
-                              )}
-                              // O título explica POR QUE casou — sem isso o
-                              // selo é um carimbo em que não dá para confiar.
-                              title={`Você já lançou esta compra (confere ${m.por.join(", ")})`}
-                            />
-                          ) : conc ? (
-                            <QuestionDuotone
-                              className="size-[18px] shrink-0 text-amber-500"
-                              title="Não encontrei esta compra nos seus lançamentos"
-                            />
-                          ) : null}
-                          <span className="truncate">
-                            {it.description || "—"}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-sm text-slate-600">
-                        {getCategoryLabel(it.category, categories)}
-                      </td>
-                      <td className="px-4 py-2.5 text-sm">
-                        {cc ? (
-                          <span className="inline-flex items-center gap-1.5 min-w-0">
-                            <CostCenterChip
-                              icon={cc.icon}
-                              color={cc.color}
-                              className="size-4 shrink-0"
-                            />
-                            <span className="truncate text-slate-600">
-                              {cc.name}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-sm text-right tabular-nums whitespace-nowrap text-slate-900">
-                        {formatBRL(it.total_value)}
-                      </td>
-                    </tr>
-                  );
-                })}
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-3 text-sm font-medium text-slate-700"
-                  >
-                    Total
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-right tabular-nums whitespace-nowrap text-slate-900">
-                    {formatBRL(somaItens)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <TabelaDeCompras
+            categories={categories}
+            ccById={ccById}
+            linhas={itens.map((it) => {
+              const m = porItem.get(it.id);
+              return {
+                id: it.id,
+                date: it.purchase_date ?? null,
+                descricao: it.description,
+                category: it.category,
+                cost_center_id: it.cost_center_id,
+                value: Number(it.total_value) || 0,
+                // Só marca quando a conciliação JÁ respondeu: antes disso toda
+                // linha pareceria não registrada por um instante.
+                destaque: !!conc && !m?.receipt_id,
+                marca: m?.receipt_id ? (
+                  <CheckCircleDuotone
+                    className={cn(
+                      "size-[18px] shrink-0",
+                      m.confianca === "alta"
+                        ? "text-emerald-500"
+                        : "text-slate-400",
+                    )}
+                    // O título explica POR QUE casou — sem isso o selo é um
+                    // carimbo em que não dá para confiar.
+                    title={`Você já lançou esta compra (confere ${m.por.join(", ")})`}
+                  />
+                ) : conc ? (
+                  <QuestionDuotone
+                    className="size-[18px] shrink-0 text-amber-500"
+                    title="Não encontrei esta compra nos seus lançamentos"
+                  />
+                ) : null,
+              };
+            })}
+          />
         )}
       </section>
 
-      {/* Compras lançadas no cartão que NÃO apareceram nesta fatura. Quase
-          sempre é compra feita depois do fechamento — cai na próxima —, mas
-          também pega lançamento no cartão errado. Por isso a seção explica em
-          vez de só listar. */}
+      {/* O outro lado: compras lançadas no cartão que NÃO entraram nesta
+          fatura. Mesma tabela, ESMAECIDA — é o jeito de dizer "isto não compõe
+          o valor desta fatura" sem inventar outro desenho. */}
       {conc && conc.sobrando.length > 0 && (
-        <section className="bg-white rounded-xl border border-slate-200 p-4 md:p-6">
-          <h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900 mb-3">
-            Lançadas no cartão, fora desta fatura
-            <Ajuda>
-              Normalmente são compras feitas depois do fechamento, que caem na
-              próxima fatura. Se alguma não for, pode estar no cartão errado.
-            </Ajuda>
-          </h2>
-          <div className="space-y-2">
-            {conc.sobrando.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
-              >
-                <span className="min-w-0 text-sm text-slate-700 truncate">
-                  <span className="text-slate-500 tabular-nums">
-                    {diaMes(s.date)}
-                  </span>{" "}
-                  {s.vendor || "—"}
-                </span>
-                <span className="text-sm tabular-nums text-slate-900 whitespace-nowrap">
-                  {formatBRL(s.value)}
-                </span>
-              </div>
-            ))}
+        <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
+            <h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+              Fora desta fatura
+              <Ajuda>
+                Compras lançadas neste cartão que não apareceram na fatura.
+                Normalmente são as feitas depois do fechamento, que caem na
+                próxima. Se alguma não for, pode estar no cartão errado.
+              </Ajuda>
+            </h2>
+            <span className="text-sm text-slate-500">
+              {conc.sobrando.length}{" "}
+              {conc.sobrando.length === 1 ? "compra" : "compras"}
+            </span>
           </div>
+          <TabelaDeCompras
+            esmaecida
+            categories={categories}
+            ccById={ccById}
+            linhas={conc.sobrando.map((c) => ({
+              id: c.id,
+              date: c.date,
+              descricao: c.vendor,
+              category: c.category,
+              cost_center_id: c.cost_center_id,
+              value: c.value,
+            }))}
+          />
         </section>
       )}
     </div>

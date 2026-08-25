@@ -37,7 +37,16 @@ export interface Conciliacao {
    * Quase sempre é compra feita depois do fechamento — cai na próxima —, mas
    * também pega lançamento no cartão errado.
    */
-  sobrando: { id: string; vendor: string | null; value: number; date: string | null }[];
+  sobrando: {
+    id: string;
+    vendor: string | null;
+    value: number;
+    date: string | null;
+    /** Categoria e centro vêm junto para a tela desenhar a MESMA tabela dos
+     *  lançamentos da fatura — colunas diferentes fariam parecer outra coisa. */
+    category: string | null;
+    cost_center_id: string | null;
+  }[];
 }
 
 function diasEntre(a: string | null, b: string | null): number | null {
@@ -150,6 +159,8 @@ export function conciliar(itens: Linha[], compras: Linha[]): Conciliacao {
         vendor: c.vendor ?? null,
         value: Number(c.total_value) || 0,
         date: c.transaction_date ?? null,
+        category: c.category ?? null,
+        cost_center_id: c.cost_center_id ?? null,
       })),
   };
 }

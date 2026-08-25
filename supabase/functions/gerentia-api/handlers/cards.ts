@@ -124,7 +124,7 @@ export function mountCardRoutes(app: Hono) {
 
       let q = client
         .from("farm_receipts")
-        .select("id, vendor, total_value, transaction_date, card_id")
+        .select("id, vendor, total_value, transaction_date, card_id, category, cost_center_id")
         .eq("counts_in_total", false)
         .eq("payment_method", "cartao_credito")
         .gte("transaction_date", inicio)
