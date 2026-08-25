@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
 import WarningDuotone from "~icons/ph/warning-duotone";
 import CheckCircleDuotone from "~icons/ph/check-circle-duotone";
-import SealQuestionDuotone from "~icons/ph/seal-question-duotone";
+import QuestionDuotone from "~icons/ph/question-duotone";
 import { api } from "@/utils/api";
 import PencilSimple from "~icons/ph/pencil-simple";
 import ArrowLeft from "~icons/ph/arrow-left";
@@ -290,7 +290,7 @@ export function FaturaView({
               // O número que interessa. Não é erro — é descoberta: são as
               // compras que passaram no cartão e nunca foram lançadas.
               <span className="inline-flex items-center gap-1.5 text-sm text-amber-700">
-                <SealQuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
+                <QuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
                 {conc.nao_registrados} não{" "}
                 {conc.nao_registrados === 1 ? "registrada" : "registradas"}
                 <Ajuda rotulo="O que significa não registrada?">
@@ -377,7 +377,7 @@ export function FaturaView({
                               title={`Você já lançou esta compra (confere ${m.por.join(", ")})`}
                             />
                           ) : conc ? (
-                            <SealQuestionDuotone
+                            <QuestionDuotone
                               className="size-[18px] shrink-0 text-amber-500"
                               title="Não encontrei esta compra nos seus lançamentos"
                             />

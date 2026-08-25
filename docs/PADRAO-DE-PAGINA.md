@@ -344,12 +344,15 @@ O vidro é o `SUPERFICIE_TOOLTIP` que já existe — cinza quente, que distingue
 "dica passageira" de "menu com que dá pra interagir" sem inventar linguagem
 visual nova.
 
-**O ícone é AZUL e duotone**, não o cinza dos rótulos. O `(?)` existe para ser
-achado: em cinza ele desaparecia dentro do título, e explicação que ninguém vê
-não explica nada. Se na mesma tela houver outro ícone de interrogação com
-sentido próprio (como o "não registrada" da fatura), use uma variante diferente
-naquele — dois pontos de interrogação lado a lado com significados diferentes
-confundem mais do que ajudam.
+**O ícone é um BALÃO DE FALA duotone, em índigo** — não o cinza dos rótulos. Ele
+existe para ser achado: em cinza desaparecia dentro do título, e explicação que
+ninguém vê não explica nada.
+
+O balão, e não um `?`, é deliberado: `?` diz "não entendi isto"; balão diz "tem
+um comentário aqui". O segundo é mais convidativo e menos manual de instruções —
+que é justamente o que se quer, já que o objetivo do componente é a tela PARAR de
+parecer tutorial. De quebra, deixa o ponto de interrogação livre para os lugares
+onde ele significa outra coisa (o "não registrada" da fatura).
 
 **Uma ou duas frases.** O que não couber aí é documentação, não dica, e o lugar
 dela é outro.
