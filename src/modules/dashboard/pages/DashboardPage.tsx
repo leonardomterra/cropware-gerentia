@@ -50,6 +50,7 @@ import Download from "~icons/ph/download-simple";
 import { reportToPdf } from "@/modules/reports/reportPdf";
 import { openReportPage } from "@/modules/reports/reportExport";
 import type { ReportDoc } from "@/modules/reports/reportBuilders";
+import { ACENTO, FUNDO, NEUTRO } from "@/modules/reports/reportTheme";
 import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
 import {
@@ -65,6 +66,21 @@ import {
   periodRange,
   type DashPeriod,
 } from "../components/PeriodSwitcher";
+
+/**
+ * Paleta da rosca de categorias no PDF. Sequência quente→fria em vez de tons de
+ * uma cor só: com 5 fatias, uma escala monocromática vira cinza indistinguível
+ * quando o relatório é impresso em preto e branco, e aqui a ordem do ranking já
+ * carrega a informação.
+ */
+const PALETA_ROSCA = [
+  ACENTO.saida,
+  ACENTO.alerta,
+  ACENTO.indigo,
+  ACENTO.teal,
+  ACENTO.roxo,
+  NEUTRO[400],
+];
 
 interface ReceiptItemLite {
   category: string | null;
@@ -697,6 +713,8 @@ export default function DashboardPage() {
     const tables: ReportDoc["tables"] = [
       {
         title: "Pendências",
+        icon: "pendencia",
+        accent: ACENTO.alerta,
         columns: [
           { label: "Situação", width: "60%" },
           { label: "Valor", money: true, align: "right", width: "40%" },
@@ -709,6 +727,22 @@ export default function DashboardPage() {
       },
       {
         title: "Entradas × Saídas por mês",
+        icon: "grafico",
+        accent: ACENTO.info,
+        // O MESMO gráfico da tela, agora no papel. A tabela continua logo
+        // abaixo: a figura mostra a forma do ano, os números ficam com ela.
+        chart: {
+          tipo: "barras",
+          series: [
+            { nome: "Entradas", cor: FUNDO.entrada },
+            { nome: "Saídas", cor: FUNDO.saida },
+          ],
+          grupos: chartData.map((d) => ({
+            rotulo: d.mes,
+            valores: [d.entradas, d.saidas],
+            esmaecido: d.previsto,
+          })),
+        },
         columns: [
           { label: "Mês", width: "40%" },
           { label: "Entradas", money: true, align: "right", width: "30%" },
@@ -724,6 +758,18 @@ export default function DashboardPage() {
     if (topCategories.length) {
       tables.push({
         title: "Onde mais saiu (categorias)",
+        icon: "saida",
+        accent: ACENTO.saida,
+        // Rosca, como na tela. As cores acompanham a ordem do ranking, do tom
+        // mais forte ao mais claro, para a maior fatia se impor sozinha.
+        chart: {
+          tipo: "rosca",
+          fatias: topCategories.map((c, i) => ({
+            rotulo: getCategoryLabel(c.cat, categories),
+            valor: c.total,
+            cor: PALETA_ROSCA[i % PALETA_ROSCA.length],
+          })),
+        },
         columns: [
           { label: "Categoria", width: "56%" },
           { label: "Valor", money: true, align: "right", width: "28%" },
@@ -740,6 +786,8 @@ export default function DashboardPage() {
     if (ccSpend.length) {
       tables.push({
         title: "Gastos por centro",
+        icon: "centro",
+        accent: ACENTO.teal,
         columns: [
           { label: "Centro", width: "70%" },
           { label: "Valor", money: true, align: "right", width: "30%" },
@@ -754,12 +802,23 @@ export default function DashboardPage() {
       periodLabel: periodLabel(period),
       ccLabel,
       meta: [
-        { label: "Entradas", value: fmtBRLfull(monthKpis.income), tone: "in" },
-        { label: "Saídas", value: fmtBRLfull(monthKpis.expense) },
+        {
+          label: "Entradas",
+          value: fmtBRLfull(monthKpis.income),
+          tone: "in",
+          icon: "entrada",
+        },
+        {
+          label: "Saídas",
+          value: fmtBRLfull(monthKpis.expense),
+          tone: "out",
+          icon: "saida",
+        },
         {
           label: "Saldo",
           value: fmtBRLfull(monthKpis.balance),
-          tone: monthKpis.balance >= 0 ? "in" : undefined,
+          tone: monthKpis.balance >= 0 ? "in" : "out",
+          icon: "saldo",
         },
       ],
       tables,

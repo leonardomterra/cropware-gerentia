@@ -1,4 +1,8 @@
-import type { FarmCategory, Receipt, ReceiptDirection } from "@/modules/receipts/types";
+import type {
+  FarmCategory,
+  Receipt,
+  ReceiptDirection,
+} from "@/modules/receipts/types";
 import { receiptLines } from "@/modules/receipts/utils/receiptLines";
 import {
   formatBRL,
@@ -8,6 +12,9 @@ import {
 import { STATUS_LABEL } from "@/modules/receipts/constants";
 
 // ---- Tipos do documento de relatório (renderizado em tela, CSV e impressão) --
+
+import type { ReportChart } from "./reportCharts";
+import { ACENTO, type NomeDeIcone } from "./reportTheme";
 
 export type ReportKind = "resumo" | "categoria" | "centro" | "contas";
 export type DirectionFilter = "all" | ReceiptDirection;
@@ -28,11 +35,25 @@ export interface ReportTable {
   rows: ReportCell[][];
   /** linha de total (mesmas colunas). */
   total?: ReportCell[];
+  /** ícone duotone ao lado do título (ver reportIcons). */
+  icon?: NomeDeIcone;
+  /** cor do ícone; padrão é o neutro do título. */
+  accent?: string;
+  /**
+   * Gráfico ACIMA da tabela, ilustrando os mesmos números.
+   *
+   * É propriedade da seção e não um bloco separado de propósito: o relatório
+   * quer a figura E os números, e mantê-los juntos evita a classe de bug em que
+   * o gráfico de uma seção acaba impresso ao lado da tabela de outra.
+   */
+  chart?: ReportChart;
 }
 export interface ReportMeta {
   label: string;
   value: string;
   tone?: "in" | "out" | "muted";
+  /** ícone duotone no canto do card. */
+  icon?: NomeDeIcone;
 }
 export interface ReportDoc {
   title: string;
@@ -94,7 +115,7 @@ function toReportLines(receipts: Receipt[], ctx: ReportContext): RLine[] {
       status: ln.status,
       categoryLabel: getCategoryExportLabel(ln.category, ctx.categories),
       ccName: ln.cost_center_id
-        ? ctx.ccNameById.get(ln.cost_center_id) ?? "Sem centro"
+        ? (ctx.ccNameById.get(ln.cost_center_id) ?? "Sem centro")
         : "Sem centro",
       value: ln.value,
       vendor: r.vendor || r.description || "—",
@@ -144,27 +165,86 @@ function buildResumo(receipts: Receipt[], ctx: ReportContext): ReportDoc {
     rows: ReportCell[][],
     head: string,
     total: number,
+    icon: NomeDeIcone,
+    accent: string,
   ) => {
     if (rows.length) {
-      tables.push({ title, columns: PCT_COLS(head), rows, total: ["Total", total, ""] });
+      tables.push({
+        title,
+        icon,
+        accent,
+        columns: PCT_COLS(head),
+        rows,
+        total: ["Total", total, ""],
+      });
     }
   };
 
   // Entradas (por categoria + por centro), depois Saídas — espelha os cards.
-  pushGroup("Entradas por categoria", groupRows(incLines, (l) => l.categoryLabel, income), "Categoria", income);
-  pushGroup("Entradas por centro de custo", groupRows(incLines, (l) => l.ccName, income), "Centro de custo", income);
-  pushGroup("Saídas por categoria", groupRows(expLines, (l) => l.categoryLabel, expense), "Categoria", expense);
-  pushGroup("Saídas por centro de custo", groupRows(expLines, (l) => l.ccName, expense), "Centro de custo", expense);
+  // O ícone repete a direção (entrou/saiu) e a cor separa categoria de centro:
+  // são quatro títulos parecidos, e o desenho distingue antes da leitura.
+  pushGroup(
+    "Entradas por categoria",
+    groupRows(incLines, (l) => l.categoryLabel, income),
+    "Categoria",
+    income,
+    "entrada",
+    ACENTO.entrada,
+  );
+  pushGroup(
+    "Entradas por centro de custo",
+    groupRows(incLines, (l) => l.ccName, income),
+    "Centro de custo",
+    income,
+    "centro",
+    ACENTO.entrada,
+  );
+  pushGroup(
+    "Saídas por categoria",
+    groupRows(expLines, (l) => l.categoryLabel, expense),
+    "Categoria",
+    expense,
+    "saida",
+    ACENTO.saida,
+  );
+  pushGroup(
+    "Saídas por centro de custo",
+    groupRows(expLines, (l) => l.ccName, expense),
+    "Centro de custo",
+    expense,
+    "centro",
+    ACENTO.saida,
+  );
 
   return {
     title: REPORT_LABEL.resumo,
     periodLabel: ctx.periodLabel,
     ccLabel: ctx.ccLabel,
     meta: [
-      { label: "Entradas", value: formatBRL(income), tone: "in" },
-      { label: "Saídas", value: formatBRL(expense), tone: "out" },
-      { label: "Saldo", value: formatBRL(income - expense) },
-      { label: "Lançamentos", value: String(receipts.length), tone: "muted" },
+      {
+        label: "Entradas",
+        value: formatBRL(income),
+        tone: "in",
+        icon: "entrada",
+      },
+      {
+        label: "Saídas",
+        value: formatBRL(expense),
+        tone: "out",
+        icon: "saida",
+      },
+      {
+        label: "Saldo",
+        value: formatBRL(income - expense),
+        tone: income - expense >= 0 ? "in" : "out",
+        icon: "saldo",
+      },
+      {
+        label: "Lançamentos",
+        value: String(receipts.length),
+        tone: "muted",
+        icon: "grupo",
+      },
     ],
     tables,
     empty: tables.length === 0,
@@ -178,7 +258,8 @@ function buildGrouped(
   groupBy: "categoria" | "centro",
 ): ReportDoc {
   const lines = toReportLines(receipts, ctx).filter(byDirection(ctx.direction));
-  const keyOf = (l: RLine) => (groupBy === "categoria" ? l.categoryLabel : l.ccName);
+  const keyOf = (l: RLine) =>
+    groupBy === "categoria" ? l.categoryLabel : l.ccName;
 
   const groups = new Map<string, RLine[]>();
   for (const l of lines) {
@@ -192,10 +273,15 @@ function buildGrouped(
     .sort((a, b) => b.total - a.total)
     .map(({ key, ls, total }) => ({
       title: key,
+      icon: (groupBy === "categoria" ? "grupo" : "centro") as NomeDeIcone,
+      accent: groupBy === "categoria" ? ACENTO.indigo : ACENTO.teal,
       columns: [
         { label: "Data", width: "16%" },
         { label: "Origem", width: "38%" },
-        { label: groupBy === "categoria" ? "Centro de custo" : "Categoria", width: "26%" },
+        {
+          label: groupBy === "categoria" ? "Centro de custo" : "Categoria",
+          width: "26%",
+        },
         { label: "Valor", money: true, align: "right" as const, width: "20%" },
       ],
       rows: ls
@@ -210,12 +296,22 @@ function buildGrouped(
     }));
 
   return {
-    title: groupBy === "categoria" ? REPORT_LABEL.categoria : REPORT_LABEL.centro,
+    title:
+      groupBy === "categoria" ? REPORT_LABEL.categoria : REPORT_LABEL.centro,
     periodLabel: ctx.periodLabel,
     ccLabel: ctx.ccLabel,
     meta: [
-      { label: "Total", value: formatBRL(sum(lines.map((l) => l.value))) },
-      { label: "Lançamentos", value: String(lines.length), tone: "muted" },
+      {
+        label: "Total",
+        value: formatBRL(sum(lines.map((l) => l.value))),
+        icon: "saldo",
+      },
+      {
+        label: "Lançamentos",
+        value: String(lines.length),
+        tone: "muted",
+        icon: "grupo",
+      },
     ],
     tables,
     empty: tables.length === 0,
@@ -252,17 +348,41 @@ function buildContas(receipts: Receipt[], ctx: ReportContext): ReportDoc {
 
   const tables: ReportTable[] = [];
   if (pagar.length)
-    tables.push({ title: "A pagar", columns: cols, rows: mk(pagar), total: ["", "", "", "Total", totalPagar] });
+    tables.push({
+      title: "A pagar",
+      icon: "saida",
+      accent: ACENTO.saida,
+      columns: cols,
+      rows: mk(pagar),
+      total: ["", "", "", "Total", totalPagar],
+    });
   if (receber.length)
-    tables.push({ title: "A receber", columns: cols, rows: mk(receber), total: ["", "", "", "Total", totalReceber] });
+    tables.push({
+      title: "A receber",
+      icon: "entrada",
+      accent: ACENTO.entrada,
+      columns: cols,
+      rows: mk(receber),
+      total: ["", "", "", "Total", totalReceber],
+    });
 
   return {
     title: REPORT_LABEL.contas,
     periodLabel: ctx.periodLabel,
     ccLabel: ctx.ccLabel,
     meta: [
-      { label: "A pagar", value: formatBRL(totalPagar), tone: "out" },
-      { label: "A receber", value: formatBRL(totalReceber), tone: "in" },
+      {
+        label: "A pagar",
+        value: formatBRL(totalPagar),
+        tone: "out",
+        icon: "saida",
+      },
+      {
+        label: "A receber",
+        value: formatBRL(totalReceber),
+        tone: "in",
+        icon: "entrada",
+      },
     ],
     tables,
     empty: tables.length === 0,
