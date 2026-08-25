@@ -30,6 +30,13 @@ export interface ReceiptLineItem {
   unit_value: number | null;
   total_value: number;
   category: string;
+  /**
+   * Data da compra dentro da FATURA. O prompt já pedia este campo — inclusive
+   * com o cuidado da virada de ano —, mas ele não existia aqui e o insert o
+   * descartava em silêncio. É o segundo critério da conciliação; sem ele, uma
+   * fatura fotografada casa pior que uma digitada à mão.
+   */
+  purchase_date?: string | null;
 }
 
 export interface ReceiptExtraction {
@@ -60,6 +67,11 @@ export interface ReceiptExtraction {
   description: string | null;
   direction: "expense" | "income";
   confidence: number;
+  /**
+   * Só em FATURA: os 4 últimos dígitos do cartão, quando impressos. É por eles
+   * que a fatura se liga sozinha ao cartão cadastrado.
+   */
+  card_last4?: string | null;
   // Itens da nota quando houver 2+ produtos distintos; [] caso contrario.
   line_items?: ReceiptLineItem[];
 }

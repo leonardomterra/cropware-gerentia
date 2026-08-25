@@ -23,6 +23,9 @@ Analise a imagem e retorne APENAS um objeto JSON valido com os campos:
   "description": string | null,       // descricao curta (max 100 chars) do que foi comprado/recebido
   "direction": "expense" | "income",  // expense pra despesas, income pra receitas
   "confidence": number,               // 0.0 a 1.0, sua confianca geral na extracao
+  "card_last4": string | null,        // SO em fatura de cartao: os 4 ultimos
+                                      // digitos do cartao. Em qualquer outro
+                                      // documento: null
   "line_items": [                     // SO quando a nota detalhar 2+ itens; senao []
     {
       "description": string | null,   // nome do produto/item
@@ -97,4 +100,9 @@ REGRAS RIGIDAS:
    especificar, use "cartao". PIX/transferencia -> "pix"/"transferencia";
    dinheiro/especie -> "dinheiro"; boleto -> "boleto". Se nao houver indicacao,
    null. FATURA (doc_type="fatura") normalmente nao tem payment_method (null).
-9. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;
+9. "card_last4": SO preencha em doc_type="fatura". A fatura costuma imprimir o
+   cartao mascarado ("**** **** **** 4821", "final 4821", "XXXX-4821"): retorne
+   APENAS os 4 digitos finais, como texto ("4821"). Se a fatura listar varios
+   cartoes (titular e adicionais), use o do TITULAR / o do resumo principal. Se
+   nao estiver visivel, null — nao chute. Em qualquer outro doc_type: null.
+10. NAO inclua explicacao, prefacio ou markdown. APENAS o JSON.`;

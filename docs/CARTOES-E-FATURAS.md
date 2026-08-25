@@ -1,6 +1,6 @@
 # Cartões e faturas — gerentia.app
 
-**Início:** 25/08/2026 · **Etapas 1, 2, 3 e 5 concluídas** em 25/08/2026 · **Falta:** 4 (WhatsApp)
+**Início:** 25/08/2026 · **Todas as 5 etapas concluídas** em 25/08/2026
 
 Documento-contrato. Mudança de regra se decide aqui antes de virar código.
 
@@ -132,7 +132,7 @@ vira lentidão sem causa aparente. Resolver junto da etapa 3.
 | **1** | Inverter a regra, ajustar os textos, aposentar o desmembrar    | ✅ 25/08/2026 |
 | **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         | ✅ 25/08/2026 |
 | **3** | Aba **Cartões**: hub no molde de Configurações                 | ✅ 25/08/2026 |
-| **4** | WhatsApp: escolher cartão, registrar fatura                    | pendente      |
+| **4** | WhatsApp: escolher cartão, registrar fatura                    | ✅ 25/08/2026 |
 | **5** | Conciliação: casar itens da fatura com as compras informativas | ✅ 25/08/2026 |
 
 A etapa 1 vem primeiro porque é pequena e já fecha o buraco: a partir da próxima
@@ -206,6 +206,45 @@ O caminho antigo `/faturas` redireciona **preservando a query**. Isso não é
 zelo: o botão "Gerenciar itens" navega para `/faturas?open=<id>`, e um
 `<Navigate>` simples descarta a busca — o link continuaria "funcionando" e
 abriria a tela errada, que é o tipo de quebra que ninguém reporta.
+
+## 6d. O WhatsApp (etapa 4)
+
+**Qual cartão, em três tentativas, nesta ordem:**
+
+1. o usuário já respondeu numa pergunta anterior;
+2. a fatura imprimiu os 4 dígitos e eles batem com UM cartão cadastrado;
+3. só existe um cartão ativo — não há o que perguntar.
+
+Nada resolvendo, o lançamento fica **sem cartão**. Melhor sem vínculo do que com
+o vínculo errado, que a conciliação depois trataria como verdade.
+
+**A pergunta só aparece com 2+ cartões ativos.** Com um só não há escolha a
+fazer, e a pergunta seria atrito puro no caminho mais usado do app. Também não
+pergunta quando a fatura trouxe os dígitos e eles casaram: seria desconfiar de
+uma informação que está impressa na foto.
+
+**Competência** sai dos dias cadastrados no cartão. A OCR devolve o VENCIMENTO;
+o mês que as pessoas dizem ("a fatura de agosto") é o do FECHAMENTO. Se o cartão
+fecha depois do dia em que vence (fecha 28, vence 5), o fechamento caiu no mês
+anterior. Sem os dias cadastrados fica nulo — e o índice único que impede a
+fatura duplicada é parcial justamente para tolerar isso.
+
+**Fatura repetida não é erro.** Bater no índice `(card_id, competencia)` devolve
+"Essa fatura já está lançada", não "erro ao salvar". Era exatamente para isso
+que o índice existia.
+
+**O resumo da conciliação vem junto da confirmação** — é o valor de verdade da
+fatura por foto: dizer o que ele NÃO tinha lançado. Usa a mesma janela de 40
+dias e a mesma `lib/conciliacao.ts` do endpoint da tela; duas implementações
+divergiriam na primeira correção. Se a conciliação falhar, a fatura continua
+salva e o usuário é avisado dela: o resumo é extra.
+
+**O que a OCR já dava e o código jogava fora.** O prompt pedia `purchase_date`
+por item desde sempre — com o cuidado da virada de ano —, mas o campo não existia
+no tipo e o insert o descartava. Era o segundo critério da conciliação: fatura
+fotografada casava pior que fatura digitada, sem que nada indicasse por quê.
+
+---
 
 ## 7. Ideias para as etapas seguintes
 

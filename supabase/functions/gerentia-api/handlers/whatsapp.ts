@@ -8,6 +8,7 @@ import { verifyMetaSignature } from "../lib/security.ts";
 import { applyMarkPaid, findReconcileCandidates, fmtDateBR, parseDateBR, runFarmAi, settleReceiptWithReceipt, todayBR, yesterdayBR, type LinkedUser, type ReconcileCandidate, type WizardDraft } from "../lib/farmAi.ts";
 import { listVisibleCategories, snapCategory } from "../lib/categories.ts";
 import { getAllowedCostCenterIds, listUserCostCenters } from "../lib/cc.ts";
+import { conciliar } from "../lib/conciliacao.ts";
 import {
   bytesToBase64,
   downloadMedia,
@@ -593,6 +594,51 @@ async function finalizeWizard(admin: any, linked: LinkedUser, from: string, wiz:
   if (wiz.queue.length > 0) await startCreateWizard(admin, linked, from, wiz.queue, wiz.seq + 1, wiz.total);
 }
 
+/** Cartões ativos da organização, para casar a fatura e para perguntar. */
+// deno-lint-ignore no-explicit-any
+async function cartoesAtivos(admin: any, orgId: string): Promise<any[]> {
+  const { data } = await admin
+    .from("farm_cards")
+    .select("id, nome, emissor, ultimos_digitos, dia_fechamento, dia_vencimento")
+    .eq("organization_id", orgId)
+    .eq("ativo", true)
+    .order("nome");
+  return data ?? [];
+}
+
+/** "Nubank Leonardo (•••• 4821)" — mesmo rótulo da tela de Cartões. */
+// deno-lint-ignore no-explicit-any
+function rotuloCartao(c: any): string {
+  const d = c?.ultimos_digitos ? " (•••• " + c.ultimos_digitos + ")" : "";
+  return String(c?.nome ?? "Cartão") + d;
+}
+
+/**
+ * Mês de referência da fatura, no dia 1.
+ *
+ * A OCR devolve a data de VENCIMENTO. O mês que as pessoas dizem ("a fatura de
+ * agosto") é o do FECHAMENTO, e o cadastro do cartão guarda os dois dias — é
+ * daí que se deriva: se o cartão fecha DEPOIS do dia em que vence (fecha 28,
+ * vence 5), o fechamento caiu no mês anterior ao vencimento. Fechando antes
+ * (fecha 5, vence 20), os dois estão no mesmo mês.
+ *
+ * Sem os dias cadastrados não há como saber, e fica nulo — o índice único que
+ * impede a fatura duplicada é parcial justamente para tolerar isso.
+ */
+// deno-lint-ignore no-explicit-any
+function competenciaDaFatura(vencimento: string | null, card: any): string | null {
+  if (!vencimento || !card?.dia_fechamento || !card?.dia_vencimento) return null;
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(vencimento);
+  if (!m) return null;
+  let ano = Number(m[1]);
+  let mes = Number(m[2]);
+  if (Number(card.dia_fechamento) > Number(card.dia_vencimento)) {
+    mes -= 1;
+    if (mes === 0) { mes = 12; ano -= 1; }
+  }
+  return ano + "-" + String(mes).padStart(2, "0") + "-01";
+}
+
 /**
  * Insere farm_receipts a partir do pending receipt_confirm (foto/PDF).
  * Aceita override de data quando a OCR nao extraiu.
@@ -630,6 +676,34 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     ? (direction === "income" ? "recebido" : "pago")
     : (direction === "income" ? "a_receber" : "a_pagar");
 
+  // QUAL CARTÃO. Três caminhos, nesta ordem:
+  //   1. o usuário já respondeu numa pergunta anterior (`p.card_id`);
+  //   2. a fatura imprimiu os 4 dígitos e eles batem com UM cartão cadastrado;
+  //   3. só existe um cartão ativo — não há o que perguntar.
+  // Nada resolvendo, fica sem cartão: melhor um lançamento sem vínculo do que
+  // um vínculo errado, que a conciliação depois trataria como verdade.
+  const ehFatura = e.doc_type === "fatura";
+  let cardId: string | null = p.card_id ?? null;
+  // deno-lint-ignore no-explicit-any
+  let card: any = null;
+  if (isCredit || ehFatura) {
+    const cards = await cartoesAtivos(admin, p.organization_id);
+    if (cardId) {
+      card = cards.find((c) => c.id === cardId) ?? null;
+    } else {
+      const last4 = typeof e.card_last4 === "string"
+        ? e.card_last4.replace(/\D/g, "")
+        : "";
+      const porDigitos = last4.length === 4
+        ? cards.filter((c) => c.ultimos_digitos === last4)
+        : [];
+      if (porDigitos.length === 1) card = porDigitos[0];
+      else if (cards.length === 1) card = cards[0];
+      cardId = card?.id ?? null;
+    }
+  }
+  const competencia = ehFatura ? competenciaDaFatura(finalDate, card) : null;
+
   const { data: inserted, error } = await admin.from("farm_receipts").insert({
     organization_id: p.organization_id,
     created_by: p.user_id,
@@ -653,6 +727,8 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     // calculo obedecer o que esta rotulado logo acima em ROTULO_PAGAMENTO:
     // "Vai fechar na fatura" — antes o app dizia isso e somava assim mesmo.
     counts_in_total: e.payment_method !== "cartao_credito",
+    card_id: cardId,
+    competencia,
     attachment_key: p.attachment_key ?? null,
     attachment_mime: p.attachment_mime ?? null,
     source: "whatsapp",
@@ -660,6 +736,17 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     ai_raw: e,
   }).select("id").single();
   if (error || !inserted) {
+    // Bater no índice (card_id, competencia) não é falha: é a mesma fatura
+    // chegando duas vezes, que era exatamente o que ele existia para impedir.
+    // Responder "erro ao salvar" seria mentira.
+    if (
+      String(error?.code) === "23505" &&
+      String(error?.message ?? "").includes("fatura")
+    ) {
+      return "Essa fatura já está lançada" +
+        (card ? " — " + rotuloCartao(card) : "") +
+        ".\n\nVer no app: " + APP_URL;
+    }
     console.error("[wa] insert photo receipt failed:", error);
     return null;
   }
@@ -676,6 +763,9 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
       quantity: Number.isFinite(Number(li.quantity)) ? Number(li.quantity) : null,
       unit_value: Number.isFinite(Number(li.unit_value)) ? Number(li.unit_value) : null,
       total_value: Number(li.total_value),
+      // A OCR já devolvia isto e o insert jogava fora. É o segundo critério da
+      // conciliação; sem ele a fatura fotografada casava pior que a digitada.
+      purchase_date: typeof li.purchase_date === "string" ? li.purchase_date : null,
     }));
     const { error: itErr } = await admin.from("farm_receipt_items").insert(rows);
     if (itErr) {
@@ -686,6 +776,65 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     }
   }
 
+  // RESUMO DA CONCILIAÇÃO — o valor de verdade da fatura por foto: dizer o que
+  // ele NÃO tinha lançado. Mesma janela e mesmos critérios do endpoint que a
+  // tela usa (handlers/cards.ts), porque a conta mora em `lib/conciliacao.ts`;
+  // duas implementações divergiriam na primeira correção.
+  let concTail = "";
+  if (ehFatura && itemized && finalDate) {
+    try {
+      const inicio = new Date(Date.parse(finalDate) - 40 * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      // `admin` é service_role e não passa por RLS: o escopo de organização
+      // precisa ser explícito, senão a conciliação enxergaria outras fazendas.
+      let q = admin
+        .from("farm_receipts")
+        .select("id, vendor, total_value, transaction_date")
+        .eq("organization_id", p.organization_id)
+        .eq("counts_in_total", false)
+        .eq("payment_method", "cartao_credito")
+        .gte("transaction_date", inicio)
+        .lte("transaction_date", finalDate)
+        .limit(500);
+      if (cardId) q = q.or(`card_id.eq.${cardId},card_id.is.null`);
+      const { data: compras } = await q;
+      // `id` sintético: a conciliação só precisa dele para não casar o mesmo
+      // item duas vezes, e aqui o resultado é texto, não tela.
+      const r = conciliar(
+        items.map((li, i) => ({
+          id: String(i),
+          description: li.description ?? null,
+          total_value: Number(li.total_value),
+          purchase_date: typeof li.purchase_date === "string" ? li.purchase_date : null,
+        })),
+        compras ?? [],
+      );
+      const partes: string[] = [];
+      if (r.nao_registrados > 0) {
+        partes.push(
+          r.nao_registrados === 1
+            ? "1 compra desta fatura você não tinha lançado."
+            : r.nao_registrados + " compras desta fatura você não tinha lançado.",
+        );
+      }
+      if (r.sobrando.length > 0) {
+        partes.push(
+          r.sobrando.length === 1
+            ? "1 compra lançada no cartão não veio nesta fatura (deve cair na próxima)."
+            : r.sobrando.length + " compras lançadas no cartão não vieram nesta fatura (devem cair na próxima).",
+        );
+      }
+      if (partes.length) concTail = "\n\n" + partes.join("\n");
+    } catch (err) {
+      // Conciliação é EXTRA. Se falhar, a fatura já está salva e o usuário
+      // precisa saber disso — engolir o lançamento por causa do resumo seria
+      // trocar o essencial pelo acessório.
+      console.error("[wa] conciliacao do resumo falhou:", err);
+    }
+  }
+
+  const cardTail = card ? "\nCartão: " + rotuloCartao(card) : "";
   const ccTail = p.cost_center_name && (linked?.cost_centers.length ?? 0) > 1
     ? "\nCentro: " + p.cost_center_name : "";
   const dateTail = finalDate ? "\nData: " + fmtDateBR(finalDate) : "";
@@ -693,8 +842,9 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
   const head = itemized
     ? items.length + " itens"
     : (e.category || e.doc_type);
-  return "Lançamento salvo.\n" + fmtBRL(total) + " - " +
-    head + ccTail + dateTail + statusTail + "\n\nVer no app: " + APP_URL;
+  return (ehFatura ? "Fatura salva.\n" : "Lançamento salvo.\n") + fmtBRL(total) +
+    " - " + head + cardTail + ccTail + dateTail + statusTail + concTail +
+    "\n\nVer no app: " + APP_URL;
 }
 
 /**
@@ -704,9 +854,67 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
  * o usuário recusa a reconciliação ("É outro") e cai no fluxo normal.
  */
 // deno-lint-ignore no-explicit-any
+/**
+ * Passo seguinte depois que a forma de pagamento já está resolvida: pergunta em
+ * QUAL cartão, quando isso faz diferença, e só então vai para a confirmação.
+ *
+ * SÓ PERGUNTA COM 2+ CARTÕES ATIVOS. Com um só não há escolha a fazer — a
+ * pergunta seria atrito puro no caminho mais usado do app, e o
+ * `savePhotoReceipt` já resolve sozinho. Com nenhum cadastrado, idem.
+ *
+ * E não pergunta quando a FATURA trouxe os 4 dígitos e eles batem com um cartão
+ * só: perguntar seria desconfiar de uma informação que está impressa na foto.
+ *
+ * Vive separado de `promptReceiptConfirm` porque DOIS caminhos chegam aqui — a
+ * foto que já vinha com a forma de pagamento, e a resposta da pergunta de
+ * forma de pagamento. Duplicar a decisão nos dois era como o cartão ia acabar
+ * sendo perguntado num e esquecido no outro.
+ */
+// deno-lint-ignore no-explicit-any
+async function promptCartaoOuConfirma(admin: any, from: string, linked: LinkedUser, data: any): Promise<void> {
+  const e = data.extracted;
+  const showCC = linked.cost_centers.length > 1;
+  const ehFatura = e.doc_type === "fatura";
+  const isCredit = e.payment_method === "cartao_credito" || e.payment_method === "cartao";
+
+  if (!data.card_id && (isCredit || ehFatura)) {
+    const cards = await cartoesAtivos(admin, data.organization_id);
+    const last4 = typeof e.card_last4 === "string"
+      ? e.card_last4.replace(/\D/g, "")
+      : "";
+    const jaIdentificado = last4.length === 4 &&
+      cards.filter((c) => c.ultimos_digitos === last4).length === 1;
+    if (!jaIdentificado && cards.length > 1) {
+      await setPending(admin, from, "photo_card", data);
+      await sendList(
+        from,
+        ehFatura ? "De qual cartão é essa fatura?" : "Em qual cartão foi essa compra?",
+        "Cartões",
+        [{
+          rows: cards.slice(0, 10).map((c) => ({
+            id: "cw_card:" + c.id,
+            title: String(c.nome ?? "Cartão"),
+            description: [c.emissor, c.ultimos_digitos ? "•••• " + c.ultimos_digitos : null]
+              .filter(Boolean)
+              .join(" · ") || undefined,
+          })),
+        }],
+      );
+      return;
+    }
+  }
+
+  await setPending(admin, from, "receipt_confirm", data);
+  await sendButtons(
+    from,
+    receiptSummary(e, data.cost_center_name, showCC),
+    confirmButtons(showCC),
+  );
+}
+
+// deno-lint-ignore no-explicit-any
 async function promptReceiptConfirm(admin: any, from: string, linked: LinkedUser, pendingData: any): Promise<void> {
   const e = pendingData.extracted;
-  const showCC = linked.cost_centers.length > 1;
   // Fatura não tem meio (paga-se depois). Fora isso, pergunta sempre que a OCR
   // não achou — inclusive em receita: a resposta realimenta o isProof, então um
   // comprovante de recebimento nasce `recebido` em vez de `a_receber`.
@@ -716,12 +924,7 @@ async function promptReceiptConfirm(admin: any, from: string, linked: LinkedUser
     await sendList(from, payQuestion(e.direction), "Formas", payRows(e.direction, "cw_pay", false));
     return;
   }
-  await setPending(admin, from, "receipt_confirm", pendingData);
-  await sendButtons(
-    from,
-    receiptSummary(e, pendingData.cost_center_name, showCC),
-    confirmButtons(showCC),
-  );
+  await promptCartaoOuConfirma(admin, from, linked, pendingData);
 }
 
 /**
@@ -801,6 +1004,18 @@ async function handleMessage(admin: any, msg: any): Promise<void> {
         ...pending.data,
         extracted: { ...pending.data.extracted, payment_method: pm },
       };
+      // Crédito escolhido aqui pode ainda precisar do CARTÃO.
+      await promptCartaoOuConfirma(admin, from, linked, data);
+      return;
+    }
+
+    if (actionId.startsWith("cw_card:")) {
+      const pending = await getPending(admin, from);
+      if (!pending || pending.kind !== "photo_card" || !pending.data?.extracted || !linked) {
+        await sendText(from, "⏳ Essa escolha expirou. Manda o comprovante de novo.");
+        return;
+      }
+      const data = { ...pending.data, card_id: actionId.slice("cw_card:".length) };
       const showCC = linked.cost_centers.length > 1;
       await setPending(admin, from, "receipt_confirm", data);
       await sendButtons(
