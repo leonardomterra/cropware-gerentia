@@ -115,12 +115,15 @@ function retanguloArredondado(
 }
 
 /**
- * Vidro escuro da faixa do mês em foco. É o MESMO do gráfico da tela
- * (`bg-slate-900/65`): os dois dizem "mês selecionado", e tons diferentes
- * fariam parecer que dizem coisas diferentes.
+ * Faixa do mês em foco. CLARA, ao contrário do vidro escuro do gráfico da tela.
+ *
+ * Na tela o escuro funciona porque o card é um bloco dentro de uma interface
+ * cinza; numa folha branca ele vira uma mancha pesada. Clarear mantendo o texto
+ * branco não era opção: branco sobre o cinza de antes já estava em 5,4:1, e
+ * qualquer tom mais claro derruba abaixo do mínimo para um rótulo de 9,5pt.
+ * Então a faixa clareia e o texto inverte para escuro — mais leve, e legível.
  */
-const FOCO_FUNDO = NEUTRO[900];
-const FOCO_OPACIDADE = 0.65;
+const FOCO_FUNDO = NEUTRO[200];
 
 /**
  * Barras agrupadas. Sem eixo Y de propósito: a tabela logo abaixo tem os
@@ -168,7 +171,6 @@ export function formasDeBarras(
         tipo: "path",
         d: retanguloArredondado(esq, base, larg, alturaRotulo, 6, true),
         cor: FOCO_FUNDO,
-        opacidade: FOCO_OPACIDADE,
       });
       // Contorno DEPOIS da faixa: antes, a faixa comeria a metade de dentro da
       // linha de baixo.
@@ -218,8 +220,8 @@ export function formasDeBarras(
       y: base + alturaRotulo / 2 + ROTULO * 0.35,
       texto: g.rotulo,
       tamanho: ROTULO,
-      // Sobre o vidro escuro só o branco tem contraste.
-      cor: g.ativo ? "#ffffff" : NEUTRO[500],
+      // Sobre a faixa clara, o escuro; fora dela, o cinza de rótulo.
+      cor: g.ativo ? NEUTRO[900] : NEUTRO[500],
       ancora: "meio",
       negrito: g.ativo,
     });
