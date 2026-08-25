@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import ChatDotsDuotone from "~icons/ph/chat-dots-duotone";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import NoteDuotone from "~icons/ph/note-duotone";
 import { cn } from "./utils";
 import { SUPERFICIE_TOOLTIP } from "@/lib/ui-tokens";
 
@@ -13,17 +13,22 @@ import { SUPERFICIE_TOOLTIP } from "@/lib/ui-tokens";
  * tela que já tem muito número. Guardar atrás de um ícone devolve a tela a quem
  * já entendeu, sem tirar a explicação de quem ainda não.
  *
- * POR QUE CLIQUE, e não hover: o app roda no celular, onde hover não existe —
- * um tooltip de hover simplesmente não abriria. Clique funciona nos dois, e o
- * Radix cuida de Esc, clique fora e teclado.
+ * POR QUE DIALOG NO CENTRO, e não um balão ancorado no ícone: o balão nascia
+ * grudado no título e empurrado pela borda da tela, então a mesma dica aparecia
+ * num lugar diferente a cada uso — e no celular ele cobria justamente a linha
+ * que estava sendo explicada. No centro, sempre no mesmo lugar, com o resto da
+ * tela desfocado atrás, a explicação é a única coisa em foco. Sai com Esc,
+ * clique fora ou "Entendi".
  *
- * O vidro é o `SUPERFICIE_TOOLTIP` que o app já usa, e não uma superfície nova:
- * é cinza QUENTE, o que distingue "dica passageira" de "menu com que dá pra
- * interagir" sem inventar outra linguagem visual.
+ * POR QUE CLIQUE, e não hover: o app roda no celular, onde hover não existe.
+ *
+ * O cartão é o `SUPERFICIE_TOOLTIP` que o app já usa — cinza QUENTE, o que
+ * distingue "dica passageira" de "dialog com que se opera" sem inventar outra
+ * linguagem visual.
  *
  * Uso:
  *   <h2 className="flex items-center gap-1.5">
- *     Lançadas fora desta fatura
+ *     Fora desta fatura
  *     <Ajuda>Normalmente são compras feitas depois do fechamento.</Ajuda>
  *   </h2>
  */
@@ -40,8 +45,8 @@ export function Ajuda({
   className?: string;
 }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DialogPrimitive.Root>
+      <DialogPrimitive.Trigger asChild>
         <button
           type="button"
           aria-label={rotulo}
@@ -50,26 +55,54 @@ export function Ajuda({
           // pode truncar — sem isso o ícone é o primeiro a ser espremido.
           className={cn(
             "shrink-0 inline-flex items-center justify-center size-5 rounded-full",
-            // Colorido, e não o cinza dos rótulos: o ícone é para ser ACHADO.
-            // Em cinza ele desaparecia no título, e uma explicação que ninguém
-            // vê não explica nada. Duotone como o resto dos ícones do app.
-            "text-indigo-500 hover:text-indigo-600 transition-colors",
+            // Cinza, e não colorido: o ícone acompanha um título e não pode
+            // competir com ele. Quem procura ajuda acha; quem não procura não
+            // tropeça. Escurece no hover para confirmar que é clicável.
+            "text-slate-400 hover:text-slate-600 transition-colors",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
             className,
           )}
         >
-          <ChatDotsDuotone className="size-5" />
+          <NoteDuotone className="size-5" />
         </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        sideOffset={6}
-        // 18rem cabe duas ou três linhas de frase sem virar um parágrafo
-        // atravessado na tela.
-        className={cn(SUPERFICIE_TOOLTIP, "w-72 p-3 text-sm z-[999]")}
-      >
-        {children}
-      </PopoverContent>
-    </Popover>
+      </DialogPrimitive.Trigger>
+
+      <DialogPrimitive.Portal>
+        {/* O desfoque é o efeito principal: some com a tela sem escondê-la, e
+            o véu escuro fica de leve só para dar contraste ao cartão. Um
+            `bg-black/50` como o dos dialogs de verdade seria peso demais para
+            uma frase explicativa. */}
+        <DialogPrimitive.Overlay
+          className={cn(
+            "fixed inset-0 z-[2000] bg-slate-900/20 backdrop-blur-sm",
+            "data-[state=open]:animate-in data-[state=open]:fade-in-0",
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+          )}
+        />
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 pointer-events-none">
+          <DialogPrimitive.Content
+            // Sem título visível: a dica JÁ nasce ao lado do título que ela
+            // explica, e repeti-lo dentro do cartão só ocuparia linha.
+            aria-label={rotulo}
+            className={cn(
+              SUPERFICIE_TOOLTIP,
+              "pointer-events-auto w-full max-w-sm p-4 text-sm leading-relaxed",
+              "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+              "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+            )}
+          >
+            {/* Sem ícone aqui dentro: o cartão só tem uma coisa a dizer, e
+                repetir o ícone do gatilho roubava a primeira linha do texto. */}
+            {children}
+            {/* Largura cheia e transparente: o botão é a borda de baixo do
+                cartão, não um elemento a mais competindo por atenção. No
+                celular, também vira um alvo de toque que não se erra. */}
+            <DialogPrimitive.Close className="mt-4 w-full rounded-lg border border-white/25 py-2 text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40">
+              Entendi
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </div>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
