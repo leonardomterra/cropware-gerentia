@@ -383,6 +383,40 @@ ficam à vista — esconder atrás de um clique é esconder o problema.
 
 ---
 
+## 7c. Obrigatório leva `*`; opcional não leva nada
+
+A regra é essa, e vale para o app inteiro. Antes convivia o oposto: vários
+formulários escreviam "(opcional)" em quase todo rótulo. Isso é mais texto do
+que informação — numa tela com seis campos e cinco "(opcional)", quem lê tem
+que ler cinco vezes para descobrir qual é o único que importa. Com o `*`, a
+exceção é que fica marcada, e ela é sempre a minoria.
+
+Use `<Obrigatorio />` (`components/ui/Obrigatorio.tsx`), nunca um `*` digitado
+à mão — foi assim que apareceram três estilos diferentes de asterisco no app.
+
+```jsx
+<Label htmlFor="nome">
+  Nome
+  <Obrigatorio />
+</Label>
+```
+
+**Discreto de propósito:** mesma fonte e mesmo tamanho do rótulo, sem
+sobrescrito, em cinza claro. Ele avisa, não grita — o rótulo continua sendo o
+que se lê.
+
+**Formulário de um campo só não leva marca.** O `*` serve para distinguir entre
+campos; quando não há entre o que distinguir (trocar e-mail, definir senha), ele
+não informa nada.
+
+**Marque o que o código realmente exige.** Se o `*` está lá e o salvar passa sem
+o campo, ou o contrário, o marcador vira ruído. Quando a obrigatoriedade for
+condicional, o marcador também é — no formulário de recibo, por exemplo, o valor
+só é obrigatório quando digitado à mão; no itemizado ele é a soma dos itens, num
+campo somente-leitura.
+
+---
+
 ## 8. Esqueleto para copiar
 
 ```jsx

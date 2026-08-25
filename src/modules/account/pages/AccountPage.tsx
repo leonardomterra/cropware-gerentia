@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import ArrowLeft from "~icons/ph/arrow-left";
 // Mesmo disquete do Salvar de PaginaDeFormulario — um só ícone para "salvar"
 // em todo o app.
@@ -450,6 +451,7 @@ export default function AccountPage() {
             <div className="space-y-1.5">
               <Label htmlFor="acc-name" className="text-sm text-slate-500">
                 Nome
+                <Obrigatorio />
               </Label>
               <Input
                 id="acc-name"
@@ -470,9 +472,9 @@ export default function AccountPage() {
                 inputMode="tel"
               />
             </div>
-            {/* Só o nome é obrigatório, e é o único com `*`. O resto fica sem
-                marca nenhuma: repetir "(opcional)" em cada rótulo era mais
-                texto do que informação. */}
+            {/* Só o nome é obrigatório, e é o único com `*` — a regra que
+                virou padrão do app em 25/08/2026 (ver Obrigatorio.tsx). O resto
+                fica sem marca nenhuma. */}
             <div className="space-y-1.5">
               <Label htmlFor="acc-cpf" className="text-sm text-slate-500">
                 CPF

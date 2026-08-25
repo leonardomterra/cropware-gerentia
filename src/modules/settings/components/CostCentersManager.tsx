@@ -13,6 +13,7 @@ import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
 import { useCostCenters } from "@/modules/cost-centers/hooks/useCostCenters";
 import {
@@ -175,6 +176,7 @@ export function CostCentersManager({
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
               Nome
+              <Obrigatorio />
             </label>
             <Input
               placeholder="Pessoal, Fazenda, Escritório..."

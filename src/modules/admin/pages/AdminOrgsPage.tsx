@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { ApiError } from "@/utils/api";
 import { downloadBackup, useAdminOrgs } from "../hooks/useAdminOrgs";
 import type { AdminOrg, AdminOrgDetail, AdminOrgMember } from "../types";
@@ -984,6 +985,7 @@ export default function AdminOrgsPage({
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
                 Nome
+                <Obrigatorio />
               </label>
               <Input
                 placeholder="Fazenda Santa Rita"
@@ -995,7 +997,7 @@ export default function AdminOrgsPage({
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                CNPJ (opcional)
+                CNPJ
               </label>
               <Input
                 value={cForm.cnpj}

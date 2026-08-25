@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import {
   BOTAO_ACOES,
   BOTAO_BARRA,
@@ -381,6 +382,7 @@ export default function RecurringPage() {
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
               Nome
+              <Obrigatorio />
             </label>
             <Input
               placeholder="Energia, Internet, Salario do Joao..."
@@ -540,7 +542,7 @@ export default function RecurringPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
-              Origem (Opcional)
+              Origem
             </label>
             <Input
               placeholder="Cemig, Vivo, Joao Silva..."

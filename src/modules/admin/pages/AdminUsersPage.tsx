@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
 import { useIsMobile } from "@/components/ui/use-mobile";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
@@ -1183,7 +1184,8 @@ export default function AdminUsersPage({
           <div className="space-y-4 py-2">
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                Email *
+                Email
+                <Obrigatorio />
               </label>
               <Input
                 type="email"
@@ -1197,8 +1199,7 @@ export default function AdminUsersPage({
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                Nome{" "}
-                <span className="text-slate-400 font-normal">(opcional)</span>
+                Nome
               </label>
               <Input
                 placeholder="Nome completo"
@@ -1236,7 +1237,8 @@ export default function AdminUsersPage({
           <div className="space-y-4 py-2">
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                Email *
+                Email
+                <Obrigatorio />
               </label>
               <Input
                 type="email"
@@ -1288,7 +1290,8 @@ export default function AdminUsersPage({
             {!cForm.invite && (
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Senha *
+                  Senha
+                  <Obrigatorio />
                 </label>
                 <Input
                   type="text"

@@ -37,6 +37,7 @@ import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
 import { ReceiptItemsTable } from "./ReceiptItemsTable";
 import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -641,7 +642,13 @@ export function ReceiptFormDialog({
                 metade da largura ao lado dele. */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="total_value">Valor (R$)</Label>
+          <Label htmlFor="total_value">
+            Valor (R$)
+            {/* Obrigatório só quando o valor é digitado. No itemizado ele é a
+                soma dos itens, num campo somente-leitura — marcar seria pedir
+                algo que a pessoa não pode preencher ali. */}
+            {!hasItems && !summaryMode && <Obrigatorio />}
+          </Label>
           {hasItems || summaryMode ? (
             <Input
               id="total_value"
@@ -968,9 +975,7 @@ export function ReceiptFormDialog({
       {allowItems && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>
-              {hasItems ? `Itens (${form.items.length})` : "Itens (opcional)"}
-            </Label>
+            <Label>{hasItems ? `Itens (${form.items.length})` : "Itens"}</Label>
             <Button
               type="button"
               variant="outline"

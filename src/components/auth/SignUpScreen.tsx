@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "./AuthLayout";
 
@@ -110,7 +111,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <Label htmlFor="fullName">Seu nome</Label>
+          <Label htmlFor="fullName">
+            Seu nome
+            <Obrigatorio />
+          </Label>
           <Input
             id="fullName"
             value={fullName}
@@ -122,7 +126,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="email">E-mail</Label>
+          <Label htmlFor="email">
+            E-mail
+            <Obrigatorio />
+          </Label>
           <Input
             id="email"
             type="email"
@@ -136,7 +143,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="password">Senha</Label>
+          <Label htmlFor="password">
+            Senha
+            <Obrigatorio />
+          </Label>
           <Input
             id="password"
             type="password"
@@ -169,7 +179,10 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="confirmPassword">Confirmar senha</Label>
+          <Label htmlFor="confirmPassword">
+            Confirmar senha
+            <Obrigatorio />
+          </Label>
           <Input
             id="confirmPassword"
             type="password"
@@ -187,10 +200,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label htmlFor="phone">
-            Telefone{" "}
-            <span className="text-slate-400 font-normal">(opcional)</span>
-          </Label>
+          <Label htmlFor="phone">Telefone </Label>
           <Input
             id="phone"
             type="tel"

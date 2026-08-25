@@ -51,6 +51,7 @@ import { cn } from "@/components/ui/utils";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import type { CostCenter } from "@/modules/cost-centers/types";
@@ -482,6 +483,7 @@ export default function PendenciasPage() {
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
               O que resolver
+              <Obrigatorio />
             </label>
             <Input
               placeholder="Ex.: pagar o contador"
@@ -499,7 +501,7 @@ export default function PendenciasPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                Data (opcional)
+                Data
               </label>
               <Input
                 type="date"
@@ -511,7 +513,7 @@ export default function PendenciasPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 block mb-1">
-                Valor R$ (opcional)
+                Valor R$
               </label>
               <Input
                 inputMode="decimal"
@@ -530,7 +532,7 @@ export default function PendenciasPage() {
             {ccs.length > 1 && (
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Centro de Custo (opcional)
+                  Centro de Custo
                 </label>
                 <Select
                   value={form.cost_center_id}
@@ -556,7 +558,7 @@ export default function PendenciasPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
-              Observação (opcional)
+              Observação
             </label>
             <Textarea
               placeholder="Detalhes..."

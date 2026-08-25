@@ -323,7 +323,7 @@ export default function TeamPage() {
             <div className="space-y-4 py-2">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">
-                  Nome (opcional)
+                  Nome
                 </label>
                 <Input
                   placeholder="João da Silva"

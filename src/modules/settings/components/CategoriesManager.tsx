@@ -14,6 +14,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import type { ReceiptDirection } from "@/modules/receipts/types";
 import {
   FALLBACK_GROUP,
@@ -68,6 +69,7 @@ function NameAndCodeFields({
       <div>
         <label className="text-sm font-medium text-slate-700 block mb-1">
           Nome
+          <Obrigatorio />
         </label>
         <Input
           placeholder={namePlaceholder}
@@ -78,7 +80,7 @@ function NameAndCodeFields({
       </div>
       <div>
         <label className="text-sm font-medium text-slate-700 block mb-1">
-          Código <span className="text-slate-400 font-normal">(opcional)</span>
+          Código
         </label>
         <Input
           placeholder={codePlaceholder}

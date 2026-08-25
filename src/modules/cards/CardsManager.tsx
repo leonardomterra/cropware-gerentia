@@ -18,6 +18,7 @@ import { Ajuda } from "@/components/ui/Ajuda";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { cn } from "@/components/ui/utils";
+import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { BOTAO_BARRA } from "@/lib/ui-tokens";
 import { api } from "@/utils/api";
 import { BANDEIRAS, type Card } from "./types";
@@ -204,7 +205,8 @@ export function CardsManager({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                Nome *
+                Nome
+                <Obrigatorio />
                 <Ajuda>
                   Como você chama esse cartão no dia a dia. É esse nome que
                   aparece nos seletores e no topo de cada fatura.
