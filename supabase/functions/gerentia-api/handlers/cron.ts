@@ -11,6 +11,29 @@ const TEMPLATE_SUMMARY = "farm_resumo_semanal";
 const TEMPLATE_TASK = "farm_lembrete_tarefa";
 const TEMPLATE_LANG = "pt_BR";
 
+/**
+ * WHATSAPP E CANAL DE ENTRADA, NAO DE SAIDA. Decisao de 24/08/2026.
+ *
+ * O valor do WhatsApp aqui e o cliente MANDAR: foto do recibo vira lancamento.
+ * Isso e iniciado por ele, cai dentro da janela de 24h, nao passa por aprovacao
+ * de template e nao e cobrado. E o diferencial do produto.
+ *
+ * Mandar mensagem PROATIVA e o contrario em tudo: exige template aprovado, a
+ * Meta cobra por mensagem fora da janela, aperta a aprovacao a cada revisao, e
+ * pausa sozinha o template com muito bloqueio. E a parte comum do produto — todo
+ * app avisa vencimento — pela parte cara e fragil da infraestrutura.
+ *
+ * Entao o proativo sai daqui. O alerta de vencimento NAO se perde: o mesmo laco
+ * ja cria a notificacao dentro do app ANTES de tentar o WhatsApp, e ela continua.
+ * O que falta e avisar quem nao abriu o app — e isso e push nativo, que ainda
+ * nao existe (ver docs/FUTURAS-FEATURES.md).
+ *
+ * Para religar: ponha true. O codigo de envio segue inteiro e testado; o
+ * template `farm_alerta_vencimento` continua aprovado na Meta. Antes de religar,
+ * meca o custo por mensagem no painel da Meta — as tarifas do Brasil mudam.
+ */
+const ENVIO_PROATIVO_WHATSAPP = false;
+
 /** Pequeno helper pra moeda BR. Templates Meta nao aceitam "R$ " no parametro
  * de body, entao vamos passar so o valor formatado: "1.250,00". */
 function fmtBR(v: number): string {
@@ -187,6 +210,10 @@ export function mountCronRoutes(app: Hono) {
         .maybeSingle();
       if (existing) { skipped++; continue; }
 
+      // A notificacao dentro do app ja foi criada acima — o alerta existe com
+      // ou sem isto. Aqui e so a camada de WhatsApp.
+      if (!ENVIO_PROATIVO_WHATSAPP) { skipped++; continue; }
+
       let errMsg: string | null = null;
       try {
         await sendTemplate(phone, TEMPLATE_DUE, TEMPLATE_LANG, [vendor, valor, label]);
@@ -293,6 +320,7 @@ export function mountCronRoutes(app: Hono) {
 
     const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     let sent = 0, failed = 0;
+    let skipped = 0;
     for (const link of links || []) {
       // Agrega receitas/despesas da semana no escopo que esse usuario enxerga.
       let rq = admin
@@ -311,6 +339,14 @@ export function mountCronRoutes(app: Hono) {
         else exp += v;
         if (r.status === "a_pagar" || r.status === "vencido") pend += v;
       }
+      // Diferente do alerta, o resumo semanal NAO tem notificacao no app: o
+      // WhatsApp era o unico canal dele. Desligado, ele deixa de existir — e
+      // nao se perde nada, porque nunca chegou a funcionar: o job falhou 12
+      // vezes seguidas desde 05/06/2026 por causa do bug de `extensions.net`
+      // (ver 20260824140000_fix_cron_net_schema.sql) e ninguem nunca recebeu um.
+      // Refazer como notificacao no app ou push fica para quando houver push.
+      if (!ENVIO_PROATIVO_WHATSAPP) { skipped++; continue; }
+
       const nome = (link.user_name as string | null) || "voce";
       try {
         await sendTemplate(link.phone_number as string, TEMPLATE_SUMMARY, TEMPLATE_LANG, [
@@ -322,7 +358,7 @@ export function mountCronRoutes(app: Hono) {
         failed++;
       }
     }
-    return c.json({ ok: true, sent, failed });
+    return c.json({ ok: true, sent, failed, skipped });
   });
 
   /**
