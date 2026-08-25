@@ -29,7 +29,9 @@ Analise a imagem e retorne APENAS um objeto JSON valido com os campos:
       "quantity": number | null,      // quantidade (ex: 2, 10.5)
       "unit_value": number | null,    // valor unitario em reais
       "total_value": number,          // valor total do item em reais (obrigatorio)
-      "category": string              // slug de UMA categoria (mesma lista abaixo)
+      "category": string,             // slug de UMA categoria (mesma lista abaixo)
+      "purchase_date": string | null  // YYYY-MM-DD. NA FATURA: a data daquela
+                                      // compra. Em nota/cupom: null
     }
   ]
 }
@@ -70,6 +72,11 @@ REGRAS RIGIDAS:
    (b) FATURA de cartao de credito: CADA COMPRA/lancamento da fatura vira um item
        ("description" = estabelecimento da compra, "total_value" = valor da compra,
        "category" = melhor categoria pra aquela compra; "quantity"/"unit_value" = null).
+       "purchase_date" = a DATA daquela compra, que a fatura lista ao lado de cada
+       linha. Ela costuma vir sem o ano ("12/08"); complete com o ano da fatura, e
+       atencao na virada: numa fatura de JANEIRO, uma compra de "28/12" e do ano
+       ANTERIOR. Se a linha nao tiver data, use null — nao chute.
+       Em nota/cupom (caso a) sempre null: la a data e a do documento inteiro.
    Cada item recebe sua propria "category" (um item pode ser fertilizante e outro
    combustivel) e seu "total_value" obrigatorio. A soma dos itens deve bater com o
    "total_value" do topo (na fatura, com o total a pagar). Se o documento tiver um

@@ -60,6 +60,8 @@ interface NormalizedItem {
   unit_value: number | null;
   total_value: number;
   position: number;
+  /** Data da compra dentro da fatura. Null = vale a do lançamento pai. */
+  purchase_date: string | null;
 }
 
 /** Le body.items -> itens normalizados, ou null se nao veio um array. */
@@ -80,6 +82,13 @@ function parseItems(raw: unknown): NormalizedItem[] | null {
       unit_value: unitN != null && Number.isFinite(unitN) ? unitN : null,
       total_value: total,
       position: typeof o.position === "number" ? o.position : i,
+      // Aceita só AAAA-MM-DD. Texto solto vindo do OCR viraria uma data
+      // inválida no insert e derrubaria a fatura inteira por causa de um item.
+      purchase_date:
+        typeof o.purchase_date === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(o.purchase_date)
+          ? o.purchase_date
+          : null,
     };
   });
 }
@@ -135,6 +144,7 @@ function itemRowsFor(
     quantity: it.quantity,
     unit_value: it.unit_value,
     total_value: it.total_value,
+    purchase_date: it.purchase_date,
   }));
 }
 

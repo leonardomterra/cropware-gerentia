@@ -54,6 +54,8 @@ export interface ReceiptItem {
   /** Quando != null, o item foi DESMEMBRADO num lançamento próprio: continua
    *  visível (esmaecido), mas fora do total/contagem e das agregações. */
   promoted_to_receipt_id?: string | null;
+  /** Data da compra dentro da fatura. Null = vale a do lançamento pai. */
+  purchase_date?: string | null;
   created_at: string;
   updated_at: string;
 }

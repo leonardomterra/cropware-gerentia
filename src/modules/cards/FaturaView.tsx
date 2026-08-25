@@ -47,6 +47,13 @@ function dataBR(iso: string | null | undefined): string {
   return `${d}/${m}/${a}`;
 }
 
+/** Dia e mês, sem o ano: dentro de uma fatura o ano é sempre o mesmo. */
+function diaMes(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const [, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}`;
+}
+
 const STATUS: Record<string, { rotulo: string; cor: string }> = {
   a_pagar: {
     rotulo: "A pagar",
@@ -252,6 +259,9 @@ export function FaturaView({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
+                  <th className="text-left px-4 py-2 text-sm font-medium text-slate-500 whitespace-nowrap">
+                    Data
+                  </th>
                   <th className="text-left px-4 py-2 text-sm font-medium text-slate-500">
                     Estabelecimento
                   </th>
@@ -279,6 +289,12 @@ export function FaturaView({
                         i % 2 === 1 && "bg-slate-50/60",
                       )}
                     >
+                      {/* Sem data: a compra veio de uma fatura antiga ou de um
+                          lançamento à mão. Um traço é honesto; inventar a data
+                          do pai faria o item mentir. */}
+                      <td className="px-4 py-2.5 text-sm tabular-nums whitespace-nowrap text-slate-600">
+                        {diaMes(it.purchase_date)}
+                      </td>
                       <td className="px-4 py-2.5 text-sm text-slate-900">
                         {it.description || "—"}
                       </td>
@@ -309,7 +325,7 @@ export function FaturaView({
                 })}
                 <tr>
                   <td
-                    colSpan={3}
+                    colSpan={4}
                     className="px-4 py-3 text-sm font-medium text-slate-700"
                   >
                     Total
