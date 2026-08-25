@@ -239,6 +239,12 @@ dias e a mesma `lib/conciliacao.ts` do endpoint da tela; duas implementações
 divergiriam na primeira correção. Se a conciliação falhar, a fatura continua
 salva e o usuário é avisado dela: o resumo é extra.
 
+**PENDENTE: a bateria de testes.** A etapa 4 foi conferida por tipo e por
+unidade (a derivação da competência, nos cinco casos, incluindo a virada de
+ano), mas NÃO foi testada de ponta a ponta — mandar foto de verdade pelo
+WhatsApp e ver o que volta. O roteiro está em `docs/TESTES-WHATSAPP.md`, com a
+seção 5 dedicada ao que mudou aqui.
+
 **O que a OCR já dava e o código jogava fora.** O prompt pedia `purchase_date`
 por item desde sempre — com o cuidado da virada de ano —, mas o campo não existia
 no tipo e o insert o descartava. Era o segundo critério da conciliação: fatura
