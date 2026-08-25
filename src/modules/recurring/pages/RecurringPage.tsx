@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import Plus from "~icons/ph/plus";
 import Repeat from "~icons/ph/arrows-clockwise-fill";
 import Search from "~icons/ph/magnifying-glass";
-import Info from "~icons/ph/info";
 import FilterList from "~icons/ph/funnel";
 import ChevronDown from "~icons/ph/caret-down";
 import ArrowsDownUp from "~icons/ph/arrows-down-up";
 import X from "~icons/ph/x";
 import { toast } from "sonner";
+import { Ajuda } from "@/components/ui/Ajuda";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
@@ -378,19 +378,6 @@ export default function RecurringPage() {
           }}
           className="space-y-3"
         >
-          {/* O aviso vale para a recorrência inteira, não só para o campo de
-              valor — embaixo dele lia como regra de preenchimento daquele
-              campo. No topo, é a premissa da tela: nada aqui é valor fechado.
-              Âmbar porque é ressalva, não erro (vermelho) nem confirmação. */}
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
-            <Info className="size-[18px] shrink-0 mt-px text-amber-600" />
-            <p>
-              Os valores são uma{" "}
-              <strong className="font-medium">estimativa mensal</strong>. Você
-              ajusta o valor real em cada lançamento gerado.
-            </p>
-          </div>
-
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
               Nome
@@ -430,8 +417,16 @@ export default function RecurringPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
+              {/* A ressalva morava num aviso âmbar no topo da tela, como
+                  premissa geral. Mas ela fala de UM campo — este — e no topo
+                  custava uma faixa inteira, todo dia, para uma informação que
+                  serve uma vez. */}
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1">
                 Valor médio (R$)
+                <Ajuda>
+                  É uma estimativa mensal. Você ajusta o valor real em cada
+                  lançamento gerado.
+                </Ajuda>
               </label>
               <Input
                 type="text"
@@ -517,6 +512,31 @@ export default function RecurringPage() {
                 />
               </div>
             )}
+            {showCC && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Centro de Custo
+                </label>
+                <Select
+                  value={form.cost_center_id || ""}
+                  onValueChange={(v) =>
+                    setForm((s) => ({ ...s, cost_center_id: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolher..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ccs.map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.name}
+                        {cc.is_default ? " (Padrão)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
@@ -534,31 +554,6 @@ export default function RecurringPage() {
               maxLength={80}
             />
           </div>
-          {showCC && (
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">
-                Centro de Custo
-              </label>
-              <Select
-                value={form.cost_center_id || ""}
-                onValueChange={(v) =>
-                  setForm((s) => ({ ...s, cost_center_id: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolher..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {ccs.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>
-                      {cc.name}
-                      {cc.is_default ? " (Padrão)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </form>
       </PaginaDeFormulario>
     );

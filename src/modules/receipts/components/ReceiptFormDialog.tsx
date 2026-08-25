@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Ajuda } from "@/components/ui/Ajuda";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -740,37 +741,40 @@ export function ReceiptFormDialog({
             </SelectContent>
           </Select>
         </div>
+        {!summaryMode && ccs.length > 1 && (
+          <div>
+            {/* Mesmo invólucro do rótulo acima, para os dois selects da linha
+                começarem na mesma altura. */}
+            <div className="flex items-center min-h-[1.125rem]">
+              <Label>
+                Centro de Custo
+                {hasItems && (
+                  <span className="text-slate-400 font-normal">
+                    {" "}
+                    (aplica a todos os itens)
+                  </span>
+                )}
+              </Label>
+            </div>
+            <Select
+              value={form.cost_center_id}
+              onValueChange={(v) => set("cost_center_id", v)}
+            >
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue placeholder="Escolher..." />
+              </SelectTrigger>
+              <SelectContent>
+                {ccs.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>
+                    {cc.name}
+                    {cc.is_default ? " (Padrão)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
-
-      {!summaryMode && ccs.length > 1 && (
-        <div>
-          <Label>
-            Centro de Custo
-            {hasItems && (
-              <span className="text-slate-400 font-normal">
-                {" "}
-                (aplica a todos os itens)
-              </span>
-            )}
-          </Label>
-          <Select
-            value={form.cost_center_id}
-            onValueChange={(v) => set("cost_center_id", v)}
-          >
-            <SelectTrigger className="h-9 mt-1">
-              <SelectValue placeholder="Escolher..." />
-            </SelectTrigger>
-            <SelectContent>
-              {ccs.map((cc) => (
-                <SelectItem key={cc.id} value={cc.id}>
-                  {cc.name}
-                  {cc.is_default ? " (Padrão)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -875,7 +879,14 @@ export function ReceiptFormDialog({
       {cards.length > 0 &&
         (isCreditCard(form.payment_method) || form.doc_type === "fatura") && (
           <div>
-            <Label>Cartão</Label>
+            <div className="flex items-center gap-1.5">
+              <Label>Cartão</Label>
+              <Ajuda>
+                {form.doc_type === "fatura"
+                  ? "De qual cartão é esta fatura."
+                  : "Em qual cartão a compra vai cair — é assim que ela se liga à fatura depois."}
+              </Ajuda>
+            </div>
             <Select
               value={form.card_id || "nenhum"}
               onValueChange={(v) => set("card_id", v === "nenhum" ? "" : v)}
@@ -894,11 +905,6 @@ export function ReceiptFormDialog({
                   ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-500 mt-1">
-              {form.doc_type === "fatura"
-                ? "De qual cartão é esta fatura."
-                : "Em qual cartão a compra vai cair — é assim que ela se liga à fatura depois."}
-            </p>
           </div>
         )}
 
@@ -908,15 +914,15 @@ export function ReceiptFormDialog({
               docs/CARTOES-E-FATURAS.md. Desligado = informativo (não soma). */}
       {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
         <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
-          <div className="min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             <Label htmlFor="counts_in_total" className="text-sm">
               Contabilizar no total
             </Label>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <Ajuda>
               {form.doc_type === "fatura"
                 ? "A fatura é o que soma no total — é ela que fecha com o extrato do banco. As compras do cartão ficam como detalhe. Desligue só se você lança as compras uma a uma."
                 : "Compra no cartão: fica como informativo e não soma, porque o gasto entra quando a fatura for lançada. Ligue se você não vai cadastrar a fatura deste cartão."}
-            </p>
+            </Ajuda>
           </div>
           <Switch
             id="counts_in_total"
