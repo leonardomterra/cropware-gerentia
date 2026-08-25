@@ -4,6 +4,7 @@ import {
   requireFarmUser,
   requireCanWrite,
 } from "../lib/userClient.ts";
+import { conciliar } from "../lib/conciliacao.ts";
 
 /**
  * Cartões de crédito — Etapa 2 de docs/CARTOES-E-FATURAS.md.
@@ -12,6 +13,7 @@ import {
  *   POST   /cards       cadastra
  *   PATCH  /cards/:id   edita
  *   DELETE /cards/:id   remove
+ *   GET    /faturas/:id/conciliacao   casa as linhas com as compras lançadas
  *
  * TODAS usam o cliente DO USUÁRIO, nunca service_role. Quem decide quem vê e
  * quem opera é a RLS de `farm_cards`, que por sua vez reusa
@@ -70,6 +72,82 @@ export function mountCardRoutes(app: Hono) {
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
+    }
+  });
+
+  /**
+   * CONCILIAÇÃO de uma fatura.
+   *
+   * Procura, entre as compras informativas do cartão no período, as que
+   * explicam cada linha da fatura. Devolve o casamento — e, principalmente, o
+   * que NÃO casou: são as compras que o usuário nunca lançou, que é o número
+   * que ele quer ver.
+   *
+   * Tudo pelo cliente DO USUÁRIO: se a RLS não deixa ver a fatura, não há o que
+   * conciliar.
+   */
+  app.get("/faturas/:id/conciliacao", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+
+      const { data: fatura, error: eF } = await client
+        .from("farm_receipts")
+        .select(
+          "id, doc_type, card_id, transaction_date, items:farm_receipt_items!receipt_id(*)",
+        )
+        .eq("id", c.req.param("id"))
+        .maybeSingle();
+      if (eF) return c.json({ error: eF.message }, 400);
+      if (!fatura) return c.json({ error: "not_found" }, 404);
+      if (fatura.doc_type !== "fatura") {
+        return c.json({ error: "nao_e_fatura" }, 400);
+      }
+
+      // Janela: 40 dias antes do fechamento. Um ciclo tem ~30; a folga cobre
+      // fechamento irregular e compra lançada com data um pouco atrasada.
+      const fim = String(fatura.transaction_date ?? "").slice(0, 10);
+      if (!fim) {
+        return c.json(
+          {
+            error: "sem_fechamento",
+            detalhe:
+              "A fatura precisa da data de fechamento para saber que período olhar.",
+          },
+          400,
+        );
+      }
+      const inicio = new Date(Date.parse(fim) - 40 * 86400000)
+        .toISOString()
+        .slice(0, 10);
+
+      let q = client
+        .from("farm_receipts")
+        .select("id, vendor, total_value, transaction_date, card_id")
+        .eq("counts_in_total", false)
+        .eq("payment_method", "cartao_credito")
+        .gte("transaction_date", inicio)
+        .lte("transaction_date", fim)
+        .limit(500);
+      // Com cartão na fatura, só as compras DAQUELE cartão (ou as sem cartão,
+      // que são as lançadas antes de o vínculo existir). Sem cartão na fatura,
+      // olha todas — é o melhor que dá, e a tela avisa que falta vincular.
+      if (fatura.card_id) {
+        q = q.or(`card_id.eq.${fatura.card_id},card_id.is.null`);
+      }
+      const { data: compras, error: eC } = await q;
+      if (eC) return c.json({ error: eC.message }, 400);
+
+      const itens = (fatura.items ?? []).filter(
+        // deno-lint-ignore no-explicit-any
+        (i: any) => !i.promoted_to_receipt_id,
+      );
+      return c.json(conciliar(itens, compras ?? []));
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      const msg = resp instanceof Error ? resp.message : String(resp);
+      return c.json({ error: "conciliacao_falhou", detalhe: msg }, 500);
     }
   });
 

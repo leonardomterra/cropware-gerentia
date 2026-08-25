@@ -1,6 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CreditCardDuotone from "~icons/ph/credit-card-duotone";
 import WarningDuotone from "~icons/ph/warning-duotone";
+import CheckCircleDuotone from "~icons/ph/check-circle-duotone";
+import QuestionDuotone from "~icons/ph/question-duotone";
+import { api } from "@/utils/api";
 import PencilSimple from "~icons/ph/pencil-simple";
 import ArrowLeft from "~icons/ph/arrow-left";
 import { Button } from "@/components/ui/button";
@@ -52,6 +55,23 @@ function diaMes(iso: string | null | undefined): string {
   if (!iso) return "—";
   const [, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}`;
+}
+
+interface ItemConciliado {
+  item_id: string;
+  receipt_id: string | null;
+  confianca: "alta" | "media" | null;
+  por: string[];
+}
+interface Conciliacao {
+  itens: ItemConciliado[];
+  nao_registrados: number;
+  sobrando: {
+    id: string;
+    vendor: string | null;
+    value: number;
+    date: string | null;
+  }[];
 }
 
 const STATUS: Record<string, { rotulo: string; cor: string }> = {
@@ -140,6 +160,31 @@ export function FaturaView({
     cor: "text-slate-600 bg-slate-50 border-slate-200",
   };
   const competencia = competenciaLonga(receipt.competencia);
+
+  // Conciliação: quais linhas da fatura o usuário já tinha lançado. O cálculo
+  // mora no servidor (lib/conciliacao.ts) porque o WhatsApp vai usar a mesma
+  // conta — duas implementações divergiriam na primeira correção.
+  const [conc, setConc] = useState<Conciliacao | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    void (async () => {
+      try {
+        const r = await api<Conciliacao>(`/faturas/${receipt.id}/conciliacao`);
+        if (!cancelado) setConc(r);
+      } catch {
+        // Silencioso: a fatura se lê perfeitamente sem a conciliação. Ela é um
+        // extra, e derrubar a tela por causa dela seria desproporcional.
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [receipt.id]);
+
+  const porItem = useMemo(
+    () => new Map((conc?.itens ?? []).map((i) => [i.item_id, i])),
+    [conc],
+  );
 
   return (
     <div className="space-y-4">
@@ -239,9 +284,20 @@ export function FaturaView({
           <h2 className="text-sm font-medium text-slate-900">
             Lançamentos da fatura
           </h2>
-          <span className="text-sm text-slate-500">
-            {itens.length} {itens.length === 1 ? "lançamento" : "lançamentos"}
-          </span>
+          <div className="flex items-center gap-3">
+            {conc && conc.nao_registrados > 0 && (
+              // O número que interessa. Não é erro — é descoberta: são as
+              // compras que passaram no cartão e nunca foram lançadas.
+              <span className="inline-flex items-center gap-1.5 text-sm text-amber-700">
+                <QuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
+                {conc.nao_registrados} não{" "}
+                {conc.nao_registrados === 1 ? "registrada" : "registradas"}
+              </span>
+            )}
+            <span className="text-sm text-slate-500">
+              {itens.length} {itens.length === 1 ? "lançamento" : "lançamentos"}
+            </span>
+          </div>
         </div>
 
         {itens.length === 0 ? (
@@ -281,12 +337,17 @@ export function FaturaView({
                   const cc = it.cost_center_id
                     ? ccById.get(it.cost_center_id)
                     : null;
+                  const m = porItem.get(it.id);
+                  // Só destaca quando a conciliação JÁ respondeu: antes disso,
+                  // toda linha pareceria não registrada por um instante.
+                  const naoRegistrada = !!conc && !m?.receipt_id;
                   return (
                     <tr
                       key={it.id}
                       className={cn(
                         "border-b border-slate-100",
                         i % 2 === 1 && "bg-slate-50/60",
+                        naoRegistrada && "bg-amber-50/60",
                       )}
                     >
                       {/* Sem data: a compra veio de uma fatura antiga ou de um
@@ -296,7 +357,29 @@ export function FaturaView({
                         {diaMes(it.purchase_date)}
                       </td>
                       <td className="px-4 py-2.5 text-sm text-slate-900">
-                        {it.description || "—"}
+                        <span className="inline-flex items-center gap-2 min-w-0">
+                          {m?.receipt_id ? (
+                            <CheckCircleDuotone
+                              className={cn(
+                                "size-[18px] shrink-0",
+                                m.confianca === "alta"
+                                  ? "text-emerald-500"
+                                  : "text-slate-400",
+                              )}
+                              // O título explica POR QUE casou — sem isso o
+                              // selo é um carimbo em que não dá para confiar.
+                              title={`Você já lançou esta compra (confere ${m.por.join(", ")})`}
+                            />
+                          ) : conc ? (
+                            <QuestionDuotone
+                              className="size-[18px] shrink-0 text-amber-500"
+                              title="Não encontrei esta compra nos seus lançamentos"
+                            />
+                          ) : null}
+                          <span className="truncate">
+                            {it.description || "—"}
+                          </span>
+                        </span>
                       </td>
                       <td className="px-4 py-2.5 text-sm text-slate-600">
                         {getCategoryLabel(it.category, categories)}
@@ -339,6 +422,40 @@ export function FaturaView({
           </div>
         )}
       </section>
+
+      {/* Compras lançadas no cartão que NÃO apareceram nesta fatura. Quase
+          sempre é compra feita depois do fechamento — cai na próxima —, mas
+          também pega lançamento no cartão errado. Por isso a seção explica em
+          vez de só listar. */}
+      {conc && conc.sobrando.length > 0 && (
+        <section className="bg-white rounded-xl border border-slate-200 p-4 md:p-6">
+          <h2 className="text-sm font-medium text-slate-900">
+            Lançadas no cartão, fora desta fatura
+          </h2>
+          <p className="text-sm text-slate-500 mt-0.5 mb-3">
+            Normalmente são compras feitas depois do fechamento, que caem na
+            próxima fatura. Se alguma não for, pode estar no cartão errado.
+          </p>
+          <div className="space-y-2">
+            {conc.sobrando.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+              >
+                <span className="min-w-0 text-sm text-slate-700 truncate">
+                  <span className="text-slate-500 tabular-nums">
+                    {diaMes(s.date)}
+                  </span>{" "}
+                  {s.vendor || "—"}
+                </span>
+                <span className="text-sm tabular-nums text-slate-900 whitespace-nowrap">
+                  {formatBRL(s.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
