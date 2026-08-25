@@ -1,6 +1,6 @@
 # Cartões e faturas — gerentia.app
 
-**Início:** 25/08/2026 · **Etapa 1 concluída** em 25/08/2026 · **Próxima:** 2 (cadastro de cartões)
+**Início:** 25/08/2026 · **Etapas 1 e 2 concluídas** em 25/08/2026 · **Próxima:** 3 (aba Cartões)
 
 Documento-contrato. Mudança de regra se decide aqui antes de virar código.
 
@@ -130,13 +130,58 @@ vira lentidão sem causa aparente. Resolver junto da etapa 3.
 |       | o que                                                          | estado        |
 | ----- | -------------------------------------------------------------- | ------------- |
 | **1** | Inverter a regra, ajustar os textos, aposentar o desmembrar    | ✅ 25/08/2026 |
-| **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         |               |
+| **2** | Cadastro de cartões (tabela + `card_id` no lançamento)         | ✅ 25/08/2026 |
 | **3** | Aba **Cartões**: hub no molde de Configurações                 |               |
 | **4** | WhatsApp: escolher cartão, registrar fatura                    |               |
 | **5** | Conciliação: casar itens da fatura com as compras informativas |               |
 
 A etapa 1 vem primeiro porque é pequena e já fecha o buraco: a partir da próxima
 fatura lançada, o total bate. As demais são estrutura.
+
+## 6b. O modelo de cartões (etapa 2)
+
+**O cartão é da PESSOA, dentro de uma organização.** Na prática o "cartão
+corporativo" vem no nome do colaborador. O gestor **consulta** todos e opera só
+o dele.
+
+Essa regra não é nova: é exatamente o que `farm_can_read_all()` e
+`farm_can_write_others()` já produzem para lançamentos. As policies de
+`farm_cards` reusam as duas — se um dia o interruptor de `farm_can_write_others`
+virar `true`, os cartões acompanham sem ninguém lembrar de mexer lá.
+
+| decisão                                             | por quê                                                                                                                                                                |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id` com **SET NULL**                          | é atribuição, não posse. Apagar a pessoa não pode levar o cartão e orfanar as faturas — a lição do CASCADE em `farm_categories`, que apagaria 67 categorias do cliente |
+| Ao desvincular, o cartão **fica com a organização** | mesmo tratamento dos lançamentos: as faturas presas a ele são da empresa                                                                                               |
+| **Dois dias**, fechamento e vencimento              | sem separá-los, "a fatura de agosto" é ambíguo                                                                                                                         |
+| `ultimos_digitos` como **texto**                    | zero à esquerda é significativo: "0042" ≠ 42                                                                                                                           |
+| `bandeira` e `emissor` **sem check**                | a lista cresce (bandeiras regionais, private label) e cada acréscimo exigiria migração. Quem restringe é o `<select>`                                                  |
+| Cartão cancelado **desativa**, não apaga            | as faturas antigas continuam apontando para ele                                                                                                                        |
+
+**Duas chaves de deduplicação**, que são o que faz a etapa 4 funcionar:
+
+    farm_cards      (organization_id, emissor, ultimos_digitos)
+    farm_receipts   (card_id, competencia) onde doc_type = 'fatura'
+
+A primeira impede o mesmo cartão de ser cadastrado duas vezes e é como a foto de
+uma fatura vai reconhecer de qual cartão ela é. A segunda impede a mesma fatura
+de entrar duas vezes por caminhos diferentes — foto no WhatsApp e cadastro à mão.
+
+`competencia` é DATA (dia 1 do mês) e não texto: assim ordena, compara e aceita
+intervalo sem conversão.
+
+### Rotas
+
+    GET    /cards       POST /cards
+    PATCH  /cards/:id   DELETE /cards/:id
+
+Todas com o cliente DO USUÁRIO, nunca `service_role`: quem decide quem vê e quem
+opera é a RLS. Repetir a regra no handler daria duas fontes para divergir.
+
+Duas recusas deliberadas: cartão **com lançamento** não se apaga (409
+`cartao_em_uso`) — desativar preserva o vínculo do histórico; e editar cartão de
+outra pessoa devolve **404**, não 403, porque dizer "existe mas não é seu"
+conta a quem não pode ver que ele existe.
 
 ## 7. Ideias para as etapas seguintes
 
