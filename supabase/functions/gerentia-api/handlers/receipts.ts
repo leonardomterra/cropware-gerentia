@@ -331,12 +331,22 @@ export function mountReceiptRoutes(app: Hono) {
         ai_raw: body.ai_raw ?? null,
         item_count: hasItems ? items!.length : 0,
         is_estimated: body.is_estimated === true,
-        // "Contabilizar no total": fatura nasce informativa (false); demais true.
-        // Body pode sobrescrever (toggle no form).
+        // "Contabilizar no total" — regra INVERTIDA em 25/08/2026, ver
+        // docs/CARTOES-E-FATURAS.md. A FATURA conta; a compra no cartao de
+        // credito e informativa, porque uma fatura tem muito mais coisa do que
+        // o usuario cadastra (financiamento, mensalidade, assinatura) e somar
+        // as compras sempre deixava um buraco do tamanho do que ele nao teve
+        // paciencia de digitar.
+        //
+        // So `cartao_credito`. O `cartao` legado e ambiguo (credito ou debito)
+        // e SEGUE contando: entre contar duas vezes, que aparece no total e o
+        // usuario desliga, e nao contar, que some em silencio, fica o erro
+        // visivel. A mesma regra vive no front (ReceiptFormDialog) e no
+        // whatsapp.ts — tres copias porque sao runtimes diferentes.
         counts_in_total:
           typeof body.counts_in_total === "boolean"
             ? body.counts_in_total
-            : String(body.doc_type) !== "fatura",
+            : String(body.payment_method) !== "cartao_credito",
       };
 
       const { data: receipt, error } = await client

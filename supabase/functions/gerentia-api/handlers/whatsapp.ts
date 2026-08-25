@@ -648,8 +648,11 @@ async function savePhotoReceipt(admin: any, p: any, dateOverride: string | null,
     invoice_number: e.invoice_number ?? null,
     cost_center_id: itemized ? null : (p.cost_center_id ?? null),
     item_count: itemized ? items.length : 0,
-    // Fatura nasce informativa (não soma); demais somam.
-    counts_in_total: (e.doc_type || "outro") !== "fatura",
+    // A FATURA conta; a compra no cartao de credito e informativa (regra
+    // invertida em 25/08/2026, ver docs/CARTOES-E-FATURAS.md). Isto faz o
+    // calculo obedecer o que esta rotulado logo acima em ROTULO_PAGAMENTO:
+    // "Vai fechar na fatura" — antes o app dizia isso e somava assim mesmo.
+    counts_in_total: e.payment_method !== "cartao_credito",
     attachment_key: p.attachment_key ?? null,
     attachment_mime: p.attachment_mime ?? null,
     source: "whatsapp",

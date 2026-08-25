@@ -281,14 +281,14 @@ export function ReceiptFormDialog({
           : [],
       });
     } else if (prefill) {
-      const dt = prefill.values.doc_type ?? defaultDocType ?? EMPTY.doc_type;
       setForm({
         ...EMPTY,
         cost_center_id: defaultCCId,
         ...(defaultDocType ? { doc_type: defaultDocType } : {}),
         ...prefill.values,
-        // Fatura nasce informativa; demais somam (backend tem o mesmo default).
-        counts_in_total: dt !== "fatura",
+        // Compra no cartão de crédito nasce informativa; o resto soma. Mesmo
+        // default do backend (handlers/receipts.ts) e do WhatsApp.
+        counts_in_total: !isCreditCard(prefill.values.payment_method),
         items: allowItems ? (prefill.values.items ?? []) : [],
       });
     } else if (seed) {
@@ -300,12 +300,13 @@ export function ReceiptFormDialog({
         items: allowItems ? [newItemRow()] : [],
       });
     } else {
-      const dt = defaultDocType ?? EMPTY.doc_type;
       setForm({
         ...EMPTY,
         cost_center_id: defaultCCId,
         ...(defaultDocType ? { doc_type: defaultDocType } : {}),
-        counts_in_total: dt !== "fatura",
+        // Formulário em branco não tem forma de pagamento ainda: soma. Quando o
+        // usuário escolher cartão de crédito, o onValueChange abaixo desliga.
+        counts_in_total: true,
         // Páginas itemizadas começam com 1 linha de item pra o editor aparecer.
         items: allowItems ? [newItemRow()] : [],
       });
@@ -805,12 +806,22 @@ export function ReceiptFormDialog({
           <Label>Forma de Pagamento</Label>
           <Select
             value={form.payment_method || "none"}
-            onValueChange={(v) =>
-              set(
-                "payment_method",
-                v === "none" ? "" : (v as ReceiptPaymentMethod),
-              )
-            }
+            onValueChange={(v) => {
+              const pm = v === "none" ? "" : (v as ReceiptPaymentMethod);
+              // Trocar a forma de pagamento REAJUSTA o "contabilizar": escolher
+              // cartão de crédito desliga, sair dele religa. Sem isto o usuário
+              // marcaria o cartão e o lançamento continuaria somando em
+              // silêncio — que é justamente o buraco que a regra nova fecha.
+              // Fatura mantém o dela: lá o padrão é somar.
+              setForm((f) => ({
+                ...f,
+                payment_method: pm,
+                counts_in_total:
+                  f.doc_type === "fatura"
+                    ? f.counts_in_total
+                    : !isCreditCard(pm),
+              }));
+            }}
           >
             <SelectTrigger className="h-9 mt-1">
               <SelectValue placeholder="Selecione..." />
@@ -849,8 +860,9 @@ export function ReceiptFormDialog({
       </div>
 
       {/* "Contabilizar no total" — aparece só onde há risco de duplicar
-              (fatura ou cartão de crédito). Fatura nasce desligado; cartão,
-              ligado. Desligado = informativo (não soma). */}
+              (fatura ou cartão de crédito). Desde 25/08/2026 a FATURA nasce
+              ligada e a compra no cartão, desligada — ver
+              docs/CARTOES-E-FATURAS.md. Desligado = informativo (não soma). */}
       {(form.doc_type === "fatura" || isCreditCard(form.payment_method)) && (
         <div className="flex items-start justify-between gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
           <div className="min-w-0">
@@ -859,8 +871,8 @@ export function ReceiptFormDialog({
             </Label>
             <p className="text-xs text-slate-500 mt-0.5">
               {form.doc_type === "fatura"
-                ? "Faturas entram como informativo por padrão (não somam) — os gastos vêm das compras lançadas. Ligue se preferir contabilizar só a fatura."
-                : "Despesa no cartão de crédito. Desligue se ela já está incluída na fatura, pra não somar duas vezes."}
+                ? "A fatura é o que soma no total — é ela que fecha com o extrato do banco. As compras do cartão ficam como detalhe. Desligue só se você lança as compras uma a uma."
+                : "Compra no cartão: fica como informativo e não soma, porque o gasto entra quando a fatura for lançada. Ligue se você não vai cadastrar a fatura deste cartão."}
             </p>
           </div>
           <Switch
