@@ -74,14 +74,14 @@ vista; apontar um badge para algo que já se vê é ruído.
 
 De `src/lib/ui-tokens.ts`:
 
-| Token | Onde |
-|---|---|
-| `BOTAO_BARRA` | Filtros, Ordenar, Mês — `bg-slate-100`, sem borda |
-| `BOTAO_BARRA_PRIMARIO` | **só** o botão de criar — ver §3 |
-| `CAMPO_BARRA` | seletor de Centro — `bg-slate-50` + borda, como os campos do app |
-| `ICONE_BOTAO_BARRA` / `SETA_BOTAO_BARRA` | ícone à esquerda / chevron à direita |
-| `PAINEL_ESCURO` / `ROTULO_PAINEL_ESCURO` | o popover de Filtros e seus rótulos |
-| `FilterCountBadge` | contagem sobre o botão de Filtros |
+| Token                                    | Onde                                                             |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| `BOTAO_BARRA`                            | Filtros, Ordenar, Mês — `bg-slate-100`, sem borda                |
+| `BOTAO_BARRA_PRIMARIO`                   | **só** o botão de criar — ver §3                                 |
+| `CAMPO_BARRA`                            | seletor de Centro — `bg-slate-50` + borda, como os campos do app |
+| `ICONE_BOTAO_BARRA` / `SETA_BOTAO_BARRA` | ícone à esquerda / chevron à direita                             |
+| `PAINEL_ESCURO` / `ROTULO_PAINEL_ESCURO` | o popover de Filtros e seus rótulos                              |
+| `FilterCountBadge`                       | contagem sobre o botão de Filtros                                |
 
 **Dentro do painel escuro, os campos continuam BRANCOS** (`h-9 bg-white
 text-slate-500`). Escurecê-los foi testado e descartado: texto claro sobre
@@ -269,11 +269,11 @@ não sobrevive a um F5 nem dá link compartilhável. Para ter isso é preciso um
 **Nunca monte um `<AlertDialog>` à mão.** Use um dos três, que já compartilham a
 mesma forma:
 
-| Componente | Quando |
-|---|---|
-| `ConfirmActionDialog` | confirmar qualquer ação, inclusive excluir. `infoItems` mostra o que está em jogo (nome → valor) |
-| `DeleteConfirmationDialog` | exclusão com **impacto em cascata** ou em lote |
-| `DiscardChangesDialog` | sair de um formulário com alterações não salvas |
+| Componente                 | Quando                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `ConfirmActionDialog`      | confirmar qualquer ação, inclusive excluir. `infoItems` mostra o que está em jogo (nome → valor) |
+| `DeleteConfirmationDialog` | exclusão com **impacto em cascata** ou em lote                                                   |
+| `DiscardChangesDialog`     | sair de um formulário com alterações não salvas                                                  |
 
 A forma mora em `alert-dialog.tsx`, não nos wrappers — mexer lá arruma os três
 de uma vez. O padrão, vindo do Flag Field:
@@ -322,6 +322,37 @@ precisava descer dois degraus para se diferenciar e a tela toda pesava.
 
 ---
 
+## 7b. Explicação fica no `(?)`, não na tela
+
+Texto explicativo solto ocupa espaço permanente para uma informação que serve
+UMA vez. Depois de lido, vira peso — e o app fica com cara de tutorial.
+
+Use `<Ajuda>` (`components/ui/Ajuda.tsx`): um `(?)` discreto ao lado do título,
+que abre a explicação num vidro translúcido.
+
+```jsx
+<h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+  Lançadas no cartão, fora desta fatura
+  <Ajuda>Normalmente são compras feitas depois do fechamento.</Ajuda>
+</h2>
+```
+
+**Abre no CLIQUE, não no hover.** O app roda no celular, e um tooltip de hover
+simplesmente não abriria lá. O Radix cuida de Esc, clique fora e teclado.
+
+O vidro é o `SUPERFICIE_TOOLTIP` que já existe — cinza quente, que distingue
+"dica passageira" de "menu com que dá pra interagir" sem inventar linguagem
+visual nova.
+
+**Uma ou duas frases.** O que não couber aí é documentação, não dica, e o lugar
+dela é outro.
+
+**O que NÃO vai para o `(?)`:** aviso que muda o que a pessoa deve fazer.
+"Faltam R$ 300 nesta fatura" ou "sem cartão vinculado não dá para conciliar"
+ficam à vista — esconder atrás de um clique é esconder o problema.
+
+---
+
 ## 8. Esqueleto para copiar
 
 ```jsx
@@ -365,18 +396,18 @@ export default function MinhaPagina() {
 
 ## 9. Onde o padrão está de pé hoje
 
-| Página | Barra | Ordenar | Botão escuro | Observação |
-|---|---|---|---|---|
-| Lançamentos | ✅ | ✅ | ✅ | referência; ver/editar inline |
-| Recorrências | ✅ | ✅ | ✅ | alinhada em 19/08/2026; ver/editar inline |
-| Relatórios | ✅ parcial | — | ✅ | usa os tokens; sem busca (não tem lista) |
-| Dashboard | ✅ parcial | — | — | período + centro; sem busca, por natureza |
-| Pendências | ✅ | ✅ | ✅ | alinhada em 19/08/2026 (quadro de 3 colunas) |
-| Notificações | ❌ | ❌ | — | sem barra |
-| Admin › Organizações | ✅ | — | ✅ | alinhada em 20/08/2026; ganhou busca |
-| Equipe | ❌ | ❌ | ❌ | sem barra |
-| Admin › Usuários | ✅ | ✅ | ✅ | alinhada em 20/08/2026 |
-| Configurações | — | — | — | HUB de atalhos (20/08/2026); absorveu as telas do master |
+| Página               | Barra      | Ordenar | Botão escuro | Observação                                               |
+| -------------------- | ---------- | ------- | ------------ | -------------------------------------------------------- |
+| Lançamentos          | ✅         | ✅      | ✅           | referência; ver/editar inline                            |
+| Recorrências         | ✅         | ✅      | ✅           | alinhada em 19/08/2026; ver/editar inline                |
+| Relatórios           | ✅ parcial | —       | ✅           | usa os tokens; sem busca (não tem lista)                 |
+| Dashboard            | ✅ parcial | —       | —            | período + centro; sem busca, por natureza                |
+| Pendências           | ✅         | ✅      | ✅           | alinhada em 19/08/2026 (quadro de 3 colunas)             |
+| Notificações         | ❌         | ❌      | —            | sem barra                                                |
+| Admin › Organizações | ✅         | —       | ✅           | alinhada em 20/08/2026; ganhou busca                     |
+| Equipe               | ❌         | ❌      | ❌           | sem barra                                                |
+| Admin › Usuários     | ✅         | ✅      | ✅           | alinhada em 20/08/2026                                   |
+| Configurações        | —          | —       | —            | HUB de atalhos (20/08/2026); absorveu as telas do master |
 
 **Próxima candidata: Equipe** — tem lista e botão de criar, e não usa os tokens.
 

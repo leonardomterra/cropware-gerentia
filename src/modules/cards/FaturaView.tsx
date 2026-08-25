@@ -8,6 +8,7 @@ import PencilSimple from "~icons/ph/pencil-simple";
 import ArrowLeft from "~icons/ph/arrow-left";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Ajuda } from "@/components/ui/Ajuda";
 import { cn } from "@/components/ui/utils";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -292,6 +293,11 @@ export function FaturaView({
                 <QuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
                 {conc.nao_registrados} não{" "}
                 {conc.nao_registrados === 1 ? "registrada" : "registradas"}
+                <Ajuda rotulo="O que significa não registrada?">
+                  São compras que passaram no cartão e você não lançou no app.
+                  Elas contam no total da fatura do mesmo jeito — o que falta é
+                  o detalhe: foto, observação e centro de custo.
+                </Ajuda>
               </span>
             )}
             <span className="text-sm text-slate-500">
@@ -429,13 +435,13 @@ export function FaturaView({
           vez de só listar. */}
       {conc && conc.sobrando.length > 0 && (
         <section className="bg-white rounded-xl border border-slate-200 p-4 md:p-6">
-          <h2 className="text-sm font-medium text-slate-900">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium text-slate-900 mb-3">
             Lançadas no cartão, fora desta fatura
+            <Ajuda>
+              Normalmente são compras feitas depois do fechamento, que caem na
+              próxima fatura. Se alguma não for, pode estar no cartão errado.
+            </Ajuda>
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5 mb-3">
-            Normalmente são compras feitas depois do fechamento, que caem na
-            próxima fatura. Se alguma não for, pode estar no cartão errado.
-          </p>
           <div className="space-y-2">
             {conc.sobrando.map((s) => (
               <div
