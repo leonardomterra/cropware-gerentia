@@ -87,9 +87,7 @@ function formaSvg(f: Forma): string {
     return `<line x1="${f.x1}" y1="${f.y1}" x2="${f.x2}" y2="${f.y2}" stroke="${f.cor}" stroke-width="1"/>`;
   const anc =
     f.ancora === "meio" ? "middle" : f.ancora === "fim" ? "end" : "start";
-  return `<text x="${f.x}" y="${f.y}" font-size="${f.tamanho}" fill="${f.cor}" text-anchor="${anc}"${
-    f.negrito ? ' font-weight="600"' : ""
-  }>${esc(f.texto)}</text>`;
+  return `<text x="${f.x}" y="${f.y}" font-size="${f.tamanho}" fill="${f.cor}" text-anchor="${anc}">${esc(f.texto)}</text>`;
 }
 
 function chartHtml(t: ReportDoc["tables"][number]): string {

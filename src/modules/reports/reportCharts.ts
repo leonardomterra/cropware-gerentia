@@ -71,7 +71,6 @@ export type Forma =
       cor: string;
       /** "inicio" (padrão), "meio" ou "fim" — âncora horizontal */
       ancora?: "inicio" | "meio" | "fim";
-      negrito?: boolean;
     };
 
 /** Rótulo de eixo — pequeno de propósito, é referência e não leitura. */
@@ -220,10 +219,11 @@ export function formasDeBarras(
       y: base + alturaRotulo / 2 + ROTULO * 0.35,
       texto: g.rotulo,
       tamanho: ROTULO,
-      // Sobre a faixa clara, o escuro; fora dela, o cinza de rótulo.
-      cor: g.ativo ? NEUTRO[900] : NEUTRO[500],
+      // Um tom acima do rótulo comum, não a tinta cheia: quem destaca o mês é
+      // a faixa, e o texto só precisa acompanhar. Peso normal pelo mesmo motivo
+      // — negrito somado à faixa era destaque em dobro.
+      cor: g.ativo ? NEUTRO[600] : NEUTRO[500],
       ancora: "meio",
-      negrito: g.ativo,
     });
   });
 

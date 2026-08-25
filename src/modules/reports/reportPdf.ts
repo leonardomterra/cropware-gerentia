@@ -146,15 +146,14 @@ export async function reportToPdf(
         });
       } else {
         const txt = san(f.texto);
-        const fonte = f.negrito ? bold : font;
-        const largura = fonte.widthOfTextAtSize(txt, f.tamanho);
+        const largura = font.widthOfTextAtSize(txt, f.tamanho);
         const dx =
           f.ancora === "meio"
             ? -largura / 2
             : f.ancora === "fim"
               ? -largura
               : 0;
-        draw(txt, M + f.x + dx, py(f.y), f.tamanho, fonte, cor(f.cor));
+        draw(txt, M + f.x + dx, py(f.y), f.tamanho, font, cor(f.cor));
       }
     }
     y = topo - ALTURA_GRAFICO - 9;
