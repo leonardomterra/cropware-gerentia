@@ -2,8 +2,11 @@ import { lazy, Suspense, useState } from "react";
 import Plus from "~icons/ph/plus";
 import ArrowLeft from "~icons/ph/arrow-left";
 import WrenchDuotone from "~icons/ph/wrench-duotone";
-import TrendDownDuotone from "~icons/ph/trend-down-duotone";
-import TrendUpDuotone from "~icons/ph/trend-up-duotone";
+// Saída/entrada, e não alta/baixa: a seta que SAI do quadrado é o dinheiro
+// que sai. O par trend-up/trend-down falava de tendência, que é outra coisa —
+// categoria de despesa não "cai", ela classifica o que sai.
+import ArrowSquareOutDuotone from "~icons/ph/arrow-square-out-duotone";
+import ArrowSquareInDuotone from "~icons/ph/arrow-square-in-duotone";
 import UsersThreeDuotone from "~icons/ph/users-three-duotone";
 import BuildingOfficeDuotone from "~icons/ph/building-office-duotone";
 import FloppyDiskDuotone from "~icons/ph/floppy-disk-duotone";
@@ -61,14 +64,14 @@ const ATALHOS: Atalho[] = [
   },
   {
     id: "cat-despesa",
-    Icon: TrendDownDuotone,
+    Icon: ArrowSquareOutDuotone,
     cor: "text-red-500",
     titulo: "Categorias de Despesa",
     descricao: "Grupos e categorias do que sai",
   },
   {
     id: "cat-receita",
-    Icon: TrendUpDuotone,
+    Icon: ArrowSquareInDuotone,
     cor: "text-teal-500",
     titulo: "Categorias de Receita",
     descricao: "Grupos e categorias do que entra",
