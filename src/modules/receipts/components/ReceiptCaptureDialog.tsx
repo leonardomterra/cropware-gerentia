@@ -56,8 +56,7 @@ export function ReceiptCaptureDialog({
     const result = await scan(selectedFile);
     if (!result) return;
 
-    const ocrFailed =
-      !!result.scan_error || !result.extracted;
+    const ocrFailed = !!result.scan_error || !result.extracted;
     if (ocrFailed) {
       // Mantem o dialog aberto e mostra o erro. User decide se prossegue.
       setLastScan(result);

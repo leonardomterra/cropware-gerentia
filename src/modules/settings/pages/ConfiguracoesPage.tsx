@@ -121,6 +121,9 @@ export default function ConfiguracoesPage() {
   // organização — master é operação do produto, não cargo do cliente.
   const { isMaster } = useAuth();
   const [secao, setSecao] = useState<SecaoDeConfig | null>(null);
+  // Formulário aberto dentro do manager desenha a PRÓPRIA barra (Voltar +
+  // Salvar). A do hub some enquanto isso, senão ficam dois "Voltar" empilhados.
+  const [formAberto, setFormAberto] = useState(false);
   const [buscaDeUsuario, setBuscaDeUsuario] = useState("");
 
   const atalhos = ATALHOS.filter((a) => !a.master || isMaster);
@@ -132,7 +135,10 @@ export default function ConfiguracoesPage() {
           <button
             key={a.id}
             type="button"
-            onClick={() => setSecao(a.id)}
+            onClick={() => {
+              setFormAberto(false);
+              setSecao(a.id);
+            }}
             className="text-left bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
           >
             <a.Icon className={cn("size-7 shrink-0", a.cor)} />
@@ -186,32 +192,37 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 w-full">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setSecao(null)}
-          className={cn(BOTAO_BARRA, "rounded-md")}
-        >
-          <ArrowLeft className="size-4 mr-2" />
-          Voltar
-        </Button>
+      {!formAberto && (
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setSecao(null)}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowLeft className="size-4 mr-2" />
+            Voltar
+          </Button>
 
-        {/* Assunto à direita, como em Conta: à esquerda ficam as ações, e o
+          {/* Assunto à direita, como em Conta: à esquerda ficam as ações, e o
             título é rótulo — não coisa para clicar. */}
-        <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
-          <atalho.Icon className={cn("size-[18px] shrink-0", atalho.cor)} />
-          <span className="truncate">{atalho.titulo}</span>
-        </span>
-      </div>
+          <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
+            <atalho.Icon className={cn("size-[18px] shrink-0", atalho.cor)} />
+            <span className="truncate">{atalho.titulo}</span>
+          </span>
+        </div>
+      )}
 
-      {secao === "centros" && <CostCentersManager />}
+      {secao === "centros" && (
+        <CostCentersManager aoAbrirFormulario={setFormAberto} />
+      )}
       {secao === "backups" && <BackupsManager />}
       {secao === "backups-master" && <BackupsManager master />}
       {(secao === "cat-despesa" || secao === "cat-receita") && (
         <CategoriesManager
           key={secao}
           direction={secao === "cat-receita" ? "income" : "expense"}
+          aoAbrirFormulario={setFormAberto}
         />
       )}
     </div>

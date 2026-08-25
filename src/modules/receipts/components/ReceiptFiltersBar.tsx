@@ -42,6 +42,8 @@ interface ReceiptFiltersBarProps {
    * pra a busca encolher.
    */
   campos?: React.ReactNode;
+  /** Mais um campo à vista, depois de `campos` na mesma grade. */
+  camposExtra?: React.ReactNode;
   /** Botões à direita, encostados no de Filtros (ex.: Ordenar). */
   acoes?: React.ReactNode;
 }
@@ -72,6 +74,7 @@ export function ReceiptFiltersBar({
   value,
   onChange,
   campos,
+  camposExtra,
   acoes,
 }: ReceiptFiltersBarProps) {
   const { categories } = useCategories();
@@ -116,7 +119,11 @@ export function ReceiptFiltersBar({
       <div
         className={cn(
           "grid flex-1 min-w-0 gap-2 grid-cols-1",
-          campos && "sm:grid-cols-2",
+          // Uma coluna por campo à vista. Sem contar `camposExtra`, o terceiro
+          // item quebrava linha sozinho numa grade de duas.
+          campos && !camposExtra && "sm:grid-cols-2",
+          campos && camposExtra && "sm:grid-cols-2 lg:grid-cols-3",
+          !campos && camposExtra && "sm:grid-cols-2",
         )}
       >
         <div className="relative">
@@ -125,13 +132,11 @@ export function ReceiptFiltersBar({
             value={value.search ?? ""}
             onChange={(e) => set("search", e.target.value || undefined)}
             placeholder="Buscar por origem ou descrição..."
-            className={cn(
-              "pl-8 h-9 border-slate-200 shadow-none",
-              fieldText,
-            )}
+            className={cn("pl-8 h-9 border-slate-200 shadow-none", fieldText)}
           />
         </div>
         {campos}
+        {camposExtra}
       </div>
 
       <Popover open={open} onOpenChange={setOpen}>

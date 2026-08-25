@@ -59,7 +59,16 @@ function subtitulo(c: Card): string {
  * rota devolve, para saber quais linhas mostram os botões de editar e excluir.
  * Reimplementar a regra no front daria duas fontes para divergir.
  */
-export function CardsManager() {
+export function CardsManager({
+  aoAbrirFormulario,
+}: {
+  /**
+   * Avisa o hub que o formulário assumiu a tela. Sem isto aparecem DOIS
+   * "Voltar" empilhados: um do hub e outro do `PaginaDeFormulario`, que
+   * desenha a própria barra. O hub esconde a dele enquanto isto for true.
+   */
+  aoAbrirFormulario?: (aberto: boolean) => void;
+} = {}) {
   const [cards, setCards] = useState<Card[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +96,10 @@ export function CardsManager() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    aoAbrirFormulario?.(aberto);
+  }, [aberto, aoAbrirFormulario]);
 
   function abrirNovo() {
     setEditando(null);

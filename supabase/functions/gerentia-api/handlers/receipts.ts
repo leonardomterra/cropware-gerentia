@@ -323,6 +323,10 @@ export function mountReceiptRoutes(app: Hono) {
         description: body.description ?? null,
         category,
         invoice_number: body.invoice_number ?? null,
+        // Cartão e competência: o vínculo que a conciliação vai usar, e a
+        // chave que impede a mesma fatura de entrar duas vezes.
+        card_id: body.card_id ?? null,
+        competencia: body.competencia ?? null,
         attachment_key: body.attachment_key ?? null,
         attachment_mime: body.attachment_mime ?? null,
         notes: body.notes ?? null,
@@ -411,6 +415,10 @@ export function mountReceiptRoutes(app: Hono) {
         "ai_confidence",
         "is_estimated",
         "counts_in_total",
+        // Cartão de onde saiu a compra / de quem é a fatura. Ver
+        // docs/CARTOES-E-FATURAS.md.
+        "card_id",
+        "competencia",
       ];
       const patch: Record<string, unknown> = {};
       for (const k of ALLOWED) {

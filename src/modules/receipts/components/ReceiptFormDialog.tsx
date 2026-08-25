@@ -34,6 +34,7 @@ import { cn } from "@/components/ui/utils";
 import { useOrgPeople } from "@/modules/team/hooks/useOrgPeople";
 import { AttachmentViewerDialog } from "./AttachmentViewerDialog";
 import { ReceiptItemsTable } from "./ReceiptItemsTable";
+import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -139,6 +140,7 @@ export interface FormState {
   cost_center_id: string;
   is_estimated: boolean;
   counts_in_total: boolean;
+  card_id: string;
   items: ItemRow[];
 }
 
@@ -159,6 +161,7 @@ const EMPTY: FormState = {
   cost_center_id: "",
   is_estimated: false,
   counts_in_total: true,
+  card_id: "",
   items: [],
 };
 
@@ -264,6 +267,7 @@ export function ReceiptFormDialog({
           defaultCCId,
         is_estimated: receipt.is_estimated,
         counts_in_total: receipt.counts_in_total,
+        card_id: receipt.card_id ?? "",
         items: allowItems
           ? (receipt.items ?? [])
               .filter((it) => !it.promoted_to_receipt_id)
@@ -313,6 +317,10 @@ export function ReceiptFormDialog({
     }
     setError(null);
   }, [open, receipt, prefill, seed, defaultCCId, allowItems, defaultDocType]);
+
+  // Cartões da organização que a RLS deixa ver. Sem cartão cadastrado o
+  // seletor não aparece — seria um campo com uma opção só.
+  const { cards } = useCards();
 
   const availableStatuses = useMemo(
     () => STATUSES_BY_DIRECTION[form.direction],
@@ -465,6 +473,7 @@ export function ReceiptFormDialog({
           notes: form.notes.trim() || null,
           is_estimated: form.is_estimated,
           counts_in_total: form.counts_in_total,
+          card_id: form.card_id || null,
         });
         toast.success("Lançamento atualizado");
         onSaved();
@@ -539,6 +548,7 @@ export function ReceiptFormDialog({
         cost_center_id: hasItems ? null : form.cost_center_id || null,
         is_estimated: form.is_estimated,
         counts_in_total: form.counts_in_total,
+        card_id: form.card_id || null,
         ...itemsKey,
       };
 
@@ -858,6 +868,39 @@ export function ReceiptFormDialog({
           className="mt-1"
         />
       </div>
+
+      {/* Cartão: aparece na compra no crédito e na fatura. Na compra ele diz em
+          que fatura o gasto vai cair; na fatura, de qual cartão ela é — e é
+          esse vínculo que a conciliação vai usar. */}
+      {cards.length > 0 &&
+        (isCreditCard(form.payment_method) || form.doc_type === "fatura") && (
+          <div>
+            <Label>Cartão</Label>
+            <Select
+              value={form.card_id || "nenhum"}
+              onValueChange={(v) => set("card_id", v === "nenhum" ? "" : v)}
+            >
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Não informado</SelectItem>
+                {cards
+                  .filter((c) => c.ativo || c.id === form.card_id)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {rotuloDoCartao(c)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500 mt-1">
+              {form.doc_type === "fatura"
+                ? "De qual cartão é esta fatura."
+                : "Em qual cartão a compra vai cair — é assim que ela se liga à fatura depois."}
+            </p>
+          </div>
+        )}
 
       {/* "Contabilizar no total" — aparece só onde há risco de duplicar
               (fatura ou cartão de crédito). Desde 25/08/2026 a FATURA nasce

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/ph/arrow-down";
@@ -119,6 +119,12 @@ export interface ReceiptsListPageProps {
   /** Títulos do dialog de criar/editar (por aba). */
   titleNew?: string;
   titleEdit?: string;
+  /**
+   * Campo extra À VISTA na barra, ao lado do centro de custo. Usado pela aba
+   * Cartões para o filtro por cartão. Quem controla o estado é o chamador — a
+   * lista só posiciona, e o recorte vem pelo `docFilter`.
+   */
+  camposExtra?: ReactNode;
 }
 
 // Numero -> string p/ os inputs do form (vírgula decimal). "" se nulo/invalido.
@@ -170,6 +176,7 @@ function scanToPrefill(scan: ScanResult): PrefillFromScan {
 
 export function ReceiptsListPage({
   docFilter,
+  camposExtra,
   itemized = false,
   defaultDocType,
   showCapture = true,
@@ -659,6 +666,7 @@ export function ReceiptsListPage({
               </DropdownMenu>
             ) : undefined
           }
+          camposExtra={camposExtra}
           acoes={
             <>
               <MonthSwitcher

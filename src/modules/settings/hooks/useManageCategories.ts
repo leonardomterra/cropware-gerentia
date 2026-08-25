@@ -248,7 +248,9 @@ export function useManageCategories() {
       });
       if (e) {
         setError(
-          isDuplicate(e.message) ? "Já existe um grupo com esse nome." : e.message,
+          isDuplicate(e.message)
+            ? "Já existe um grupo com esse nome."
+            : e.message,
         );
         return false;
       }

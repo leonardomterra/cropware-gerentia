@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Plus from "~icons/ph/plus";
 import Star from "~icons/ph/star";
 import StarFilled from "~icons/ph/star-fill";
@@ -37,7 +37,12 @@ interface FormState {
  * pra virar uma sub-tab dentro de ConfiguracoesPage. Sem wrapper de
  * pagina (header/max-w) - quem renderiza decide o container.
  */
-export function CostCentersManager() {
+export function CostCentersManager({
+  aoAbrirFormulario,
+}: {
+  /** Ver CardsManager: evita dois "Voltar" empilhados no hub. */
+  aoAbrirFormulario?: (aberto: boolean) => void;
+} = {}) {
   const { costCenters, loading, error, create, update, archive } =
     useCostCenters();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,6 +57,10 @@ export function CostCentersManager() {
   const [settingDefault, setSettingDefault] = useState(false);
   const [pendingArchive, setPendingArchive] = useState<CostCenter | null>(null);
   const [archiving, setArchiving] = useState(false);
+
+  useEffect(() => {
+    aoAbrirFormulario?.(dialogOpen);
+  }, [dialogOpen, aoAbrirFormulario]);
 
   // CC padrão sempre primeiro na lista (resto preserva a ordem do hook).
   const ordered = [...costCenters].sort(

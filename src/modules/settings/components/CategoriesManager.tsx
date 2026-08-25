@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Plus from "~icons/ph/plus";
 import Pencil from "~icons/ph/pencil-simple";
 import Trash2 from "~icons/ph/trash";
@@ -105,8 +105,11 @@ function NameAndCodeFields({
  */
 export function CategoriesManager({
   direction,
+  aoAbrirFormulario,
 }: {
   direction: ReceiptDirection;
+  /** Ver CardsManager: evita dois "Voltar" empilhados no hub. */
+  aoAbrirFormulario?: (aberto: boolean) => void;
 }) {
   const {
     categories,
@@ -132,6 +135,12 @@ export function CategoriesManager({
     useState<ManageCategory | null>(null);
 
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+
+  // Avisa o hub que um formulário assumiu a tela — senão aparecem dois
+  // "Voltar" empilhados, o do hub e o do PaginaDeFormulario.
+  useEffect(() => {
+    aoAbrirFormulario?.(catDialogOpen || groupDialogOpen);
+  }, [catDialogOpen, groupDialogOpen, aoAbrirFormulario]);
   const [editingGroup, setEditingGroup] = useState<ResolvedGroup | null>(null);
   const [groupForm, setGroupForm] = useState<GroupForm>(EMPTY_GROUP);
   const [pendingDeleteGroup, setPendingDeleteGroup] =

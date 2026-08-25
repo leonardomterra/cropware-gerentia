@@ -113,6 +113,12 @@ export interface Receipt {
   /** Entra nas somas (Dashboard/Relatórios/CSV)? false = "informativo" — usado
    *  pra evitar duplicidade entre fatura de cartão e as compras avulsas. */
   counts_in_total: boolean;
+  /** Cartão de onde saiu a compra, ou de quem é a fatura. Ver
+   *  docs/CARTOES-E-FATURAS.md. */
+  card_id?: string | null;
+  /** Mês de referência da fatura (AAAA-MM-01). Com card_id, é a chave que
+   *  impede a mesma fatura de entrar duas vezes. */
+  competencia?: string | null;
   /** Itens embutidos no GET (presente quando item_count > 0). */
   items?: ReceiptItem[];
   created_at: string;
@@ -160,6 +166,8 @@ export interface ReceiptInput {
   is_estimated?: boolean;
   /** Contabilizar no total (default: fatura=false, demais=true; backend decide). */
   counts_in_total?: boolean;
+  card_id?: string | null;
+  competencia?: string | null;
   /** Itens (split). Quando presente e nao-vazio, o backend deriva
    *  total_value/category/cost_center_id do cabeçalho a partir dos itens. */
   items?: ReceiptItemInput[];
