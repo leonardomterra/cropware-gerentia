@@ -39,6 +39,7 @@ import {
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import { BatchActionBar } from "@/components/ui/BatchActionBar";
+import type { CampoDaBarra } from "@/components/ui/BarraDeTela";
 import {
   AllCentersChip,
   CostCenterChip,
@@ -124,7 +125,7 @@ export interface ReceiptsListPageProps {
    * Cartões para o filtro por cartão. Quem controla o estado é o chamador — a
    * lista só posiciona, e o recorte vem pelo `docFilter`.
    */
-  camposExtra?: ReactNode;
+  camposExtra?: CampoDaBarra;
   /**
    * Avisa o hub que um formulário (ver/editar/anexo) assumiu a tela. Esses
    * formulários desenham a PRÓPRIA barra; sem isto o hub mantém a dele e
@@ -626,100 +627,163 @@ export function ReceiptsListPage({
 
   return (
     <div>
-      {/* Linha 1 — filtros: o que se consulta toda hora fica à vista; o resto
-          mora no painel. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md, Etapa C. */}
-      <div className="mb-2">
+      {/* Linha única — a BarraDeTela decide o layout por tamanho de tela: no
+          celular os campos descem para o painel e a ação principal ganha a
+          linha. Ver components/ui/BarraDeTela.tsx e §2 do padrão de página. */}
+      <div className="mb-3">
         <ReceiptFiltersBar
           value={filters}
           onChange={setFilters}
-          campos={
-            showTabs ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={CAMPO_BARRA}>
-                    {activeCCId !== "all" ? (
-                      <CostCenterChip
-                        icon={userCCs.find((c) => c.id === activeCCId)?.icon}
-                        color={userCCs.find((c) => c.id === activeCCId)?.color}
-                        className="size-[18px]"
-                      />
-                    ) : (
-                      <AllCentersChip className="size-[18px]" />
-                    )}
-                    <span
-                      className="flex-1 text-left truncate"
-                      style={
-                        activeCCId !== "all"
-                          ? {
-                              color: ccTextColor(
-                                userCCs.find((c) => c.id === activeCCId)?.color,
-                              ),
+          campos={[
+            ...(showTabs
+              ? [
+                  {
+                    rotulo: "Centro de Custo",
+                    ativo: activeCCId !== "all",
+                    campo: (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button type="button" className={CAMPO_BARRA}>
+                            {activeCCId !== "all" ? (
+                              <CostCenterChip
+                                icon={
+                                  userCCs.find((c) => c.id === activeCCId)?.icon
+                                }
+                                color={
+                                  userCCs.find((c) => c.id === activeCCId)
+                                    ?.color
+                                }
+                                className="size-[18px]"
+                              />
+                            ) : (
+                              <AllCentersChip className="size-[18px]" />
+                            )}
+                            <span
+                              className="flex-1 text-left truncate"
+                              style={
+                                activeCCId !== "all"
+                                  ? {
+                                      color: ccTextColor(
+                                        userCCs.find((c) => c.id === activeCCId)
+                                          ?.color,
+                                      ),
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {activeCCId === "all" ? (
+                                <>
+                                  <span className="sm:hidden">Centros</span>
+                                  <span className="hidden sm:inline">
+                                    Todos os Centros
+                                  </span>
+                                </>
+                              ) : (
+                                userCCs.find((c) => c.id === activeCCId)
+                                  ?.name || "Centro"
+                              )}
+                            </span>
+                            <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64">
+                          <DropdownMenuItem
+                            onClick={() => setActiveCCId("all")}
+                            className={
+                              activeCCId === "all"
+                                ? "bg-white/10 font-medium gap-2"
+                                : "gap-2"
                             }
-                          : undefined
-                      }
-                    >
-                      {activeCCId === "all" ? (
-                        <>
-                          <span className="sm:hidden">Centros</span>
-                          <span className="hidden sm:inline">
-                            Todos os Centros
-                          </span>
-                        </>
-                      ) : (
-                        userCCs.find((c) => c.id === activeCCId)?.name ||
-                        "Centro"
-                      )}
-                    </span>
-                    <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
-                  <DropdownMenuItem
-                    onClick={() => setActiveCCId("all")}
-                    className={
-                      activeCCId === "all"
-                        ? "bg-white/10 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <AllCentersChip className="size-6" />
-                    <span className="min-w-0 flex-1 truncate">Todos</span>
-                  </DropdownMenuItem>
-                  {userCCs.map((cc) => (
-                    <DropdownMenuItem
-                      key={cc.id}
-                      onClick={() => setActiveCCId(cc.id)}
-                      className={
-                        activeCCId === cc.id
-                          ? "bg-white/10 font-medium gap-2"
-                          : "gap-2"
-                      }
-                    >
-                      <CostCenterChip
-                        icon={cc.icon}
-                        color={cc.color}
-                        className="size-6"
-                      />
-                      <span
-                        className="min-w-0 flex-1 truncate"
-                        style={{ color: cc.color ?? undefined }}
-                      >
-                        {cc.name}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : undefined
-          }
-          camposExtra={camposExtra}
+                          >
+                            <AllCentersChip className="size-6" />
+                            <span className="min-w-0 flex-1 truncate">
+                              Todos
+                            </span>
+                          </DropdownMenuItem>
+                          {userCCs.map((cc) => (
+                            <DropdownMenuItem
+                              key={cc.id}
+                              onClick={() => setActiveCCId(cc.id)}
+                              className={
+                                activeCCId === cc.id
+                                  ? "bg-white/10 font-medium gap-2"
+                                  : "gap-2"
+                              }
+                            >
+                              <CostCenterChip
+                                icon={cc.icon}
+                                color={cc.color}
+                                className="size-6"
+                              />
+                              <span
+                                className="min-w-0 flex-1 truncate"
+                                style={{ color: cc.color ?? undefined }}
+                              >
+                                {cc.name}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ),
+                  },
+                ]
+              : []),
+            ...(camposExtra ? [camposExtra] : []),
+            ...(isTeamOrg && canReadAll
+              ? [
+                  {
+                    rotulo: "Quem lançou",
+                    ativo: onlyMine,
+                    campo: (
+                      <>
+                        // `col-span-*` era da grade da antiga "linha 2", que
+                        deixou // de existir. No celular ele cai embaixo do
+                        botão de criar; no // desktop, ao lado.
+                        <div className="flex rounded-md border border-slate-200 overflow-hidden w-full lg:w-auto lg:min-w-[190px] mt-2 lg:mt-0">
+                          <button
+                            type="button"
+                            onClick={() => setOnlyMine(false)}
+                            className={cn(
+                              "flex-1 px-3 py-2 text-sm transition-colors",
+                              !onlyMine
+                                ? "bg-slate-900 text-white"
+                                : "bg-white text-slate-600 hover:bg-slate-50",
+                            )}
+                          >
+                            Toda a equipe
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOnlyMine(true)}
+                            className={cn(
+                              "flex-1 px-3 py-2 text-sm border-l border-slate-200 transition-colors",
+                              onlyMine
+                                ? "bg-slate-900 text-white"
+                                : "bg-white text-slate-600 hover:bg-slate-50",
+                            )}
+                          >
+                            Só os meus
+                          </button>
+                        </div>
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
           acoes={
             <>
-              <MonthSwitcher
-                value={month}
-                onChange={setMonth}
-                variant="picker"
-              />
+              {/* O seletor de mês só no DESKTOP: o navegador `‹ Agosto 2026 ›`
+                  logo abaixo diz o mesmo, e no celular repetir os dois gasta
+                  uma das duas linhas com informação que já está na tela. */}
+              {!isMobile && (
+                <MonthSwitcher
+                  value={month}
+                  onChange={setMonth}
+                  variant="picker"
+                />
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   {/* Rótulo FIXO: mostrar a opção ativa ("Maior valor" x "Recentes")
@@ -787,12 +851,9 @@ export function ReceiptsListPage({
               </DropdownMenu>
             </>
           }
-        />
-      </div>
-
-      {/* Linha 2 — ações */}
-      <div className="grid grid-cols-2 gap-2 mb-3 lg:flex lg:flex-wrap lg:items-center">
-        {/* Criar é UMA porta, não duas.
+          acaoPrincipal={
+            <>
+              {/* Criar é UMA porta, não duas.
             "Novo Lançamento" e "Capturar Recibo" terminam no mesmo lugar — um
             lançamento — e a diferença é só COMO se preenche: na mão ou pela
             foto. Dois botões de mesmo peso lado a lado faziam a escolha parecer
@@ -801,87 +862,63 @@ export function ReceiptsListPage({
             Com as DUAS formas disponíveis vira um botão com menu. Com uma só
             (Notas e Faturas não capturam), volta a ser botão direto: menu de um
             item é um clique a troco de nada. */}
-        {podeCriar &&
-          !isViewer &&
-          (duasFormasDeCriar ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                {/* A ÚNICA ação de fundo escuro da barra. É o que separa
+              {podeCriar &&
+                !isViewer &&
+                (duasFormasDeCriar ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      {/* A ÚNICA ação de fundo escuro da barra. É o que separa
                     "criar" das demais, todas em cinza — sem isso, tudo tem o
                     mesmo peso e nada é a ação principal. Sem `flex-1`: ele
                     mede pelo próprio rótulo, e não pela linha. */}
-                <Button
-                  variant="default"
-                  className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
-                >
-                  <Plus className="size-[18px] shrink-0" />
-                  <span className="sm:hidden">{createLabelShort}</span>
-                  <span className="hidden sm:inline">{createLabel}</span>
-                  <ChevronDown className="size-4 shrink-0 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuItem onClick={openCreate} className="gap-2">
-                  <Plus className="size-4" />
-                  Lançamento Manual
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setCaptureOpen(true)}
-                  className="gap-2"
-                >
-                  <Camera className="size-4" />
-                  Capturar Recibo
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              variant="default"
-              onClick={showCreate ? openCreate : () => setCaptureOpen(true)}
-              className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
-            >
-              {showCreate ? (
-                <Plus className="size-[18px] shrink-0" />
-              ) : (
-                <Camera className="size-[18px] shrink-0" />
-              )}
-              <span className="sm:hidden">
-                {showCreate ? createLabelShort : "Capturar"}
-              </span>
-              <span className="hidden sm:inline">
-                {showCreate ? createLabel : "Capturar Recibo"}
-              </span>
-            </Button>
-          ))}
-
-        {isTeamOrg && canReadAll && (
-          <div className="col-span-2 lg:col-span-1 flex rounded-md border border-slate-200 overflow-hidden lg:min-w-[190px]">
-            <button
-              type="button"
-              onClick={() => setOnlyMine(false)}
-              className={cn(
-                "flex-1 px-3 py-2 text-sm transition-colors",
-                !onlyMine
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-50",
-              )}
-            >
-              Toda a equipe
-            </button>
-            <button
-              type="button"
-              onClick={() => setOnlyMine(true)}
-              className={cn(
-                "flex-1 px-3 py-2 text-sm border-l border-slate-200 transition-colors",
-                onlyMine
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-50",
-              )}
-            >
-              Só os meus
-            </button>
-          </div>
-        )}
+                      <Button
+                        variant="default"
+                        className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+                      >
+                        <Plus className="size-[18px] shrink-0" />
+                        <span className="sm:hidden">{createLabelShort}</span>
+                        <span className="hidden sm:inline">{createLabel}</span>
+                        <ChevronDown className="size-4 shrink-0 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuItem onClick={openCreate} className="gap-2">
+                        <Plus className="size-4" />
+                        Lançamento Manual
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setCaptureOpen(true)}
+                        className="gap-2"
+                      >
+                        <Camera className="size-4" />
+                        Capturar Recibo
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button
+                    variant="default"
+                    onClick={
+                      showCreate ? openCreate : () => setCaptureOpen(true)
+                    }
+                    className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
+                  >
+                    {showCreate ? (
+                      <Plus className="size-[18px] shrink-0" />
+                    ) : (
+                      <Camera className="size-[18px] shrink-0" />
+                    )}
+                    <span className="sm:hidden">
+                      {showCreate ? createLabelShort : "Capturar"}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {showCreate ? createLabel : "Capturar Recibo"}
+                    </span>
+                  </Button>
+                ))}
+            </>
+          }
+        />
       </div>
 
       {/* Contador e "Limpar Filtros" na própria linha, encostados à direita.

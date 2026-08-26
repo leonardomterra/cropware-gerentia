@@ -34,7 +34,10 @@ export default defineConfig({
     outDir: "build",
   },
   server: {
-    port: 3000,
+    // A porta vem do ambiente quando houver: rodando vários projetos da
+    // Cropware ao mesmo tempo, a 3000 costuma estar tomada por outro, e um
+    // servidor que se recusa a subir é pior do que um que sobe noutra porta.
+    port: Number(process.env.PORT) || 3000,
     open: true,
   },
 });

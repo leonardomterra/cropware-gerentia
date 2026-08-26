@@ -184,42 +184,52 @@ export default function CartoesPage() {
           camposExtra={
             // Só aparece quando há cartão cadastrado: com zero, o seletor seria
             // um campo com uma opção só.
-            cards.length > 0 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={CAMPO_BARRA}>
-                    <CreditCard className="size-[18px] shrink-0 text-slate-500" />
-                    <span className="flex-1 text-left truncate">
-                      {filtroCartao === "todos"
-                        ? "Todos os Cartões"
-                        : filtroCartao === "sem"
-                          ? "Sem cartão"
-                          : (cards.find((c) => c.id === filtroCartao)?.nome ??
-                            "Cartão")}
-                    </span>
-                    <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
-                  <DropdownMenuItem onClick={() => setFiltroCartao("todos")}>
-                    Todos os Cartões
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFiltroCartao("sem")}>
-                    Sem cartão
-                  </DropdownMenuItem>
-                  {cards.map((c) => (
-                    <DropdownMenuItem
-                      key={c.id}
-                      onClick={() => setFiltroCartao(c.id)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">
-                        {rotuloDoCartao(c)}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : undefined
+            cards.length > 0
+              ? {
+                  rotulo: "Cartão",
+                  ativo: filtroCartao !== "todos",
+                  campo: (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className={CAMPO_BARRA}>
+                          <CreditCard className="size-[18px] shrink-0 text-slate-500" />
+                          <span className="flex-1 text-left truncate">
+                            {filtroCartao === "todos"
+                              ? "Todos os Cartões"
+                              : filtroCartao === "sem"
+                                ? "Sem cartão"
+                                : (cards.find((c) => c.id === filtroCartao)
+                                    ?.nome ?? "Cartão")}
+                          </span>
+                          <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuItem
+                          onClick={() => setFiltroCartao("todos")}
+                        >
+                          Todos os Cartões
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setFiltroCartao("sem")}
+                        >
+                          Sem cartão
+                        </DropdownMenuItem>
+                        {cards.map((c) => (
+                          <DropdownMenuItem
+                            key={c.id}
+                            onClick={() => setFiltroCartao(c.id)}
+                          >
+                            <span className="min-w-0 flex-1 truncate">
+                              {rotuloDoCartao(c)}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ),
+                }
+              : undefined
           }
           itemized
           defaultDocType="fatura"
