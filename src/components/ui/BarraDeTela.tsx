@@ -40,6 +40,13 @@ export interface BarraDeTelaProps {
   acoes?: ReactNode;
   /** A principal (Novo, Exportar). No celular ocupa a largura da linha. */
   acaoPrincipal?: ReactNode;
+  /**
+   * Se a BUSCA tem texto agora. Recolhida no celular, ela some da vista, e sem
+   * isto o card fechado não teria como avisar que a lista está filtrada.
+   */
+  buscaAtiva?: boolean;
+  /** Título do card recolhido, no celular. */
+  tituloMobile?: string;
   className?: string;
 }
 
@@ -80,10 +87,16 @@ export function BarraDeTela({
   filtrosAtivos = 0,
   acoes,
   acaoPrincipal,
+  buscaAtiva = false,
+  tituloMobile = "Filtros e Ações",
   className,
 }: BarraDeTelaProps) {
   const isMobile = useIsMobile();
   const [aberto, setAberto] = useState(false);
+  // O card do celular nasce FECHADO: a maioria das visitas pelo telefone é
+  // consulta rápida, e quem só quer olhar não deveria pagar meia tela de
+  // controles por isso.
+  const [expandido, setExpandido] = useState(false);
 
   const camposNaBarra = isMobile ? [] : campos;
   const camposNoPainel = isMobile ? campos : [];
@@ -127,27 +140,65 @@ export function BarraDeTela({
   ) : null;
 
   if (isMobile) {
+    const ativos = contagem + (buscaAtiva ? 1 : 0);
     return (
-      <div className={cn("space-y-2 w-full", className)}>
-        {(busca || botaoFiltros) && (
-          <div className="flex items-center gap-2 w-full">
-            {busca && <div className="flex-1 min-w-0">{busca}</div>}
-            {/* Sem busca, o "Filtros" ocupa a linha: um botão pequeno sozinho
-                numa faixa vazia lê como sobra, não como controle. */}
-            <div className={busca ? "shrink-0" : "flex-1 [&>button]:w-full"}>
-              {botaoFiltros}
-            </div>
-          </div>
+      <div
+        className={cn(
+          "rounded-xl border border-slate-200 overflow-hidden w-full",
+          className,
         )}
-        {(acaoPrincipal || acoes) && (
-          <div className="flex items-center gap-2 w-full">
-            {acaoPrincipal && (
-              <div className="flex-1 min-w-0 [&>button]:w-full">
-                {acaoPrincipal}
+      >
+        {/* Mesma anatomia do CardSensivel: cabeçalho que é um botão inteiro,
+            com a seta girando. Um alvo de toque da largura da tela erra menos
+            que um ícone de 20px no canto. */}
+        <button
+          type="button"
+          onClick={() => setExpandido((v) => !v)}
+          aria-expanded={expandido}
+          className="w-full px-3 py-2.5 flex items-center gap-2 text-left hover:bg-slate-50 transition-colors"
+        >
+          <span className="text-sm font-medium text-slate-700">
+            {tituloMobile}
+          </span>
+          {/* FECHADO NÃO PODE SER CEGO. Sem esta contagem, alguém olha uma
+              lista filtrada, estranha o total e não tem como descobrir por
+              quê — que é o pior desfecho possível de recolher. */}
+          <FilterCountBadge count={ativos} />
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-slate-500 ml-auto transition-transform",
+              expandido && "rotate-180",
+            )}
+          />
+        </button>
+
+        {expandido && (
+          <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-100">
+            {(busca || botaoFiltros) && (
+              <div className="flex items-center gap-2 w-full">
+                {busca && <div className="flex-1 min-w-0">{busca}</div>}
+                {/* Sem busca, o "Filtros" ocupa a linha: um botão pequeno sozinho
+                numa faixa vazia lê como sobra, não como controle. */}
+                <div
+                  className={busca ? "shrink-0" : "flex-1 [&>button]:w-full"}
+                >
+                  {botaoFiltros}
+                </div>
               </div>
             )}
-            {acoes && (
-              <div className="shrink-0 flex items-center gap-2">{acoes}</div>
+            {(acaoPrincipal || acoes) && (
+              <div className="flex items-center gap-2 w-full">
+                {acaoPrincipal && (
+                  <div className="flex-1 min-w-0 [&>button]:w-full">
+                    {acaoPrincipal}
+                  </div>
+                )}
+                {acoes && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    {acoes}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

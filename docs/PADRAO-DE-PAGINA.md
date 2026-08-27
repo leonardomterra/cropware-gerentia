@@ -110,6 +110,12 @@ celular:  [ busca .......... ] [ Filtros ² ]
 desktop:  [ busca ] [ campos ] [ Filtros ² ] [ ações ] [ ação principal ]
 ```
 
+**No celular a barra inteira vive num CARD RECOLHIDO**, que abre só com título e
+seta. A maioria das visitas pelo telefone é consulta rápida, e quem só quer
+olhar não deveria pagar meia tela de controles por isso. O card fechado NÃO É
+CEGO: o selo no título conta os filtros ativos, busca incluída — sem isso alguém
+olha uma lista filtrada, estranha o total e não tem como descobrir por quê.
+
 **Os campos à vista DESCEM PARA O PAINEL no celular**, com seus rótulos.
 Espalhados, eles caíam em três ou quatro linhas irregulares, com rótulo
 truncado, e empurravam a lista para fora da tela — e na maioria das visitas pelo

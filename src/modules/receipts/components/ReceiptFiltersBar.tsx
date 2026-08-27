@@ -107,6 +107,7 @@ export function ReceiptFiltersBar({
       }
       campos={campos}
       filtrosAtivos={filtrosDoPainel}
+      buscaAtiva={Boolean(value.search)}
       acoes={acoes}
       acaoPrincipal={acaoPrincipal}
       painel={
