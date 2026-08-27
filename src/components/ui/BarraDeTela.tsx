@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import Funnel from "~icons/ph/funnel";
+import FunnelDuotone from "~icons/ph/funnel-duotone";
 import ChevronDown from "~icons/ph/caret-down";
 import { Button } from "./button";
 import { FilterCountBadge } from "./FilterCountBadge";
@@ -155,8 +156,14 @@ export function BarraDeTela({
           type="button"
           onClick={() => setExpandido((v) => !v)}
           aria-expanded={expandido}
-          className="w-full px-3 py-2.5 flex items-center gap-2 text-left hover:bg-slate-50 transition-colors"
+          // Fundo tonalizado e ícone colorido. Fechado, o card é a única coisa
+          // acima da lista, e sem nada que o separasse ele lia como o primeiro
+          // item dela. O índigo é o dos ícones de apoio do app — cor de "isto é
+          // controle", e não de "isto é dinheiro", que aqui é sempre verde ou
+          // vermelho.
+          className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors"
         >
+          <FunnelDuotone className="size-[18px] shrink-0 text-indigo-500" />
           <span className="text-sm font-medium text-slate-700">
             {tituloMobile}
           </span>
@@ -172,34 +179,16 @@ export function BarraDeTela({
           />
         </button>
 
+        {/* EM CASCATA, um por linha, e não dois a dois. Só faz sentido porque
+            o card nasce fechado: a altura extra é paga por quem escolheu abrir.
+            Lado a lado, "Buscar por origem ou descrição" cabia pela metade e o
+            polegar dividia 180px com o vizinho. */}
         {expandido && (
-          <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-100">
-            {(busca || botaoFiltros) && (
-              <div className="flex items-center gap-2 w-full">
-                {busca && <div className="flex-1 min-w-0">{busca}</div>}
-                {/* Sem busca, o "Filtros" ocupa a linha: um botão pequeno sozinho
-                numa faixa vazia lê como sobra, não como controle. */}
-                <div
-                  className={busca ? "shrink-0" : "flex-1 [&>button]:w-full"}
-                >
-                  {botaoFiltros}
-                </div>
-              </div>
-            )}
-            {(acaoPrincipal || acoes) && (
-              <div className="flex items-center gap-2 w-full">
-                {acaoPrincipal && (
-                  <div className="flex-1 min-w-0 [&>button]:w-full">
-                    {acaoPrincipal}
-                  </div>
-                )}
-                {acoes && (
-                  <div className="shrink-0 flex items-center gap-2">
-                    {acoes}
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="px-3 pb-3 pt-2 space-y-2 border-t border-slate-100 [&_button]:w-full [&_button]:justify-start">
+            {busca}
+            {botaoFiltros}
+            {acaoPrincipal}
+            {acoes}
           </div>
         )}
       </div>
