@@ -54,6 +54,13 @@ export interface BarraDeTelaProps {
   buscaAtiva?: boolean;
   /** Título do card recolhido, no celular. */
   tituloMobile?: string;
+  /**
+   * Nasce ABERTO no celular. Para telas em que os campos não filtram uma lista
+   * que já está na tela — eles DEFINEM o que a tela mostra. Em Relatórios,
+   * escolher o relatório é a razão de estar ali; recolher isso seria esconder a
+   * interação principal atrás de um toque.
+   */
+  abertoPorPadrao?: boolean;
   className?: string;
 }
 
@@ -96,6 +103,7 @@ export function BarraDeTela({
   acaoPrincipal,
   buscaAtiva = false,
   tituloMobile = "Filtros e Ações",
+  abertoPorPadrao = false,
   className,
 }: BarraDeTelaProps) {
   const isMobile = useIsMobile();
@@ -103,7 +111,7 @@ export function BarraDeTela({
   // O card do celular nasce FECHADO: a maioria das visitas pelo telefone é
   // consulta rápida, e quem só quer olhar não deveria pagar meia tela de
   // controles por isso.
-  const [expandido, setExpandido] = useState(false);
+  const [expandido, setExpandido] = useState(abertoPorPadrao);
 
   const camposNaBarra = isMobile ? [] : campos;
   const camposNoPainel = isMobile ? campos : [];

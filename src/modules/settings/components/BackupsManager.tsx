@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import ChevronDown from "~icons/ph/caret-down";
 import ArrowClockwise from "~icons/ph/arrow-clockwise";
 import DownloadSimple from "~icons/ph/download-simple";
-import Funnel from "~icons/ph/funnel";
 import ArrowCounterClockwise from "~icons/ph/arrow-counter-clockwise";
 import FloppyDiskDuotone from "~icons/ph/floppy-disk-duotone";
 import CalendarDuotone from "~icons/ph/calendar-duotone";
@@ -16,11 +14,6 @@ import GlobeDuotone from "~icons/ph/globe-duotone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,14 +24,12 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { cn } from "@/components/ui/utils";
 import { Ajuda } from "@/components/ui/Ajuda";
-import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
+import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import {
   BOTAO_BARRA,
   CAMPO_BARRA,
   ICONE_BOTAO_BARRA,
-  PAINEL_ESCURO,
   ROTULO_PAINEL_ESCURO,
-  SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import type { AcaoDeSecao } from "@/lib/acaoDeSecao";
 import { api } from "@/utils/api";
@@ -343,89 +334,78 @@ export function BackupsManager({
 
           Sem busca no modo cliente: a lista é curta e o que se procura é uma
           DATA, que já está visível em cada card. */}
-      <div className="flex flex-wrap items-center gap-2 w-full">
-        <div
-          className={cn(
-            "grid flex-1 min-w-0 gap-2 grid-cols-1",
-            master && "sm:grid-cols-2",
-          )}
-        >
-          {master && (
+      <BarraDeTela
+        buscaAtiva={Boolean(busca)}
+        busca={
+          master ? (
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por pessoa ou organização"
               className={cn(CAMPO_BARRA, "w-full")}
             />
-          )}
-          <Select
-            value={fEscopo}
-            onValueChange={(v) => setFEscopo(v as FiltroEscopo)}
-          >
-            <SelectTrigger className={cn(CAMPO_BARRA, "w-full")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os backups</SelectItem>
-              {!master && (
-                <SelectItem value="meus">Só os meus dados</SelectItem>
-              )}
-              <SelectItem value="organizacao">
-                {master ? "Só por organização" : "Da organização"}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className={cn(BOTAO_BARRA, "rounded-md")}
-            >
-              <Funnel className={ICONE_BOTAO_BARRA} />
-              Filtros
-              {/* O mesmo badge de Lançamentos. Antes era um "(2)" escrito à
-                  mão, e a seta era um <span> VAZIO — a seta nunca apareceu. */}
-              <FilterCountBadge count={filtrosAtivos} />
-              <ChevronDown className={SETA_BOTAO_BARRA} />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className={cn(PAINEL_ESCURO, "w-64")} align="end">
-            <div className="space-y-2">
-              <span className={ROTULO_PAINEL_ESCURO}>Tipo</span>
+          ) : undefined
+        }
+        campos={[
+          {
+            rotulo: "Escopo",
+            ativo: fEscopo !== "todos",
+            campo: (
               <Select
-                value={fTipo}
-                onValueChange={(v) => setFTipo(v as FiltroTipo)}
+                value={fEscopo}
+                onValueChange={(v) => setFEscopo(v as FiltroEscopo)}
               >
-                <SelectTrigger className={cn(BOTAO_BARRA, "w-full")}>
+                <SelectTrigger className={cn(CAMPO_BARRA, "w-full")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {Object.entries(MARCAS).map(([k, m]) => (
-                    <SelectItem key={k} value={k}>
-                      {m.rotulo}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="todos">Todos os backups</SelectItem>
+                  {!master && (
+                    <SelectItem value="meus">Só os meus dados</SelectItem>
+                  )}
+                  <SelectItem value="organizacao">
+                    {master ? "Só por organização" : "Da organização"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => void carregar()}
-          disabled={loading}
-          className={cn(BOTAO_BARRA, "rounded-md")}
-        >
-          <ArrowClockwise className={ICONE_BOTAO_BARRA} />
-          Atualizar
-        </Button>
-      </div>
+            ),
+          },
+        ]}
+        filtrosAtivos={fTipo === "todos" ? 0 : 1}
+        painel={
+          <div className="space-y-2">
+            <span className={ROTULO_PAINEL_ESCURO}>Tipo</span>
+            <Select
+              value={fTipo}
+              onValueChange={(v) => setFTipo(v as FiltroTipo)}
+            >
+              <SelectTrigger className={cn(BOTAO_BARRA, "w-full")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {Object.entries(MARCAS).map(([k, m]) => (
+                  <SelectItem key={k} value={k}>
+                    {m.rotulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        acoes={
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void carregar()}
+            disabled={loading}
+            className={cn(BOTAO_BARRA, "rounded-md")}
+          >
+            <ArrowClockwise className={ICONE_BOTAO_BARRA} />
+            Atualizar
+          </Button>
+        }
+      />
 
       {/* 2 — ALVO, só do master. Fica em linha própria de propósito: não é
           filtro, é entrada da ação "Gerar Backup Agora" — ao lado da busca,
@@ -466,7 +446,7 @@ export function BackupsManager({
       {/* 3 — título da lista e contador. O título existe para o (?) ter em
           que se apoiar: sozinho na linha ele ficava boiando, sem dizer do que
           era a explicação. */}
-      <div className="flex items-center gap-1.5 px-1 min-h-[28px]">
+      <div className="flex items-center gap-1.5 px-1 min-h-[28px] justify-center sm:justify-start">
         <h2 className="text-sm font-medium text-slate-900">Backups Salvos</h2>
         <Ajuda className="mr-auto">
           O backup automático roda todo dia de madrugada. Os diários ficam 30

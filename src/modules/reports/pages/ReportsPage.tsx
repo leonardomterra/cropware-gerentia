@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { BarraDeTela } from "@/components/ui/BarraDeTela";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
@@ -41,7 +43,6 @@ import {
 } from "@/modules/receipts/components/MonthSwitcher";
 import { useReceipts } from "@/modules/receipts/hooks/useReceipts";
 import { useCategories } from "@/modules/receipts/hooks/useCategories";
-import { useIsMobile } from "@/components/ui/use-mobile";
 import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import {
   buildReport,
@@ -275,7 +276,6 @@ export default function ReportsPage() {
   // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
   // lancamento ja gravado, que pode apontar pra categoria desativada.
   const { allCategories: categories } = useCategories();
-  const isMobile = useIsMobile();
 
   const [kind, setKind] = useState<ReportKind>("resumo");
   const [month, setMonth] = useState<YearMonth>(currentYearMonth);
@@ -290,11 +290,6 @@ export default function ReportsPage() {
   });
 
   const showDirection = kind === "categoria" || kind === "centro";
-  // Quantos campos a barra mostra AGORA — a grade precisa do número pra dar a
-  // cada um a mesma fração. Num flex, o rótulo mais longo encolheria os outros.
-  const camposNaBarra =
-    1 + (showDirection ? 1 : 0) + (userCCs.length > 1 ? 1 : 0);
-
   const doc: ReportDoc = useMemo(() => {
     const ccNameById = new Map(userCCs.map((c) => [c.id, c.name] as const));
     const ccLabel =
@@ -325,6 +320,7 @@ export default function ReportsPage() {
 
   const activeCC = userCCs.find((c) => c.id === activeCCId);
   const [printing, setPrinting] = useState(false);
+  const isMobile = useIsMobile();
 
   // Gera o relatório (com/sem anexos). No app nativo (iOS/Android) o WKWebView não
   // abre aba de impressão — então gera um PDF real (pdf-lib) e abre a folha de
@@ -379,175 +375,201 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Mesma anatomia da barra de Lançamentos: os campos esticam à esquerda
-          numa GRADE (em flex, um rótulo maior encolhe os vizinhos), o mês e as
-          ações encostam à direita. Ver docs/ADOCAO-DESIGN-FLAGFIELD.md §26. */}
-      <div className="flex flex-wrap items-center gap-2 w-full">
-        <div
-          className={cn(
-            "grid flex-1 min-w-0 gap-2 grid-cols-1",
-            camposNaBarra === 3
-              ? "sm:grid-cols-3"
-              : camposNaBarra === 2
-                ? "sm:grid-cols-2"
-                : "sm:grid-cols-1",
-          )}
-        >
-          <Select value={kind} onValueChange={(v) => setKind(v as ReportKind)}>
-            <SelectTrigger className={CAMPO_BARRA}>
-              <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                <Summarize className="size-[18px] shrink-0 text-slate-500" />
-                <SelectValue />
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {REPORT_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* A barra é a mesma do app inteiro; o layout e a regra do celular moram
+          na BarraDeTela. Ver components/ui/BarraDeTela.tsx e §2 do padrão.
 
-          {showDirection && (
-            <Select
-              value={direction}
-              onValueChange={(v) => setDirection(v as DirectionFilter)}
+          `abertoPorPadrao`: aqui os campos NÃO filtram uma lista que já está na
+          tela — eles definem QUAL relatório é. Escolher isso é a razão de estar
+          nesta tela, e recolher seria esconder a interação principal. */}
+      <BarraDeTela
+        abertoPorPadrao
+        tituloMobile="Relatório"
+        campos={[
+          {
+            rotulo: "Relatório",
+            campo: (
+              <Select
+                value={kind}
+                onValueChange={(v) => setKind(v as ReportKind)}
+              >
+                <SelectTrigger className={CAMPO_BARRA}>
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <Summarize className="size-[18px] shrink-0 text-slate-500" />
+                    <SelectValue />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {REPORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ),
+          },
+          ...(showDirection
+            ? [
+                {
+                  rotulo: "Tipo",
+                  ativo: direction !== "all",
+                  campo: (
+                    <Select
+                      value={direction}
+                      onValueChange={(v) => setDirection(v as DirectionFilter)}
+                    >
+                      <SelectTrigger className={CAMPO_BARRA}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tudo</SelectItem>
+                        <SelectItem value="expense">Só saídas</SelectItem>
+                        <SelectItem value="income">Só entradas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ),
+                },
+              ]
+            : []),
+          ...(userCCs.length > 1
+            ? [
+                {
+                  rotulo: "Centro de Custo",
+                  ativo: activeCCId !== "all",
+                  campo: (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className={CAMPO_BARRA}>
+                          {activeCC ? (
+                            <CostCenterChip
+                              icon={activeCC.icon}
+                              color={activeCC.color}
+                              className="size-[18px]"
+                            />
+                          ) : (
+                            <AllCentersChip className="size-[18px]" />
+                          )}
+                          <span
+                            className="flex-1 text-left truncate"
+                            style={
+                              activeCC
+                                ? { color: ccTextColor(activeCC.color) }
+                                : undefined
+                            }
+                          >
+                            {activeCC ? (
+                              activeCC.name
+                            ) : (
+                              <>
+                                <span className="sm:hidden">Centros</span>
+                                <span className="hidden sm:inline">
+                                  Todos os Centros
+                                </span>
+                              </>
+                            )}
+                          </span>
+                          <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuItem
+                          onClick={() => setActiveCCId("all")}
+                          className={
+                            activeCCId === "all"
+                              ? "bg-white/10 font-medium gap-2"
+                              : "gap-2"
+                          }
+                        >
+                          <AllCentersChip className="size-6" />
+                          <span className="min-w-0 flex-1 truncate">Todos</span>
+                        </DropdownMenuItem>
+                        {userCCs.map((cc) => (
+                          <DropdownMenuItem
+                            key={cc.id}
+                            onClick={() => setActiveCCId(cc.id)}
+                            className={
+                              activeCCId === cc.id
+                                ? "bg-white/10 font-medium gap-2"
+                                : "gap-2"
+                            }
+                          >
+                            <CostCenterChip
+                              icon={cc.icon}
+                              color={cc.color}
+                              className="size-6"
+                            />
+                            <span
+                              className="min-w-0 flex-1 truncate"
+                              style={{ color: cc.color ?? undefined }}
+                            >
+                              {cc.name}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        acoes={
+          <>
+            {/* O seletor de mês só no DESKTOP: o navegador de meses logo abaixo
+                diz o mesmo, e repetir os dois no celular gasta uma linha. */}
+            {!isMobile && (
+              <MonthSwitcher
+                value={month}
+                onChange={setMonth}
+                variant="picker"
+              />
+            )}
+            <Button
+              className={cn(BOTAO_BARRA, "gap-1.5")}
+              disabled={noData}
+              onClick={() => downloadReportCsv(doc, csvName)}
             >
-              <SelectTrigger className={CAMPO_BARRA}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tudo</SelectItem>
-                <SelectItem value="expense">Só saídas</SelectItem>
-                <SelectItem value="income">Só entradas</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-
-          {userCCs.length > 1 && (
+              <Download className="size-[18px]" />
+              <span className="flex-1 text-left truncate">
+                <span className="sm:hidden">CSV</span>
+                <span className="hidden sm:inline">Baixar CSV</span>
+              </span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className={CAMPO_BARRA}>
-                  {activeCC ? (
-                    <CostCenterChip
-                      icon={activeCC.icon}
-                      color={activeCC.color}
-                      className="size-[18px]"
-                    />
-                  ) : (
-                    <AllCentersChip className="size-[18px]" />
-                  )}
-                  <span
-                    className="flex-1 text-left truncate"
-                    style={
-                      activeCC
-                        ? { color: ccTextColor(activeCC.color) }
-                        : undefined
-                    }
-                  >
-                    {activeCC ? (
-                      activeCC.name
+                <Button
+                  className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
+                  disabled={noData || printing}
+                >
+                  <Print className="size-[18px]" />
+                  <span className="flex-1 text-left truncate">
+                    {printing ? (
+                      "Gerando…"
                     ) : (
                       <>
-                        <span className="sm:hidden">Centros</span>
-                        <span className="hidden sm:inline">
-                          Todos os Centros
-                        </span>
+                        <span className="sm:hidden">Imprimir</span>
+                        <span className="hidden sm:inline">Imprimir / PDF</span>
                       </>
                     )}
                   </span>
-                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuItem
-                  onClick={() => setActiveCCId("all")}
-                  className={
-                    activeCCId === "all"
-                      ? "bg-white/10 font-medium gap-2"
-                      : "gap-2"
-                  }
-                >
-                  <AllCentersChip className="size-6" />
-                  <span className="min-w-0 flex-1 truncate">Todos</span>
-                </DropdownMenuItem>
-                {userCCs.map((cc) => (
-                  <DropdownMenuItem
-                    key={cc.id}
-                    onClick={() => setActiveCCId(cc.id)}
-                    className={
-                      activeCCId === cc.id
-                        ? "bg-white/10 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <CostCenterChip
-                      icon={cc.icon}
-                      color={cc.color}
-                      className="size-6"
-                    />
-                    <span
-                      className="min-w-0 flex-1 truncate"
-                      style={{ color: cc.color ?? undefined }}
-                    >
-                      {cc.name}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-
-        <MonthSwitcher value={month} onChange={setMonth} variant="picker" />
-
-        <div className="flex gap-2 shrink-0">
-          <Button
-            className={cn(BOTAO_BARRA, "gap-1.5")}
-            disabled={noData}
-            onClick={() => downloadReportCsv(doc, csvName)}
-          >
-            <Download className="size-[18px]" />
-            <span className="flex-1 text-left truncate">
-              <span className="sm:hidden">CSV</span>
-              <span className="hidden sm:inline">Baixar CSV</span>
-            </span>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5 w-auto")}
-                disabled={noData || printing}
-              >
-                <Print className="size-[18px]" />
-                <span className="flex-1 text-left truncate">
-                  {printing ? (
-                    "Gerando…"
-                  ) : (
-                    <>
-                      <span className="sm:hidden">Imprimir</span>
-                      <span className="hidden sm:inline">Imprimir / PDF</span>
-                    </>
-                  )}
-                </span>
-                {/* Herda o branco do botão a 60%, como o chevron do "Novo
+                  {/* Herda o branco do botão a 60%, como o chevron do "Novo
                     Lançamento". O `text-slate-500` daqui era cinza escuro sobre
                     fundo escuro — sumia. */}
-                <ChevronDown className="size-[18px] shrink-0 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[11rem]">
-              <DropdownMenuItem onClick={() => runPrint(false)}>
-                Sem anexos
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => runPrint(true)}>
-                Com anexos
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+                  <ChevronDown className="size-[18px] shrink-0 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[11rem]">
+                <DropdownMenuItem onClick={() => runPrint(false)}>
+                  Sem anexos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runPrint(true)}>
+                  Com anexos
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
