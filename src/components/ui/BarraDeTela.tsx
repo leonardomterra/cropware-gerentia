@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from "react";
 // O funil saiu dos dois lugares. Ele desenha o ATO de filtrar, e os dois botões
 // aqui não são isso: um abre um painel de campos (uma lista com busca), o outro
-// abre o card inteiro (as linhas de controle). Ícone que descreve a ação errada
-// atrapalha mais do que ícone nenhum.
+// abre o card com os controles da tela. Ícone que descreve a ação errada
+// atrapalha mais do que ícone nenhum. Os dois são DIFERENTES de propósito —
+// repetir o desenho faria o cabeçalho e o botão de dentro parecerem o mesmo
+// controle, um dentro do outro.
 import ListMagnifyingGlass from "~icons/ph/list-magnifying-glass";
-import RowsDuotone from "~icons/ph/rows-duotone";
+import SlidersHorizontalDuotone from "~icons/ph/sliders-horizontal-duotone";
 import ChevronDown from "~icons/ph/caret-down";
 import { Button } from "./button";
 import { FilterCountBadge } from "./FilterCountBadge";
@@ -167,7 +169,7 @@ export function BarraDeTela({
           // não tem.
           className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-slate-50 hover:bg-slate-100 transition-colors"
         >
-          <RowsDuotone className="size-[18px] shrink-0 text-slate-500" />
+          <SlidersHorizontalDuotone className="size-[18px] shrink-0 text-slate-500" />
           <span className="text-sm font-medium text-slate-700">
             {tituloMobile}
           </span>

@@ -928,11 +928,13 @@ export function ReceiptsListPage({
         />
       </div>
 
-      {/* Contador e "Limpar Filtros" na própria linha, encostados à direita.
-          Chegaram a subir pra linha das ações; na tela ficou apertado — a linha
-          já carrega o botão de criar e o alternador da equipe. */}
+      {/* Contador e "Limpar Filtros" na própria linha. No desktop encostados à
+          direita; no CELULAR centralizados, porque lá eles são a única coisa na
+          linha e um texto solto na borda direita lê como sobra, não como
+          informação — logo abaixo o navegador de mês já é centrado, e os dois
+          passam a formar uma coluna. */}
       {!error && (
-        <div className="flex items-center justify-end gap-1 mb-2 px-1 min-h-[28px]">
+        <div className="flex items-center justify-center sm:justify-end gap-1 mb-2 px-1 min-h-[28px]">
           <p className="text-sm text-slate-500 inline-flex items-center gap-2">
             {loading && receipts.length === 0
               ? "Carregando…"

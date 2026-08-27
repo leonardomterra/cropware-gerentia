@@ -165,17 +165,28 @@ linha no celular, fileira no desktop.
 
 ## 4. Contador e "Limpar Filtros"
 
-Própria linha, encostados à direita, **com altura reservada**:
+Própria linha, **com altura reservada**. No desktop encostados à direita; no
+CELULAR centralizados:
 
 ```jsx
-<div className="flex items-center justify-end gap-1 mb-2 px-1 min-h-[28px]">
+<div className="flex items-center justify-center sm:justify-end gap-1 mb-2 px-1 min-h-[28px]">
 ```
+
+No celular eles são a única coisa na linha, e um texto solto na borda direita lê
+como sobra, não como informação. Centralizado, ele forma uma coluna com o
+navegador de mês logo abaixo, que já é centrado.
 
 O `min-h` existe porque "Limpar Filtros" aparece e some. Sem ele a página inteira
 pula quando alguém digita na busca.
 
 Texto: `Mostrando 12 Lançamentos` — número, e o substantivo em Title Case, com
 concordância de singular/plural.
+
+> **PENDENTE (25/08/2026).** Só Lançamentos segue esta regra hoje. Pendências,
+> Recorrências, Backups e as duas telas do admin ainda escrevem o substantivo em
+> minúscula, e Backups nem usa "Mostrando". Padronizar as seis — texto e
+> centralização no celular — ficou para depois de fechados os parâmetros de
+> mobile, para não fazer duas vezes.
 
 **"Limpar Filtros" fica FORA do painel** (era dentro, no padrão antigo) e é
 vermelho fantasma: `text-red-600 hover:bg-red-50`. Ele limpa busca + painel +
