@@ -378,11 +378,12 @@ export default function ReportsPage() {
       {/* A barra é a mesma do app inteiro; o layout e a regra do celular moram
           na BarraDeTela. Ver components/ui/BarraDeTela.tsx e §2 do padrão.
 
-          `abertoPorPadrao`: aqui os campos NÃO filtram uma lista que já está na
-          tela — eles definem QUAL relatório é. Escolher isso é a razão de estar
-          nesta tela, e recolher seria esconder a interação principal. */}
+          Título "Relatório" e não "Filtros e Ações": aqui os campos não filtram
+          uma lista, eles definem QUAL relatório é. Recolhido como nas demais —
+          cheguei a abri-lo por padrão por causa dessa diferença, e na tela não
+          se justificou: o relatório escolhido aparece logo abaixo, então o card
+          fechado não esconde o que está sendo mostrado. */}
       <BarraDeTela
-        abertoPorPadrao
         tituloMobile="Relatório"
         campos={[
           {
