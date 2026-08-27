@@ -1,6 +1,10 @@
 import { useState, type ReactNode } from "react";
-import Funnel from "~icons/ph/funnel";
-import FunnelDuotone from "~icons/ph/funnel-duotone";
+// O funil saiu dos dois lugares. Ele desenha o ATO de filtrar, e os dois botões
+// aqui não são isso: um abre um painel de campos (uma lista com busca), o outro
+// abre o card inteiro (as linhas de controle). Ícone que descreve a ação errada
+// atrapalha mais do que ícone nenhum.
+import ListMagnifyingGlass from "~icons/ph/list-magnifying-glass";
+import RowsDuotone from "~icons/ph/rows-duotone";
 import ChevronDown from "~icons/ph/caret-down";
 import { Button } from "./button";
 import { FilterCountBadge } from "./FilterCountBadge";
@@ -112,7 +116,7 @@ export function BarraDeTela({
           variant="ghost"
           className={cn(BOTAO_BARRA, "rounded-md", isMobile && "shrink-0")}
         >
-          <Funnel className={ICONE_BOTAO_BARRA} />
+          <ListMagnifyingGlass className={ICONE_BOTAO_BARRA} />
           Filtros
           <FilterCountBadge count={contagem} />
           <ChevronDown className={SETA_BOTAO_BARRA} />
@@ -163,7 +167,7 @@ export function BarraDeTela({
           // não tem.
           className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-slate-50 hover:bg-slate-100 transition-colors"
         >
-          <FunnelDuotone className="size-[18px] shrink-0 text-slate-500" />
+          <RowsDuotone className="size-[18px] shrink-0 text-slate-500" />
           <span className="text-sm font-medium text-slate-700">
             {tituloMobile}
           </span>
