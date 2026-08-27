@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Trash2 from "~icons/ph/trash";
 import Search from "~icons/ph/magnifying-glass";
-import FilterList from "~icons/ph/funnel";
 import X from "~icons/ph/x";
 import UserPlus from "~icons/ph/user-plus";
 import Plus from "~icons/ph/plus";
@@ -15,14 +14,8 @@ import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import ChevronDown from "~icons/ph/caret-down";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { cn } from "@/components/ui/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -30,15 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FilterCountBadge } from "@/components/ui/FilterCountBadge";
-import { useIsMobile } from "@/components/ui/use-mobile";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
-  ICONE_BOTAO_BARRA,
-  PAINEL_ESCURO,
   ROTULO_PAINEL_ESCURO,
-  SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import {
   Dialog,
@@ -51,6 +39,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { Ajuda } from "@/components/ui/Ajuda";
+import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import { ApiError } from "@/utils/api";
 import { downloadBackup, useAdminOrgs } from "../hooks/useAdminOrgs";
 import type { AdminOrg, AdminOrgDetail, AdminOrgMember } from "../types";
@@ -130,7 +119,6 @@ export default function AdminOrgsPage({
     "company" | "individual" | "all"
   >("company");
   const [busca, setBusca] = useState("");
-  const isMobile = useIsMobile();
   const visibleOrgs = orgs.filter((o) => {
     if (kindFilter !== "all" && o.kind !== kindFilter) return false;
     const q = busca.trim().toLowerCase();
@@ -800,73 +788,54 @@ export default function AdminOrgsPage({
         </div>
       )}
 
-      {/* Barra no padrão do app: busca esticando, Filtros à direita. A tela
-          não tinha busca — só um seletor de tipo —, e achar uma organização
-          numa lista crescente dependia de rolar. */}
-      <div className="flex flex-wrap items-center gap-2 w-full">
-        <div className="relative flex-1 min-w-0">
-          <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou CNPJ..."
-            className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
-          />
-        </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(BOTAO_BARRA, "inline-flex items-center rounded-md")}
+      {/* A barra é a mesma do app inteiro; o layout e a regra do celular moram
+          na BarraDeTela. Ver components/ui/BarraDeTela.tsx e §2 do padrão. */}
+      <BarraDeTela
+        buscaAtiva={Boolean(busca)}
+        busca={
+          <div className="relative">
+            <Search className="size-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou CNPJ..."
+              className="pl-8 h-9 border-slate-200 shadow-none text-slate-500"
+            />
+          </div>
+        }
+        filtrosAtivos={kindFilter === "all" ? 0 : 1}
+        painel={
+          <div className="space-y-1.5">
+            <label className={ROTULO_PAINEL_ESCURO}>Tipo de conta</label>
+            <Select
+              value={kindFilter}
+              onValueChange={(v) => setKindFilter(v as typeof kindFilter)}
             >
-              <FilterList className={ICONE_BOTAO_BARRA} />
-              Filtros
-              <FilterCountBadge count={kindFilter === "all" ? 0 : 1} />
-              <ChevronDown className={SETA_BOTAO_BARRA} />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            className={PAINEL_ESCURO}
-            style={
-              isMobile
-                ? { width: "var(--radix-popover-trigger-width)" }
-                : undefined
-            }
+              <SelectTrigger className="h-9 bg-white text-slate-500">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="company">Com equipe</SelectItem>
+                <SelectItem value="individual">Avulsos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        acaoPrincipal={
+          <Button
+            variant="default"
+            onClick={() => setCreateOpen(true)}
+            className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
           >
-            <div className="space-y-1.5">
-              <label className={ROTULO_PAINEL_ESCURO}>Tipo de conta</label>
-              <Select
-                value={kindFilter}
-                onValueChange={(v) => setKindFilter(v as typeof kindFilter)}
-              >
-                <SelectTrigger className="h-9 bg-white text-slate-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="company">Com equipe</SelectItem>
-                  <SelectItem value="individual">Avulsos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+            <Plus className="size-[18px] shrink-0" />
+            Nova Organização
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center">
-        <Button
-          variant="default"
-          onClick={() => setCreateOpen(true)}
-          className={cn(BOTAO_BARRA_PRIMARIO, "gap-1.5")}
-        >
-          <Plus className="size-[18px] shrink-0" />
-          Nova Organização
-        </Button>
-      </div>
-
-      <div className="flex items-center justify-end gap-1 px-1 min-h-[28px]">
+      {/* Contador: à direita no desktop, centralizado no celular. */}
+      <div className="flex items-center justify-center sm:justify-end gap-1 px-1 min-h-[28px]">
         <p className="text-sm text-slate-500">
           {visibleOrgs.length === 0
             ? "Nenhuma organização encontrada"
