@@ -156,14 +156,14 @@ export function BarraDeTela({
           type="button"
           onClick={() => setExpandido((v) => !v)}
           aria-expanded={expandido}
-          // Fundo tonalizado e ícone colorido. Fechado, o card é a única coisa
-          // acima da lista, e sem nada que o separasse ele lia como o primeiro
-          // item dela. O índigo é o dos ícones de apoio do app — cor de "isto é
-          // controle", e não de "isto é dinheiro", que aqui é sempre verde ou
-          // vermelho.
-          className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors"
+          // Cinza da casa, o mesmo dos cabeçalhos de tabela. Fechado, o card é
+          // a única coisa acima da lista e precisa se separar dela — mas com
+          // TOM, não com cor: nesta tela cor tem significado (verde entra,
+          // vermelho sai), e um cabeçalho colorido sugere um sentido que ele
+          // não tem.
+          className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-slate-50 hover:bg-slate-100 transition-colors"
         >
-          <FunnelDuotone className="size-[18px] shrink-0 text-indigo-500" />
+          <FunnelDuotone className="size-[18px] shrink-0 text-slate-500" />
           <span className="text-sm font-medium text-slate-700">
             {tituloMobile}
           </span>
@@ -185,9 +185,12 @@ export function BarraDeTela({
             polegar dividia 180px com o vizinho. */}
         {expandido && (
           <div className="px-3 pb-3 pt-2 space-y-2 border-t border-slate-100 [&_button]:w-full [&_button]:justify-start">
+            {/* A ação principal vem LOGO DEPOIS DA BUSCA, e não no fim: no
+                celular ela é o que mais se toca, e o fim da pilha é o pior
+                lugar de uma lista que se lê de cima para baixo. */}
             {busca}
-            {botaoFiltros}
             {acaoPrincipal}
+            {botaoFiltros}
             {acoes}
           </div>
         )}

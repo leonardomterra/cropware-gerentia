@@ -33,9 +33,10 @@ import { useReceiptPermissions } from "../hooks/useReceiptPermissions";
 import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
-  CAMPO_BARRA,
   BOTAO_LOTE_DESTRUTIVO,
+  CAMPO_BARRA,
   ICONE_BOTAO_BARRA,
+  MENU_DA_BARRA,
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import { BatchActionBar } from "@/components/ui/BatchActionBar";
@@ -686,7 +687,10 @@ export function ReceiptsListPage({
                             <ChevronDown className="size-4 text-slate-500 shrink-0" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuContent
+                          align="start"
+                          className={MENU_DA_BARRA}
+                        >
                           <DropdownMenuItem
                             onClick={() => setActiveCCId("all")}
                             className={
@@ -802,7 +806,7 @@ export function ReceiptsListPage({
                     <ChevronDown className={SETA_BOTAO_BARRA} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuContent align="start" className={MENU_DA_BARRA}>
                   <DropdownMenuItem
                     onClick={() => setSortBy("recent")}
                     className={
@@ -878,10 +882,13 @@ export function ReceiptsListPage({
                         <Plus className="size-[18px] shrink-0" />
                         <span className="sm:hidden">{createLabelShort}</span>
                         <span className="hidden sm:inline">{createLabel}</span>
-                        <ChevronDown className="size-4 shrink-0 opacity-60" />
+                        <ChevronDown className={SETA_BOTAO_BARRA} />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuContent
+                      align="start"
+                      className={MENU_DA_BARRA}
+                    >
                       <DropdownMenuItem onClick={openCreate} className="gap-2">
                         <Plus className="size-4" />
                         Lançamento Manual

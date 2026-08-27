@@ -137,7 +137,21 @@ export const ICONE_BOTAO_BARRA = "size-3.5 mr-2 shrink-0";
  * descartada: como borda ela desenha a aresta de um bloco separado, e o botão
  * passa a ler como dois.
  */
-export const SETA_BOTAO_BARRA = "size-3.5 ml-1.5 opacity-50 shrink-0";
+// `ml-auto` e não `ml-1.5`: num botão do tamanho do conteúdo (o desktop) não
+// muda nada, porque não sobra espaço para empurrar. Num botão de LARGURA CHEIA
+// (o celular, dentro do card da BarraDeTela) ele joga a seta para a direita, e
+// as setas de todos os botões passam a cair na mesma coluna. Sem isso cada uma
+// parava logo depois do seu rótulo, e a coluna ficava serrilhada.
+export const SETA_BOTAO_BARRA = "size-3.5 ml-auto opacity-50 shrink-0";
+
+/**
+ * Largura do menu suspenso que sai de um botão da barra.
+ *
+ * No celular ele acompanha a TELA, como o painel de Filtros: um menu de 256px
+ * embaixo de um botão de largura cheia parece pertencer a outra coisa, e sobra
+ * espaço morto ao lado. No desktop volta aos 256px de sempre.
+ */
+export const MENU_DA_BARRA = "w-[calc(100vw-2rem)] sm:w-64";
 
 /** Contador de filtros ativos, dentro do botão Filtros. */
 export const BADGE_BOTAO_BARRA =
