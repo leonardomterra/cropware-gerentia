@@ -16,6 +16,7 @@ import { useIsMobile } from "@/components/ui/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
+import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import { BOTAO_BARRA_PRIMARIO, CAMPO_BARRA } from "@/lib/ui-tokens";
 import {
   Dialog,
@@ -851,97 +852,108 @@ export default function DashboardPage() {
           dele. Aqui o vão não existe: em cada metade o CAMPO estica
           (`flex-1 min-w-0`, então conteúdo longo não o alarga) e o botão fica
           com a largura que precisa. */}
-      <div className="flex flex-wrap items-center gap-2 w-full">
-        <div className="flex basis-full sm:basis-0 sm:flex-1 min-w-0 items-center gap-2">
-          <PeriodModeSelect
-            value={period}
-            onChange={setPeriod}
-            className="flex-1 min-w-0"
-          />
-          {period.mode === "month" && (
+      <BarraDeTela
+        tituloMobile="Período e Centros"
+        campos={[
+          {
+            rotulo: "Período",
+            campo: <PeriodModeSelect value={period} onChange={setPeriod} />,
+          },
+          ...(showCCFilter
+            ? [
+                {
+                  rotulo: "Centro de Custo",
+                  ativo: activeCC !== "all",
+                  campo: (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(CAMPO_BARRA, "flex-1 min-w-0")}
+                        >
+                          {activeCC !== "all" ? (
+                            <CostCenterChip
+                              icon={ccs.find((c) => c.id === activeCC)?.icon}
+                              color={ccs.find((c) => c.id === activeCC)?.color}
+                              className="size-[18px]"
+                            />
+                          ) : (
+                            <AllCentersChip className="size-[18px]" />
+                          )}
+                          <span
+                            className="flex-1 text-left truncate"
+                            style={
+                              activeCC !== "all"
+                                ? {
+                                    color: ccTextColor(
+                                      ccs.find((c) => c.id === activeCC)?.color,
+                                    ),
+                                  }
+                                : undefined
+                            }
+                          >
+                            {activeCC === "all"
+                              ? "Todos os Centros"
+                              : ccs.find((c) => c.id === activeCC)?.name ||
+                                "Centro"}
+                          </span>
+                          <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuItem
+                          onClick={() => setActiveCC("all")}
+                          className={
+                            activeCC === "all"
+                              ? "bg-white/10 font-medium gap-2"
+                              : "gap-2"
+                          }
+                        >
+                          <AllCentersChip className="size-6" />
+                          <span className="min-w-0 flex-1 truncate">Todos</span>
+                        </DropdownMenuItem>
+                        {ccs.map((cc) => (
+                          <DropdownMenuItem
+                            key={cc.id}
+                            onClick={() => setActiveCC(cc.id)}
+                            className={
+                              activeCC === cc.id
+                                ? "bg-white/10 font-medium gap-2"
+                                : "gap-2"
+                            }
+                          >
+                            <CostCenterChip
+                              icon={cc.icon}
+                              color={cc.color}
+                              className="size-6"
+                            />
+                            <span
+                              className="min-w-0 flex-1 truncate"
+                              style={{ color: cc.color ?? undefined }}
+                            >
+                              {cc.name}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        acoes={
+          /* O seletor de mês só no DESKTOP: a régua de meses logo abaixo diz o
+             mesmo, e no celular repetir os dois gasta uma linha. */
+          !isMobile && period.mode === "month" ? (
             <MonthSwitcher
               value={period.month}
               onChange={(month) => setPeriod({ ...period, month })}
               variant="picker"
             />
-          )}
-        </div>
-
-        <div className="flex basis-full sm:basis-0 sm:flex-1 min-w-0 items-center gap-2">
-          {showCCFilter && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(CAMPO_BARRA, "flex-1 min-w-0")}
-                >
-                  {activeCC !== "all" ? (
-                    <CostCenterChip
-                      icon={ccs.find((c) => c.id === activeCC)?.icon}
-                      color={ccs.find((c) => c.id === activeCC)?.color}
-                      className="size-[18px]"
-                    />
-                  ) : (
-                    <AllCentersChip className="size-[18px]" />
-                  )}
-                  <span
-                    className="flex-1 text-left truncate"
-                    style={
-                      activeCC !== "all"
-                        ? {
-                            color: ccTextColor(
-                              ccs.find((c) => c.id === activeCC)?.color,
-                            ),
-                          }
-                        : undefined
-                    }
-                  >
-                    {activeCC === "all"
-                      ? "Todos os Centros"
-                      : ccs.find((c) => c.id === activeCC)?.name || "Centro"}
-                  </span>
-                  <ChevronDown className="size-4 text-slate-500 shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuItem
-                  onClick={() => setActiveCC("all")}
-                  className={
-                    activeCC === "all"
-                      ? "bg-white/10 font-medium gap-2"
-                      : "gap-2"
-                  }
-                >
-                  <AllCentersChip className="size-6" />
-                  <span className="min-w-0 flex-1 truncate">Todos</span>
-                </DropdownMenuItem>
-                {ccs.map((cc) => (
-                  <DropdownMenuItem
-                    key={cc.id}
-                    onClick={() => setActiveCC(cc.id)}
-                    className={
-                      activeCC === cc.id
-                        ? "bg-white/10 font-medium gap-2"
-                        : "gap-2"
-                    }
-                  >
-                    <CostCenterChip
-                      icon={cc.icon}
-                      color={cc.color}
-                      className="size-6"
-                    />
-                    <span
-                      className="min-w-0 flex-1 truncate"
-                      style={{ color: cc.color ?? undefined }}
-                    >
-                      {cc.name}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
+          ) : undefined
+        }
+        acaoPrincipal={
           <Button
             onClick={handleExportPdf}
             disabled={exportingPdf || loading}
@@ -950,8 +962,8 @@ export default function DashboardPage() {
             <Download className="size-[18px]" />
             {exportingPdf ? "Gerando…" : "Exportar PDF"}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Controles do modo selecionado (régua de meses / semestre / ano / datas).
           O seletor de modo em si fica na barra de topo, ao lado dos centros. */}
