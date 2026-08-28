@@ -52,7 +52,14 @@ export interface BarraDeTelaProps {
    * isto o card fechado não teria como avisar que a lista está filtrada.
    */
   buscaAtiva?: boolean;
-  /** Título do card recolhido, no celular. */
+  /**
+   * Título do card recolhido, no celular. UMA palavra.
+   *
+   * O default é "Opções", e não "Filtros": há um botão "Filtros" DENTRO do
+   * card, e repetir o nome faria parecer que um abre o outro. Também não
+   * "Ações", que deixaria de fora metade do que está ali. "Opções" cobre os
+   * dois sem prometer nenhum.
+   */
   tituloMobile?: string;
   className?: string;
 }
@@ -95,7 +102,7 @@ export function BarraDeTela({
   acoes,
   acaoPrincipal,
   buscaAtiva = false,
-  tituloMobile = "Filtros e Ações",
+  tituloMobile = "Opções",
   className,
 }: BarraDeTelaProps) {
   const isMobile = useIsMobile();

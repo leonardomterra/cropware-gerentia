@@ -111,7 +111,9 @@ desktop:  [ busca ] [ campos ] [ Filtros ² ] [ ações ] [ ação principal ]
 ```
 
 **No celular a barra inteira vive num CARD RECOLHIDO**, que abre só com título e
-seta. A maioria das visitas pelo telefone é consulta rápida, e quem só quer
+seta. O título é de UMA PALAVRA — "Opções" por padrão. Não "Filtros", porque há
+um botão com esse nome DENTRO do card e um pareceria abrir o outro; não "Ações",
+que deixaria de fora metade do que está ali. A maioria das visitas pelo telefone é consulta rápida, e quem só quer
 olhar não deveria pagar meia tela de controles por isso. O card fechado NÃO É
 CEGO: o selo no título conta os filtros ativos, busca incluída — sem isso alguém
 olha uma lista filtrada, estranha o total e não tem como descobrir por quê.

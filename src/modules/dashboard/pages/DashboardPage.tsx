@@ -853,7 +853,6 @@ export default function DashboardPage() {
           (`flex-1 min-w-0`, então conteúdo longo não o alarga) e o botão fica
           com a largura que precisa. */}
       <BarraDeTela
-        tituloMobile="Período e Centros"
         campos={[
           {
             rotulo: "Período",
