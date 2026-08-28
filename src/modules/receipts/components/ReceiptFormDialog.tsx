@@ -38,6 +38,10 @@ import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import {
+  SeloDeOrigem,
+  origemDoLancamento,
+} from "@/modules/tasks/components/MarcaDeOrigem";
+import {
   BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
   ICONE_BOTAO_BARRA,
@@ -1156,8 +1160,13 @@ export function ReceiptFormDialog({
 
       {somenteLeitura && receipt ? (
         <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-sm">
+          {/* SELO, e não o texto cru com `capitalize`: "Whatsapp" saía com o
+              A minúsculo e "csv" virava "Csv". E é o mesmo selo que a lista usa,
+              então a ficha de leitura fala a língua de onde se veio. */}
           <InfoLeitura rotulo="Fonte">
-            <span className="capitalize">{receipt.source}</span>
+            <SeloDeOrigem
+              origem={origemDoLancamento(receipt.source, receipt.is_estimated)}
+            />
           </InfoLeitura>
           {receipt.vendor_cnpj ? (
             <InfoLeitura rotulo="CNPJ">{receipt.vendor_cnpj}</InfoLeitura>

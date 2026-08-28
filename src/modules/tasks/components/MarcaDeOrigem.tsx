@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 
 /** De onde o item veio. Cada página mapeia o próprio campo para um destes. */
@@ -22,7 +23,7 @@ export type Origem =
 
 const MARCAS: Record<
   Origem,
-  { Icone: typeof TextboxDuotone; cor: string; titulo: string }
+  { Icone: typeof TextboxDuotone; cor: string; titulo: string; rotulo: string }
 > = {
   manual: {
     // Campo de texto. NÃO usar lápis: lápis é o ícone de EDITAR no app
@@ -31,21 +32,25 @@ const MARCAS: Record<
     Icone: TextboxDuotone,
     cor: "text-orange-500",
     titulo: "Cadastrado na tela",
+    rotulo: "Manual",
   },
   whatsapp: {
     Icone: WhatsappDuotone,
     cor: "text-emerald-500",
     titulo: "Anotado pelo WhatsApp — confira os dados",
+    rotulo: "WhatsApp",
   },
   telegram: {
     Icone: TelegramDuotone,
     cor: "text-sky-500",
     titulo: "Anotado pelo Telegram — confira os dados",
+    rotulo: "Telegram",
   },
   photo: {
     Icone: CameraDuotone,
     cor: "text-violet-500",
     titulo: "Lido de uma foto — confira os dados",
+    rotulo: "Foto",
   },
   csv: {
     Icone: TableDuotone,
@@ -53,11 +58,13 @@ const MARCAS: Record<
     // legenda ficavam parecidos demais em 16px.
     cor: "text-indigo-500",
     titulo: "Importado de planilha",
+    rotulo: "Planilha",
   },
   recorrencia: {
     Icone: RepeatDuotone,
     cor: "text-teal-500",
     titulo: "Gerado por recorrência",
+    rotulo: "Recorrência",
   },
 };
 
@@ -113,4 +120,33 @@ export function origemDoLancamento(
   if (source === "photo") return "photo";
   if (source === "csv") return "csv";
   return "manual";
+}
+
+/**
+ * A mesma origem, em forma de SELO com nome — para telas de leitura, onde há
+ * espaço e o ícone sozinho obrigaria a passar o mouse para saber o que é.
+ *
+ * O selo é neutro e a cor fica no ícone: numa ficha de leitura, um selo colorido
+ * competiria com o status do lançamento, que ali é a informação que importa.
+ */
+export function SeloDeOrigem({ origem }: { origem: Origem }) {
+  const { Icone, cor, titulo, rotulo } = MARCAS[origem];
+  return (
+    <Tooltip>
+      {/* O gatilho vai num <span> POR FORA, e não no próprio Badge com
+          `asChild`: o Radix sobrescreve o `data-slot` do filho, e é por
+          `[data-slot="badge"]` que o app.css aplica a tipografia de selo
+          (tamanho, peso, espaçamento e caixa alta). Com `asChild` no Badge, ele
+          virava um selo com a forma certa e a letra errada. */}
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Badge colorScheme="slate" className="gap-1.5">
+            <Icone className={cn("size-[14px] shrink-0", cor)} />
+            {rotulo}
+          </Badge>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{titulo}</TooltipContent>
+    </Tooltip>
+  );
 }

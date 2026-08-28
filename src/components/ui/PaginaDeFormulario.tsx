@@ -78,9 +78,20 @@ export function PaginaDeFormulario({
           Voltar
         </Button>
 
+        {/* AS `key` SÃO OBRIGATÓRIAS. Editar e Salvar ocupam a MESMA posição na
+            árvore, e sem chaves distintas o React reaproveita o mesmo <button>
+            do DOM: ele só troca `type="button"` por `type="submit"` e ganha o
+            `form`. O clique em "Editar" mudava o estado para edição e, no mesmo
+            evento, a ação padrão caía sobre o botão que já era de SUBMIT — o
+            formulário salvava e fechava. Da tela, parecia que "Editar" voltava
+            para a lista.
+
+            Com chaves diferentes o React desmonta um e monta o outro; o nó
+            clicado deixa de existir e não há o que submeter. */}
         {somenteLeitura ? (
           aoEditar ? (
             <Button
+              key="editar"
               type="button"
               onClick={aoEditar}
               className="h-9 px-5 font-normal shadow-none bg-primary text-primary-foreground hover:bg-primary/90"
@@ -98,6 +109,7 @@ export function PaginaDeFormulario({
           /* Um botão só, que troca de rótulo: "Editar" vira "Salvar" na MESMA
              posição. Sem Cancelar — cancelar era salvar o que já estava lá. */
           <Button
+            key="salvar"
             type="submit"
             form={formId}
             disabled={salvando}
