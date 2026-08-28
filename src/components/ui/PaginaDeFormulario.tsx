@@ -54,7 +54,17 @@ export function PaginaDeFormulario({
 }: PaginaDeFormularioProps) {
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 w-full">
+      {/* NO CELULAR cada botão ocupa uma linha, e o assunto vai centralizado
+          na terceira. Lado a lado, "Voltar" e "Editar" dividiam a largura com o
+          assunto e sobrava pouco para os três — o assunto truncava e os botões
+          ficavam com alvo de toque estreito. No desktop segue tudo numa linha,
+          onde há largura de sobra. */}
+      <div
+        className={cn(
+          "flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 w-full",
+          "[&>button]:w-full sm:[&>button]:w-auto",
+        )}
+      >
         {/* Sem borda, no cinza do Flag Field (`BOTAO_BARRA`): Voltar é a saída,
             não uma escolha — contornado, ele competia com a ação principal ao
             lado. É o mesmo cinza dos botões de Filtros e Ordenar. */}
@@ -98,7 +108,7 @@ export function PaginaDeFormulario({
           </Button>
         )}
 
-        <span className="text-sm text-slate-400 font-normal truncate min-w-0">
+        <span className="text-sm text-slate-400 font-normal truncate min-w-0 text-center sm:text-left">
           {descricao}
         </span>
       </div>

@@ -37,7 +37,11 @@ import { ReceiptItemsTable } from "./ReceiptItemsTable";
 import { rotuloDoCartao, useCards } from "@/modules/cards/useCards";
 import { PaginaDeFormulario } from "@/components/ui/PaginaDeFormulario";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
-import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  ICONE_BOTAO_BARRA,
+} from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DOC_TYPES,
@@ -591,7 +595,10 @@ export function ReceiptFormDialog({
    */
   const camposDoFormulario = (
     <>
-      <div className="grid grid-cols-2 gap-3">
+      {/* Uma coluna no CELULAR. Em duas, "Valor (R$)" e "Origem" ficavam com
+          ~150px cada: o nome do estabelecimento truncava já no cadastro, antes
+          mesmo de virar lista. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label>Tipo</Label>
           <Select
@@ -640,7 +647,7 @@ export function ReceiptFormDialog({
 
       {/* Valor e Origem na mesma linha: o valor é curto e sobrava
                 metade da largura ao lado dele. */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label htmlFor="total_value">
             Valor (R$)
