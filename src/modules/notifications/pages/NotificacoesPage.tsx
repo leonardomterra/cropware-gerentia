@@ -70,12 +70,15 @@ export default function NotificacoesPage() {
 
   return (
     <div className="space-y-4">
-      {/* Ação à esquerda, contador à direita — a ordem do padrão de página
-          (docs/PADRAO-DE-PAGINA.md): primeiro o que se faz, depois quanto
-          sobrou. Aqui não há botão de criar (notificação é produzida pelo
-          cron), então "Marcar Todas como Lidas" fica no cinza de barra, e não
-          no escuro reservado para criar. */}
-      <header className="flex items-center gap-2 min-h-[36px]">
+      {/* Ação e contador em LINHAS SEPARADAS, como no resto do app (§4 do
+          padrão de página). Estavam na mesma, e no celular o botão comia a
+          largura: "3 Não Lidas" quebrava em três linhas, uma palavra em cada.
+
+          Aqui não há botão de criar (notificação é produzida pelo cron), então
+          "Marcar Todas como Lidas" fica no cinza de barra, e não no escuro
+          reservado para criar. No celular ele ocupa a linha inteira — é a única
+          ação da tela. */}
+      <header className="flex items-center gap-2 min-h-[36px] [&>button]:w-full sm:[&>button]:w-auto">
         {unread > 0 && (
           <Button
             variant="ghost"
@@ -103,13 +106,17 @@ export default function NotificacoesPage() {
             </span>
           </Button>
         )}
-        <div className="flex-1" />
-        <span className="text-sm text-slate-500">
+      </header>
+
+      {/* Contador: centralizado no celular, à direita no desktop — o mesmo de
+          Lançamentos e das demais. */}
+      <div className="flex items-center justify-center sm:justify-end px-1 min-h-[28px]">
+        <span className="text-sm text-slate-500 whitespace-nowrap">
           {unread > 0
             ? `${unread} ${unread > 1 ? "Não Lidas" : "Não Lida"}`
             : "Tudo em Dia"}
         </span>
-      </header>
+      </div>
 
       {loading ? (
         <LoadingState />
@@ -183,6 +190,18 @@ function Row({
             {n.body}
           </div>
         )}
+        {/* A DATA aqui embaixo, só no celular. Na coluna da direita ela custa
+            72px fixos, e com os dois botões ao lado sobrava menos de metade da
+            largura para o texto: "PAGAR O CONTAD…" e "R$ 450,00 — venc…"
+            cortavam os dois. Aqui ela não disputa nada. */}
+        <div
+          className={cn(
+            "sm:hidden text-xs tabular-nums mt-0.5",
+            isUnread ? tom.corpo : "text-slate-400",
+          )}
+        >
+          {fmtWhen(n.created_at)}
+        </div>
       </button>
       <div className="flex items-center gap-1 shrink-0">
         {/* Quando: mesma caixa dos botões de ação (altura, borda, raio), mas em
@@ -197,7 +216,7 @@ function Row({
             formato mais longo ali, este 72px precisa subir junto. */}
         <span
           className={cn(
-            "h-9 w-[72px] inline-flex items-center justify-center rounded-md border border-current/25 bg-white/60 text-sm tabular-nums whitespace-nowrap",
+            "hidden sm:inline-flex h-9 w-[72px] items-center justify-center rounded-md border border-current/25 bg-white/60 text-sm tabular-nums whitespace-nowrap",
             isUnread ? tom.corpo : "text-slate-500",
           )}
         >
