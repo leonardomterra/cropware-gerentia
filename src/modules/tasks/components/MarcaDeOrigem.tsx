@@ -9,7 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 
 /** De onde o item veio. Cada página mapeia o próprio campo para um destes. */
@@ -23,7 +23,15 @@ export type Origem =
 
 const MARCAS: Record<
   Origem,
-  { Icone: typeof TextboxDuotone; cor: string; titulo: string; rotulo: string }
+  {
+    Icone: typeof TextboxDuotone;
+    /** Cor do ÍCONE solto, no começo do card. */
+    cor: string;
+    titulo: string;
+    rotulo: string;
+    /** Esquema do SELO. Mesma matiz da `cor`, na paleta de selos do app. */
+    selo: BadgeProps["colorScheme"];
+  }
 > = {
   manual: {
     // Campo de texto. NÃO usar lápis: lápis é o ícone de EDITAR no app
@@ -33,24 +41,28 @@ const MARCAS: Record<
     cor: "text-orange-500",
     titulo: "Cadastrado na tela",
     rotulo: "Manual",
+    selo: "orange",
   },
   whatsapp: {
     Icone: WhatsappDuotone,
     cor: "text-emerald-500",
     titulo: "Anotado pelo WhatsApp — confira os dados",
     rotulo: "WhatsApp",
+    selo: "emerald",
   },
   telegram: {
     Icone: TelegramDuotone,
     cor: "text-sky-500",
     titulo: "Anotado pelo Telegram — confira os dados",
     rotulo: "Telegram",
+    selo: "sky",
   },
   photo: {
     Icone: CameraDuotone,
     cor: "text-violet-500",
     titulo: "Lido de uma foto — confira os dados",
     rotulo: "Foto",
+    selo: "purple",
   },
   csv: {
     Icone: TableDuotone,
@@ -59,12 +71,14 @@ const MARCAS: Record<
     cor: "text-indigo-500",
     titulo: "Importado de planilha",
     rotulo: "Planilha",
+    selo: "indigo",
   },
   recorrencia: {
     Icone: RepeatDuotone,
     cor: "text-teal-500",
     titulo: "Gerado por recorrência",
     rotulo: "Recorrência",
+    selo: "teal",
   },
 };
 
@@ -130,7 +144,7 @@ export function origemDoLancamento(
  * competiria com o status do lançamento, que ali é a informação que importa.
  */
 export function SeloDeOrigem({ origem }: { origem: Origem }) {
-  const { Icone, cor, titulo, rotulo } = MARCAS[origem];
+  const { Icone, titulo, rotulo, selo } = MARCAS[origem];
   return (
     <Tooltip>
       {/* O gatilho vai num <span> POR FORA, e não no próprio Badge com
@@ -140,8 +154,11 @@ export function SeloDeOrigem({ origem }: { origem: Origem }) {
           virava um selo com a forma certa e a letra errada. */}
       <TooltipTrigger asChild>
         <span className="inline-flex">
-          <Badge colorScheme="slate" className="gap-1.5">
-            <Icone className={cn("size-[14px] shrink-0", cor)} />
+          {/* A COR VAI NO SELO, e o ícone herda dela. Antes era um selo cinza
+              com ícone colorido — híbrido que nenhum outro selo do app usa: aqui
+              a cor é sempre o fundo, e o desenho acompanha. */}
+          <Badge colorScheme={selo} className="gap-1.5">
+            <Icone className="size-[14px] shrink-0" />
             {rotulo}
           </Badge>
         </span>
