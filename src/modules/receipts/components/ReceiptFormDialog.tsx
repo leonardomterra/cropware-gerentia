@@ -197,8 +197,12 @@ function InfoLeitura({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs text-slate-500">{rotulo}</p>
-      <p className="text-slate-700 truncate">{children}</p>
+      {/* O MESMO <Label> dos campos do formulário, e não um `text-xs` próprio.
+          Esta ficha fica logo abaixo deles, na mesma tela: dois tamanhos de
+          rótulo lado a lado faziam a parte de leitura parecer nota de rodapé em
+          vez da continuação do lançamento. */}
+      <Label>{rotulo}</Label>
+      <p className="text-slate-700 truncate mt-1">{children}</p>
     </div>
   );
 }
