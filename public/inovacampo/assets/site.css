@@ -906,6 +906,10 @@ dialog.lightbox::backdrop { background: rgba(10, 10, 10, .72); backdrop-filter: 
   .scenario { break-inside: avoid; margin-bottom: 18px; }
   .demo .wa-body, .flow .wa-body, .hero .wa-body { height: auto !important; max-height: none !important; overflow: visible !important; }
   .typing { display: none !important; }
+  /* Sombras viram máscaras de transparência no PDF do Chrome, e o Preview do
+     Mac as desenha como retângulos cinza. Na impressão, só bordas. */
+  *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
+  .browser, .phone { border: 1px solid var(--line); }
   .card, .use, .evidence__col, .phases li, details.x, .ai-card, .compare__col, .shot, .feature-group { break-inside: avoid; }
   details.x .x__body { display: grid !important; }
   .gallery__grid { grid-template-columns: 1fr 1fr !important; }
