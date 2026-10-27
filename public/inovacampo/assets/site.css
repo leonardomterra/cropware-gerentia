@@ -865,6 +865,33 @@ dialog.lightbox::backdrop { background: rgba(10, 10, 10, .72); backdrop-filter: 
   .demo { display: block; margin-top: 40px; }
   .demo > div:nth-of-type(2) { display: none !important; }
   .print-only { display: block !important; }
+  /* Capa do PDF: uma página, com botão e QR para a versão interativa */
+  .print-cover.print-only {
+    display: grid !important; grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: 1fr auto;
+    gap: 24px 72px; align-items: center; height: 960px; padding: 56px 72px 40px; box-sizing: border-box;
+    break-after: page; max-width: 1200px; margin: 0 auto;
+  }
+  .print-cover .brand img { height: 30px; }
+  .print-cover .wordmark { font-size: 26px; }
+  .print-cover .hero__program { margin: 40px 0 0; }
+  .print-cover__title { font-size: 3.4rem; line-height: 1.03; letter-spacing: -0.03em; font-weight: 600; max-width: 15ch; margin: 22px 0 0; }
+  .print-cover__sub { font-size: 1.2rem; color: var(--text); max-width: 46ch; margin: 18px 0 0; }
+  .print-cover__cta {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 36px; padding: 16px 26px;
+    background: var(--ink); color: #fff; border-radius: var(--r-lg); font-size: 1.15rem; font-weight: 600; text-decoration: none;
+  }
+  .print-cover__cta .icon { width: 20px; height: 20px; }
+  .print-cover__url { margin: 12px 0 0; font-size: 15px; color: var(--muted); }
+  .print-cover__side { align-self: center; display: grid; gap: 12px; justify-items: start; }
+  .print-cover__qr { display: block; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; }
+  .print-cover__qr img { width: 190px; height: 190px; }
+  .print-cover__only { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 14px; }
+  .print-cover__only b { color: var(--ink); }
+  .print-cover__only ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; color: var(--text); }
+  .print-cover__by { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin: 0; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+  .print-cover__by img { height: 14px; width: auto; }
+  .print-cover a::after, .print-only a::after { content: none !important; }
+  .print-cover + .hero { break-before: page; }
   .demo__side { margin-top: 18px; }
   .demo .pipeline { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .demo .pipeline li { break-inside: avoid; }
