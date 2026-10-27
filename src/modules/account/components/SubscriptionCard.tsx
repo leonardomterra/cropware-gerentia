@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import Premium from "~icons/material-symbols-light/workspace-premium-outline";
+import Premium from "~icons/ph/medal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
@@ -35,6 +35,19 @@ const PRIVACY_URL = "https://gerentia.app/privacidade.html";
 // EULA padrão da Apple (exigido no fluxo de compra de assinaturas — guideline 3.1.2).
 const TERMS_URL =
   "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+
+/** Descrição do plano com quebra logo após o "—": "Plano X —" / "detalhe." */
+function PlanDescription({ text }: { text: string }) {
+  const idx = text.indexOf("—");
+  if (idx === -1) return <p className="text-xs text-slate-500">{text}</p>;
+  return (
+    <p className="text-xs text-slate-500">
+      {text.slice(0, idx + 1).trimEnd()}
+      <br />
+      {text.slice(idx + 1).trimStart()}
+    </p>
+  );
+}
 
 /** Divulgação de renovação automática + links obrigatórios (Termos de Uso / Privacidade). */
 function SubscriptionLegal() {
@@ -80,7 +93,8 @@ export function SubscriptionCard({ className }: { className?: string }) {
   const [rcRestoring, setRcRestoring] = useState(false);
 
   useEffect(() => {
-    if (!isNativeCapacitorApp() || !isRevenueCatConfigured() || !user?.id) return;
+    if (!isNativeCapacitorApp() || !isRevenueCatConfigured() || !user?.id)
+      return;
     let cancelled = false;
     loadOfferingPackages()
       .then((pkgs) => {
@@ -154,16 +168,33 @@ export function SubscriptionCard({ className }: { className?: string }) {
     }
   }
 
-  const isActive = info?.subscription?.status === "active";
-  const trialActive = info?.trial_active ?? false;
+  // DEV-only: força o estado da tela via ?preview= pra ajustar o visual sem
+  // depender do billing real (ex.: /paywall?preview=expired). Valores:
+  // "expired" (web, sem assinatura), "trial" (web, trial ativo),
+  // "active" (assinatura ativa), "native" (fluxo do app/loja).
+  const devPreview = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("preview")
+    : null;
+
+  const isActive = devPreview
+    ? devPreview === "active"
+    : info?.subscription?.status === "active";
+  const trialActive = devPreview
+    ? devPreview === "trial"
+    : (info?.trial_active ?? false);
   // Regra dura da Play/App Store: o app nativo NÃO pode oferecer pagamento
   // externo (Mercado Pago). No nativo, mostramos só o status; a compra entra
   // via loja (RevenueCat) quando os produtos estiverem configurados.
-  const isNative = isNativeCapacitorApp();
+  const isNative = devPreview
+    ? devPreview === "native"
+    : isNativeCapacitorApp();
 
   return (
     <section
-      className={cn("bg-white rounded-lg border border-slate-200 p-5", className)}
+      className={cn(
+        "bg-white rounded-lg border border-slate-200 p-5",
+        className,
+      )}
     >
       <div className="flex items-start gap-3 mb-4">
         <div className="mt-0.5 flex size-8 items-center justify-center rounded-md bg-slate-100 text-slate-600 shrink-0">
@@ -171,9 +202,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-medium text-slate-900">Assinatura</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Seu plano e cobrança.
-          </p>
+          <p className="text-xs text-slate-500 mt-0.5">Seu plano e cobrança.</p>
         </div>
         {isActive ? (
           <Badge colorScheme="emerald">Ativa</Badge>
@@ -191,8 +220,8 @@ export function SubscriptionCard({ className }: { className?: string }) {
           <div>
             <p className="text-xs text-slate-500">Plano</p>
             <p className="text-sm text-slate-900 mt-1">
-              {plans.find((p) => p.code === info?.subscription?.plan_code)?.name ??
-                info?.subscription?.plan_code}
+              {plans.find((p) => p.code === info?.subscription?.plan_code)
+                ?.name ?? info?.subscription?.plan_code}
             </p>
           </div>
           <div>
@@ -274,7 +303,9 @@ export function SubscriptionCard({ className }: { className?: string }) {
                   key={plan.code}
                   className={cn(
                     "rounded-lg border p-4 flex flex-col gap-2",
-                    founder ? "border-slate-300 bg-slate-50" : "border-slate-200",
+                    founder
+                      ? "border-slate-300 bg-slate-50"
+                      : "border-slate-200",
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -292,14 +323,16 @@ export function SubscriptionCard({ className }: { className?: string }) {
                     </span>
                   </div>
                   {plan.description ? (
-                    <p className="text-xs text-slate-500">{plan.description}</p>
+                    <PlanDescription text={plan.description} />
                   ) : null}
                   <Button
                     className="mt-1"
                     onClick={() => handleSubscribe(plan.code)}
                     disabled={submitting !== null}
                   >
-                    {submitting === plan.code ? "Abrindo checkout..." : "Assinar"}
+                    {submitting === plan.code
+                      ? "Abrindo checkout..."
+                      : "Assinar"}
                   </Button>
                 </div>
               );

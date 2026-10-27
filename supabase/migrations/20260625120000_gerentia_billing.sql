@@ -133,5 +133,5 @@ alter table public.organizations
 -- ============================================================
 insert into public.plans (code, name, description, price_cents, currency, billing_interval, sort, metadata) values
   ('gerentia_pro_monthly',  'Gerentia Pro',        'Plano mensal — tudo incluso.',             8900,  'BRL', 'monthly', 10, '{}'::jsonb),
-  ('gerentia_pro_yearly',   'Gerentia Pro Anual',  'Plano anual — 2 meses grátis (paga 10).', 89000, 'BRL', 'yearly',  20, '{}'::jsonb)
+  ('gerentia_pro_yearly',   'Gerentia Pro Anual',  'Plano anual — 2 meses grátis.', 89000, 'BRL', 'yearly',  20, '{}'::jsonb)
 on conflict (code) do nothing;
