@@ -190,7 +190,10 @@ strong { color: var(--ink); font-weight: 600; }
 .nav a.btn--primary:hover { background: var(--ink-2); }
 .site-header .header-pdf { margin-left: auto; }
 
+main:focus { outline: none; }
+
 @media (max-width: 1080px) {
+  html { scroll-padding-top: 108px; }
   .site-header__row { height: auto; flex-wrap: wrap; padding-top: 10px; gap: 8px 16px; }
   .nav {
     order: 3; width: calc(100% + 2 * var(--gutter)); margin: 0 calc(-1 * var(--gutter));
@@ -432,6 +435,7 @@ h1, h2, h3, h4 { font-family: var(--font-head); color: var(--ink); margin: 0; le
 @keyframes typing { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
 
 .js .player .msg.is-pending, .js .player .msg--note.is-pending { display: none; }
+.js .player--reserve .msg.is-pending, .js .player--reserve .msg--note.is-pending { display: flex; visibility: hidden; }
 .js .player .msg.is-new { animation: msg-in .28s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -628,7 +632,8 @@ h1, h2, h3, h4 { font-family: var(--font-head); color: var(--ink); margin: 0; le
 .cc i.c2 { background: #fbbf24; }
 .cc i.c3 { background: #60a5fa; }
 .tbl tr.is-new td { background: #ecfdf5; }
-.js .tbl tr.row-wa.is-pending { display: none; }
+/* A linha pendente guarda o espaço: sumir mudaria a altura da página no meio de uma rolagem. */
+.js .tbl tr.row-wa.is-pending { visibility: hidden; }
 .js .tbl tr.row-wa.is-new { animation: row-in .5s ease both; }
 @keyframes row-in { from { opacity: 0; } to { opacity: 1; } }
 

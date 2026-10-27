@@ -13,24 +13,77 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   // ---------- Navegação: seção atual + barra de progresso ----------
+  // Qualquer rolagem programática em outro elemento (faixa do menu, corpo de
+  // uma conversa) interrompe a rolagem suave da página no Chrome. Por isso os
+  // links internos são tratados aqui, e enquanto a página rola até o destino
+  // (`navigating`) as conversas e o menu esperam: o que pedirem nesse
+  // intervalo roda em `afterNav`, quando a rolagem para.
+  const nav = $(".nav");
+  const header = $(".site-header");
   const navLinks = $$(".nav a[href^='#']");
   const sections = navLinks.map((a) => $(a.getAttribute("href"))).filter(Boolean);
   const progress = $(".progress");
+  let navigating = false;
+  let navTarget = 0;
+  let afterNav = [];
+  let idleTimer = 0;
+  const whenIdle = (fn) => { if (navigating) afterNav.push(fn); else fn(); };
+  const endNav = () => {
+    if (!navigating) return;
+    navigating = false;
+    const queued = afterNav;
+    afterNav = [];
+    queued.forEach((fn) => fn());
+  };
   const onScroll = () => {
     const max = doc.scrollHeight - window.innerHeight;
     if (progress) progress.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+    if (!navigating) return;
+    // Termina ao chegar ao destino (ou ao fim da página). Sem chegar, só depois
+    // de 1 s parada: o usuário interrompeu a rolagem com o dedo ou o mouse.
+    const arrived = Math.abs(window.scrollY - navTarget) < 2 || window.scrollY >= max - 1;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(endNav, arrived ? 60 : 1000);
   };
   window.addEventListener("scroll", onScroll, { passive: true });
+  // O Chrome às vezes dispara um scrollend logo após o clique, resto da rolagem
+  // anterior: só vale como fim se a página já chegou ao destino.
+  window.addEventListener("scrollend", () => {
+    const max = doc.scrollHeight - window.innerHeight;
+    if (Math.abs(window.scrollY - navTarget) < 2 || window.scrollY >= max - 1) endNav();
+  });
   onScroll();
+
+  $$("a[href^='#']").forEach((a) => {
+    const id = a.getAttribute("href").slice(1);
+    const target = id && document.getElementById(id);
+    if (!target) return;
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const offset = (header ? header.getBoundingClientRect().height : 0) + 12;
+      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
+      navigating = true;
+      navTarget = Math.min(top, doc.scrollHeight - window.innerHeight);
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(endNav, 1200); // caso a página já esteja no destino
+      window.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+      history.replaceState(null, "", "#" + id);
+      if (id === "conteudo") target.focus({ preventScroll: true });
+    });
+  });
+
+  const centerNavLink = (a) => {
+    // Só a faixa do menu rola, e só no celular, onde ela transborda.
+    if (nav.scrollWidth > nav.clientWidth) nav.scrollLeft = a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2;
+  };
   if ("IntersectionObserver" in window && sections.length) {
     const spy = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         navLinks.forEach((a) => {
-          const on = a.getAttribute("href") === "#" + e.target.id;
-          if (on) {
+          if (a.getAttribute("href") === "#" + e.target.id) {
             a.setAttribute("aria-current", "true");
-            a.scrollIntoView({ block: "nearest", inline: "nearest" });
+            whenIdle(() => { if (a.hasAttribute("aria-current")) centerNavLink(a); });
           } else a.removeAttribute("aria-current");
         });
       });
@@ -61,6 +114,11 @@
       this.onEvent = opts.onEvent || (() => {});
       this.onReset = opts.onReset || (() => {});
       this.onDone = opts.onDone || (() => {});
+      // reserve: mensagens pendentes ocupam o espaço (só ficam invisíveis) e
+      // não há "digitando". Para conversas sem altura fixa, como a do topo,
+      // cujo crescimento empurraria a página durante a rolagem.
+      this.reserve = !!opts.reserve;
+      if (this.reserve) root.classList.add("player--reserve");
       this.run = 0;
       this.playing = false;
     }
@@ -70,7 +128,7 @@
       $$(".typing", this.body).forEach((t) => t.remove());
       this.items.forEach((m) => m.classList.add("is-pending"));
       this.onReset();
-      this.body.scrollTop = 0;
+      whenIdle(() => { this.body.scrollTop = 0; });
     }
     showAll() {
       this.run++;
@@ -82,7 +140,7 @@
       this.onDone();
     }
     scroll() {
-      this.body.scrollTo({ top: this.body.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+      whenIdle(() => this.body.scrollTo({ top: this.body.scrollHeight, behavior: reduced ? "auto" : "smooth" }));
     }
     async play() {
       if (reduced) { this.showAll(); return; }
@@ -93,7 +151,10 @@
       for (const m of this.items) {
         if (run !== this.run) return;
         const isBot = m.classList.contains("msg--in");
-        if (isBot) {
+        if (isBot && this.reserve) {
+          await wait(900);
+          if (run !== this.run) return;
+        } else if (isBot) {
           const t = document.createElement("div");
           t.className = "typing";
           t.setAttribute("aria-hidden", "true");
@@ -122,10 +183,24 @@
     }
   }
 
+  // Toca uma vez quando o bloco aparece. Se ele só cruzou a tela durante uma
+  // navegação pelo menu, espera: toca se ainda estiver visível quando a
+  // rolagem parar, ou na próxima vez que entrar na tela.
   const autoplayOnce = (el, fn) => {
     if (reduced || !("IntersectionObserver" in window)) return;
+    let done = false;
+    const inView = () => {
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight * 0.75 && r.bottom > window.innerHeight * 0.25;
+    };
     const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); fn(); }
+      if (done || !entries.some((e) => e.isIntersecting)) return;
+      whenIdle(() => {
+        if (done || !inView()) return;
+        done = true;
+        io.disconnect();
+        fn();
+      });
     }, { threshold: 0.35 });
     io.observe(el);
   };
@@ -149,7 +224,7 @@
   // ---------- Hero: conversa curta ----------
   const heroPhone = $("#hero-chat");
   if (heroPhone) {
-    const p = new Player(heroPhone);
+    const p = new Player(heroPhone, { reserve: true });
     p.reset();
     if (reduced) p.showAll();
     else setTimeout(() => p.play(), 500);
