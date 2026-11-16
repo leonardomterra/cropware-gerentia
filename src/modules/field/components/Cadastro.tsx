@@ -26,6 +26,7 @@ export function CartaoDeCadastro({
   aoAbrir,
   aoEditar,
   aoExcluir,
+  acoesExtras = [],
 }: {
   titulo: string;
   linhas: (ReactNode | null | false | undefined)[];
@@ -37,6 +38,8 @@ export function CartaoDeCadastro({
   /** Ausente = sem permissão (o item some do menu). */
   aoEditar?: () => void;
   aoExcluir?: () => void;
+  /** Ações próprias da tela (ex.: Concluir plantio), entre Editar e Excluir. */
+  acoesExtras?: { rotulo: string; aoEscolher: () => void }[];
 }) {
   const teclado = (e: KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -84,6 +87,11 @@ export function CartaoDeCadastro({
               {aoEditar && (
                 <DropdownMenuItem onSelect={aoEditar}>Editar</DropdownMenuItem>
               )}
+              {acoesExtras.map((a) => (
+                <DropdownMenuItem key={a.rotulo} onSelect={a.aoEscolher}>
+                  {a.rotulo}
+                </DropdownMenuItem>
+              ))}
               {aoExcluir && (
                 <>
                   <DropdownMenuSeparator className="bg-white/10" />
