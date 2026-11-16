@@ -188,6 +188,7 @@ begin
 
   return new;
 end;
+$$;
 
 -- create or replace preserva os grants, mas o revoke é repetido por garantia
 -- (mesma regra de 20260819140000_gerentia_rpc_hardening.sql).
