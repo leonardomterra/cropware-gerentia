@@ -160,7 +160,11 @@ Cada fase vai ao ar sozinha.
 
 ## 9b. Andamento
 
-- **Fase 0 (16/11/2026): código pronto na branch, ainda não publicado.**
+- **Fase 0 (16/11/2026): concluída.** Banco (2 migrations) e servidor publicados a partir da
+  branch; a web só vai ao ar no merge da unificação na `main`.
+  - De quebra: corrigida a regra de acesso que impedia **todo usuário** de salvar o próprio
+    Perfil desde 21/06 (recursão na policy do `users_meta`,
+    `20261117130000_users_meta_policy_sem_recursao.sql`).
   - Migration `20261117120000_modulos_e_modo_de_uso.sql`.
   - `/auth/me` e `/billing/subscription` devolvem `modules`.
   - `lib/modulos.ts` com a chave `FIELD_LIBERADO`.
