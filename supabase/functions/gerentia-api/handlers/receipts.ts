@@ -28,6 +28,38 @@ function aiRateOk(userId: string, max = 20, windowMs = 60_000): boolean {
   return true;
 }
 
+/**
+ * Fazenda/talhão do lançamento (módulo Field — docs/UNIFICACAO-FIELD.md).
+ *
+ * Confere com o client do USUÁRIO, então vale a RLS: só passa fazenda/talhão
+ * que a pessoa enxerga, o que também barra apontar para outra organização (a
+ * FK sozinha ignora a RLS e aceitaria). Talhão sem fazenda: a fazenda é
+ * deduzida dele. Os dois juntos têm que bater.
+ */
+async function resolveFarmPlot(
+  // deno-lint-ignore no-explicit-any
+  client: any,
+  farmIdRaw: unknown,
+  plotIdRaw: unknown,
+): Promise<{ farm_id: string | null; plot_id: string | null } | { error: string }> {
+  const farmId = typeof farmIdRaw === "string" && farmIdRaw ? farmIdRaw : null;
+  const plotId = typeof plotIdRaw === "string" && plotIdRaw ? plotIdRaw : null;
+  if (plotId) {
+    const { data: plot } = await client
+      .from("farm_plots").select("id, farm_id").eq("id", plotId).maybeSingle();
+    if (!plot) return { error: "invalid_plot" };
+    if (farmId && farmId !== plot.farm_id) return { error: "plot_not_in_farm" };
+    return { farm_id: plot.farm_id, plot_id: plot.id };
+  }
+  if (farmId) {
+    const { data: farm } = await client
+      .from("farms").select("id").eq("id", farmId).maybeSingle();
+    if (!farm) return { error: "invalid_farm" };
+    return { farm_id: farm.id, plot_id: null };
+  }
+  return { farm_id: null, plot_id: null };
+}
+
 function extFromMime(mime: string): string {
   switch (mime) {
     case "image/jpeg": return "jpg";
@@ -314,10 +346,14 @@ export function mountReceiptRoutes(app: Hono) {
         }
       }
 
+      const vinculo = await resolveFarmPlot(client, body.farm_id, body.plot_id);
+      if ("error" in vinculo) return c.json({ error: vinculo.error }, 400);
+
       const row = {
         organization_id: auth.organizationId,
         created_by: auth.user!.id,
-        farm_id: body.farm_id ?? null,
+        farm_id: vinculo.farm_id,
+        plot_id: vinculo.plot_id,
         cost_center_id: costCenterId,
         doc_type: String(body.doc_type),
         direction: body.direction ?? "expense",
@@ -404,8 +440,8 @@ export function mountReceiptRoutes(app: Hono) {
         return c.json({ error: "invalid_body" }, 400);
       }
 
+      // farm_id/plot_id NÃO entram pela lista: passam por resolveFarmPlot.
       const ALLOWED = [
-        "farm_id",
         "cost_center_id",
         "doc_type",
         "direction",
@@ -433,6 +469,15 @@ export function mountReceiptRoutes(app: Hono) {
       const patch: Record<string, unknown> = {};
       for (const k of ALLOWED) {
         if (k in body) patch[k] = body[k];
+      }
+      // Fazenda/talhão: se qualquer um dos dois veio, os dois são reescritos
+      // juntos (o que não veio conta como vazio) — nunca fica talhão de uma
+      // fazenda pendurado em outra.
+      if ("farm_id" in body || "plot_id" in body) {
+        const vinculo = await resolveFarmPlot(client, body.farm_id, body.plot_id);
+        if ("error" in vinculo) return c.json({ error: vinculo.error }, 400);
+        patch.farm_id = vinculo.farm_id;
+        patch.plot_id = vinculo.plot_id;
       }
 
       const admin = getSupabaseAdmin();
@@ -635,6 +680,7 @@ export function mountReceiptRoutes(app: Hono) {
         organization_id: parent.organization_id,
         created_by: auth.user!.id,
         farm_id: parent.farm_id,
+        plot_id: parent.plot_id ?? null,
         cost_center_id: item.cost_center_id,
         // Item desmembrado vira um lançamento SIMPLES (não herda o tipo do pai,
         // senão apareceria nas abas Notas/Faturas). Fica só em Lançamentos.

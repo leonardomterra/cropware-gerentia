@@ -55,7 +55,12 @@ export const TABELAS_DO_PACOTE: ReadonlyArray<{
 }> = [
   { nome: "organizations", porUsuario: "contexto" },
   { nome: "users_meta", porUsuario: "dono" },
+  // Produtor e fazenda são CONTEXTO (da organização): talhão e lançamento
+  // apontam para eles, então precisam existir para o pacote de uma pessoa
+  // poder ser reposto. O talhão é de quem o cadastrou.
+  { nome: "farm_producers", porUsuario: "contexto" },
   { nome: "farms", porUsuario: "contexto" },
+  { nome: "farm_plots", porUsuario: "criador" },
   { nome: "farm_cost_centers", porUsuario: "contexto" },
   { nome: "farm_category_groups", porUsuario: "contexto" },
   { nome: "farm_categories", porUsuario: "contexto" },
