@@ -174,6 +174,13 @@ Cada fase vai ao ar sozinha.
     disso, quem assina só o Finanças (inclusive fora do agro) não tem por que responder
     sobre produtores.
 
+- **Fase 1 (16/11/2026): no ar** (migration `20261118120000_field_cadastros.sql` + servidor,
+  publicados a partir da branch).
+  - Telas: produtores, fazendas (sede no mapa) e talhões (editor de mapa).
+  - Vínculo do lançamento com fazenda/talhão.
+  - Satélite da Esri, sem os tiles diretos do Google; miniaturas em SVG.
+  - **Testes manuais pendentes**: em [TESTES-UNIFICACAO.md](TESTES-UNIFICACAO.md).
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no
