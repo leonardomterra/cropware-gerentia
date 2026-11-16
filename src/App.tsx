@@ -81,6 +81,21 @@ const FazendasPage = lazyWithRetry(
 const TalhoesPage = lazyWithRetry(
   () => import("@/modules/field/pages/TalhoesPage"),
 );
+const PlantiosPage = lazyWithRetry(
+  () => import("@/modules/field/pages/PlantiosPage"),
+);
+const AtividadesPage = lazyWithRetry(
+  () => import("@/modules/field/pages/AtividadesPage"),
+);
+const CustosPage = lazyWithRetry(
+  () => import("@/modules/field/pages/CustosPage"),
+);
+const SafrasPage = lazyWithRetry(
+  () => import("@/modules/field/pages/SafrasPage"),
+);
+const CatalogoPage = lazyWithRetry(
+  () => import("@/modules/field/pages/CatalogoPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -389,6 +404,56 @@ function RootRoutes() {
                   <ModuloGate modulo="field">
                     <Suspense fallback={<LoadingScreen />}>
                       <TalhoesPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/plantios"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <PlantiosPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/atividades"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AtividadesPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/custos"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <CustosPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/safras"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <SafrasPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/catalogo"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <CatalogoPage />
                     </Suspense>
                   </ModuloGate>
                 }

@@ -181,6 +181,18 @@ Cada fase vai ao ar sozinha.
   - Satélite da Esri, sem os tiles diretos do Google; miniaturas em SVG.
   - **Testes manuais pendentes**: em [TESTES-UNIFICACAO.md](TESTES-UNIFICACAO.md).
 
+- **Fase 2 (16/11/2026): código pronto na branch** (migration `20261119120000_field_safra.sql`).
+  - Safras cadastradas e catálogo sem preço.
+  - Plantios com finalidade (inclui campo demonstrativo/GD).
+  - Atividades com custo agronômico; calagem e gessagem como tipos próprios, no lugar de
+    "Corretivos".
+  - **Custo por talhão** (agronômico × realizado, "só da fazenda" à parte).
+  - **Regra do realizado:** conta a compra no cartão ligada ao talhão e deixa a fatura de fora
+    (no financeiro é o contrário).
+  - **Ficou para depois:** marcadores no mapa (observação/anotação/amostragem), fotos e anexos
+    das atividades, painel de plantios com GDD, PDF do plantio, "Iniciar plantio" a partir do
+    talhão.
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no

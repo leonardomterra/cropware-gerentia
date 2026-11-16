@@ -17,6 +17,22 @@
 > R$89 num público amplo **se autosseleciona**: quem fatura justifica, o usuário de finança
 > pessoal-hobby não converte — e tudo bem, ele não é o pagador.
 
+> **Revisão 19/07/2026 (dois planos — supera o "plano único" do §2).** Passamos de um
+> tier só para **dois planos**, com o **WhatsApp como único divisor**:
+> - **Essencial R$29/mês** — app completo **com IA no app** (OCR da foto do recibo +
+>   sugestão de categoria), Centros de Custo, dashboard, recorrências, alertas, exports,
+>   lançamento manual. **Sem WhatsApp.**
+> - **Pro R$89/mês** — tudo do Essencial **+ canal WhatsApp** (foto **e nota de voz** →
+>   lançamento). A **nota de voz é exclusiva do Pro** (senão o diferencial vira "só canal").
+>
+> Base da decisão (ver §9): **o custo da IA é irrisório** (centavos por recibo), então tirar
+> IA do plano barato nunca foi economia — é **segmentação de disposição a pagar**. Como o
+> "foto → lançamento" já existe no Essencial (câmera do app), o prêmio do Pro repousa sobre
+> **conveniência de canal + voz** serem habit-forming. Implica: (1) trial dá WhatsApp a todos,
+> e *perdê-lo* ao escolher Essencial vira a dor que converte; (2) **badges de upgrade
+> discretos** nas abas viram peça central, não enfeite. Inverte a marca ("foto no WhatsApp"
+> passa a ser Pro-only) — assumido de propósito.
+
 ---
 
 ## 0. Como usar este documento
@@ -180,3 +196,55 @@ Quando cobrar de verdade (blueprint §10.5 detalha):
 - [ ] RevenueCat (iOS + Android) + publicação nas lojas, telas de conta sem links externos.
 - [ ] Definir cohort founder (limite 50-100) e o mecanismo de trava vitalícia do R$59.
 - [ ] (Nicho) campo `hectares` no CC → habilitar **custo/ha** como prova de venda no agro.
+
+---
+
+## 9. Custo real da IA + decisão dos dois planos (19/07/2026)
+
+Levantamento feito ao definir o corte Essencial × Pro. **Conclusão que orienta tudo: a IA
+quase não custa — o corte é segmentação de preço, não proteção de margem.**
+
+### 9.1 O que roda (implementação real)
+
+Tudo é **Gemini 3.5 Flash** (`gemini-3.5-flash`), via a edge function proxy `gemini`
+(`lib/gemini.ts`). Três pontos de IA no produto:
+
+| # | Ponto de IA | Onde | Plano |
+|---|---|---|---|
+| a | WhatsApp: foto/áudio → lançamento | webhook/edge | **Pro** |
+| b | Foto do recibo **dentro do app** (OCR) | `ReceiptCaptureDialog.tsx` | Essencial + Pro |
+| c | Botão "Sugerir categoria com IA" | `AiSuggestButton` + `/receipts/suggest-category` | Essencial + Pro |
+
+> Nota: o doc antigo citava "Gemini + OpenAI"; **o código usa só Gemini**. A imagem é
+> comprimida (máx. 1920px / ~2MB) antes de ir pro modelo, o que segura o custo em tokens.
+
+### 9.2 Custo estimado (confirmar tarifas do `gemini-3.5-flash` na página do Google; câmbio ~R$5,40)
+
+Tokens por chamada: foto ≈ 3.5–4k entrada + ~300 saída; áudio 30s ≈ ~1k; sugestão ≈ centenas.
+
+| Ação | Custo por chamada |
+|---|---|
+| OCR de 1 foto | **~R$ 0,003 – 0,015** (< 1 a ~1,5 centavo) |
+| Áudio (nota de voz) | ~R$ 0,002 – 0,01 |
+| Sugerir categoria | < R$ 0,003 |
+
+| Usuário ativo/mês | Lançamentos IA | Custo IA/mês |
+|---|---|---|
+| Leve | ~30 | ~R$ 0,30 – 1 |
+| Pesado | ~200 | ~R$ 2 – 6 |
+
+### 9.3 Implicações (por que o corte é WhatsApp, não IA medida)
+
+1. **IA medida (cota mensal) foi descartada:** cota só serve pra conter custo, e não há
+   custo a conter. Seria complexidade (contador + reset + tabela de uso) sem retorno.
+2. **"Essencial sem IA nenhuma" foi descartado:** deixaria o Essencial um organizador manual
+   competindo com apps grátis. Como a IA não custa, não há razão de custo pra tirá-la do app.
+3. **Decisão: liga/desliga do WhatsApp.** Essencial mantém a IA do app; Pro adiciona o canal
+   WhatsApp + voz. Copy **não** pode dizer "IA é cara, por isso só no Pro" — é falso.
+
+### 9.4 Build (quando implementar — projeto à parte)
+
+Menor superfície de gating dos cortes discutidos: gatear **um único ponto no servidor** — o
+vínculo/webhook do WhatsApp (recusar/instruir upgrade quando `plan_code` ≠ Pro). A IA do app
+(b, c) fica ligada pra todo assinante. Gating tem que ser **server-side** (esconder botão é só
+verniz). Somar os **badges de upgrade** nas abas (frontend, leem `plan_code`).

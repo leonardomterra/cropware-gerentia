@@ -75,3 +75,46 @@ antecipar essa migração só para ter massa de teste.
 
 **Backup:**
 - [ ] Gerar um backup e conferir que produtores e talhões entram na contagem.
+
+## Fase 2 — safra (safras, catálogo, plantios, atividades, custo por talhão)
+
+**Safras:**
+- [ ] Nova safra já vem sugerida com o ano agrícola (01/07 a 30/06); dá para mudar.
+- [ ] Fim antes do início é barrado; nome repetido é barrado.
+- [ ] Excluir avisa quantos plantios ficam sem safra.
+
+**Catálogo:**
+- [ ] Categoria Sementes mostra cultura, genética, grupo de maturação, ciclo e tipo de ciclo.
+- [ ] As outras categorias mostram ingrediente ativo.
+- [ ] Busca por nome, ingrediente ou fabricante; filtro por categoria.
+
+**Plantios:**
+- [ ] O talhão mostra "X ha livres de Y", descontando os plantios em andamento.
+- [ ] A safra vem pré-escolhida pela vigente.
+- [ ] A variedade sugere as já usadas na mesma cultura.
+- [ ] Campo de semente mostra as categorias e a homologação.
+- [ ] Área parcial exige os hectares.
+- [ ] Concluir e Reativar pelo menu ⋯.
+
+**Atividades:**
+- [ ] Cada tipo mostra a sua seção (aplicação, adubação, calagem, gessagem, irrigação, colheita,
+      plantio, observação, anotação, amostragem, chuva, clima, visita).
+- [ ] Chuva, clima e visita: talhão opcional ("Fazenda toda") e sem plantio.
+- [ ] Escolher um talhão com um único plantio em andamento já sugere o plantio.
+- [ ] Data futura sugere "Planejada"; "Marcar como realizada" no menu ⋯.
+- [ ] Aplicação: produto do catálogo (sugestão ao digitar) e produto livre → "Cadastrar no
+      catálogo" abre o cadastro e, ao salvar, volta para a atividade com o produto preenchido.
+- [ ] Custo: aplicação com 2 produtos (R$ 60 + R$ 40/ha) em 50 ha = R$ 5.000.
+- [ ] Custo: calcário 2 t/ha × R$ 180/t × 30 ha = R$ 10.800.
+- [ ] Custo: irrigação 20 mm × R$ 3/mm × 10 ha = R$ 600.
+- [ ] Área parcial muda o custo; colheita mostra a produção estimada.
+- [ ] Filtros por tipo, safra (atividade sem plantio cai na safra pela data), fazenda e situação.
+
+**Custo por talhão:**
+- [ ] Abre na safra vigente; "Período livre" pede as datas.
+- [ ] Agronômico = atividades REALIZADAS do talhão na safra (as planejadas não contam).
+- [ ] Realizado = despesas ligadas ao talhão na janela da safra.
+      Entra a compra no cartão ligada ao talhão. Ficam fora a fatura, o previsto e o cancelado.
+- [ ] Lançamento ligado só à fazenda aparece em "Só da fazenda" e não entra no R$/ha.
+- [ ] Filtro por fazenda.
+- [ ] Exportar CSV; "Imprimir / PDF" abre a página com o gráfico agronômico × realizado.

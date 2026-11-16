@@ -41,6 +41,16 @@ import RailProdutores from "~icons/ph/user-list-duotone";
 import Plant from "~icons/ph/plant";
 import Barn from "~icons/ph/barn";
 import UserList from "~icons/ph/user-list";
+import Grains from "~icons/ph/grains";
+import ClipboardText from "~icons/ph/clipboard-text";
+import ChartBar from "~icons/ph/chart-bar";
+import CalendarBlank from "~icons/ph/calendar";
+import Flask from "~icons/ph/flask";
+import RailPlantios from "~icons/ph/grains-duotone";
+import RailAtividades from "~icons/ph/clipboard-text-duotone";
+import RailCustos from "~icons/ph/chart-bar-duotone";
+import RailSafras from "~icons/ph/calendar-duotone";
+import RailCatalogo from "~icons/ph/flask-duotone";
 import CaretUpDown from "~icons/ph/caret-up-down";
 import UserCircle from "~icons/ph/user-circle";
 // Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
@@ -148,6 +158,27 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
   { to: "/campo/talhoes", label: "Talhões", icon: Plant, modulo: "field" },
+  // Fase 2 — safra.
+  { to: "/campo/plantios", label: "Plantios", icon: Grains, modulo: "field" },
+  {
+    to: "/campo/atividades",
+    label: "Atividades",
+    icon: ClipboardText,
+    modulo: "field",
+  },
+  {
+    to: "/campo/custos",
+    label: "Custo por Talhão",
+    icon: ChartBar,
+    modulo: "field",
+  },
+  {
+    to: "/campo/safras",
+    label: "Safras",
+    icon: CalendarBlank,
+    modulo: "field",
+  },
+  { to: "/campo/catalogo", label: "Catálogo", icon: Flask, modulo: "field" },
   {
     to: "/configuracoes",
     label: "Configurações",
@@ -208,6 +239,11 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/campo/produtores": { Icon: RailProdutores, cor: "text-teal-700" },
   "/campo/fazendas": { Icon: RailFazendas, cor: "text-amber-700" },
   "/campo/talhoes": { Icon: RailTalhoes, cor: "text-lime-700" },
+  "/campo/plantios": { Icon: RailPlantios, cor: "text-yellow-700" },
+  "/campo/atividades": { Icon: RailAtividades, cor: "text-violet-600" },
+  "/campo/custos": { Icon: RailCustos, cor: "text-blue-600" },
+  "/campo/safras": { Icon: RailSafras, cor: "text-orange-600" },
+  "/campo/catalogo": { Icon: RailCatalogo, cor: "text-fuchsia-600" },
   "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
   "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
   "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
@@ -230,8 +266,13 @@ const RAIL_ORDEM = [
   "/relatorios",
   "/anexos",
   "/campo/talhoes",
+  "/campo/plantios",
+  "/campo/atividades",
+  "/campo/custos",
   "/campo/fazendas",
   "/campo/produtores",
+  "/campo/safras",
+  "/campo/catalogo",
   "/pendencias",
   "/notificacoes",
   "/configuracoes",
