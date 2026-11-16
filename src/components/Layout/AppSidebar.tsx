@@ -44,12 +44,20 @@ export interface RailItem {
 export function AppSidebar({
   itens,
   footer,
+  topo,
 }: {
   itens: RailItem[];
   footer?: ReactNode;
+  /** Acima dos ícones: o seletor de módulo, quando há mais de um (AppShell). */
+  topo?: ReactNode;
 }) {
   return (
     <>
+      {topo && (
+        <div className="shrink-0 px-2 pt-2 pb-1 border-b border-slate-100">
+          {topo}
+        </div>
+      )}
       {/* Um provider para o grupo todo: com um por item, cada tooltip teria o
           próprio atraso e a coluna piscaria ao correr o mouse por ela. */}
       <TooltipProvider delayDuration={200}>

@@ -10,6 +10,12 @@
  */
 export const AREAS_DE_ATUACAO: { valor: string; rotulo: string }[] = [
   { valor: "produtor_rural", rotulo: "Produtor Rural" },
+  // Do agro, somadas na unificação com o Flag Field (16/11/2026).
+  { valor: "gerente_fazenda", rotulo: "Gerente / ADM de Fazenda" },
+  { valor: "consultor_agronomo", rotulo: "Consultor / Agrônomo" },
+  { valor: "tecnico_agricola", rotulo: "Técnico Agrícola" },
+  { valor: "revenda_cooperativa", rotulo: "Revenda / Cooperativa" },
+  { valor: "dm_rtv", rotulo: "Desenvolvimento de Mercado / RTV" },
   { valor: "autonomo", rotulo: "Autônomo" },
   { valor: "empresario", rotulo: "Empresário" },
   { valor: "profissional_liberal", rotulo: "Profissional Liberal" },

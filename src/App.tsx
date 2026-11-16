@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { isNativeCapacitorApp } from "@/utils/platform";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { Paywall } from "@/components/billing/Paywall";
+import { ModuloGate } from "@/components/billing/ModuloGate";
+import { modulosVisiveis } from "@/lib/modulos";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { SignUpScreen } from "@/components/auth/SignUpScreen";
 import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
@@ -72,6 +74,9 @@ const AdminUsersPage = lazyWithRetry(
 const AdminOrgsPage = lazyWithRetry(
   () => import("@/modules/admin/pages/AdminOrgsPage"),
 );
+const FieldHomePage = lazyWithRetry(
+  () => import("@/modules/field/pages/FieldHomePage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -120,6 +125,9 @@ function RootRoutes() {
     isMaster,
     isViewer,
   } = useAuth();
+  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
+    "field",
+  );
 
   // App nativo: status bar branca na tela de login (deslogado) e slate-100
   // (cor do cabeçalho) quando logado — consistência visual com o AppShell.
@@ -198,9 +206,11 @@ function RootRoutes() {
           <Route
             path="lancamentos"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <ReceiptsPage />
-              </Suspense>
+              <ModuloGate modulo="financas">
+                <Suspense fallback={<LoadingScreen />}>
+                  <ReceiptsPage />
+                </Suspense>
+              </ModuloGate>
             }
           />
           <Route
@@ -222,17 +232,21 @@ function RootRoutes() {
           <Route
             path="notas"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <NotasRecibosPage />
-              </Suspense>
+              <ModuloGate modulo="financas">
+                <Suspense fallback={<LoadingScreen />}>
+                  <NotasRecibosPage />
+                </Suspense>
+              </ModuloGate>
             }
           />
           <Route
             path="cartoes"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <CartoesPage />
-              </Suspense>
+              <ModuloGate modulo="financas">
+                <Suspense fallback={<LoadingScreen />}>
+                  <CartoesPage />
+                </Suspense>
+              </ModuloGate>
             }
           />
           {/* /faturas virou /cartoes em 25/08/2026. O redirect fica: o caminho
@@ -242,17 +256,21 @@ function RootRoutes() {
           <Route
             path="anexos"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <AnexosPage />
-              </Suspense>
+              <ModuloGate modulo="financas">
+                <Suspense fallback={<LoadingScreen />}>
+                  <AnexosPage />
+                </Suspense>
+              </ModuloGate>
             }
           />
           <Route
             path="relatorios"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <ReportsPage />
-              </Suspense>
+              <ModuloGate modulo="financas">
+                <Suspense fallback={<LoadingScreen />}>
+                  <ReportsPage />
+                </Suspense>
+              </ModuloGate>
             }
           />
           <Route
@@ -303,9 +321,11 @@ function RootRoutes() {
             <Route
               path="recorrencias"
               element={
-                <Suspense fallback={<LoadingScreen />}>
-                  <RecurringPage />
-                </Suspense>
+                <ModuloGate modulo="financas">
+                  <Suspense fallback={<LoadingScreen />}>
+                    <RecurringPage />
+                  </Suspense>
+                </ModuloGate>
               }
             />
           )}
@@ -328,6 +348,20 @@ function RootRoutes() {
                 }
               />
             </>
+          )}
+          {/* Módulo Field (fase 0: só a página provisória). Visível só para o
+            master até FIELD_LIBERADO — ver lib/modulos.ts. */}
+          {fieldVisivel && (
+            <Route
+              path="campo"
+              element={
+                <ModuloGate modulo="field">
+                  <Suspense fallback={<LoadingScreen />}>
+                    <FieldHomePage />
+                  </Suspense>
+                </ModuloGate>
+              }
+            />
           )}
           {/* DEV-only: laboratorio de icones (Iconify). So existe em dev, por URL
             /icones. Em producao a rota nao e registrada (cai no catch-all). */}

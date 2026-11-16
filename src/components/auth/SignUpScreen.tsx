@@ -14,6 +14,9 @@ import { cn } from "@/components/ui/utils";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "./AuthLayout";
+import { FIELD_LIBERADO } from "@/lib/modulos";
+import type { ModoDeUso } from "@/utils/modoDeUso";
+import { CampoModoDeUso } from "@/modules/field/components/CampoModoDeUso";
 
 interface SignUpScreenProps {
   onGoToLogin: () => void;
@@ -27,6 +30,9 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  // Só é perguntado depois do lançamento do Field: antes disso, quem assina o
+  // Finanças (inclusive fora do agro) não tem por que responder sobre produtores.
+  const [fieldMode, setFieldMode] = useState<ModoDeUso | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<null | {
@@ -73,6 +79,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         // quando existir o app multi-usuario (fazendas/empresas).
         farmName: fullName.trim(),
         phone: phone.trim() || undefined,
+        fieldMode: fieldMode ?? undefined,
       });
       setSuccess(result);
     } catch (err) {
@@ -213,6 +220,15 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
           />
         </div>
 
+        {FIELD_LIBERADO && (
+          <CampoModoDeUso
+            valor={fieldMode}
+            onChange={setFieldMode}
+            disabled={submitting}
+            titulo="Como você vai usar o gerentia?"
+          />
+        )}
+
         {error ? (
           <p className="text-sm text-red-600 mt-1" role="alert">
             {error}
@@ -227,7 +243,8 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             !email ||
             !fullName ||
             password.length < MIN_SENHA ||
-            !passwordsMatch
+            !passwordsMatch ||
+            (FIELD_LIBERADO && !fieldMode)
           }
           className="mt-2"
         >

@@ -40,6 +40,9 @@ import {
   senhaAceita,
 } from "@/utils/senha";
 import { AREAS_DE_ATUACAO } from "@/utils/areasDeAtuacao";
+import { modulosVisiveis } from "@/lib/modulos";
+import type { ModoDeUso } from "@/utils/modoDeUso";
+import { CampoModoDeUso } from "@/modules/field/components/CampoModoDeUso";
 import { supabase } from "@/utils/supabase/client";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
 import { SubscriptionCard } from "../components/SubscriptionCard";
@@ -196,7 +199,8 @@ const ATALHOS: {
 ];
 
 export default function AccountPage() {
-  const { user, updateProfile, updateEmail, updatePassword } = useAuth();
+  const { user, isMaster, updateProfile, updateEmail, updatePassword } =
+    useAuth();
 
   // Perfil
   const [fullName, setFullName] = useState(user?.fullName ?? "");
@@ -209,6 +213,11 @@ export default function AccountPage() {
   const [city, setCity] = useState("");
   const [uf, setUf] = useState("");
   const [area, setArea] = useState("");
+  // Modo de uso do Field (vem do /auth/me). Só aparece para quem vê o Field.
+  const [modo, setModo] = useState<ModoDeUso | null>(user?.fieldMode ?? null);
+  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
+    "field",
+  );
   // Verificação do e-mail: vem do Supabase Auth (`email_confirmed_at`), não da
   // nossa `users_meta` — quem manda no estado da credencial é o Auth. null =
   // ainda consultando, para a tela não afirmar "não verificado" antes de saber.
@@ -277,6 +286,7 @@ export default function AccountPage() {
   const profileDirty =
     fullName.trim() !== user.fullName ||
     phone !== user.phone ||
+    modo !== (user.fieldMode ?? null) ||
     // `extrasCarregados` só existe depois da consulta: sem essa guarda, os
     // campos vazios do primeiro render contariam como alteração e o Salvar
     // nasceria habilitado, pronto para apagar o que está no banco.
@@ -297,6 +307,7 @@ export default function AccountPage() {
         city,
         state: uf,
         activityArea: area,
+        ...(modo !== (user?.fieldMode ?? null) ? { fieldMode: modo } : {}),
       });
       setExtrasCarregados({ cpf, city, uf, area });
       toast.success("Perfil atualizado.");
@@ -543,6 +554,15 @@ export default function AccountPage() {
               <ReadOnlyField label="Organização">
                 <span className="truncate block">{user.organizationName}</span>
               </ReadOnlyField> */}
+            {fieldVisivel && (
+              <div className="sm:col-span-2">
+                <CampoModoDeUso
+                  valor={modo}
+                  onChange={setModo}
+                  idPrefixo="acc-modo"
+                />
+              </div>
+            )}
           </div>
         </Section>
       )}

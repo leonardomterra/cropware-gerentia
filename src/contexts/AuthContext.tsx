@@ -17,6 +17,7 @@ import { api } from "@/utils/api";
 import { isMasterUser } from "@/utils/masterUsers";
 import { appRedirectBase } from "@/utils/platform";
 import { invalidateOrgPeople } from "@/modules/team/hooks/useOrgPeople";
+import type { ModoDeUso } from "@/utils/modoDeUso";
 
 /**
  * Perfis de acesso — ver docs/ORGANIZACOES-E-PERFIS.md.
@@ -73,6 +74,11 @@ export interface FarmUser {
   seatsLimit: number | null;
   seatsUsed: number | null;
   permissions: FarmPermissions;
+  /** Módulos com direito de uso (trial ou assinatura), vindos do servidor.
+   *  null = não calculado — ver modulosComDireito() em lib/modulos.ts. */
+  modules: string[] | null;
+  /** Modo de uso do Field. null = fazenda. Ver utils/modoDeUso.ts. */
+  fieldMode: ModoDeUso | null;
 }
 
 export interface SignUpInput {
@@ -82,6 +88,7 @@ export interface SignUpInput {
   farmName: string;
   phone?: string;
   cpf?: string;
+  fieldMode?: ModoDeUso;
 }
 
 interface AuthMeResponse {
@@ -91,8 +98,10 @@ interface AuthMeResponse {
     full_name: string | null;
     phone: string | null;
     whatsapp_linked: boolean;
+    field_mode?: ModoDeUso | null;
   };
   role: FarmRole;
+  modules?: string[] | null;
   organization: {
     id: string;
     name: string;
@@ -139,6 +148,7 @@ interface AuthContextType {
     city?: string | null;
     state?: string | null;
     activityArea?: string | null;
+    fieldMode?: ModoDeUso | null;
   }) => Promise<void>;
   updateEmail: (email: string) => Promise<void>;
   completePasswordReset: () => void;
@@ -169,6 +179,8 @@ async function fetchUserProfile(): Promise<FarmUser | null> {
       organizationKind: me.organization.kind ?? "individual",
       seatsLimit: me.organization.seats_limit ?? null,
       seatsUsed: me.organization.seats_used ?? null,
+      modules: me.modules ?? null,
+      fieldMode: me.user.field_mode ?? null,
       // Fallback pro caso da API estar numa versao anterior: deriva do role em
       // vez de deixar a UI sem permissao nenhuma.
       permissions: me.permissions
@@ -331,6 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             farm_name: input.farmName,
             phone: input.phone?.replace(/\D/g, "") || undefined,
             cpf: input.cpf?.replace(/\D/g, "") || undefined,
+            field_mode: input.fieldMode,
           },
           emailRedirectTo: appRedirectBase(),
         },
@@ -394,6 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       city?: string | null;
       state?: string | null;
       activityArea?: string | null;
+      fieldMode?: ModoDeUso | null;
     }) => {
       if (!user) return;
       const updates: Record<string, unknown> = {};
@@ -413,6 +427,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updates.state = texto(fields.state)?.toUpperCase() ?? null;
       if (fields.activityArea !== undefined)
         updates.activity_area = texto(fields.activityArea);
+      if (fields.fieldMode !== undefined) updates.field_mode = fields.fieldMode;
       if (Object.keys(updates).length === 0) return;
 
       const { error } = await supabase

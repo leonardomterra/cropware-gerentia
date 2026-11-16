@@ -16,7 +16,7 @@ export function mountAuthRoutes(app: Hono) {
       if (auth.error) return auth.error;
 
       const admin = getSupabaseAdmin();
-      const [allowed, costCenters, orgRes, metaRes, waRes] = await Promise.all([
+      const [allowed, costCenters, orgRes, metaRes, waRes, modRes] = await Promise.all([
         getAllowedCostCenterIds(admin, auth.user!.id, auth.organizationId!),
         listUserCostCenters(admin, auth.user!.id, auth.organizationId!),
         admin
@@ -26,7 +26,7 @@ export function mountAuthRoutes(app: Hono) {
           .maybeSingle(),
         admin
           .from("users_meta")
-          .select("full_name, phone")
+          .select("full_name, phone, field_mode")
           .eq("user_id", auth.user!.id)
           .maybeSingle(),
         // O vinculo do WhatsApp vem de farm_whatsapp_links, a tabela que a
@@ -39,6 +39,10 @@ export function mountAuthRoutes(app: Hono) {
           .from("farm_whatsapp_links")
           .select("user_id", { head: true, count: "exact" })
           .eq("user_id", auth.user!.id),
+        // Módulos liberados (trial ou assinatura por módulo). Client do USUÁRIO:
+        // a função resolve a org por auth.uid(). Ver migration
+        // 20261117120000_modulos_e_modo_de_uso.sql.
+        client.rpc("farm_org_modules"),
       ]);
 
       // Assentos ocupados: so faz sentido (e so e exposto) pra quem gerencia.
@@ -58,8 +62,12 @@ export function mountAuthRoutes(app: Hono) {
           full_name: metaRes.data?.full_name ?? null,
           phone: metaRes.data?.phone ?? null,
           whatsapp_linked: (waRes.count ?? 0) > 0,
+          field_mode: metaRes.data?.field_mode ?? null,
         },
         role: auth.role,
+        // null = não deu para calcular. O front trata como fail-open (mesma regra
+        // do PaywallGate): erro aqui nunca tranca ninguém fora.
+        modules: modRes.error ? null : ((modRes.data as string[] | null) ?? []),
         organization: orgRes.data ? { ...orgRes.data, seats_used: seatsUsed } : null,
         // A UI NAO recalcula regra de acesso: consome isto. A fonte de verdade
         // continua sendo a RLS — ver docs/ORGANIZACOES-E-PERFIS.md §5.

@@ -178,6 +178,10 @@ export function mountBillingRoutes(app: Hono) {
         .limit(1)
         .maybeSingle();
 
+      // Módulos liberados — a mesma função do /auth/me. O gate revalida por
+      // aqui quando a janela volta ao foco (volta do checkout ou da loja).
+      const { data: modules, error: modErr } = await client.rpc("farm_org_modules");
+
       const now = Date.now();
       const trialEndsAt = org?.trial_ends_at ?? null;
       const trialActive = !!trialEndsAt && new Date(trialEndsAt).getTime() > now;
@@ -189,6 +193,7 @@ export function mountBillingRoutes(app: Hono) {
         trial_ends_at: trialEndsAt,
         trial_active: trialActive,
         active: subActive || trialActive,
+        modules: modErr ? null : ((modules as string[] | null) ?? []),
         subscription: sub ?? null,
       });
     } catch (resp) {

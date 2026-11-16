@@ -33,7 +33,7 @@ export function mountAdminRoutes(app: Hono) {
       const { data: metas } = await admin
         .from("users_meta")
         .select(
-          "user_id, full_name, role, phone, cpf, city, state, activity_area, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
+          "user_id, full_name, role, phone, cpf, city, state, activity_area, field_mode, created_at, organization_id, organizations(name, trial_ends_at, plan_code)",
         );
       const metaById: Record<string, any> = {};
       // deno-lint-ignore no-explicit-any
@@ -64,6 +64,7 @@ export function mountAdminRoutes(app: Hono) {
           city: m?.city ?? null,
           state: m?.state ?? null,
           activity_area: m?.activity_area ?? null,
+          field_mode: m?.field_mode ?? null,
           plan_code: org?.plan_code ?? null,
         };
       });
@@ -166,6 +167,14 @@ export function mountAdminRoutes(app: Hono) {
       for (const campo of ["cpf", "city", "state", "activity_area"] as const) {
         const v = texto(body[campo]);
         if (v !== undefined) metaUpdate[campo] = v;
+      }
+      // Modo de uso do Field: só os dois valores; "" volta para NULL (= fazenda).
+      if (body.field_mode !== undefined) {
+        const fm = texto(body.field_mode);
+        if (fm !== undefined && fm !== null && !["fazenda", "consultor"].includes(fm)) {
+          return c.json({ error: "field_mode_invalido" }, 400);
+        }
+        if (fm !== undefined) metaUpdate.field_mode = fm;
       }
       if (Object.keys(metaUpdate).length > 0) {
         const { error } = await admin

@@ -35,6 +35,9 @@ import RailConfiguracoes from "~icons/ph/sliders-horizontal-duotone";
 import RailEquipe from "~icons/ph/users-duotone";
 import RailUsuarios from "~icons/ph/user-gear-duotone";
 import RailOrganizacoes from "~icons/ph/buildings-duotone";
+import RailField from "~icons/ph/plant-duotone";
+import Plant from "~icons/ph/plant";
+import CaretUpDown from "~icons/ph/caret-up-down";
 import UserCircle from "~icons/ph/user-circle";
 // Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
 // trilho que não leva a uma tela de trabalho — leva a você. O segundo tom e o
@@ -46,6 +49,13 @@ import HelpCircle from "~icons/ph/question";
 import Menu from "~icons/ph/list";
 import X from "~icons/ph/x";
 import { ROLE_LABELS, useAuth } from "@/contexts/AuthContext";
+import {
+  MODULOS,
+  moduloPorId,
+  modulosVisiveis,
+  type ModuloId,
+} from "@/lib/modulos";
+import { getStoredValue, setStoredValue } from "@/utils/appStorage";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
@@ -75,6 +85,9 @@ interface NavItem {
   /** Liga um contador dinâmico ao item. O array é constante de módulo, então o
    *  número é resolvido no AppShell (via hook). */
   badgeKey?: "notifications";
+  /** Tela de um módulo (lib/modulos.ts). Sem módulo = fixa: aparece sempre,
+   *  qualquer que seja o módulo ativo no seletor do trilho. */
+  modulo?: ModuloId;
 }
 
 // Ordem única do menu.
@@ -83,12 +96,18 @@ interface NavItem {
 //   hideForViewer  cria/edita dado — o convidado não vê
 // Ver docs/ORGANIZACOES-E-PERFIS.md §2.
 const NAV_ITEMS: NavItem[] = [
-  { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight },
+  {
+    to: "/lancamentos",
+    label: "Lançamentos",
+    icon: ArrowLeftRight,
+    modulo: "financas",
+  },
   {
     to: "/recorrencias",
     label: "Recorrências",
     icon: Repeat,
     hideForViewer: true,
+    modulo: "financas",
   },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/pendencias", label: "Pendências", icon: Checklist },
@@ -98,10 +117,22 @@ const NAV_ITEMS: NavItem[] = [
     icon: NotificationsIcon,
     badgeKey: "notifications",
   },
-  { to: "/relatorios", label: "Relatórios", icon: Assessment },
-  { to: "/anexos", label: "Anexos", icon: FolderOpen },
-  { to: "/cartoes", label: "Cartões", icon: CreditCard },
-  { to: "/notas", label: "Notas e Recibos", icon: ReceiptLong },
+  {
+    to: "/relatorios",
+    label: "Relatórios",
+    icon: Assessment,
+    modulo: "financas",
+  },
+  { to: "/anexos", label: "Anexos", icon: FolderOpen, modulo: "financas" },
+  { to: "/cartoes", label: "Cartões", icon: CreditCard, modulo: "financas" },
+  {
+    to: "/notas",
+    label: "Notas e Recibos",
+    icon: ReceiptLong,
+    modulo: "financas",
+  },
+  // Módulo Field — fase 0: só a página provisória (ver docs/UNIFICACAO-FIELD.md).
+  { to: "/campo", label: "Field", icon: Plant, modulo: "field" },
   {
     to: "/configuracoes",
     label: "Configurações",
@@ -160,6 +191,7 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/recorrencias": { Icon: RailRecorrencias, cor: "text-cyan-600" },
   "/relatorios": { Icon: RailRelatorios, cor: "text-blue-600" },
   "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
+  "/campo": { Icon: RailField, cor: "text-lime-700" },
   "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
   "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
   "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
@@ -168,7 +200,11 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/admin/organizacoes": { Icon: RailOrganizacoes, cor: "text-stone-600" },
 };
 
-/** Ordem do trilho. */
+/**
+ * Ordem do trilho. Uma lista só, para todos os módulos: o trilho mostra as
+ * telas fixas + as do módulo ativo, NESTA ordem. Assim, para quem só tem o
+ * Finanças, o trilho é exatamente o de antes dos módulos.
+ */
 const RAIL_ORDEM = [
   "/",
   "/lancamentos",
@@ -177,15 +213,19 @@ const RAIL_ORDEM = [
   "/recorrencias",
   "/relatorios",
   "/anexos",
+  "/campo",
   "/pendencias",
   "/notificacoes",
   "/configuracoes",
   "/equipe",
 ];
 
+/** Último módulo escolhido no seletor (vale quando a rota é fixa, ex.: Dashboard). */
+const CHAVE_MODULO_ATIVO = "gerentia.moduloAtivo";
+
 /** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
 export function AppShell() {
-  const { user, signOut, isAdmin, isViewer, isTeamOrg } = useAuth();
+  const { user, signOut, isAdmin, isViewer, isTeamOrg, isMaster } = useAuth();
   // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
   // mesmo estado que a página lê — marcar lida lá atualiza o badge aqui.
   const { unread } = useNotifications();
@@ -208,14 +248,78 @@ export function AppShell() {
       .catch(() => {});
   }, [user?.id]);
 
-  const navItems: NavItem[] = [
-    ...NAV_ITEMS.filter(
-      (i) =>
-        (!i.adminOnly || isAdmin) &&
-        (!i.teamOnly || isTeamOrg) &&
-        (!i.hideForViewer || !isViewer),
-    ),
-  ];
+  // ---- Módulos (ver lib/modulos.ts) -------------------------------------
+  const visiveis = useMemo(
+    () => modulosVisiveis(user?.modules, isMaster),
+    [user?.modules, isMaster],
+  );
+  const variosModulos = visiveis.length > 1;
+
+  // Módulo escolhido no seletor, guardado entre sessões. Só decide quando a
+  // rota atual é FIXA (Dashboard, Pendências…); numa tela de módulo, quem manda
+  // é a rota — um link direto para /lancamentos abre o Finanças sozinho.
+  const [moduloEscolhido, setModuloEscolhido] = useState<ModuloId>("financas");
+  useEffect(() => {
+    void getStoredValue(CHAVE_MODULO_ATIVO).then((v) => {
+      if (v && MODULOS.some((m) => m.id === v))
+        setModuloEscolhido(v as ModuloId);
+    });
+  }, []);
+
+  const moduloDaRota = NAV_ITEMS.find(
+    (it) =>
+      it.modulo &&
+      (location.pathname === it.to ||
+        location.pathname.startsWith(it.to + "/")),
+  )?.modulo;
+  const candidato = moduloDaRota ?? moduloEscolhido;
+  const moduloAtivo: ModuloId = visiveis.includes(candidato)
+    ? candidato
+    : "financas";
+
+  // A rota que abre um módulo também vira a escolha guardada: quem chegou ao
+  // Field por link e volta ao Dashboard continua vendo o trilho do Field.
+  useEffect(() => {
+    if (moduloDaRota && moduloDaRota !== moduloEscolhido) {
+      setModuloEscolhido(moduloDaRota);
+      void setStoredValue(CHAVE_MODULO_ATIVO, moduloDaRota);
+    }
+  }, [moduloDaRota, moduloEscolhido]);
+
+  /** Itens permitidos por papel e por módulo visível (todos os módulos). */
+  const navItems: NavItem[] = NAV_ITEMS.filter(
+    (i) =>
+      (!i.adminOnly || isAdmin) &&
+      (!i.teamOnly || isTeamOrg) &&
+      (!i.hideForViewer || !isViewer) &&
+      (!i.modulo || visiveis.includes(i.modulo)),
+  );
+
+  /** Troca de módulo no seletor: guarda a escolha e abre a 1ª tela do módulo. */
+  const trocarModulo = (id: ModuloId) => {
+    setModuloEscolhido(id);
+    void setStoredValue(CHAVE_MODULO_ATIVO, id);
+    const primeira = RAIL_ORDEM.find((rota) =>
+      navItems.some((i) => i.to === rota && i.modulo === id),
+    );
+    if (primeira) navigate(primeira);
+  };
+
+  /**
+   * Gaveta do celular. Com um módulo só, a lista é a de sempre. Com vários, sem
+   * seletor (a gaveta tem altura para tudo): as telas fixas primeiro e depois
+   * uma seção com título por módulo.
+   */
+  const gruposDoDrawer: { titulo: string | null; itens: NavItem[] }[] =
+    variosModulos
+      ? [
+          { titulo: null, itens: navItems.filter((i) => !i.modulo) },
+          ...visiveis.map((id) => ({
+            titulo: moduloPorId(id).nome,
+            itens: navItems.filter((i) => i.modulo === id),
+          })),
+        ].filter((g) => g.itens.length > 0)
+      : [{ titulo: null, itens: navItems }];
 
   const breadcrumbSegments = useMemo(() => {
     const path = location.pathname;
@@ -294,10 +398,53 @@ export function AppShell() {
     </DropdownMenu>
   );
 
+  /**
+   * Seletor de módulo — topo do trilho, só quando há mais de um módulo
+   * visível. Mostra o ícone do módulo ativo; o menu lista os módulos com nome.
+   */
+  const ativo = moduloPorId(moduloAtivo);
+  const seletorDeModulo = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Módulo: ${ativo.nome}. Trocar de módulo`}
+          title={`Módulo: ${ativo.nome}`}
+          className="relative flex items-center justify-center w-full h-10 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+        >
+          <ativo.Icon className={cn("size-6 shrink-0", ativo.cor)} />
+          <CaretUpDown className="absolute right-0.5 bottom-0.5 size-3 text-slate-400" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="w-48"
+      >
+        {visiveis.map((id) => {
+          const m = moduloPorId(id);
+          return (
+            <DropdownMenuItem
+              key={id}
+              onSelect={() => trocarModulo(id)}
+              className={cn(id === moduloAtivo && "font-semibold")}
+            >
+              <m.Icon className={cn("size-5 shrink-0", m.cor)} />
+              {m.nome}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   /** Itens do trilho, na ordem do mapa e já filtrados por papel — página que o
    *  usuário não pode ver não ganha ícone. */
   const railItens: RailItem[] = RAIL_ORDEM.map<RailItem | null>((rota) => {
-    const item = navItems.find((i) => i.to === rota);
+    const item = navItems.find(
+      (i) => i.to === rota && (!i.modulo || i.modulo === moduloAtivo),
+    );
     const visual = RAIL_ICONES[rota];
     if (!item || !visual) return null;
     return {
@@ -325,7 +472,11 @@ export function AppShell() {
         <div className="flex items-center justify-center h-13 shrink-0 border-b border-slate-200">
           <Logo className="h-6 w-auto opacity-80" />
         </div>
-        <AppSidebar itens={railItens} footer={accountTrigger} />
+        <AppSidebar
+          itens={railItens}
+          footer={accountTrigger}
+          topo={variosModulos ? seletorDeModulo : undefined}
+        />
       </aside>
 
       {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua
@@ -346,30 +497,42 @@ export function AppShell() {
               <div className="h-1 w-10 rounded-full bg-slate-300" />
             </div>
             <nav className="px-3 pb-3 pt-1 max-h-[70vh] overflow-y-auto flex flex-col gap-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm transition-colors",
-                      isActive
-                        ? "text-slate-900 font-semibold"
-                        : "text-slate-600 hover:bg-slate-200",
-                    )
-                  }
+              {gruposDoDrawer.map((grupo) => (
+                <div
+                  key={grupo.titulo ?? "unico"}
+                  className="flex flex-col gap-1"
                 >
-                  <item.icon className="size-5 shrink-0" />
-                  <span>{item.label}</span>
-                  {/* A gaveta desenha o item com markup próprio. */}
-                  {item.badgeKey === "notifications" && unread > 0 && (
-                    <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
-                      {unread > 99 ? "99+" : unread}
-                    </span>
+                  {grupo.titulo && (
+                    <p className="px-3 pt-2 pb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      {grupo.titulo}
+                    </p>
                   )}
-                </NavLink>
+                  {grupo.itens.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm transition-colors",
+                          isActive
+                            ? "text-slate-900 font-semibold"
+                            : "text-slate-600 hover:bg-slate-200",
+                        )
+                      }
+                    >
+                      <item.icon className="size-5 shrink-0" />
+                      <span>{item.label}</span>
+                      {/* A gaveta desenha o item com markup próprio. */}
+                      {item.badgeKey === "notifications" && unread > 0 && (
+                        <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
               ))}
               <div className="my-1 h-px bg-slate-100" />
               <button

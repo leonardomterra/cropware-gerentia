@@ -18,6 +18,8 @@ export interface AdminUser {
   city: string | null;
   state: string | null;
   activity_area: string | null;
+  /** Modo de uso do Field: fazenda | consultor (null = fazenda). */
+  field_mode: string | null;
 }
 
 export interface CreateUserInput {

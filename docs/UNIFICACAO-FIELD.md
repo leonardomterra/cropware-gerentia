@@ -158,6 +158,18 @@ Cada fase vai ao ar sozinha.
 9. **Virada.** Migrar os dados do Leonardo e recriar a conta de revisão da Apple; redirecionar
    flagfield.cropware.com.br; tirar o Flag Field das lojas; reaproveitar os 4 cadastros como contatos.
 
+## 9b. Andamento
+
+- **Fase 0 (16/11/2026): código pronto na branch, ainda não publicado.**
+  - Migration `20261117120000_modulos_e_modo_de_uso.sql`.
+  - `/auth/me` e `/billing/subscription` devolvem `modules`.
+  - `lib/modulos.ts` com a chave `FIELD_LIBERADO`.
+  - Seletor de módulo no trilho; `ModuloGate`; página provisória `/campo`, só para o master.
+  - Modo de uso na Conta e no painel do master.
+  - A pergunta do modo de uso no **cadastro** só aparece com `FIELD_LIBERADO = true`. Antes
+    disso, quem assina só o Finanças (inclusive fora do agro) não tem por que responder
+    sobre produtores.
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no

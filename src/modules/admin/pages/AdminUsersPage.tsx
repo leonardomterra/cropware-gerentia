@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { AREAS_DE_ATUACAO } from "@/utils/areasDeAtuacao";
+import { MODOS_DE_USO } from "@/utils/modoDeUso";
 import { dicaDeSenha, senhaAceita } from "@/utils/senha";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { CardSensivel } from "../components/CardSensivel";
@@ -139,6 +140,7 @@ export default function AdminUsersPage({
     city: "",
     state: "",
     activity_area: "",
+    field_mode: "",
   });
   const [editPending, setEditPending] = useState(false);
   // Travas dos cards sensíveis (e-mail e senha). Ver CardSensivel: os campos só
@@ -292,6 +294,7 @@ export default function AdminUsersPage({
       city: u.city ?? "",
       state: u.state ?? "",
       activity_area: u.activity_area ?? "",
+      field_mode: u.field_mode ?? "",
     });
   }
 
@@ -307,6 +310,7 @@ export default function AdminUsersPage({
         city: eForm.city,
         state: eForm.state.toUpperCase(),
         activity_area: eForm.activity_area,
+        field_mode: eForm.field_mode,
       };
       if (eForm.trial_ends_at) {
         patch.trial_ends_at = new Date(eForm.trial_ends_at).toISOString();
@@ -630,6 +634,32 @@ export default function AdminUsersPage({
                     {AREAS_DE_ATUACAO.map((a) => (
                       <SelectItem key={a.valor} value={a.valor}>
                         {a.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 block">
+                  Modo de Uso (Field)
+                </label>
+                {/* Vazio = fazenda (NULL no banco), por isso não há "não informado". */}
+                <Select
+                  value={eForm.field_mode || "fazenda"}
+                  onValueChange={(v) =>
+                    setEForm((s) => ({
+                      ...s,
+                      field_mode: v === "fazenda" ? "" : v,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODOS_DE_USO.map((m) => (
+                      <SelectItem key={m.valor} value={m.valor}>
+                        {m.rotulo}
                       </SelectItem>
                     ))}
                   </SelectContent>
