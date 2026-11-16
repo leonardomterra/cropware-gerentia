@@ -181,7 +181,8 @@ Cada fase vai ao ar sozinha.
   - Satélite da Esri, sem os tiles diretos do Google; miniaturas em SVG.
   - **Testes manuais pendentes**: em [TESTES-UNIFICACAO.md](TESTES-UNIFICACAO.md).
 
-- **Fase 2 (16/11/2026): código pronto na branch** (migration `20261119120000_field_safra.sql`).
+- **Fase 2 (16/11/2026): no ar** (migration `20261119120000_field_safra.sql` + servidor, a partir da
+  branch; testes manuais pendentes).
   - Safras cadastradas e catálogo sem preço.
   - Plantios com finalidade (inclui campo demonstrativo/GD).
   - Atividades com custo agronômico; calagem e gessagem como tipos próprios, no lugar de
