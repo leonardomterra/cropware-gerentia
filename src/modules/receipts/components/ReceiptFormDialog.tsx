@@ -47,6 +47,8 @@ import {
   ICONE_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
+import { modulosVisiveis } from "@/lib/modulos";
+import { useOpcoesDeVinculo } from "@/modules/field/hooks/useOpcoesDeVinculo";
 import {
   DOC_TYPES,
   DOC_TYPE_LABEL,
@@ -148,6 +150,9 @@ export interface FormState {
   invoice_number: string;
   notes: string;
   cost_center_id: string;
+  /** Fazenda/talhão (módulo Field). "" = sem vínculo. */
+  farm_id: string;
+  plot_id: string;
   is_estimated: boolean;
   counts_in_total: boolean;
   card_id: string;
@@ -169,6 +174,8 @@ const EMPTY: FormState = {
   invoice_number: "",
   notes: "",
   cost_center_id: "",
+  farm_id: "",
+  plot_id: "",
   is_estimated: false,
   counts_in_total: true,
   card_id: "",
@@ -237,9 +244,21 @@ export function ReceiptFormDialog({
   const [pendingConvert, setPendingConvert] = useState<ItemRow | null>(null);
   const [converting, setConverting] = useState(false);
   const { categories } = useCategories();
-  const { user } = useAuth();
+  const { user, isMaster } = useAuth();
   const ccs = user?.costCenters ?? [];
   const defaultCCId = ccs.find((c) => c.is_default)?.id || ccs[0]?.id || "";
+
+  // Fazenda/talhão do lançamento — só com o módulo Field visível e com alguma
+  // fazenda cadastrada. Sem isso os campos nem aparecem e o payload não leva
+  // farm_id/plot_id (o servidor mantém o que já estava).
+  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
+    "field",
+  );
+  const vinculo = useOpcoesDeVinculo(open && fieldVisivel);
+  const mostraVinculo = fieldVisivel && vinculo.fazendas.length > 0;
+  const vinculoPayload = mostraVinculo
+    ? { farm_id: form.farm_id || null, plot_id: form.plot_id || null }
+    : {};
 
   // Lançamento itemizado sendo editado num contexto SEM editor de itens
   // (Lançamentos): vira resumo (total read-only + atalho "gerenciar itens").
@@ -279,6 +298,8 @@ export function ReceiptFormDialog({
           receipt.cost_center_id ??
           receipt.items?.[0]?.cost_center_id ??
           defaultCCId,
+        farm_id: receipt.farm_id ?? "",
+        plot_id: receipt.plot_id ?? "",
         is_estimated: receipt.is_estimated,
         counts_in_total: receipt.counts_in_total,
         card_id: receipt.card_id ?? "",
@@ -488,6 +509,7 @@ export function ReceiptFormDialog({
           is_estimated: form.is_estimated,
           counts_in_total: form.counts_in_total,
           card_id: form.card_id || null,
+          ...vinculoPayload,
         });
         toast.success("Lançamento atualizado");
         onSaved();
@@ -563,6 +585,7 @@ export function ReceiptFormDialog({
         is_estimated: form.is_estimated,
         counts_in_total: form.counts_in_total,
         card_id: form.card_id || null,
+        ...vinculoPayload,
         ...itemsKey,
       };
 
@@ -795,6 +818,60 @@ export function ReceiptFormDialog({
               </SelectContent>
             </Select>
           </div>
+        )}
+        {mostraVinculo && (
+          <>
+            <div>
+              <div className="flex items-center gap-1.5 min-h-[1.125rem]">
+                <Label>Fazenda</Label>
+                <Ajuda>
+                  Ligue o lançamento à fazenda ou ao talhão para ver o custo de
+                  cada um nos relatórios do Field.
+                </Ajuda>
+              </div>
+              <SearchableSelect
+                options={[
+                  { value: "none", label: "Sem fazenda" },
+                  ...vinculo.fazendas.map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                  })),
+                ]}
+                value={form.farm_id || "none"}
+                onValueChange={(v) =>
+                  setForm((s) => ({
+                    ...s,
+                    farm_id: v === "none" ? "" : v,
+                    // Trocar de fazenda solta o talhão da outra.
+                    plot_id: v === s.farm_id ? s.plot_id : "",
+                  }))
+                }
+                searchPlaceholder="Buscar fazenda..."
+                emptyMessage="Nenhuma fazenda."
+                triggerClassName="mt-1"
+              />
+            </div>
+            <div>
+              <div className="flex items-center min-h-[1.125rem]">
+                <Label>Talhão</Label>
+              </div>
+              <SearchableSelect
+                options={[
+                  { value: "none", label: "Fazenda inteira" },
+                  ...vinculo.talhoes
+                    .filter((t) => t.farm_id === form.farm_id)
+                    .map((t) => ({ value: t.id, label: t.name })),
+                ]}
+                value={form.plot_id || "none"}
+                onValueChange={(v) => set("plot_id", v === "none" ? "" : v)}
+                placeholder="Fazenda inteira"
+                searchPlaceholder="Buscar talhão..."
+                emptyMessage="Nenhum talhão nesta fazenda."
+                triggerClassName="mt-1"
+                disabled={!form.farm_id}
+              />
+            </div>
+          </>
         )}
         {/* "Contabilizar no Total" — aparece só onde há risco de duplicar
             (fatura ou cartão de crédito). Desde 25/08/2026 a FATURA nasce

@@ -91,7 +91,9 @@ const ROTULOS: [string, string, string][] = [
   ["farm_recurring_receipts", "recorrência", "recorrências"],
   ["farm_cost_centers", "centro de custo", "centros de custo"],
   ["farm_categories", "categoria", "categorias"],
+  ["farm_plots", "talhão", "talhões"],
   ["farms", "fazenda", "fazendas"],
+  ["farm_producers", "produtor", "produtores"],
 ];
 
 function resumo(contagem: Record<string, number>): string {

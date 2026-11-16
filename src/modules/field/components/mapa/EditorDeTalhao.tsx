@@ -243,7 +243,6 @@ export function EditorDeTalhao({
     return () => {
       g.remove();
     };
-     
   }, [mapa, pontos, modo, selecionado]);
 
   // Cliques no mapa conforme o modo.
@@ -282,7 +281,6 @@ export function EditorDeTalhao({
     return () => {
       mapa.off("click", aoClicar);
     };
-     
   }, [mapa, modo]);
 
   function comecar(m: Modo) {

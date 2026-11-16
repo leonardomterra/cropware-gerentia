@@ -12,6 +12,7 @@ import { PaywallGate } from "@/components/billing/PaywallGate";
 import { Paywall } from "@/components/billing/Paywall";
 import { ModuloGate } from "@/components/billing/ModuloGate";
 import { modulosVisiveis } from "@/lib/modulos";
+import { mostraProdutores } from "@/utils/modoDeUso";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { SignUpScreen } from "@/components/auth/SignUpScreen";
 import { ForgotPasswordScreen } from "@/components/auth/ForgotPasswordScreen";
@@ -38,9 +39,6 @@ const AnexosPage = lazyWithRetry(
 );
 const ReportsPage = lazyWithRetry(
   () => import("@/modules/reports/pages/ReportsPage"),
-);
-const FarmsPage = lazyWithRetry(
-  () => import("@/modules/farms/pages/FarmsPage"),
 );
 const AccountPage = lazyWithRetry(
   () => import("@/modules/account/pages/AccountPage"),
@@ -74,8 +72,14 @@ const AdminUsersPage = lazyWithRetry(
 const AdminOrgsPage = lazyWithRetry(
   () => import("@/modules/admin/pages/AdminOrgsPage"),
 );
-const FieldHomePage = lazyWithRetry(
-  () => import("@/modules/field/pages/FieldHomePage"),
+const ProdutoresPage = lazyWithRetry(
+  () => import("@/modules/field/pages/ProdutoresPage"),
+);
+const FazendasPage = lazyWithRetry(
+  () => import("@/modules/field/pages/FazendasPage"),
+);
+const TalhoesPage = lazyWithRetry(
+  () => import("@/modules/field/pages/TalhoesPage"),
 );
 
 type AuthView = "login" | "signup" | "forgot";
@@ -273,12 +277,12 @@ function RootRoutes() {
               </ModuloGate>
             }
           />
+          {/* /fazendas era o stub "CRUD vem no V2"; o cadastro de fazendas
+            agora é do módulo Field. O caminho antigo leva para lá. */}
           <Route
             path="fazendas"
             element={
-              <Suspense fallback={<LoadingScreen />}>
-                <FarmsPage />
-              </Suspense>
+              <Navigate to={fieldVisivel ? "/campo/fazendas" : "/"} replace />
             }
           />
           <Route
@@ -349,19 +353,47 @@ function RootRoutes() {
               />
             </>
           )}
-          {/* Módulo Field (fase 0: só a página provisória). Visível só para o
-            master até FIELD_LIBERADO — ver lib/modulos.ts. */}
+          {/* Módulo Field — cadastros (fase 1). Visível só para o master até
+            FIELD_LIBERADO (lib/modulos.ts). /campo sozinho abre os talhões. */}
           {fieldVisivel && (
-            <Route
-              path="campo"
-              element={
-                <ModuloGate modulo="field">
-                  <Suspense fallback={<LoadingScreen />}>
-                    <FieldHomePage />
-                  </Suspense>
-                </ModuloGate>
-              }
-            />
+            <>
+              <Route
+                path="campo"
+                element={<Navigate to="/campo/talhoes" replace />}
+              />
+              {mostraProdutores(user?.fieldMode) && (
+                <Route
+                  path="campo/produtores"
+                  element={
+                    <ModuloGate modulo="field">
+                      <Suspense fallback={<LoadingScreen />}>
+                        <ProdutoresPage />
+                      </Suspense>
+                    </ModuloGate>
+                  }
+                />
+              )}
+              <Route
+                path="campo/fazendas"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <FazendasPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/talhoes"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <TalhoesPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+            </>
           )}
           {/* DEV-only: laboratorio de icones (Iconify). So existe em dev, por URL
             /icones. Em producao a rota nao e registrada (cai no catch-all). */}

@@ -35,8 +35,12 @@ import RailConfiguracoes from "~icons/ph/sliders-horizontal-duotone";
 import RailEquipe from "~icons/ph/users-duotone";
 import RailUsuarios from "~icons/ph/user-gear-duotone";
 import RailOrganizacoes from "~icons/ph/buildings-duotone";
-import RailField from "~icons/ph/plant-duotone";
+import RailTalhoes from "~icons/ph/plant-duotone";
+import RailFazendas from "~icons/ph/barn-duotone";
+import RailProdutores from "~icons/ph/user-list-duotone";
 import Plant from "~icons/ph/plant";
+import Barn from "~icons/ph/barn";
+import UserList from "~icons/ph/user-list";
 import CaretUpDown from "~icons/ph/caret-up-down";
 import UserCircle from "~icons/ph/user-circle";
 // Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
@@ -56,6 +60,7 @@ import {
   type ModuloId,
 } from "@/lib/modulos";
 import { getStoredValue, setStoredValue } from "@/utils/appStorage";
+import { mostraProdutores } from "@/utils/modoDeUso";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo } from "@/components/Logo";
@@ -82,6 +87,8 @@ interface NavItem {
   teamOnly?: boolean;
   /** Some pro convidado (perfil somente-leitura). */
   hideForViewer?: boolean;
+  /** Só no modo "consultor" do Field (utils/modoDeUso.ts). */
+  soConsultor?: boolean;
   /** Liga um contador dinâmico ao item. O array é constante de módulo, então o
    *  número é resolvido no AppShell (via hook). */
   badgeKey?: "notifications";
@@ -131,8 +138,16 @@ const NAV_ITEMS: NavItem[] = [
     icon: ReceiptLong,
     modulo: "financas",
   },
-  // Módulo Field — fase 0: só a página provisória (ver docs/UNIFICACAO-FIELD.md).
-  { to: "/campo", label: "Field", icon: Plant, modulo: "field" },
+  // Módulo Field — cadastros (fase 1, docs/UNIFICACAO-FIELD.md).
+  {
+    to: "/campo/produtores",
+    label: "Produtores",
+    icon: UserList,
+    modulo: "field",
+    soConsultor: true,
+  },
+  { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
+  { to: "/campo/talhoes", label: "Talhões", icon: Plant, modulo: "field" },
   {
     to: "/configuracoes",
     label: "Configurações",
@@ -146,7 +161,6 @@ const NAV_ITEMS: NavItem[] = [
     adminOnly: true,
     teamOnly: true,
   },
-  // "Fazendas" escondido do menu (CRUD orfao); rota /fazendas segue válida via URL.
 ];
 
 /**
@@ -191,7 +205,9 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/recorrencias": { Icon: RailRecorrencias, cor: "text-cyan-600" },
   "/relatorios": { Icon: RailRelatorios, cor: "text-blue-600" },
   "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
-  "/campo": { Icon: RailField, cor: "text-lime-700" },
+  "/campo/produtores": { Icon: RailProdutores, cor: "text-teal-700" },
+  "/campo/fazendas": { Icon: RailFazendas, cor: "text-amber-700" },
+  "/campo/talhoes": { Icon: RailTalhoes, cor: "text-lime-700" },
   "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
   "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
   "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
@@ -213,7 +229,9 @@ const RAIL_ORDEM = [
   "/recorrencias",
   "/relatorios",
   "/anexos",
-  "/campo",
+  "/campo/talhoes",
+  "/campo/fazendas",
+  "/campo/produtores",
   "/pendencias",
   "/notificacoes",
   "/configuracoes",
@@ -292,6 +310,7 @@ export function AppShell() {
       (!i.adminOnly || isAdmin) &&
       (!i.teamOnly || isTeamOrg) &&
       (!i.hideForViewer || !isViewer) &&
+      (!i.soConsultor || mostraProdutores(user?.fieldMode)) &&
       (!i.modulo || visiveis.includes(i.modulo)),
   );
 

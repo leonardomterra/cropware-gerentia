@@ -86,6 +86,8 @@ export interface Receipt {
   organization_id: string;
   created_by: string;
   farm_id: string | null;
+  /** Talhão (módulo Field). A fazenda é a do talhão. */
+  plot_id?: string | null;
   cost_center_id: string | null;
   doc_type: ReceiptDocType;
   direction: ReceiptDirection;
@@ -159,6 +161,7 @@ export interface ReceiptInput {
   invoice_number?: string | null;
   notes?: string | null;
   farm_id?: string | null;
+  plot_id?: string | null;
   attachment_key?: string | null;
   attachment_mime?: string | null;
   source?: ReceiptSource;
