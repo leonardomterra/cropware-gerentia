@@ -246,7 +246,7 @@ export function useAtividades() {
   }, [recarregar]);
 
   const salvarAtividade = useCallback(
-    async (d: AtividadeInput, id?: string) => {
+    async (d: Partial<AtividadeInput>, id?: string) => {
       if (!user)
         return {
           ok: false,
