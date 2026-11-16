@@ -23,6 +23,20 @@ L.Icon.Default.mergeOptions({
   shadowSize: [41, 41],
 });
 
+/**
+ * Rótulo do nome do talhão sobre o mapa: texto branco com sombra, sem o balão
+ * do tooltip do Leaflet (que tapava o próprio talhão).
+ */
+if (
+  typeof document !== "undefined" &&
+  !document.getElementById("cw-leaflet-css")
+) {
+  const st = document.createElement("style");
+  st.id = "cw-leaflet-css";
+  st.textContent = `.leaflet-tooltip.rotulo-do-talhao{background:transparent;border:0;box-shadow:none;color:#fff;font-size:12px;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.8)}.leaflet-tooltip.rotulo-do-talhao::before{display:none}`;
+  document.head.appendChild(st);
+}
+
 export interface CamadaDoMapa {
   id: "satelite" | "mapa";
   nome: string;
