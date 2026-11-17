@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import NotificationsIcon from "~icons/ph/bell";
 import Check from "~icons/ph/check";
 import DoneAll from "~icons/ph/checks";
 import Trash2 from "~icons/ph/trash";
@@ -126,7 +125,6 @@ export default function NotificacoesPage() {
         </div>
       ) : notifications.length === 0 ? (
         <EmptyStateCard
-          icon={NotificationsIcon}
           title="Nenhuma notificação"
           description="Avisos de contas e lembretes a vencer aparecem aqui."
         />

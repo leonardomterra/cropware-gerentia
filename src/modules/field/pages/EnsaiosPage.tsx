@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import Flask from "~icons/ph/test-tube-duotone";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -212,7 +211,6 @@ export default function EnsaiosPage() {
         <LoadingState />
       ) : d.ensaios.length === 0 ? (
         <EmptyStateCard
-          icon={Flask}
           title="Nenhum ensaio ainda"
           description="Compare o seu produto (principal) com o do concorrente no mesmo campo: avaliações, colheita e ROI num lugar só."
         />

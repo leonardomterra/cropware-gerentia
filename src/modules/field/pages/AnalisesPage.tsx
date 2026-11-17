@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import ChartLineUp from "~icons/ph/chart-line-up-duotone";
 import DownloadSimple from "~icons/ph/download-simple";
 import Printer from "~icons/ph/printer";
 import { Button } from "@/components/ui/button";
@@ -249,7 +248,6 @@ export default function AnalisesPage() {
         <LoadingState />
       ) : r.ranking.length === 0 ? (
         <EmptyStateCard
-          icon={ChartLineUp}
           title="Ainda sem colheitas para comparar"
           description="As análises usam a produtividade colhida dos ensaios. Registre a colheita dos produtos para ver o ranking e o ganho do principal."
         />

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import ChartBar from "~icons/ph/chart-bar-duotone";
 import DownloadSimple from "~icons/ph/download-simple";
 import Printer from "~icons/ph/printer";
 import { Input } from "@/components/ui/input";
@@ -304,13 +303,11 @@ export default function CustosPage() {
         <LoadingState />
       ) : c.talhoes.length === 0 ? (
         <EmptyStateCard
-          icon={ChartBar}
           title="Sem talhões ainda"
           description="Cadastre fazendas e talhões, registre atividades e ligue os lançamentos aos talhões para ver o custo de cada um."
         />
       ) : !r ? (
         <EmptyStateCard
-          icon={ChartBar}
           title={
             c.safras.length
               ? "Escolha a safra ou o período"

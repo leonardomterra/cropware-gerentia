@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import ChartPie from "~icons/ph/chart-pie-slice-duotone";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -107,13 +106,11 @@ export default function PainelPage() {
 
       {!safra ? (
         <EmptyStateCard
-          icon={ChartPie}
           title={c.safras.length ? "Escolha a safra" : "Cadastre uma safra"}
           description="O painel mostra uma safra por vez (Field → Safras)."
         />
       ) : !doc || doc.empty ? (
         <EmptyStateCard
-          icon={ChartPie}
           title="Nenhum plantio nesta safra"
           description="Cadastre os plantios (Field → Plantios) com a safra para ver o painel."
         />

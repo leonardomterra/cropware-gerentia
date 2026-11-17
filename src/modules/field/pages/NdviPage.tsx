@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import Satellite from "~icons/ph/globe-hemisphere-west-duotone";
 import { Button } from "@/components/ui/button";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -70,7 +69,6 @@ export default function NdviPage() {
   if (comContorno.length === 0) {
     return (
       <EmptyStateCard
-        icon={Satellite}
         title="Nenhum talhão com contorno"
         description="O NDVI precisa do desenho do talhão. Desenhe o contorno em Field → Talhões."
       />

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import ClipboardText from "~icons/ph/clipboard-text-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
@@ -1112,7 +1111,6 @@ export default function AtividadesPage() {
         <LoadingState />
       ) : a.atividades.length === 0 ? (
         <EmptyStateCard
-          icon={ClipboardText}
           title="Nenhuma atividade registrada"
           description="Registre aplicações, adubações, colheitas, observações e visitas — com o custo de cada uma."
         />

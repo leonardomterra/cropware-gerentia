@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Plant from "~icons/ph/plant-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
@@ -639,7 +638,6 @@ export default function PlantiosPage() {
         <LoadingState />
       ) : c.plantios.length === 0 ? (
         <EmptyStateCard
-          icon={Plant}
           title="Nenhum plantio cadastrado"
           description={
             c.talhoes.length

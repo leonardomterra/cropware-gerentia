@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import CloudSun from "~icons/ph/cloud-sun-duotone";
 import Crosshair from "~icons/ph/crosshair";
 import { Button } from "@/components/ui/button";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
@@ -72,7 +71,6 @@ export default function ClimaPage() {
 
       {!local ? (
         <EmptyStateCard
-          icon={CloudSun}
           title="Sem local para o clima"
           description="Marque a sede da fazenda (Field → Fazendas) ou desenhe um talhão — ou use 'Onde estou'."
         />

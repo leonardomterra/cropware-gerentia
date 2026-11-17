@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import Plus from "~icons/ph/plus";
-import Repeat from "~icons/ph/arrows-clockwise-fill";
 import Search from "~icons/ph/magnifying-glass";
 import ChevronDown from "~icons/ph/caret-down";
 import ArrowsDownUp from "~icons/ph/arrows-down-up";
@@ -790,7 +789,6 @@ export default function RecurringPage() {
         <LoadingState />
       ) : items.length === 0 ? (
         <EmptyStateCard
-          icon={Repeat}
           title="Nenhuma recorrência ainda"
           description="crie uma pra gerar lançamentos todo mês automaticamente"
         />

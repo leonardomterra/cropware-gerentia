@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import CalendarIcon from "~icons/ph/calendar-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
@@ -218,7 +217,6 @@ export default function SafrasPage() {
         <LoadingState />
       ) : c.safras.length === 0 ? (
         <EmptyStateCard
-          icon={CalendarIcon}
           title="Nenhuma safra cadastrada"
           description="Cadastre a safra (ex.: 2025/26) para organizar plantios e ver o custo de cada talhão nela."
         />

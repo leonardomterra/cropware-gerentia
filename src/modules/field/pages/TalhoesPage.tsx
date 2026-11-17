@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { COR } from "@/lib/paleta";
-import Plant from "~icons/ph/plant-duotone";
 import PencilSimple from "~icons/ph/pencil-simple";
 import MapTrifold from "~icons/ph/map-trifold";
 import Trash from "~icons/ph/trash";
@@ -492,7 +491,6 @@ export default function TalhoesPage() {
         <LoadingState />
       ) : c.talhoes.length === 0 ? (
         <EmptyStateCard
-          icon={Plant}
           title="Nenhum talhão cadastrado"
           description={
             c.fazendas.length

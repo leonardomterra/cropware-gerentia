@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
-import Tray from "~icons/ph/tray";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/ph/arrow-down";
@@ -987,7 +986,6 @@ export function ReceiptsListPage({
               <div className="min-h-[40vh] sm:min-h-[calc(100dvh-16rem)]" />
             ) : (
               <EmptyStateCard
-                icon={Tray}
                 title={emptyLabel}
                 description={
                   temFiltroAtivo

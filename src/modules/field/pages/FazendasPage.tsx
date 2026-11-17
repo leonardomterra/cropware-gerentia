@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import Barn from "~icons/ph/barn-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
@@ -367,7 +366,6 @@ export default function FazendasPage() {
         <LoadingState />
       ) : c.fazendas.length === 0 ? (
         <EmptyStateCard
-          icon={Barn}
           title="Nenhuma fazenda cadastrada"
           description="Cadastre a fazenda e depois desenhe os talhões dela no mapa."
         />

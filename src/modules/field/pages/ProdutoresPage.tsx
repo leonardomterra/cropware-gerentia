@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import UserIcon from "~icons/ph/user-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
@@ -268,7 +267,6 @@ export default function ProdutoresPage() {
         <LoadingState />
       ) : c.produtores.length === 0 ? (
         <EmptyStateCard
-          icon={UserIcon}
           title="Nenhum produtor cadastrado"
           description="Cadastre os produtores que você atende para organizar as fazendas de cada um."
         />

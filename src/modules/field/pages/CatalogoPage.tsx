@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import Flask from "~icons/ph/flask-duotone";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -120,7 +119,6 @@ export default function CatalogoPage() {
         <LoadingState />
       ) : c.produtos.length === 0 ? (
         <EmptyStateCard
-          icon={Flask}
           title="Catálogo vazio"
           description="Cadastre os insumos que você usa para escolhê-los nas atividades sem digitar de novo."
         />
