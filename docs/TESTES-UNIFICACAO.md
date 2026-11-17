@@ -319,3 +319,9 @@ Referência: `localhost:3000/paleta` (só em desenvolvimento). Conferir nos dois
 - [ ] **Texto de status:** mensagens de erro, valores negativos e avisos num tom só (700); botões "Excluir" de texto ficam vermelhos e escurecem no hover.
 - [ ] **Ícones de atalho** (Configurações, Cartões, Conta, tipos de backup) em grafite; exceções em cor: "Excluir a Conta" (vermelho), backups de saída (âmbar) e pré-operação (vermelho).
 
+### Field na conta de uso (17/11/2026)
+
+- [ ] Entrando com a conta do Outlook ("Minha Fazenda"), o selo do topo do menu tem seta e troca entre Finanças e Field.
+- [ ] No Field, as telas abrem e salvam (cadastrar uma fazenda e um talhão de teste); nada de "sem acesso ao módulo".
+- [ ] Em Conta, o modo de uso do Field (fazenda / consultor) muda o menu (Produtores só no consultor).
+

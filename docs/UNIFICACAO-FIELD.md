@@ -244,6 +244,15 @@ Cada fase vai ao ar sozinha.
     para o financeiro); colunas de texto longo quebram linha no PDF em vez de cortar.
   - **Ficou para depois:** mapa do talhão no relatório (junto com o relatório de NDVI).
 
+- **Field liberado na conta do Leonardo (17/11/2026)**, antes da fase 7, para ele usar e ver.
+  - Migration `20261123120000_modulos_cortesia` no ar: `organizations.modulos_cortesia` (text[]),
+    terceira fonte de direito somada em `farm_org_modules()` (trial, assinatura, cortesia). Só o
+    banco escreve nela; serve depois para liberar o Field a testadores sem plano.
+  - "Minha Fazenda" (conta do Outlook) com `modulos_cortesia = {field}` — conferido no banco.
+  - `FIELD_LIBERADO = true` na branch: no merge, o Field aparece para toda org com direito
+    (inclusive em trial) — é o lançamento.
+  - Começa VAZIO: a migração dos dados do Flag Field segue na fase 9.
+
 ## 10. Em aberto
 
 - **LEMBRAR O LEONARDO ao fim da unificação:** criar a chave do Microsoft Planetary Computer e
