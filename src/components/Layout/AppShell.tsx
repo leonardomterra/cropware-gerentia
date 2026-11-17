@@ -83,6 +83,7 @@ import { mostraProdutores } from "@/utils/modoDeUso";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
 import { Logo, LogoName } from "@/components/Logo";
+import type { ContextoDoShell } from "./moduloAtivo";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
 import { ImpersonationBanner } from "@/modules/admin/components/ImpersonationBanner";
 import {
@@ -404,14 +405,12 @@ export function AppShell() {
       (!i.modulo || visiveis.includes(i.modulo)),
   );
 
-  /** Troca de módulo no seletor: guarda a escolha e abre a 1ª tela do módulo. */
+  /** Troca de módulo no selo: guarda a escolha e abre o Dashboard, que
+   *  desde 17/11/2026 é o início de CADA módulo (o do Field é outro). */
   const trocarModulo = (id: ModuloId) => {
     setModuloEscolhido(id);
     void setStoredValue(CHAVE_MODULO_ATIVO, id);
-    const primeira = RAIL_ORDEM.find((rota) =>
-      navItems.some((i) => i.to === rota && i.modulo === id),
-    );
-    if (primeira) navigate(primeira);
+    navigate("/");
   };
 
   /**
@@ -757,7 +756,7 @@ export function AppShell() {
           }}
         >
           <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6">
-            <Outlet />
+            <Outlet context={{ moduloAtivo } satisfies ContextoDoShell} />
           </div>
         </main>
 

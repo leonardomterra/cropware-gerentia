@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -12,8 +12,8 @@ import {
   Text as TextoSVG,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
-import { modulosVisiveis } from "@/lib/modulos";
-import { BlocoDoCampoNoDashboard } from "@/modules/field/components/BlocoDoCampoNoDashboard";
+import { useModuloAtivo } from "@/components/Layout/moduloAtivo";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -390,8 +390,31 @@ function dueLabel(days: number): string {
   return `em ${days} dias`;
 }
 
+/** Dashboard do Field: carrega à parte (quem só usa o Finanças não baixa). */
+const DashboardDoCampo = lazy(
+  () => import("@/modules/field/pages/DashboardDoCampo"),
+);
+
+/**
+ * O Dashboard segue o MÓDULO ATIVO (o selo no topo do menu), desde
+ * 17/11/2026: no Finanças, o financeiro; no Field, o do campo — no molde do
+ * dashboard do Flag Field. Antes, o campo era só um bloco no fim do
+ * financeiro (BlocoDoCampoNoDashboard, removido).
+ */
 export default function DashboardPage() {
-  const { user, isMaster } = useAuth();
+  const modulo = useModuloAtivo();
+  if (modulo === "field") {
+    return (
+      <Suspense fallback={<LoadingState />}>
+        <DashboardDoCampo />
+      </Suspense>
+    );
+  }
+  return <DashboardDoFinancas />;
+}
+
+function DashboardDoFinancas() {
+  const { user } = useAuth();
   // Cores do gráfico no tema atual (atributos SVG não leem var(--…)).
   const cor = useCoresDoTema();
   /** Fundo da faixa do mês em foco: GRAFITE sólido (slate-800, a cor da
@@ -402,9 +425,6 @@ export default function DashboardPage() {
   const { tema } = useTema();
   const COLOR_IN = STATUS.sucesso.solido[tema];
   const COLOR_OUT = STATUS.perigo.solido[tema];
-  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
-    "field",
-  );
   // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
   // lancamento ja gravado, que pode apontar pra categoria desativada.
   const { allCategories: categories } = useCategories();
@@ -1466,10 +1486,6 @@ export default function DashboardPage() {
           </ul>
         </div>
       )}
-
-      {/* O campo (fase 3 da unificação) — só com o módulo Field visível; o
-          bloco carrega os próprios dados. */}
-      {fieldVisivel && <BlocoDoCampoNoDashboard />}
 
       {/* Prévia do lançamento (Próximos Vencimentos) — só leitura. */}
       <Dialog
