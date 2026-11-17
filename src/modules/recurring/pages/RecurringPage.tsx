@@ -34,12 +34,12 @@ import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
 import {
   BOTAO_ACOES,
-  BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
   CAMPO_BARRA,
   ICONE_BOTAO_BARRA,
   MENU_DA_BARRA,
   ROTULO_PAINEL_ESCURO,
+  SELETOR_BARRA,
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import { useAuth } from "@/contexts/AuthContext";
@@ -710,10 +710,7 @@ export default function RecurringPage() {
               largura a cada escolha. A ativa se lê abrindo o menu. */}
               <button
                 type="button"
-                className={cn(
-                  BOTAO_BARRA,
-                  "inline-flex items-center rounded-md",
-                )}
+                className={SELETOR_BARRA}
               >
                 <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
                 Ordenar

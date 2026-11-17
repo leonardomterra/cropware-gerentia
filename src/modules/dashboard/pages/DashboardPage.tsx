@@ -19,7 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 import { BarraDeTela } from "@/components/ui/BarraDeTela";
-import { BOTAO_BARRA_PRIMARIO, CAMPO_BARRA } from "@/lib/ui-tokens";
+import {
+  BOTAO_BARRA,
+  BOTAO_BARRA_PRIMARIO,
+  CAMPO_BARRA,
+} from "@/lib/ui-tokens";
 import {
   Dialog,
   DialogClose,
@@ -417,6 +421,16 @@ export default function DashboardPage() {
 
   const [activeCC, setActiveCC] = useState<string>("all");
   const [period, setPeriod] = useState<DashPeriod>(defaultPeriod);
+  const noPeriodoAtual = (() => {
+    const a = periodRange(period);
+    const b = periodRange({ ...defaultPeriod(), mode: period.mode });
+    return (
+      a.from.year === b.from.year &&
+      a.from.month === b.from.month &&
+      a.to.year === b.to.year &&
+      a.to.month === b.to.month
+    );
+  })();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [openItems, setOpenItems] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -865,6 +879,7 @@ export default function DashboardPage() {
         campos={[
           {
             rotulo: "Período",
+            encolher: true,
             campo: <PeriodModeSelect value={period} onChange={setPeriod} />,
           },
           ...(showCCFilter
@@ -953,13 +968,28 @@ export default function DashboardPage() {
         acoes={
           /* O seletor de mês só no DESKTOP: a régua de meses logo abaixo diz o
              mesmo, e no celular repetir os dois gasta uma linha. */
-          !isMobile && period.mode === "month" ? (
-            <MonthSwitcher
-              value={period.month}
-              onChange={(month) => setPeriod({ ...period, month })}
-              variant="picker"
-            />
-          ) : undefined
+          <>
+            {/* "Hoje": volta ao período atual SEM trocar o modo — no mês, o
+                mês corrente; no semestre, o semestre corrente; e assim por
+                diante. Apagado quando já está nele (17/11/2026). */}
+            <Button
+              variant="outline"
+              onClick={() =>
+                setPeriod({ ...defaultPeriod(), mode: period.mode })
+              }
+              disabled={noPeriodoAtual}
+              className={cn(BOTAO_BARRA, "w-auto shrink-0")}
+            >
+              Hoje
+            </Button>
+            {!isMobile && period.mode === "month" ? (
+              <MonthSwitcher
+                value={period.month}
+                onChange={(month) => setPeriod({ ...period, month })}
+                variant="picker"
+              />
+            ) : null}
+          </>
         }
         acaoPrincipal={
           <Button

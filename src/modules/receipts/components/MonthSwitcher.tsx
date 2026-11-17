@@ -5,8 +5,8 @@ import ChevronDown from "~icons/ph/caret-down";
 import Calendar from "~icons/ph/calendar-blank";
 import { cn } from "@/components/ui/utils";
 import {
-  BOTAO_BARRA,
   ICONE_BOTAO_BARRA,
+  SELETOR_BARRA,
   SETA_BOTAO_BARRA,
   SUPERFICIE_ESCURA,
 } from "@/lib/ui-tokens";
@@ -238,9 +238,9 @@ export function MonthSwitcher({
               title="Escolher mês"
               className={cn(
                 variant === "picker"
-                  ? // Mesma família dos botões de Filtros e Ordenar: ele é um
-                    // filtro, e estava com aparência de campo.
-                    cn(BOTAO_BARRA, "inline-flex items-center rounded-md")
+                  ? // Seletor da barra: branco, como Filtros e Ordenar e os
+                    // campos (17/11/2026 — antes, cinza de botão de ação).
+                    SELETOR_BARRA
                   : cn(TOOLBAR_TRIGGER_CLASS, "ml-1 shrink-0 text-slate-600"),
               )}
             >

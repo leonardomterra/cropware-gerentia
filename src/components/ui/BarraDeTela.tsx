@@ -14,10 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { useIsMobile } from "./use-mobile";
 import { cn } from "./utils";
 import {
-  BOTAO_BARRA,
   ICONE_BOTAO_BARRA,
   PAINEL_ESCURO,
   ROTULO_PAINEL_ESCURO,
+  SELETOR_BARRA,
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 
@@ -32,6 +32,13 @@ export interface CampoDaBarra {
    * por quê. Quem sabe a resposta é a tela, não a barra.
    */
   ativo?: boolean;
+  /**
+   * Na barra do desktop, fica com a largura do próprio campo em vez de uma
+   * coluna inteira da grade. Para seletor curto de largura fixa (o "Mês" do
+   * Dashboard): na grade de colunas iguais sobrava um vão entre ele e o campo
+   * seguinte (17/11/2026).
+   */
+  encolher?: boolean;
 }
 
 export interface BarraDeTelaProps {
@@ -113,6 +120,7 @@ export function BarraDeTela({
   const [expandido, setExpandido] = useState(false);
 
   const camposNaBarra = isMobile ? [] : campos;
+  const algumEncolhe = camposNaBarra.some((c) => c.encolher);
   const camposNoPainel = isMobile ? campos : [];
   const temPainel = painel != null || camposNoPainel.length > 0;
   const contagem = filtrosAtivos + camposNoPainel.filter((c) => c.ativo).length;
@@ -123,7 +131,7 @@ export function BarraDeTela({
         <Button
           type="button"
           variant="ghost"
-          className={cn(BOTAO_BARRA, "rounded-md", isMobile && "shrink-0")}
+          className={cn(SELETOR_BARRA, isMobile && "shrink-0")}
         >
           <ListMagnifyingGlass className={ICONE_BOTAO_BARRA} />
           Filtros
@@ -215,16 +223,38 @@ export function BarraDeTela({
     <div className={cn("flex flex-wrap items-center gap-2 w-full", className)}>
       {/* Grade e não flex: num flex a largura mínima do item é o `min-content`,
           e bastava um nome de centro maior para a busca encolher. */}
+      {/* Com um campo que ENCOLHE, a grade vira fileira: o curto fica com a
+          própria largura e os outros dividem o resto, até um teto (sem teto,
+          um campo esticaria até os botões da direita). */}
       <div
         className={cn(
-          "grid flex-1 min-w-0 gap-2 grid-cols-1",
-          camposNaBarra.length === 1 && "sm:grid-cols-2",
-          camposNaBarra.length >= 2 && "sm:grid-cols-2 lg:grid-cols-3",
+          algumEncolhe
+            ? "flex flex-1 min-w-0 gap-2"
+            : "grid flex-1 min-w-0 gap-2 grid-cols-1",
+          !algumEncolhe && camposNaBarra.length === 1 && "sm:grid-cols-2",
+          !algumEncolhe &&
+            camposNaBarra.length >= 2 &&
+            "sm:grid-cols-2 lg:grid-cols-3",
         )}
       >
-        {busca}
+        {algumEncolhe && busca ? (
+          <div className="flex-1 min-w-0 max-w-md">{busca}</div>
+        ) : (
+          busca
+        )}
         {camposNaBarra.map((c) => (
-          <div key={c.rotulo}>{c.campo}</div>
+          <div
+            key={c.rotulo}
+            className={
+              algumEncolhe
+                ? c.encolher
+                  ? "shrink-0"
+                  : "flex flex-1 min-w-0 max-w-md"
+                : undefined
+            }
+          >
+            {c.campo}
+          </div>
         ))}
       </div>
       {botaoFiltros}

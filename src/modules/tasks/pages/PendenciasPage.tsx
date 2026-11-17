@@ -38,12 +38,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  BOTAO_BARRA,
   BOTAO_BARRA_PRIMARIO,
   ICONE_BOTAO_BARRA,
   MENU_DA_BARRA,
   MENU_ESCURO,
   ROTULO_PAINEL_ESCURO,
+  SELETOR_BARRA,
   SETA_BOTAO_BARRA,
 } from "@/lib/ui-tokens";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -796,10 +796,7 @@ export default function PendenciasPage() {
                 largura a cada escolha. */}
               <button
                 type="button"
-                className={cn(
-                  BOTAO_BARRA,
-                  "inline-flex items-center rounded-md",
-                )}
+                className={SELETOR_BARRA}
               >
                 <ArrowsDownUp className={ICONE_BOTAO_BARRA} />
                 Ordenar

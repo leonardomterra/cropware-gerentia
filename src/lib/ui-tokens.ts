@@ -142,7 +142,25 @@ export const ICONE_BOTAO_BARRA = "size-3.5 mr-2 shrink-0";
 // (o celular, dentro do card da BarraDeTela) ele joga a seta para a direita, e
 // as setas de todos os botões passam a cair na mesma coluna. Sem isso cada uma
 // parava logo depois do seu rótulo, e a coluna ficava serrilhada.
-export const SETA_BOTAO_BARRA = "size-3.5 ml-auto opacity-50 shrink-0";
+//
+// `box-content pl-2` (17/11/2026): folga MÍNIMA entre o rótulo e a seta. O
+// `ml-auto` sozinho não garante espaço nenhum — num `<button>` sem `gap` e da
+// largura do conteúdo, a seta encostava no texto ("Outubro 2026⌄"). Com
+// `box-content`, o padding fica FORA dos 14px do desenho.
+export const SETA_BOTAO_BARRA =
+  "size-3.5 box-content pl-2 ml-auto opacity-50 shrink-0";
+
+/**
+ * SELETOR da barra: botão com seta que abre um menu de escolha (mês, Ordenar,
+ * Filtros). Branco com borda, como os CAMPOS (`CAMPO_BARRA`), e não cinza como
+ * os botões de ação (17/11/2026, pedido do Leonardo: "padronizar esses
+ * seletores todos em branco"). A regra da linha: **tem seta, é branco**;
+ * ação sem seta (Atualizar, Hoje, Adicionar) segue `BOTAO_BARRA`.
+ */
+export const SELETOR_BARRA =
+  "h-9 px-4 shrink-0 inline-flex items-center rounded-md font-normal shadow-none text-sm " +
+  "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 active:bg-slate-200 transition-colors " +
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300";
 
 /**
  * Largura do menu suspenso que sai de um botão da barra.
