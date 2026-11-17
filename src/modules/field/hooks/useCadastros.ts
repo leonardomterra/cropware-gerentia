@@ -33,14 +33,19 @@ import type {
  * ainda não atualizou nesse momento. O toast é do componente.
  */
 export type Resultado = { ok: true; id: string } | { ok: false; erro: string };
-type Tabela =
+export type Tabela =
   | "farm_producers"
   | "farms"
   | "farm_plots"
   | "farm_seasons"
   | "farm_products"
   | "farm_plantings"
-  | "farm_activities";
+  | "farm_activities"
+  | "farm_trials"
+  | "farm_trial_products"
+  | "farm_trial_steps"
+  | "farm_trial_evaluations"
+  | "farm_trial_harvests";
 
 const ROTULO: Record<Tabela, string> = {
   farm_producers: "um produtor",
@@ -50,13 +55,22 @@ const ROTULO: Record<Tabela, string> = {
   farm_products: "um produto",
   farm_plantings: "um plantio",
   farm_activities: "uma atividade",
+  farm_trials: "um ensaio",
+  farm_trial_products: "um produto no ensaio",
+  farm_trial_steps: "uma etapa de avaliação",
+  farm_trial_evaluations: "uma avaliação",
+  farm_trial_harvests: "uma colheita",
 };
 
 function mensagemDoErro(
   tabela: Tabela,
   e: { code?: string; message?: string },
 ): string {
-  if (e.code === "23505") return `Já existe ${ROTULO[tabela]} com esse nome.`;
+  if (e.code === "23505")
+    return tabela === "farm_trial_harvests" ||
+      tabela === "farm_trial_evaluations"
+      ? `Este produto já tem ${ROTULO[tabela]} aqui.`
+      : `Já existe ${ROTULO[tabela]} com esse nome.`;
   if (e.code === "42501")
     return "Sem permissão para isso. Confira se o módulo Field está ativo.";
   return e.message || "Não foi possível salvar.";
@@ -65,7 +79,7 @@ function mensagemDoErro(
 /** numeric do Postgres → number (o PostgREST pode devolver string). */
 const num = (v: unknown) => (v == null ? null : Number(v));
 
-async function gravar(
+export async function gravar(
   tabela: Tabela,
   organizationId: string,
   dados: Record<string, unknown>,
@@ -81,7 +95,7 @@ async function gravar(
   return { ok: true, id: novoId };
 }
 
-async function apagar(tabela: Tabela, id: string): Promise<Resultado> {
+export async function apagar(tabela: Tabela, id: string): Promise<Resultado> {
   // `count` para saber se a RLS deixou apagar: sem permissão o delete não dá
   // erro, só não apaga nada — e a tela diria "excluído" à toa.
   const { error, count } = await supabase

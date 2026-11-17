@@ -161,3 +161,86 @@ export type SafraInput = SemMeta<Safra>;
 export type ProdutoInput = SemMeta<Produto>;
 export type PlantioInput = SemMeta<Plantio>;
 export type AtividadeInput = SemMeta<Atividade>;
+
+// ---- Fase 4: ensaios ------------------------------------------------------
+export interface Ensaio {
+  id: string;
+  organization_id: string;
+  created_by: string | null;
+  farm_id: string;
+  plot_id: string | null;
+  planting_id: string | null;
+  season_id: string | null;
+  name: string;
+  crop: string;
+  trial_type: import("./dominio/ensaios").TipoDeEnsaio;
+  standard_variety: string | null;
+  implantation_date: string | null;
+  lifecycle: "active" | "completed";
+  completed_at: string | null;
+  sack_price: number | null;
+  roi_reference_product_id: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ProdutoNoEnsaio {
+  id: string;
+  organization_id: string;
+  created_by: string | null;
+  trial_id: string;
+  catalog_product_id: string | null;
+  name: string;
+  manufacturer: string | null;
+  role: "principal" | "concorrente";
+  dose_value: number | null;
+  dose_unit: string | null;
+  population: number | null;
+  cost_ha: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface EtapaDoEnsaio {
+  id: string;
+  organization_id: string;
+  created_by: string | null;
+  trial_id: string;
+  evaluation_type: string;
+  stage: string | null;
+  characteristics: import("./dominio/ensaios").Caracteristica[];
+  created_at: string;
+}
+
+export interface AvaliacaoDoEnsaio {
+  id: string;
+  organization_id: string;
+  created_by: string | null;
+  trial_id: string;
+  step_id: string | null;
+  product_id: string;
+  date: string;
+  values: Record<string, string>;
+  characteristics: import("./dominio/ensaios").Caracteristica[] | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ColheitaDoEnsaioRow {
+  id: string;
+  organization_id: string;
+  created_by: string | null;
+  trial_id: string;
+  product_id: string;
+  harvest_date: string | null;
+  input_mode: "manual" | "calculada";
+  productivity: number;
+  net_weight_kg: number | null;
+  harvested_area_ha: number | null;
+  moisture: number;
+  target_moisture: number | null;
+  corrected_productivity: number | null;
+  impurity: number | null;
+  pmg: number | null;
+  created_at: string;
+}
