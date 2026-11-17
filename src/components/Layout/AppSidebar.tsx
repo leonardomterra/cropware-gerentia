@@ -48,7 +48,9 @@ export function AppSidebar({
                 cn(
                   "flex items-center gap-2.5 h-9 px-2.5 rounded-md text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-slate-200 text-slate-900 font-semibold"
+                    ? // Grafite sólido + branco: o mesmo "selecionado" do app
+                      // inteiro (régua de meses, selo do módulo), 17/11/2026.
+                      "bg-slate-800 text-white font-semibold"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                 )
               }
