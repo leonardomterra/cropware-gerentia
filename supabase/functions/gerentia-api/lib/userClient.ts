@@ -146,6 +146,32 @@ export async function requireCanWrite(client: SupabaseClient) {
 }
 
 /**
+ * Exige um MÓDULO (lib/modulos.ts no front; farm_org_modules() no banco):
+ * trial vigente libera todos; assinatura libera o módulo do plano. Pergunta ao
+ * banco com o client do USUÁRIO — a função resolve a org por auth.uid().
+ * Fase 5 da unificação: o NDVI e os anexos do campo exigem o módulo Field.
+ */
+export async function requireModule(
+  client: SupabaseClient,
+  modulo: "financas" | "field",
+): Promise<Response | null> {
+  const { data, error } = await client.rpc("farm_org_modules");
+  if (error) {
+    return new Response(JSON.stringify({ error: "modulos_indisponiveis" }), {
+      status: 503,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  if (!((data as string[] | null) ?? []).includes(modulo)) {
+    return new Response(JSON.stringify({ error: `modulo_${modulo}` }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  return null;
+}
+
+/**
  * Gating do painel MASTER (gestão de plataforma): autentica o usuário e exige
  * que o email esteja em MASTER_EMAILS. Diferente de requireFarmAdmin, NÃO
  * depende de organização — master opera sobre todas as orgs. Endpoints master

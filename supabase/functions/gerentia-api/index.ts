@@ -24,6 +24,8 @@ import { mountAdminExportRoutes } from "./handlers/adminExport.ts";
 import { mountBackupRoutes } from "./handlers/backups.ts";
 import { mountBackupUsuarioRoutes } from "./handlers/backupsUsuario.ts";
 import { mountCardRoutes } from "./handlers/cards.ts";
+import { mountNdviRoutes } from "./handlers/ndvi.ts";
+import { mountAnexosDoCampoRoutes } from "./handlers/anexosDoCampo.ts";
 
 const app = new Hono().basePath("/gerentia-api");
 
@@ -57,6 +59,8 @@ mountAdminExportRoutes(app);
 mountBackupRoutes(app);
 mountBackupUsuarioRoutes(app);
 mountCardRoutes(app);
+mountNdviRoutes(app);
+mountAnexosDoCampoRoutes(app);
 
 app.onError((err, c) => {
   // Loga o detalhe no servidor; ao cliente devolve só genérico (não vaza
