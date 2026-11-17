@@ -252,9 +252,9 @@ const ACCOUNT_NAV_ITEM: NavItem = {
  * Este mapa é o botão de ajuste — a ordem se edita aqui, sem tocar em
  * componente nenhum. Rota fora do mapa não entra no trilho.
  *
- * Cor: todos iguais desde 17/11/2026 (contorno grafite, miolo lima da
- * Cropware — `.icone-lima` em app.css). Antes cada página tinha seu matiz, e
- * o menu ficava colorido demais.
+ * Cor: todos em grafite desde 17/11/2026 (a cor do texto, em duotone). Antes
+ * cada página tinha seu matiz, e o menu ficava colorido demais; o lima da
+ * Cropware no miolo também foi testado e chamava atenção demais.
  */
 const RAIL_ICONES: Record<string, { Icon: NavItem["icon"] }> = {
   "/": { Icon: RailDashboard },
@@ -524,7 +524,7 @@ export function AppShell() {
           title={`Módulo: ${ativo.nome}`}
           className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <ativo.Icon className="icone-lima size-5 shrink-0" />
+          <ativo.Icon className="size-5 shrink-0" />
           <span className="truncate">{ativo.nome}</span>
           <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
         </button>
@@ -543,7 +543,7 @@ export function AppShell() {
               onSelect={() => trocarModulo(id)}
               className={cn(id === moduloAtivo && "font-semibold")}
             >
-              <m.Icon className="icone-lima size-5 shrink-0" />
+              <m.Icon className="size-5 shrink-0" />
               {m.nome}
             </DropdownMenuItem>
           );

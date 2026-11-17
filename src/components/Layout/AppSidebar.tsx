@@ -22,10 +22,9 @@ export interface RailItem {
  * Field o trilho passou de 11 para ~20 telas, e ícone sozinho virou navegação
  * por tentativa; o nome visível resolve sem o passo do tooltip.
  *
- * Os ícones têm **uma cor só** (17/11/2026): contorno na cor do texto e miolo
- * no lima da Cropware (`.icone-lima`, app.css). Até então cada página tinha
- * seu matiz, e o menu ficava colorido demais. Quem diz o nome é o texto, e o
- * fundo marca a página aberta.
+ * Os ícones têm **uma cor só** (17/11/2026): o grafite do próprio texto, em
+ * duotone. Até então cada página tinha seu matiz, e o menu ficava colorido
+ * demais. Quem diz o nome é o texto, e o fundo marca a página aberta.
  */
 export function AppSidebar({
   itens,
@@ -62,7 +61,7 @@ export function AppSidebar({
                 )
               }
             >
-              <it.Icon className="icone-lima size-5 shrink-0" />
+              <it.Icon className="size-5 shrink-0" />
               <span className="truncate">{it.label}</span>
               {it.badge ? (
                 <span className="ml-auto shrink-0 min-w-5 h-5 px-1 rounded-full bg-red-500 text-branco text-[11px] leading-5 text-center tabular-nums">
