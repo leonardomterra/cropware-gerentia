@@ -10,7 +10,7 @@ import { cn } from "./utils";
  * destaques), nao pra botoes.
  *
  * Mapa funcao -> variant:
- *   acao principal / confirmacao  -> default (slate-900)
+ *   acao principal / confirmacao  -> default (slate-800 = cor da logo)
  *   acao secundaria / informacao  -> secondary (slate-100)
  *   cancelamento / dismiss        -> outline ou ghost
  *   destrutivo (excluir)          -> destructive (vermelho, mantem semantica)
@@ -21,8 +21,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // slate-800 = #3C3C42, a cor da logo (escala grafite, app.css).
         default:
-          "bg-slate-900 text-white hover:bg-slate-800 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
+          "bg-slate-800 text-white hover:bg-slate-900 shadow-[0_2px_4px_rgba(0,0,0,0.18)]",
         secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 shadow-sm",
         outline:
           "border border-slate-200 bg-slate-100 text-slate-900 hover:bg-slate-200",

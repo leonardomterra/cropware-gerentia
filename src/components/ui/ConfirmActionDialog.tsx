@@ -48,7 +48,7 @@ export function ConfirmActionDialog({
         <AlertDialogHeader className="space-y-3">
           <AlertDialogTitle
             className="font-medium"
-            style={{ fontSize: "16px", color: "#171717" }}
+            style={{ fontSize: "16px", color: "#2b2b30" }}
           >
             {title}
           </AlertDialogTitle>
@@ -57,7 +57,7 @@ export function ConfirmActionDialog({
               {description && (
                 <p
                   className="font-normal leading-relaxed"
-                  style={{ fontSize: "14px", color: "#737373" }}
+                  style={{ fontSize: "14px", color: "#7c7c83" }}
                 >
                   {description}
                 </p>
@@ -67,9 +67,9 @@ export function ConfirmActionDialog({
                 <div
                   className="rounded-lg p-3 space-y-1"
                   style={{
-                    backgroundColor: "#fafafa",
+                    backgroundColor: "#f7f7f9",
                     fontSize: "14px",
-                    border: "1px solid #e5e5e5",
+                    border: "1px solid #e2e2e6",
                   }}
                 >
                   {infoItems!.map((item) => (
@@ -77,8 +77,8 @@ export function ConfirmActionDialog({
                       key={item.label}
                       className="flex items-center justify-between font-normal"
                     >
-                      <span style={{ color: "#525252" }}>{item.label}</span>
-                      <span style={{ color: "#171717" }}>{item.value}</span>
+                      <span style={{ color: "#606066" }}>{item.label}</span>
+                      <span style={{ color: "#2b2b30" }}>{item.value}</span>
                     </div>
                   ))}
                 </div>

@@ -168,7 +168,7 @@ function RootRoutes() {
   // (cor do cabeçalho) quando logado — consistência visual com o AppShell.
   useEffect(() => {
     if (!isNativeCapacitorApp()) return;
-    const color = user ? "#f5f5f5" : "#ffffff";
+    const color = user ? "#f1f1f3" : "#ffffff";
     import("@capacitor/status-bar")
       .then(({ StatusBar }) =>
         StatusBar.setBackgroundColor({ color }).catch(() => {}),

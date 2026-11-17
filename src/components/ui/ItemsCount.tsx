@@ -35,7 +35,7 @@ export function ItemsCount({
     >
       <div
         className="truncate min-w-0 font-normal"
-        style={{ fontSize: "14px", color: "#a3a3a3" }}
+        style={{ fontSize: "14px", color: "#a1a1a7" }}
       >
         Mostrando {count}{" "}
         {totalCount !== undefined && totalCount !== count
@@ -43,7 +43,7 @@ export function ItemsCount({
           : ""}
         {label}
         {headerSuffix && (
-          <span className="ml-1" style={{ color: "#262626" }}>
+          <span className="ml-1" style={{ color: "#3c3c42" }}>
             {headerSuffix}
           </span>
         )}

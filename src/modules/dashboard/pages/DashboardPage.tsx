@@ -235,7 +235,7 @@ function caminhoDeRodape(
  *  diferentes fariam parecer que falam de coisas diferentes. Em `fill` +
  *  `fillOpacity` em vez do #686868 já composto para continuar certo se o fundo
  *  do card mudar. */
-const FOCO_FUNDO = "#171717"; // slate-900 do app
+const FOCO_FUNDO = "#2b2b30"; // slate-900 do app
 const FOCO_OPACIDADE = 0.65;
 
 /** Altura da faixa do mês, abaixo da base das barras. O rótulo é centrado nela
@@ -663,7 +663,7 @@ export default function DashboardPage() {
           // Sem cor definida no centro de custo, cai no cinza DO APP. Era o
           // slate-400 azulado do Tailwind (resto da paleta antiga), e no
           // gráfico ele destoava de todos os outros cinzas da tela.
-          color: ccChartColor(cc?.color || "#a3a3a3"),
+          color: ccChartColor(cc?.color || "#a1a1a7"),
           total,
         };
       })
@@ -1123,7 +1123,7 @@ export default function DashboardPage() {
                                 height={alturaMoldura}
                                 rx={8}
                                 fill="none"
-                                stroke="#f5f5f5"
+                                stroke="#f1f1f3"
                                 strokeWidth={1}
                               />
                               <line
@@ -1131,7 +1131,7 @@ export default function DashboardPage() {
                                 y1={base}
                                 x2={esq + largMoldura}
                                 y2={base}
-                                stroke="#f5f5f5"
+                                stroke="#f1f1f3"
                                 strokeWidth={1}
                               />
                             </g>
@@ -1165,7 +1165,7 @@ export default function DashboardPage() {
                               // Mesma borda do card (slate-200). O mês em foco é
                               // um bloco dentro do card, não um card por cima
                               // dele — uma borda mais escura o descolava.
-                              stroke="#e5e5e5"
+                              stroke="#e2e2e6"
                               strokeWidth={1}
                             />
                           </g>
@@ -1177,7 +1177,7 @@ export default function DashboardPage() {
               />
               <XAxis
                 dataKey="mes"
-                stroke="#a3a3a3"
+                stroke="#a1a1a7"
                 fontSize={14}
                 tickLine={false}
                 axisLine={false}
@@ -1206,7 +1206,7 @@ export default function DashboardPage() {
                       textAnchor="middle"
                       verticalAnchor="middle"
                       fontSize={14}
-                      fill={d?.sel ? "#ffffff" : "#a3a3a3"}
+                      fill={d?.sel ? "#ffffff" : "#a1a1a7"}
                     >
                       {isMobile ? (d?.mesNum ?? "") : payload.value}
                     </TextoSVG>
@@ -1217,7 +1217,7 @@ export default function DashboardPage() {
                 cursor={{ fill: "rgba(0,0,0,0.03)" }}
                 contentStyle={{
                   background: "white",
-                  border: "1px solid #e5e5e5",
+                  border: "1px solid #e2e2e6",
                   borderRadius: 6,
                   fontSize: 14,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -1366,7 +1366,7 @@ export default function DashboardPage() {
                         formatter={(v: number) => fmtBRLfull(v)}
                         contentStyle={{
                           background: "white",
-                          border: "1px solid #e5e5e5",
+                          border: "1px solid #e2e2e6",
                           borderRadius: 6,
                           fontSize: 14,
                           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",

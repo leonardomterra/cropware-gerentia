@@ -369,7 +369,7 @@ export function ReceiptsListPage({
     const win = native ? null : window.open("", "_blank");
     if (win) {
       win.document.write(
-        "<p style='font-family:sans-serif;color:#525252;padding:24px'>Gerando PDF…</p>",
+        "<p style='font-family:sans-serif;color:#606066;padding:24px'>Gerando PDF…</p>",
       );
     }
     setPrinting(true);

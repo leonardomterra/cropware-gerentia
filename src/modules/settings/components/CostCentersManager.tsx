@@ -262,7 +262,7 @@ export function CostCentersManager({
                     <Icon
                       className="size-5"
                       style={{
-                        color: selected ? ccTextColor(form.color) : "#737373",
+                        color: selected ? ccTextColor(form.color) : "#7c7c83",
                       }}
                     />
                   </button>

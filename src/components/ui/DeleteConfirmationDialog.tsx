@@ -56,7 +56,7 @@ export function DeleteConfirmationDialog({
         <AlertDialogHeader className="space-y-3">
           <AlertDialogTitle
             className="font-medium"
-            style={{ fontSize: "16px", color: "#171717" }}
+            style={{ fontSize: "16px", color: "#2b2b30" }}
           >
             {title}
           </AlertDialogTitle>
@@ -64,7 +64,7 @@ export function DeleteConfirmationDialog({
             <div className="space-y-3">
               <p
                 className="font-normal leading-relaxed"
-                style={{ fontSize: "14px", color: "#737373" }}
+                style={{ fontSize: "14px", color: "#7c7c83" }}
               >
                 Esta ação é irreversível.{" "}
                 {isBatch
@@ -77,7 +77,7 @@ export function DeleteConfirmationDialog({
               {/* Subtle warning */}
               <p
                 className="font-normal"
-                style={{ fontSize: "14px", color: "#a3a3a3" }}
+                style={{ fontSize: "14px", color: "#a1a1a7" }}
               >
                 Esta exclusão é definitiva e não poderá ser desfeita.
               </p>
@@ -87,16 +87,16 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: "14px", color: "#737373" }}
+                    style={{ fontSize: "14px", color: "#7c7c83" }}
                   >
                     Itens selecionados:
                   </p>
                   <div
                     className="rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto"
                     style={{
-                      backgroundColor: "#fafafa",
+                      backgroundColor: "#f7f7f9",
                       fontSize: "14px",
-                      border: "1px solid #e5e5e5",
+                      border: "1px solid #e2e2e6",
                     }}
                   >
                     {batchItems!.map((name, i) => (
@@ -104,13 +104,13 @@ export function DeleteConfirmationDialog({
                         key={i}
                         className="flex items-center gap-1.5 font-normal"
                       >
-                        <span style={{ color: "#525252" }}>{name}</span>
+                        <span style={{ color: "#606066" }}>{name}</span>
                       </div>
                     ))}
                     {totalBatch > batchItems!.length && (
                       <p
                         className="font-normal italic"
-                        style={{ fontSize: "14px", color: "#a3a3a3" }}
+                        style={{ fontSize: "14px", color: "#a1a1a7" }}
                       >
                         ...e mais {totalBatch - batchItems!.length} item(ns)
                       </p>
@@ -124,7 +124,7 @@ export function DeleteConfirmationDialog({
                 <div className="space-y-2">
                   <p
                     className="font-normal"
-                    style={{ fontSize: "14px", color: "#737373" }}
+                    style={{ fontSize: "14px", color: "#7c7c83" }}
                   >
                     A exclusão {isBatch ? "destes itens" : "deste item"} irá
                     impactar:
@@ -132,9 +132,9 @@ export function DeleteConfirmationDialog({
                   <div
                     className="rounded-lg p-3 space-y-1"
                     style={{
-                      backgroundColor: "#fafafa",
+                      backgroundColor: "#f7f7f9",
                       fontSize: "14px",
-                      border: "1px solid #e5e5e5",
+                      border: "1px solid #e2e2e6",
                     }}
                   >
                     {cascadeItems!
@@ -144,8 +144,8 @@ export function DeleteConfirmationDialog({
                           key={item.label}
                           className="flex items-center justify-between font-normal"
                         >
-                          <span style={{ color: "#525252" }}>{item.label}</span>
-                          <span style={{ color: "#171717" }}>{item.count}</span>
+                          <span style={{ color: "#606066" }}>{item.label}</span>
+                          <span style={{ color: "#2b2b30" }}>{item.count}</span>
                         </div>
                       ))}
                   </div>

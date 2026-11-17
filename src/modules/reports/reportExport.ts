@@ -210,12 +210,12 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   .att { padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .att .att-img { max-width: 100%; max-height: 265mm; object-fit: contain; display: block; }
   .att:has(.att-legenda) .att-img { max-height: 255mm; }
-  .att .att-legenda { margin: 6px 0 0; font-size: 10px; color: #525252; text-align: center; }
+  .att .att-legenda { margin: 6px 0 0; font-size: 10px; color: #606066; text-align: center; }
   @media screen { .att { min-height: 297mm; } .sheet + .sheet { margin-top: 24px; } }
   @media print { .att { break-before: page; page-break-before: always; } }
-  .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e5e5e5; }
-  .btn { font: inherit; font-size: 13px; border: 1px solid #d4d4d4; background: #fff; color: #171717; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
-  .btn.primary { background: #171717; color: #fff; border-color: #171717; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e2e2e6; }
+  .btn { font: inherit; font-size: 13px; border: 1px solid #cacacf; background: #fff; color: #2b2b30; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
+  .btn.primary { background: #2b2b30; color: #fff; border-color: #2b2b30; }
   @media print {
     body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .sheet { max-width: none; margin: 0; box-shadow: none; padding: 0; }

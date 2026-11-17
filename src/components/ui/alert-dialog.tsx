@@ -133,7 +133,7 @@ function AlertDialogDescription({
 }
 
 /*
- * A ação usa `bg-primary` (#525252), o MESMO de "Novo Lançamento" e "Salvar" —
+ * A ação usa `bg-primary` (#606066), o MESMO de "Novo Lançamento" e "Salvar" —
  * e não um `slate-800` cravado à mão, que deixava o botão de confirmar bem mais
  * escuro que qualquer outra ação principal da interface. Cor de botão primário
  * vem do token; cravada, ela só diverge.

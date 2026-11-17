@@ -915,7 +915,7 @@ function Section({
                 <div
                   aria-hidden
                   className="w-1 shrink-0"
-                  style={{ backgroundColor: cc?.color ?? "#e5e5e5" }}
+                  style={{ backgroundColor: cc?.color ?? "#e2e2e6" }}
                 />
                 <div className="flex-1 min-w-0 p-4">
                   <div className="flex items-start gap-4">

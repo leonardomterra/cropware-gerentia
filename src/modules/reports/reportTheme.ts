@@ -17,18 +17,19 @@
  * formato do pdf-lib. Mudar a paleta do relatório = editar este arquivo.
  */
 
-/** Neutros — espelham `--color-slate-*` de app.css (família NEUTRAL). */
+/** Neutros — espelham `--color-slate-*` de app.css (escala GRAFITE da marca
+ *  desde 17/11/2026; antes, família NEUTRAL). */
 export const NEUTRO = {
-  50: "#fafafa",
-  100: "#f5f5f5",
-  200: "#e5e5e5",
-  300: "#d4d4d4",
-  400: "#a3a3a3",
-  500: "#737373",
-  600: "#525252",
-  700: "#404040",
-  800: "#262626",
-  900: "#171717",
+  50: "#f7f7f9",
+  100: "#f1f1f3",
+  200: "#e2e2e6",
+  300: "#cacacf",
+  400: "#a1a1a7",
+  500: "#7c7c83",
+  600: "#606066",
+  700: "#4c4c52",
+  800: "#3c3c42",
+  900: "#2b2b30",
 } as const;
 
 /**
@@ -62,7 +63,7 @@ export const FUNDO = {
   entrada: "#6ee7b7", // emerald-300
   saida: "#fca5a5", // red-300
   /** Projeção: cinza, para não competir com o realizado. */
-  previsto: "#e5e5e5",
+  previsto: "#e2e2e6",
 } as const;
 
 export const TIPOGRAFIA = {

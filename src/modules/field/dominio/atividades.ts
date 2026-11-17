@@ -58,7 +58,7 @@ export const TIPOS: Record<TipoDeAtividade, InfoDoTipo> = {
   annotation: { rotulo: "Anotação", cor: "#06b6d4" },
   sampling: { rotulo: "Amostragem", cor: "#eab308" },
   rain: { rotulo: "Chuva", cor: "#38bdf8", daFazenda: true },
-  climate: { rotulo: "Clima", cor: "#737373", daFazenda: true },
+  climate: { rotulo: "Clima", cor: "#7c7c83", daFazenda: true },
   visit: { rotulo: "Visita", cor: "#6366f1", daFazenda: true },
 };
 

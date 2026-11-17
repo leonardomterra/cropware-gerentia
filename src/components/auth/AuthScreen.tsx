@@ -114,7 +114,7 @@ export function AuthScreen({
           onClick={onGoToForgotPassword}
           disabled={submitting}
           className="w-full text-center text-slate-500 hover:text-slate-700"
-          style={{ fontSize: "13px" }}
+          style={{ fontSize: "14px" }}
         >
           Esqueci Minha Senha
         </button>
