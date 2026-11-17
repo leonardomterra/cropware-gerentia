@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { useTema } from "@/lib/tema";
 import {
-  CATEGORIAS,
-  CATEGORIAS_VIVAS,
+  OPCOES_DE_CATEGORIAS,
   MARCA,
   OUTROS,
   STATUS,
@@ -367,9 +366,15 @@ const PAPEL_DO_NEUTRO: Partial<Record<(typeof NEUTROS)[number], string>> = {
 
 export default function PaletaPage() {
   const { tema, escolher } = useTema();
-  const [tom, setTom] = useState<"pastel" | "viva">("pastel");
-  const lista = tom === "pastel" ? CATEGORIAS : CATEGORIAS_VIVAS;
+  const [opcaoId, setOpcaoId] = useState(OPCOES_DE_CATEGORIAS[0].id);
+  const opcao =
+    OPCOES_DE_CATEGORIAS.find((o) => o.id === opcaoId) ??
+    OPCOES_DE_CATEGORIAS[0];
+  const lista = opcao.cores;
   const cat = (i: number) => corDaCategoria(i, tema, lista);
+  /** Número dentro da amostra: escuro em cor clara, branco em cor escura. */
+  const tinta = (hex: string) =>
+    oklch(hex).L > 0.68 ? "text-[#19191d]/70" : "text-branco";
 
   // Diagnóstico: famílias de cor usadas com mais de um significado.
   const porFamilia = new Map<string, UsoDeCor[]>();
@@ -395,23 +400,6 @@ export default function PaletaPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <div className="flex gap-1 rounded-md bg-slate-100 p-1">
-            {(["pastel", "viva"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTom(t)}
-                className={cn(
-                  "h-8 px-3 rounded text-sm",
-                  tom === t
-                    ? "bg-white text-slate-900 font-medium shadow-sm"
-                    : "text-slate-600",
-                )}
-              >
-                {t === "pastel" ? "Categorias pastéis" : "Categorias vivas"}
-              </button>
-            ))}
-          </div>
           <div className="flex gap-1 rounded-md bg-slate-100 p-1">
             {(["claro", "escuro"] as const).map((t) => (
               <button
@@ -681,16 +669,39 @@ export default function PaletaPage() {
           </Cartao>
 
           <Cartao
-            titulo={`Categorias (8 cores em ordem fixa, ${tom === "pastel" ? "pastéis" : "vivas"})`}
+            titulo="Categorias (8 cores em ordem fixa)"
             className="lg:col-span-2"
           >
+            <div className="flex flex-wrap gap-1 rounded-md bg-slate-100 p-1 w-fit">
+              {OPCOES_DE_CATEGORIAS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setOpcaoId(o.id)}
+                  className={cn(
+                    "h-8 px-3 rounded text-sm",
+                    o.id === opcao.id
+                      ? "bg-white text-slate-900 font-medium shadow-sm"
+                      : "text-slate-600",
+                  )}
+                >
+                  {o.nome}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-slate-500">
+              <b className="font-medium text-slate-700">{opcao.nome}:</b>{" "}
+              {opcao.descricao} Distinção entre vizinhas {opcao.distincao}{" "}
+              (daltonismo / visão normal; alvo 8 / 15). Contraste mínimo no
+              branco {opcao.contrasteMinimo}.
+            </p>
             <div className="grid grid-cols-4 sm:grid-cols-9 gap-2">
               {lista.map((c, i) => (
                 <div key={c.matiz} className="space-y-1">
                   <div
                     className={cn(
                       "h-12 rounded-md flex items-end p-1.5 text-[11px] font-medium",
-                      tom === "pastel" ? "text-[#19191d]/70" : "text-branco",
+                      tinta(c[tema]),
                     )}
                     style={{ background: c[tema] }}
                   >
@@ -737,10 +748,58 @@ export default function PaletaPage() {
               Para identidade: tipo, cultura, categoria. A ordem é o que garante
               que vizinhos se distinguem, inclusive para daltônicos (conferido
               no claro e no escuro). Lista com mais de 8 itens agrupa o resto em
-              "Outros".
-              {tom === "pastel" &&
-                " Pastéis têm pouco contraste com o branco: gráfico sempre com legenda e valor escrito."}
+              "Outros". Abaixo de 3:1 no branco, o gráfico leva sempre legenda e
+              valor escrito.
             </p>
+          </Cartao>
+
+          <Cartao
+            titulo="Todas as opções lado a lado"
+            className="lg:col-span-2"
+          >
+            <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+              {OPCOES_DE_CATEGORIAS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setOpcaoId(o.id)}
+                  className={cn(
+                    "text-left rounded-md p-2 -m-2 space-y-2 transition-colors",
+                    o.id === opcao.id ? "bg-slate-100" : "hover:bg-slate-50",
+                  )}
+                >
+                  <p className="text-sm font-medium text-slate-800">
+                    {o.nome}
+                    <span className="font-normal text-slate-400">
+                      {" "}
+                      · {o.distincao} · contraste {o.contrasteMinimo}
+                    </span>
+                  </p>
+                  <div className="flex gap-1">
+                    {o.cores.map((c) => (
+                      <span
+                        key={c.matiz}
+                        className="h-7 flex-1 rounded"
+                        style={{ background: c[tema] }}
+                        title={c[tema]}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-end gap-1 h-14">
+                    {[90, 70, 52, 44, 34, 26, 18, 12].map((v, i) => (
+                      <span
+                        key={i}
+                        className="flex-1 rounded-t"
+                        style={{
+                          height: `${v}%`,
+                          background: o.cores[i][tema],
+                        }}
+                      />
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
           </Cartao>
         </div>
       </Secao>

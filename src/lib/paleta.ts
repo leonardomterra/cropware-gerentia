@@ -100,44 +100,136 @@ export interface CorDeCategoria {
   escuro: string;
 }
 
+export interface OpcaoDeCategorias {
+  id: string;
+  nome: string;
+  descricao: string;
+  /** Pior par vizinho no validador: ΔE daltonismo / ΔE visão normal (o
+   *  menor entre claro e escuro). Alvo ≥ 8 / piso 15. */
+  distincao: string;
+  /** Menor contraste de uma cor contra o branco (marca de gráfico pede 3:1;
+   *  abaixo disso, legenda e valor escrito são obrigatórios). */
+  contrasteMinimo: string;
+  cores: CorDeCategoria[];
+}
+
 /**
- * PASTÉIS (escolha de 17/11/2026: "uns tons um pouco mais pastéis"). Os tons
- * 300/400 do Tailwind ficam claros mas berrantes (quase neon), e o 300 falha
- * na distinção entre vizinhos; então a cor é construída em OKLCH: o matiz do
- * Tailwind, saturação baixa (C 0,13 no claro / 0,12 no escuro) e claridade
- * ALTERNADA entre vizinhos (0,70/0,78 no claro, 0,64/0,72 no escuro) — com
- * todas na mesma claridade, os vizinhos ficavam parecidos demais para quem
- * enxerga normal. A ordem foi escolhida por enumeração para essa alternância.
- *
- * Validador da skill dataviz: vizinhos ΔE 13,0 daltonismo / 20,0 visão normal
- * (claro) e 12,4 / 19,4 (escuro); as 3 primeiras passam "todos os pares".
- * Custo de ser pastel: no fundo branco ficam entre 1,9 e 2,9:1 de contraste,
- * abaixo dos 3:1 — por isso todo gráfico leva legenda e valor escrito (regra
- * de alívio), nunca a cor sozinha.
+ * OPÇÕES em avaliação (17/11/2026). O Leonardo pediu tons "mais pastéis" e,
+ * vendo a pastel aplicada, quis mais opções. Todas usam os MESMOS 8 matizes
+ * (os do Tailwind) e mudam o clima pela claridade e saturação, construídas em
+ * OKLCH. A claridade ALTERNA entre vizinhos (com todas iguais, os vizinhos
+ * ficavam parecidos demais para quem enxerga normal), e a ordem saiu de uma
+ * enumeração das 5.040 ordens possíveis com o lima fixo em 1º, exigindo
+ * passar no claro e no escuro, inclusive as 3 primeiras em "todos os pares"
+ * (rosca). A "Viva" é a primeira proposta, nos tons 600 do Tailwind.
  */
-export const CATEGORIAS: CorDeCategoria[] = [
-  { matiz: "lime", claro: "#82af54", escuro: "#729b49" },
-  { matiz: "blue", claro: "#85b8ff", escuro: "#77a5ef" },
-  { matiz: "pink", claro: "#dc7aa3", escuro: "#c46b91" },
-  { matiz: "sky", claro: "#5ac3ff", escuro: "#50afe6" },
-  { matiz: "orange", claro: "#df8353", escuro: "#c67448" },
-  { matiz: "violet", claro: "#baa7ff", escuro: "#a796e9" },
-  { matiz: "amber", claro: "#d18f35", escuro: "#ba7e2d" },
-  { matiz: "teal", claro: "#30d2be", escuro: "#2abdab" },
+export const OPCOES_DE_CATEGORIAS: OpcaoDeCategorias[] = [
+  {
+    id: "pastel",
+    nome: "Pastel",
+    descricao: "Claridade 0,70/0,78, saturação 0,13.",
+    distincao: "13,0 / 20,0",
+    contrasteMinimo: "1,9:1",
+    cores: [
+      { matiz: "lime", claro: "#82af54", escuro: "#729b49" },
+      { matiz: "blue", claro: "#85b8ff", escuro: "#77a5ef" },
+      { matiz: "pink", claro: "#dc7aa3", escuro: "#c46b91" },
+      { matiz: "sky", claro: "#5ac3ff", escuro: "#50afe6" },
+      { matiz: "orange", claro: "#df8353", escuro: "#c67448" },
+      { matiz: "violet", claro: "#baa7ff", escuro: "#a796e9" },
+      { matiz: "amber", claro: "#d18f35", escuro: "#ba7e2d" },
+      { matiz: "teal", claro: "#30d2be", escuro: "#2abdab" },
+    ],
+  },
+  {
+    id: "algodao",
+    nome: "Bem clara",
+    descricao: "Claridade 0,76/0,84, saturação 0,10. A mais leve.",
+    distincao: "10,4 / 16,0",
+    contrasteMinimo: "1,6:1",
+    cores: [
+      { matiz: "lime", claro: "#9bbe7a", escuro: "#7d9f5c" },
+      { matiz: "blue", claro: "#a4ccff", escuro: "#85acea" },
+      { matiz: "pink", claro: "#e496b5", escuro: "#c27896" },
+      { matiz: "sky", claro: "#89d5ff", escuro: "#6ab4e2" },
+      { matiz: "orange", claro: "#e69d79", escuro: "#c47f5b" },
+      { matiz: "violet", claro: "#ccbfff", escuro: "#ad9fe5" },
+      { matiz: "amber", claro: "#daa668", escuro: "#b98749" },
+      { matiz: "teal", claro: "#79e0d0", escuro: "#57bfb0" },
+    ],
+  },
+  {
+    id: "suave",
+    nome: "Suave",
+    descricao: "Claridade 0,66/0,74, saturação 0,10. Pastel mais acinzentado.",
+    distincao: "11,0 / 16,7",
+    contrasteMinimo: "2,2:1",
+    cores: [
+      { matiz: "lime", claro: "#7d9f5c", escuro: "#6b8c4b" },
+      { matiz: "blue", claro: "#85acea", escuro: "#7399d6" },
+      { matiz: "pink", claro: "#c27896", escuro: "#af6684" },
+      { matiz: "sky", claro: "#6ab4e2", escuro: "#57a1ce" },
+      { matiz: "orange", claro: "#c47f5b", escuro: "#b16d49" },
+      { matiz: "violet", claro: "#ad9fe5", escuro: "#9a8dd1" },
+      { matiz: "amber", claro: "#b98749", escuro: "#a67537" },
+      { matiz: "teal", claro: "#57bfb0", escuro: "#41ac9d" },
+    ],
+  },
+  {
+    id: "terrosa",
+    nome: "Terrosa",
+    descricao: "Claridade 0,58/0,66, saturação 0,09. Tons de terra, sóbrios.",
+    distincao: "10,5 / 15,4",
+    contrasteMinimo: "3,0:1",
+    cores: [
+      { matiz: "lime", claro: "#68854b", escuro: "#739157" },
+      { matiz: "blue", claro: "#7193c9", escuro: "#7d9fd7" },
+      { matiz: "pink", claro: "#a4637e", escuro: "#b16f8a" },
+      { matiz: "sky", claro: "#599ac3", escuro: "#65a7d0" },
+      { matiz: "orange", claro: "#a6694a", escuro: "#b37556" },
+      { matiz: "violet", claro: "#9488c5", escuro: "#a094d2" },
+      { matiz: "amber", claro: "#9c703a", escuro: "#a97c46" },
+      { matiz: "teal", claro: "#48a497", escuro: "#56b1a3" },
+    ],
+  },
+  {
+    id: "profunda",
+    nome: "Profunda",
+    descricao: "Claridade 0,50/0,60, saturação 0,13. Escura e elegante.",
+    distincao: "13,2 / 20,7",
+    contrasteMinimo: "3,6:1",
+    cores: [
+      { matiz: "lime", claro: "#48710e", escuro: "#648f34" },
+      { matiz: "blue", claro: "#507fcd", escuro: "#6798e8" },
+      { matiz: "pink", claro: "#993e68", escuro: "#ba5c85" },
+      { matiz: "sky", claro: "#088ac4", escuro: "#35a3de" },
+      { matiz: "orange", claro: "#9c470e", escuro: "#bd6533" },
+      { matiz: "violet", claro: "#846fc6", escuro: "#9b88e1" },
+      { matiz: "amber", claro: "#915200", escuro: "#b17000" },
+      { matiz: "teal", claro: "#009887", escuro: "#00b29f" },
+    ],
+  },
+  {
+    id: "viva",
+    nome: "Viva",
+    descricao: "Tons 600 do Tailwind. A primeira proposta.",
+    distincao: "14,8 / 24,9",
+    contrasteMinimo: "3,1:1",
+    cores: [
+      { matiz: "lime", claro: "#5ea500", escuro: "#5ea500" },
+      { matiz: "blue", claro: "#155dfc", escuro: "#2b7fff" },
+      { matiz: "pink", claro: "#e60076", escuro: "#f6339a" },
+      { matiz: "violet", claro: "#7f22fe", escuro: "#8e51ff" },
+      { matiz: "teal", claro: "#009689", escuro: "#009689" },
+      { matiz: "orange", claro: "#f54900", escuro: "#f54900" },
+      { matiz: "sky", claro: "#0084d1", escuro: "#0084d1" },
+      { matiz: "amber", claro: "#e17100", escuro: "#e17100" },
+    ],
+  },
 ];
 
-/** A primeira proposta (tons 600 do Tailwind), guardada para comparar na
- *  página. Vizinhos ΔE 14,8 / 24,9; contraste ≥ 3:1 no branco. */
-export const CATEGORIAS_VIVAS: CorDeCategoria[] = [
-  { matiz: "lime", claro: "#5ea500", escuro: "#5ea500" },
-  { matiz: "blue", claro: "#155dfc", escuro: "#2b7fff" },
-  { matiz: "pink", claro: "#e60076", escuro: "#f6339a" },
-  { matiz: "violet", claro: "#7f22fe", escuro: "#8e51ff" },
-  { matiz: "teal", claro: "#009689", escuro: "#009689" },
-  { matiz: "orange", claro: "#f54900", escuro: "#f54900" },
-  { matiz: "sky", claro: "#0084d1", escuro: "#0084d1" },
-  { matiz: "amber", claro: "#e17100", escuro: "#e17100" },
-];
+/** A opção em uso nas demonstrações até o Leonardo escolher. */
+export const CATEGORIAS: CorDeCategoria[] = OPCOES_DE_CATEGORIAS[0].cores;
 
 /** "Outros" e o que não tem categoria: grafite 400 (não compete). */
 export const OUTROS = { claro: "#a1a1a7", escuro: "#6a6a72" } as const;
