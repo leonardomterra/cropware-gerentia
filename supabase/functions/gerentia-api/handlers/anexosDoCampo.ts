@@ -1,6 +1,6 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireCanWrite, requireFarmUser, requireModule } from "../lib/userClient.ts";
-import { presignGetUrl, uploadToR2 } from "../lib/r2.ts";
+import { getFromR2, presignGetUrl, uploadToR2 } from "../lib/r2.ts";
 
 /**
  * Fotos e arquivos do módulo Field (atividades, avaliações de ensaio) — fase 5
@@ -73,6 +73,33 @@ export function mountAnexosDoCampoRoutes(app: Hono) {
     } catch (resp) {
       if (resp instanceof Response) return resp;
       throw resp;
+    }
+  });
+
+  /**
+   * GET /campo/anexos/arquivo?key= — os BYTES do anexo pelo próprio API (fase 6,
+   * fotos nos relatórios). O navegador não pode dar fetch() no link do R2 (o
+   * bucket não tem CORS) — mesmo motivo do proxy /receipts/:id/attachment.
+   */
+  app.get("/campo/anexos/arquivo", async (c) => {
+    try {
+      const client = getUserClient(c.req.raw);
+      const auth = await requireFarmUser(client);
+      if (auth.error) return auth.error;
+      const key = c.req.query("key") ?? "";
+      if (!key.startsWith(`org-${auth.organizationId}/campo/`) || key.includes("..")) {
+        return c.json({ error: "forbidden" }, 403);
+      }
+      const ext = key.split(".").pop() ?? "";
+      const mime = Object.keys(TIPOS).find((m) => TIPOS[m] === ext) ?? "application/octet-stream";
+      const bytes = await getFromR2(key);
+      return new Response(bytes, {
+        headers: { "content-type": mime, "cache-control": "private, max-age=300" },
+      });
+    } catch (resp) {
+      if (resp instanceof Response) return resp;
+      console.error("[campo/anexos/arquivo]", resp);
+      return c.json({ error: "download_failed" }, 500);
     }
   });
 }

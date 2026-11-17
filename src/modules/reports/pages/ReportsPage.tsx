@@ -340,7 +340,7 @@ export default function ReportsPage() {
       const items = docs.length
         ? await Promise.all(
             docs.map(async (r) => ({
-              receipt: r,
+              mime: r.attachment_mime ?? "",
               bytes: await apiGetArrayBuffer(`/receipts/${r.id}/attachment`),
             })),
           )

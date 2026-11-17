@@ -1,11 +1,30 @@
-import { PDFDocument, type PDFEmbeddedPage, type PDFImage } from "pdf-lib";
-import type { Receipt } from "../types";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFEmbeddedPage,
+  type PDFFont,
+  type PDFImage,
+} from "pdf-lib";
 
+/**
+ * Um anexo para juntar num PDF ou num relatório. Genérico (fase 6 da
+ * unificação): serve ao recibo do financeiro e às fotos do Field.
+ */
 export interface AttachmentItem {
-  receipt: Receipt;
-  /** bytes do anexo (baixados via o proxy /receipts/:id/attachment). */
+  /** "application/pdf" ou "image/...". */
+  mime: string;
+  /** bytes do anexo (baixados por um proxy do API — o R2 não tem CORS). */
   bytes: ArrayBuffer;
+  /** Texto curto no rodapé de cada página do anexo (ex.: data e atividade). */
+  legenda?: string;
 }
+
+/** A fonte padrão do pdf-lib só codifica WinAnsi; o resto vira nada. */
+function textoSeguro(s: string): string {
+  return s.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "");
+}
+const ALTURA_LEGENDA = 18;
 
 export interface MergeResult {
   blob: Blob;
@@ -91,13 +110,19 @@ async function imageToJpegBytes(bytes: ArrayBuffer): Promise<Uint8Array> {
 }
 
 // Encaixa (contain) um conteúdo de w×h dentro da área útil da A4, centralizado.
-function fitA4(w: number, h: number) {
+// `rodape` reserva uma faixa embaixo (para a legenda).
+function fitA4(w: number, h: number, rodape = 0) {
   const maxW = A4_W - MARGIN * 2;
-  const maxH = A4_H - MARGIN * 2;
+  const maxH = A4_H - MARGIN * 2 - rodape;
   const scale = Math.min(maxW / w, maxH / h);
   const fw = w * scale;
   const fh = h * scale;
-  return { x: (A4_W - fw) / 2, y: (A4_H - fh) / 2, width: fw, height: fh };
+  return {
+    x: (A4_W - fw) / 2,
+    y: rodape + (A4_H - rodape - fh) / 2,
+    width: fw,
+    height: fh,
+  };
 }
 
 /**
@@ -116,9 +141,27 @@ export async function appendAttachments(
   items: AttachmentItem[],
 ): Promise<number> {
   let failed = 0;
+  let fonte: PDFFont | null = null;
   for (const it of items) {
     try {
-      const mime = it.receipt.attachment_mime ?? "";
+      const mime = it.mime ?? "";
+      const legenda = it.legenda ? textoSeguro(it.legenda) : "";
+      const rodape = legenda ? ALTURA_LEGENDA : 0;
+      const escreverLegenda = async (page: ReturnType<typeof out.addPage>) => {
+        if (!legenda) return;
+        fonte ??= await out.embedFont(StandardFonts.Helvetica);
+        const tam = 8;
+        let t = legenda;
+        while (t.length > 1 && fonte.widthOfTextAtSize(t, tam) > A4_W - MARGIN * 2)
+          t = t.slice(0, -1);
+        page.drawText(t, {
+          x: MARGIN,
+          y: MARGIN / 2 + 2,
+          size: tam,
+          font: fonte,
+          color: rgb(0.32, 0.32, 0.32),
+        });
+      };
 
       if (mime === "application/pdf") {
         const src = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
@@ -128,13 +171,15 @@ export async function appendAttachments(
         );
         for (const emb of embedded) {
           const page = out.addPage([A4_W, A4_H]);
-          page.drawPage(emb, fitA4(emb.width, emb.height));
+          page.drawPage(emb, fitA4(emb.width, emb.height, rodape));
+          await escreverLegenda(page);
         }
       } else {
         const jpeg = await imageToJpegBytes(it.bytes);
         const img: PDFImage = await out.embedJpg(jpeg);
         const page = out.addPage([A4_W, A4_H]);
-        page.drawImage(img, fitA4(img.width, img.height));
+        page.drawImage(img, fitA4(img.width, img.height, rodape));
+        await escreverLegenda(page);
       }
     } catch {
       failed += 1;

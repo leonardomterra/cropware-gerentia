@@ -3,6 +3,14 @@ import type { AttachmentItem } from "@/modules/receipts/utils/mergeAttachmentsPd
 // e duas cópias divergiriam na primeira correção de escala.
 import { pdfParaImagens } from "@/utils/pdfRaster";
 
+function escaparHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function bytesToDataUrl(bytes: ArrayBuffer, mime: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -32,7 +40,7 @@ export async function attachmentsToPagesHtml(
   const parts: string[] = [];
   for (const it of items) {
     try {
-      const mime = it.receipt.attachment_mime ?? "";
+      const mime = it.mime ?? "";
       let urls: string[] = [];
       if (mime === "application/pdf") urls = await pdfParaImagens(it.bytes);
       else if (mime.startsWith("image/"))
@@ -42,8 +50,11 @@ export async function attachmentsToPagesHtml(
         continue;
       }
       for (const u of urls) {
+        const legenda = it.legenda
+          ? `<p class="att-legenda">${escaparHtml(it.legenda)}</p>`
+          : "";
         parts.push(
-          `<div class="sheet att"><img class="att-img" src="${u}" alt="" /></div>`,
+          `<div class="sheet att"><img class="att-img" src="${u}" alt="" />${legenda}</div>`,
         );
       }
     } catch {

@@ -380,7 +380,7 @@ export function ReceiptsListPage({
       const items = await Promise.all(
         chosen.map(async (r) => {
           const bytes = await apiGetArrayBuffer(`/receipts/${r.id}/attachment`);
-          return { receipt: r, bytes };
+          return { mime: r.attachment_mime ?? "", bytes };
         }),
       );
       const { blob, failed } = await mergeAttachmentsToPdf(items);

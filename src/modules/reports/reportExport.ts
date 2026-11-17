@@ -207,8 +207,10 @@ export function reportPageHtml(doc: ReportDoc, attachmentsHtml = ""): string {
   tbody tr:nth-child(even) td { background: ${NEUTRO[50]}; }
   tr.tot td { font-weight: 700; border-top: 2px solid ${NEUTRO[300]}; border-bottom: none; color: ${NEUTRO[900]}; background: #fff !important; }
   .foot { margin-top: 24px; color: ${NEUTRO[400]}; font-size: ${TIPOGRAFIA.miudo}px; }
-  .att { padding: 0; display: flex; align-items: center; justify-content: center; }
+  .att { padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .att .att-img { max-width: 100%; max-height: 265mm; object-fit: contain; display: block; }
+  .att:has(.att-legenda) .att-img { max-height: 255mm; }
+  .att .att-legenda { margin: 6px 0 0; font-size: 10px; color: #525252; text-align: center; }
   @media screen { .att { min-height: 297mm; } .sheet + .sheet { margin-top: 24px; } }
   @media print { .att { break-before: page; page-break-before: always; } }
   .bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e5e5e5; }
