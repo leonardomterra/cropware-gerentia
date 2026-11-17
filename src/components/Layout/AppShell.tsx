@@ -462,7 +462,7 @@ export function AppShell() {
         <button
           type="button"
           title={user?.fullName || user?.email || "Conta"}
-          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md text-sm text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
           <UserCircleFill className="size-5 shrink-0" />
           <span className="truncate">
@@ -523,7 +523,7 @@ export function AppShell() {
           type="button"
           aria-label={`Módulo: ${ativo.nome}. Trocar de módulo`}
           title={`Módulo: ${ativo.nome}`}
-          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
           <ativo.Icon className="size-5 shrink-0" />
           <span className="truncate">{ativo.nome}</span>
