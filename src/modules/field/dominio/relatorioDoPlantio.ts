@@ -255,12 +255,12 @@ export function montarRelatorioDoPlantio(d: DadosDoPlantio): ReportDoc {
     tables.push({
       title: "Atividades",
       columns: [
-        { label: "Data", width: "11%" },
+        { label: "Data", width: "14%" },
         { label: "Tipo", width: "13%" },
-        { label: "Situação", width: "11%" },
-        { label: "Área", align: "right", width: "10%" },
+        { label: "Situação", width: "12%" },
+        { label: "Área", align: "right", width: "11%" },
         { label: "Produtos / descrição", wrap: true },
-        { label: "Custo", money: true, width: "13%" },
+        { label: "Custo", money: true, width: "16%" },
       ],
       rows: atividades.map((a) => [
         dataBr(a.date),
@@ -270,7 +270,7 @@ export function montarRelatorioDoPlantio(d: DadosDoPlantio): ReportDoc {
         produtosEmTexto(a.products ?? []) || a.description || "",
         a.cost_total ?? 0,
       ]),
-      total: ["Total realizado", "", "", "", "", custoRealizado],
+      total: ["Total", "", "", "", "", custoRealizado],
     });
   }
 

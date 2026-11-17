@@ -105,19 +105,19 @@ export function tabelaDoRoi(
   const { linhas } = roiDoEnsaio(produtos, colheitas, precoSaca, referenciaId);
   return {
     title: `ROI · saca ${precoSaca ? brl(precoSaca) : "—"}`,
+    // Sem a coluna "Papel" (está na tabela de Produtos): com ela, 8 colunas
+    // não cabiam no A4 e o nome do produto quebrava em 5 linhas.
     columns: [
       { label: "Produto", wrap: true },
-      { label: "Papel" },
-      { label: "Custo/ha", money: true },
-      { label: "Prod. (sc/ha)", align: "right" },
-      { label: "Ganho/ha", money: true },
-      { label: "Lucro/ha", money: true },
-      { label: "ROI", align: "right" },
-      { label: "Custo em sacas", align: "right" },
+      { label: "Custo/ha", money: true, width: "14%" },
+      { label: "sc/ha", align: "right", width: "12%" },
+      { label: "Ganho/ha", money: true, width: "14%" },
+      { label: "Lucro/ha", money: true, width: "14%" },
+      { label: "ROI", align: "right", width: "12%" },
+      { label: "Custo (sc)", align: "right", width: "12%" },
     ],
     rows: linhas.map((l) => [
       l.produto.name + (l.ehReferencia ? " (referência)" : ""),
-      l.produto.role === "principal" ? "Principal" : "Concorrente",
       l.produto.cost_ha ?? 0,
       l.produtividade != null ? num(l.produtividade) : "—",
       l.ganho ?? 0,
@@ -197,7 +197,7 @@ export function montarRelatorioDoEnsaio(d: DadosDoEnsaio): ReportDoc {
       columns: [
         { label: "Produto", wrap: true },
         { label: "Fabricante", wrap: true },
-        { label: "Papel", width: "13%" },
+        { label: "Papel", width: "15%" },
         { label: "Dose", width: "15%" },
         { label: "População", align: "right", width: "13%" },
         { label: "Custo/ha", money: true, width: "13%" },
@@ -226,7 +226,7 @@ export function montarRelatorioDoEnsaio(d: DadosDoEnsaio): ReportDoc {
       title: `Avaliação · ${rotuloDaEtapa(et)}`,
       columns: [
         { label: "Produto", wrap: true },
-        { label: "Data", width: "12%" },
+        { label: "Data", width: "14%" },
         ...et.characteristics.map((c) => ({
           label: rotuloDaCaracteristica(c),
           wrap: true,
@@ -250,7 +250,7 @@ export function montarRelatorioDoEnsaio(d: DadosDoEnsaio): ReportDoc {
       title: "Avaliações avulsas",
       columns: [
         { label: "Produto", wrap: true, width: "24%" },
-        { label: "Data", width: "12%" },
+        { label: "Data", width: "14%" },
         { label: "Valores", wrap: true },
       ],
       rows: avulsas.map((a) => {
@@ -278,10 +278,10 @@ export function montarRelatorioDoEnsaio(d: DadosDoEnsaio): ReportDoc {
       title: "Colheita",
       columns: [
         { label: "Produto", wrap: true },
-        { label: "Data", width: "12%" },
-        { label: "Peso (kg)", align: "right", width: "12%" },
+        { label: "Data", width: "14%" },
+        { label: "Peso (kg)", align: "right", width: "11%" },
         { label: "Área (ha)", align: "right", width: "11%" },
-        { label: "Umidade", align: "right", width: "11%" },
+        { label: "Umidade", align: "right", width: "15%" },
         { label: "Prod. (sc/ha)", align: "right", width: "14%" },
       ],
       rows: colheitas.map((c) => [

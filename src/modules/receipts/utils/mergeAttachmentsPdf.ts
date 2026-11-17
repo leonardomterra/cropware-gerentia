@@ -20,9 +20,23 @@ export interface AttachmentItem {
   legenda?: string;
 }
 
-/** A fonte padrão do pdf-lib só codifica WinAnsi; o resto vira nada. */
-function textoSeguro(s: string): string {
-  return s.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "");
+/**
+ * A Helvetica padrão do pdf-lib só codifica WinAnsi: um caractere fora dela
+ * (emoji, seta, nbsp estreito do Intl) faz o drawText/widthOfTextAtSize
+ * LANÇAR e derruba o PDF inteiro. Troca os comuns e descarta o resto.
+ */
+const WINANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+export function textoWinAnsi(s: unknown): string {
+  return String(s ?? "")
+    .replace(/[\u00A0\u202F\u2009\u2007\u200A]/g, " ")
+    .replace(/[\u2192\u27A1]/g, "->")
+    .replace(/\u2190/g, "<-")
+    .replace(/\u2265/g, ">=")
+    .replace(/\u2264/g, "<=")
+    .replace(/\u2212/g, "-")
+    .replace(/[^\x20-\x7E\u00A1-\u00FF]/g, (c) =>
+      WINANSI_EXTRA.includes(c) ? c : "",
+    );
 }
 const ALTURA_LEGENDA = 18;
 
@@ -49,7 +63,12 @@ async function decodeImage(blob: Blob): Promise<{
   if (typeof createImageBitmap === "function") {
     try {
       const bmp = await createImageBitmap(blob);
-      return { source: bmp, width: bmp.width, height: bmp.height, cleanup: () => bmp.close?.() };
+      return {
+        source: bmp,
+        width: bmp.width,
+        height: bmp.height,
+        cleanup: () => bmp.close?.(),
+      };
     } catch {
       /* cai pro <img> */
     }
@@ -74,7 +93,9 @@ async function decodeImage(blob: Blob): Promise<{
 // porque JPEG não tem transparência. Usa OffscreenCanvas quando há; senão cai
 // pra <canvas> (OffscreenCanvas pode faltar no WKWebView/iOS).
 async function imageToJpegBytes(bytes: ArrayBuffer): Promise<Uint8Array> {
-  const { source, width, height, cleanup } = await decodeImage(new Blob([bytes]));
+  const { source, width, height, cleanup } = await decodeImage(
+    new Blob([bytes]),
+  );
   try {
     if (typeof OffscreenCanvas !== "undefined") {
       try {
@@ -84,7 +105,10 @@ async function imageToJpegBytes(bytes: ArrayBuffer): Promise<Uint8Array> {
           octx.fillStyle = "#ffffff";
           octx.fillRect(0, 0, width, height);
           octx.drawImage(source, 0, 0);
-          const b = await off.convertToBlob({ type: "image/jpeg", quality: 0.9 });
+          const b = await off.convertToBlob({
+            type: "image/jpeg",
+            quality: 0.9,
+          });
           return new Uint8Array(await b.arrayBuffer());
         }
       } catch {
@@ -145,14 +169,17 @@ export async function appendAttachments(
   for (const it of items) {
     try {
       const mime = it.mime ?? "";
-      const legenda = it.legenda ? textoSeguro(it.legenda) : "";
+      const legenda = it.legenda ? textoWinAnsi(it.legenda) : "";
       const rodape = legenda ? ALTURA_LEGENDA : 0;
       const escreverLegenda = async (page: ReturnType<typeof out.addPage>) => {
         if (!legenda) return;
         fonte ??= await out.embedFont(StandardFonts.Helvetica);
         const tam = 8;
         let t = legenda;
-        while (t.length > 1 && fonte.widthOfTextAtSize(t, tam) > A4_W - MARGIN * 2)
+        while (
+          t.length > 1 &&
+          fonte.widthOfTextAtSize(t, tam) > A4_W - MARGIN * 2
+        )
           t = t.slice(0, -1);
         page.drawText(t, {
           x: MARGIN,
@@ -164,7 +191,9 @@ export async function appendAttachments(
       };
 
       if (mime === "application/pdf") {
-        const src = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
+        const src = await PDFDocument.load(it.bytes, {
+          ignoreEncryption: true,
+        });
         const embedded: PDFEmbeddedPage[] = await out.embedPdf(
           src,
           src.getPageIndices(),

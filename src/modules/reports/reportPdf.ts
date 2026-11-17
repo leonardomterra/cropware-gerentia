@@ -3,6 +3,7 @@ import { formatBRL } from "@/modules/receipts/utils/receiptFormatters";
 import {
   appendAttachments,
   pdfDocToBlob,
+  textoWinAnsi,
   type AttachmentItem,
 } from "@/modules/receipts/utils/mergeAttachmentsPdf";
 import type { ReportCell, ReportColumn, ReportDoc } from "./reportBuilders";
@@ -42,10 +43,9 @@ const FAINT = cor(NEUTRO[400]);
 const ZEBRA = cor(NEUTRO[50]);
 
 // Helvetica (WinAnsi) não codifica nbsp/narrow-nbsp/thin-space (o Intl de moeda
-// usa nbsp entre "R$" e o número) — troca por espaço normal senão drawText falha.
-function san(s: unknown): string {
-  return String(s ?? "").replace(/[\u00A0\u202F\u2009]/g, " ");
-}
+// usa nbsp entre "R$" e o número), emoji nem setas — o drawText LANÇA e o PDF
+// inteiro falha. `textoWinAnsi` troca os comuns e descarta o resto.
+const san = textoWinAnsi;
 
 function dispCell(v: ReportCell, col: ReportColumn): string {
   if (col.money && typeof v === "number" && Number.isFinite(v))

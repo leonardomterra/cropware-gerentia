@@ -354,10 +354,10 @@ export function documentoDoPainel(
       columns: [
         { label: "Cultura", wrap: true },
         { label: "Talhão", wrap: true },
-        { label: "Área", align: "right", width: "11%" },
-        { label: "Plantio", width: "11%" },
-        { label: "Colheita", width: "11%" },
-        { label: "Situação", width: "13%" },
+        { label: "Área", align: "right", width: "10%" },
+        { label: "Plantio", width: "14%" },
+        { label: "Colheita", width: "14%" },
+        { label: "Situação", width: "17%" },
         { label: "Atividades", align: "right", width: "15%" },
       ],
       rows: p.linhas.map((l) => [
