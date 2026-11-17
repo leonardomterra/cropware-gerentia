@@ -1199,6 +1199,40 @@ input:-webkit-autofill:active {
 }
 
 /* ==========================================================
+   FAIXA LIMA (topo do app) - AppShell, 17/11/2026 (em teste)
+   --------------------------------------------------------------
+   O lima da Cropware com o relevo dos cards do site, no topo do menu e na
+   barra do breadcrumb. A textura é UMA imagem presa à janela
+   (`background-attachment: fixed` + `cover`): as duas faixas mostram pedaços
+   da mesma imagem, sem emenda entre elas e sem repetir. Quem usa a faixa
+   também leva `tema-claro`: no tema escuro o topo continua lima, com o
+   conteúdo dele nas cores do claro.
+   ========================================================== */
+.faixa-lima {
+  position: relative;
+  isolation: isolate;
+  background-color: #b3ff34;
+  color: #19191d;
+  border-color: rgb(25 25 29 / 0.12);
+  /* Breadcrumb sobre o lima: grafite, e não os cinzas da escala. */
+  --cor-breadcrumb: rgb(25 25 29 / 0.55);
+  --cor-breadcrumb-atual: #19191d;
+}
+.faixa-lima::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url(/textures/cropware-relevo.webp);
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  opacity: 0.42;
+  mix-blend-mode: overlay;
+}
+
+/* ==========================================================
    MARCA ANIMADA (tela de entrada) - LogoAnimado.tsx
    --------------------------------------------------------------
    "Reflexo e mexidinha": um brilho branco atravessa a armação dos óculos

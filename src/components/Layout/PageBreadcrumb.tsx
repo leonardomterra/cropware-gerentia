@@ -30,11 +30,13 @@ export function PageBreadcrumb({ segments, embedded = false }: PageBreadcrumbPro
             key={i}
             className="flex items-center gap-1.5 shrink-0 last:shrink last:min-w-0 last:truncate"
           >
-            {i > 0 && <span style={{ color: "var(--color-slate-400)" }}>›</span>}
+            {i > 0 && <span style={{ color: "var(--cor-breadcrumb, var(--color-slate-400))" }}>›</span>}
             <span
               className={isLast ? "truncate" : ""}
               style={{
-                color: isLast ? "var(--color-slate-600)" : "var(--color-slate-400)",
+                color: isLast
+                  ? "var(--cor-breadcrumb-atual, var(--color-slate-600))"
+                  : "var(--cor-breadcrumb, var(--color-slate-400))",
                 fontWeight: isLast ? 400 : 300,
               }}
             >

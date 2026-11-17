@@ -591,11 +591,16 @@ export function AppShell() {
             h-13 COM a borda por dentro (box-border) = 52px. A régua da esquerda
             ficava 1px abaixo da da direita — e ainda em outro tom
             (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
-        <div className="flex items-center justify-between gap-2 h-13 shrink-0 px-4 border-b border-slate-200">
+        {/* Faixa lima (app.css .faixa-lima, em teste 17/11/2026). `-mr-px`:
+            cobre a borda direita do menu, para a faixa seguir sem corte até
+            a do breadcrumb. */}
+        <div className="faixa-lima tema-claro -mr-px flex items-center justify-between gap-2 h-13 shrink-0 px-4 border-b">
           {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. Nome
               a 20px e selo do módulo na ponta, para ocupar a largura. O menu
               foi de 224 para 240px para caber "Finanças" + seta com folga. */}
-          <LogoName className="h-5 shrink-0" />
+          {/* filter: none — no tema escuro a marca clareia sozinha (app.css,
+              .marca-img); sobre o lima ela fica grafite. */}
+          <LogoName className="h-5 shrink-0" style={{ filter: "none" }} />
           {seloDoModulo}
         </div>
         <AppSidebar itens={railItens} footer={accountTrigger} />
@@ -718,7 +723,7 @@ export function AppShell() {
         )}
 
         {/* DESKTOP: topbar com toggle + breadcrumb */}
-        <div className="hidden md:flex items-center h-13 shrink-0 border-b border-slate-200 px-3 gap-2">
+        <div className="faixa-lima tema-claro hidden md:flex items-center h-13 shrink-0 border-b px-3 gap-2">
           <div className="flex-1 min-w-0">
             <PageBreadcrumb segments={breadcrumbSegments} embedded />
           </div>
