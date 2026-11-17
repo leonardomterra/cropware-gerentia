@@ -77,7 +77,7 @@ export function CardSensivel({
               COLADO nele, para o texto e a ação serem lidos juntos. */}
           {!destravado && (
             <p className="flex items-start gap-2 text-sm text-slate-600">
-              <InfoDuotone className="size-[18px] shrink-0 text-amber-600 mt-px" />
+              <InfoDuotone className="size-[18px] shrink-0 text-amber-700 mt-px" />
               <span>{avisoTravado}</span>
             </p>
           )}

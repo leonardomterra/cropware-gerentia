@@ -461,7 +461,7 @@ export default function AdminOrgsPage({
             Voltar
           </Button>
           <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
-            <Gear className="size-[18px] shrink-0 text-amber-600" />
+            <Gear className="size-[18px] shrink-0 text-amber-700" />
             <span className="truncate">
               {detail?.organization.name ?? "Organização"}
             </span>
@@ -782,7 +782,7 @@ export default function AdminOrgsPage({
             Voltar
           </Button>
           <span className="h-9 px-3 ml-auto inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-700 min-w-0">
-            <BuildingOffice className="size-[18px] shrink-0 text-amber-600" />
+            <BuildingOffice className="size-[18px] shrink-0 text-amber-700" />
             <span className="truncate">Organizações</span>
           </span>
         </div>
@@ -851,7 +851,7 @@ export default function AdminOrgsPage({
               setBusca("");
               setKindFilter("all");
             }}
-            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="h-8 px-2 font-normal text-red-700 hover:text-red-800 hover:bg-red-50"
             title="Limpar filtros"
           >
             <X className="size-4 mr-1.5" />

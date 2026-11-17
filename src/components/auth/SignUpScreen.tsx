@@ -202,7 +202,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             disabled={submitting}
           />
           {confirmPassword && !passwordsMatch ? (
-            <p className="text-xs text-red-600 mt-0.5">
+            <p className="text-xs text-red-700 mt-0.5">
               As senhas não coincidem.
             </p>
           ) : null}
@@ -232,7 +232,7 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
         )}
 
         {error ? (
-          <p className="text-sm text-red-600 mt-1" role="alert">
+          <p className="text-sm text-red-700 mt-1" role="alert">
             {error}
           </p>
         ) : null}

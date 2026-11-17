@@ -178,7 +178,7 @@ export default function TeamPage() {
       </header>
 
       {seatsFull && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded p-3">
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded p-3">
           Todos os acessos do seu plano estão em uso. Para incluir mais gente na
           organização, fale com a gente pelo suporte.
         </div>
@@ -273,7 +273,7 @@ export default function TeamPage() {
                 <button
                   type="button"
                   onClick={() => handleRevokeInvite(inv.id)}
-                  className="text-xs text-slate-600 hover:text-red-600"
+                  className="text-xs text-slate-600 hover:text-red-700"
                   title="Revogar"
                 >
                   <X className="size-4" />

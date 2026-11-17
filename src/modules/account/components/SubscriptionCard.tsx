@@ -214,7 +214,7 @@ export function SubscriptionCard({ className }: { className?: string }) {
       {loading ? (
         <p className="text-sm text-slate-400">Carregando...</p>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-700">{error}</p>
       ) : isActive ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

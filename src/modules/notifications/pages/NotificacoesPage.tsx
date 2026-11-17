@@ -28,7 +28,7 @@ function tomDoCard(kind: string) {
   if (kind === "overdue")
     return { caixa: "bg-red-50 border-red-200", corpo: "text-red-700" };
   if (kind === "due_today" || kind === "due_in_1d")
-    return { caixa: "bg-amber-50 border-amber-200", corpo: "text-amber-800" };
+    return { caixa: "bg-amber-50 border-amber-200", corpo: "text-amber-700" };
   return { caixa: "bg-white border-slate-300", corpo: "text-slate-500" };
 }
 

@@ -45,7 +45,7 @@ export const ActionIconButton = forwardRef<
             className={cn(
               "size-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-slate-300 disabled:opacity-50 disabled:cursor-not-allowed",
               tone === "danger"
-                ? "hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                ? "hover:bg-red-50 hover:text-red-700 hover:border-red-200"
                 : "hover:bg-slate-100 hover:text-slate-700",
               className,
             )}

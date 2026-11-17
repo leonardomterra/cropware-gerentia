@@ -46,9 +46,10 @@ interface Atalho {
 }
 
 /**
- * Atalhos de Configurações. Ícones duotone coloridos, como no trilho e na tela
- * de Conta — cada assunto com a própria cor, para o olho achar pelo desenho
- * antes de ler o rótulo.
+ * Atalhos de Configurações. Ícones em grafite, como no menu e na tela de
+ * Conta (paleta do app, 17/11/2026: cor só quando diz alguma coisa — antes
+ * cada assunto tinha a sua, e "Categorias de Despesa" era vermelho sem ser
+ * alerta).
  *
  * As entradas do MASTER moram aqui em vez de terem ícone próprio no trilho: são
  * duas telas que só uma pessoa no mundo abre, e ocupavam permanentemente duas
@@ -58,35 +59,35 @@ const ATALHOS: Atalho[] = [
   {
     id: "centros",
     Icon: WrenchDuotone,
-    cor: "text-emerald-500",
+    cor: "text-slate-600",
     titulo: "Centros de Custo",
     descricao: "Como você separa as despesas",
   },
   {
     id: "cat-despesa",
     Icon: ArrowSquareOutDuotone,
-    cor: "text-red-500",
+    cor: "text-slate-600",
     titulo: "Categorias de Despesa",
     descricao: "Grupos e categorias do que sai",
   },
   {
     id: "cat-receita",
     Icon: ArrowSquareInDuotone,
-    cor: "text-teal-500",
+    cor: "text-slate-600",
     titulo: "Categorias de Receita",
     descricao: "Grupos e categorias do que entra",
   },
   {
     id: "backups",
     Icon: FloppyDiskDuotone,
-    cor: "text-sky-500",
+    cor: "text-slate-600",
     titulo: "Backups",
     descricao: "Consultar, baixar e restaurar",
   },
   {
     id: "backups-master",
     Icon: FloppyDiskDuotone,
-    cor: "text-slate-500",
+    cor: "text-slate-600",
     titulo: "Backups de Todos",
     descricao: "Toda organização e toda pessoa",
     master: true,
@@ -94,7 +95,7 @@ const ATALHOS: Atalho[] = [
   {
     id: "usuarios",
     Icon: UsersThreeDuotone,
-    cor: "text-fuchsia-500",
+    cor: "text-slate-600",
     titulo: "Usuários",
     descricao: "Assinantes e acessos do sistema",
     master: true,
@@ -102,7 +103,7 @@ const ATALHOS: Atalho[] = [
   {
     id: "organizacoes",
     Icon: BuildingOfficeDuotone,
-    cor: "text-amber-600",
+    cor: "text-slate-600",
     titulo: "Organizações",
     descricao: "Contas, membros e backups",
     master: true,

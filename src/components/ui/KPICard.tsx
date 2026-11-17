@@ -43,8 +43,8 @@ const trendIcons: Record<NonNullable<KPITrend>, ReactNode> = {
 };
 
 const trendColors: Record<NonNullable<KPITrend>, string> = {
-  up: "text-emerald-600",
-  down: "text-red-600",
+  up: "text-emerald-700",
+  down: "text-red-700",
   flat: "text-slate-400",
 };
 

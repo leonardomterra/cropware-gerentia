@@ -120,7 +120,7 @@ export function AttachmentViewer({
   if (error || erroPdf) {
     return (
       <div className={`${moldura} flex items-center justify-center`}>
-        <p className="text-sm text-red-600 p-8 text-center">
+        <p className="text-sm text-red-700 p-8 text-center">
           {error || erroPdf}
         </p>
       </div>

@@ -783,7 +783,7 @@ export default function AdminUsersPage({
                     disabled={!senhaDestravada || !eForm.password}
                     className="bg-white"
                   />
-                  <p className="text-sm text-red-600 min-h-5">
+                  <p className="text-sm text-red-700 min-h-5">
                     {eForm.password &&
                     eForm.password2 &&
                     eForm.password !== eForm.password2
@@ -1042,7 +1042,7 @@ export default function AdminUsersPage({
               setSearch("");
               setFilterStatus(null);
             }}
-            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="h-8 px-2 font-normal text-red-700 hover:text-red-800 hover:bg-red-50"
             title="Limpar filtros"
           >
             <X className="size-4 mr-1.5" />

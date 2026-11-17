@@ -773,7 +773,7 @@ export default function RecurringPage() {
               variant="ghost"
               size="sm"
               onClick={limparFiltros}
-              className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="h-8 px-2 font-normal text-red-700 hover:text-red-800 hover:bg-red-50"
               title="Limpar filtros"
             >
               <X className="size-4 mr-1.5" />

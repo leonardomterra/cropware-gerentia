@@ -217,7 +217,7 @@ export function AbaRoi({
                   className={cn(
                     "px-3 py-2 text-right",
                     l.lucro != null &&
-                      (l.lucro >= 0 ? "text-emerald-700" : "text-red-600"),
+                      (l.lucro >= 0 ? "text-emerald-700" : "text-red-700"),
                   )}
                 >
                   {l.lucro != null ? brl(l.lucro) : "—"}

@@ -148,7 +148,7 @@ function prazoDoCard(due: string | null | undefined, resolvido: boolean) {
     return { texto: `venceu ${fmtDate(due)}`, classe: "text-slate-400" };
   return {
     texto: `${vencido ? "venceu" : "vence"} ${fmtDate(due)}`,
-    classe: vencido ? "text-red-800 font-medium" : "text-red-600",
+    classe: vencido ? "text-red-800 font-medium" : "text-red-700",
   };
 }
 
@@ -858,7 +858,7 @@ export default function PendenciasPage() {
             variant="ghost"
             size="sm"
             onClick={limparFiltros}
-            className="h-8 px-2 font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="h-8 px-2 font-normal text-red-700 hover:text-red-800 hover:bg-red-50"
             title="Limpar filtros"
           >
             <X className="size-4 mr-1.5" />
@@ -1114,7 +1114,7 @@ function TaskCard({
         </span>
         {t.priority === "high" && !t.done && (
           <Flag
-            className="size-4 shrink-0 text-red-600"
+            className="size-4 shrink-0 text-red-700"
             aria-label="Prioridade alta"
           />
         )}

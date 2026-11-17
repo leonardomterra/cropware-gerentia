@@ -156,13 +156,13 @@ export function ReceiptCaptureDialog({
           ) : null}
 
           {error ? (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-red-700" role="alert">
               {error}
             </p>
           ) : null}
 
           {lastScan && (lastScan.scan_error || !lastScan.extracted) ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-700">
               <p className="font-medium">A IA não conseguiu ler o recibo.</p>
               <p className="mt-1">
                 A foto foi salva. Você pode continuar e preencher os campos

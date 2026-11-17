@@ -1274,7 +1274,7 @@ export function ReceiptFormDialog({
       ) : null}
 
       {error ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-red-700" role="alert">
           {error}
         </p>
       ) : null}

@@ -143,7 +143,7 @@ export function Campo({
         {ajuda && <Ajuda>{ajuda}</Ajuda>}
       </Label>
       {children}
-      {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {erro && <p className="text-xs text-red-700">{erro}</p>}
     </div>
   );
 }

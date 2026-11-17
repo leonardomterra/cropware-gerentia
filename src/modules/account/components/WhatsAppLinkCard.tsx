@@ -46,7 +46,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       {copied ? (
         <CheckCircleDuotone className="size-5 text-emerald-700" />
       ) : (
-        <CopyDuotone className="size-5 text-emerald-500" />
+        <CopyDuotone className="size-5 text-emerald-700" />
       )}
     </button>
   );
@@ -194,7 +194,7 @@ export function WhatsAppLinkCard({ className }: { className?: string }) {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+      {error && <p className="text-sm text-red-700 mt-3">{error}</p>}
     </section>
   );
 }

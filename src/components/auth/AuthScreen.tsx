@@ -90,7 +90,7 @@ export function AuthScreen({
 
         {error ? (
           <div
-            className="text-sm text-red-600 bg-red-50 p-3 rounded-md"
+            className="text-sm text-red-700 bg-red-50 p-3 rounded-md"
             role="alert"
           >
             {error}

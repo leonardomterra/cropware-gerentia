@@ -173,7 +173,7 @@ export function BlocoDoCampoNoDashboard() {
                   <span
                     className={cn(
                       "w-12 shrink-0 tabular-nums",
-                      x.date < hoje ? "text-red-600" : "text-slate-500",
+                      x.date < hoje ? "text-red-700" : "text-slate-500",
                     )}
                   >
                     {diaMes(x.date)}
@@ -239,7 +239,7 @@ function Numero({
       <p
         className={cn(
           "text-xs truncate",
-          alerta ? "text-red-600" : "text-slate-500",
+          alerta ? "text-red-700" : "text-slate-500",
         )}
       >
         {detalhe}

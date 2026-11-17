@@ -225,7 +225,7 @@ export function ReceiptsTable({
                               "inline-flex shrink-0",
                               DOC_TYPE_PREFIX[r.doc_type] === "F"
                                 ? "text-sky-500"
-                                : "text-amber-500",
+                                : "text-amber-700",
                             )}
                           >
                             {DOC_TYPE_PREFIX[r.doc_type] === "F" ? (

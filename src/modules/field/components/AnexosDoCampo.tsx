@@ -87,7 +87,7 @@ function Miniatura({
             <span className="text-[10px] text-slate-400">carregando</span>
           )
         ) : (
-          <FilePdf className="size-8 text-red-600" />
+          <FilePdf className="size-8 text-red-700" />
         )}
       </button>
       {aoRemover && (

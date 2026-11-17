@@ -54,7 +54,7 @@ export function ItemsCount({
           variant="ghost"
           size="sm"
           onClick={onClearFilters}
-          className="text-red-600 hover:text-red-700 hover:bg-red-50 font-normal h-8 px-2"
+          className="text-red-700 hover:text-red-800 hover:bg-red-50 font-normal h-8 px-2"
           title="Limpar filtros"
         >
           <X className="size-4 mr-1.5" />

@@ -446,7 +446,7 @@ export function FaturaView({
 
         {divergencia && (
           <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-            <WarningDuotone className="size-[18px] shrink-0 text-amber-600 mt-px" />
+            <WarningDuotone className="size-[18px] shrink-0 text-amber-700 mt-px" />
             <p className="text-sm text-slate-700">
               Os lançamentos somam {formatBRL(somaItens)}, e a fatura diz{" "}
               {formatBRL(total)}. Faltam{" "}
@@ -468,7 +468,7 @@ export function FaturaView({
               // O número que interessa. Não é erro — é descoberta: são as
               // compras que passaram no cartão e nunca foram lançadas.
               <span className="inline-flex items-center gap-1.5 text-sm text-amber-700">
-                <QuestionDuotone className="size-[18px] shrink-0 text-amber-600" />
+                <QuestionDuotone className="size-[18px] shrink-0 text-amber-700" />
                 {conc.nao_registrados} não{" "}
                 {conc.nao_registrados === 1 ? "registrada" : "registradas"}
               </span>
@@ -518,14 +518,14 @@ export function FaturaView({
                       className={cn(
                         "size-[18px] shrink-0",
                         m.confianca === "alta"
-                          ? "text-emerald-500"
+                          ? "text-emerald-700"
                           : "text-slate-400",
                       )}
                     />
                   </Marca>
                 ) : conc ? (
                   <Marca dica="Não encontrei esta compra nos seus lançamentos">
-                    <QuestionDuotone className="size-[18px] shrink-0 text-amber-500" />
+                    <QuestionDuotone className="size-[18px] shrink-0 text-amber-700" />
                   </Marca>
                 ) : null,
               };

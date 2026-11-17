@@ -1013,7 +1013,7 @@ export default function DashboardPage() {
         <KpiCard
           label={period.mode === "month" ? "Saldo (mês)" : "Saldo"}
           value={monthKpis.balance}
-          color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-600"}
+          color={monthKpis.balance >= 0 ? "text-emerald-700" : "text-red-700"}
           loading={loading}
           delta={
             lastMonthKpis
@@ -1040,7 +1040,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Vencido"
           value={pending.vencido}
-          color="text-red-600"
+          color="text-red-700"
           loading={loading}
         />
       </div>
@@ -1439,7 +1439,7 @@ export default function DashboardPage() {
                       diz quando, e a data sozinha obriga a contar. Largura fixa
                       para as descrições ficarem alinhadas. */}
                   <span
-                    className={`w-40 shrink-0 whitespace-nowrap tabular-nums ${days <= 2 ? "text-red-600" : "text-slate-500"}`}
+                    className={`w-40 shrink-0 whitespace-nowrap tabular-nums ${days <= 2 ? "text-red-700" : "text-slate-500"}`}
                   >
                     {fmtDiaMes(r.due_date!)} — {dueLabel(days)}
                   </span>
@@ -1618,7 +1618,7 @@ function KpiCard({
           {!loading && delta && delta.pct !== null ? (
             <p
               // emerald-600 dá 3,77:1 no branco; o 700 dá 5,48:1.
-              className={delta.good ? "text-emerald-700" : "text-red-600"}
+              className={delta.good ? "text-emerald-700" : "text-red-700"}
             >
               <span className="whitespace-nowrap">
                 {delta.up ? "▲" : "▼"} {delta.pct}%

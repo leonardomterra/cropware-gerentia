@@ -234,7 +234,7 @@ export function AbaAvaliacoes({
                 >
                   <p className="text-sm font-medium text-slate-800 flex items-center gap-1.5">
                     {completa && (
-                      <CheckCircle className="size-4 text-emerald-600" />
+                      <CheckCircle className="size-4 text-emerald-700" />
                     )}
                     <span className="truncate">{p.name}</span>
                     <span className="ml-auto text-[11px] text-slate-400">

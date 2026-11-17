@@ -56,26 +56,27 @@ interface Previsao {
 }
 
 /**
- * Tipos com ÍCONE e COR, no molde dos atalhos de Configurações: o olho acha
- * pelo desenho antes de ler. `saida` e `pre-operacao` em âmbar/vermelho porque
- * são os que aparecem depois de algo grave — quem procura por eles está
- * procurando exatamente por isso.
+ * Tipos com ÍCONE: o olho acha pelo desenho antes de ler. Em grafite desde
+ * 17/11/2026 (paleta do app: cor só quando diz alguma coisa), MENOS `saida` e
+ * `pre-operacao`, que ficam em atenção/perigo (texto 700) porque são os que
+ * aparecem depois de algo grave — quem procura por eles está procurando
+ * exatamente por isso.
  */
 const MARCAS: Record<
   Backup["tipo"],
   { Icon: typeof CalendarDuotone; cor: string; rotulo: string }
 > = {
-  diario: { Icon: CalendarDuotone, cor: "text-sky-500", rotulo: "Diário" },
+  diario: { Icon: CalendarDuotone, cor: "text-slate-600", rotulo: "Diário" },
   mensal: {
     Icon: CalendarStarDuotone,
-    cor: "text-indigo-500",
+    cor: "text-slate-600",
     rotulo: "Mensal",
   },
-  manual: { Icon: HandDuotone, cor: "text-emerald-500", rotulo: "Manual" },
-  saida: { Icon: SignOutDuotone, cor: "text-amber-600", rotulo: "Saída" },
+  manual: { Icon: HandDuotone, cor: "text-slate-600", rotulo: "Manual" },
+  saida: { Icon: SignOutDuotone, cor: "text-amber-700", rotulo: "Saída" },
   "pre-operacao": {
     Icon: ShieldWarningDuotone,
-    cor: "text-red-500",
+    cor: "text-red-700",
     rotulo: "Pré-operação",
   },
 };

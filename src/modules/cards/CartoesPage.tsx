@@ -36,14 +36,14 @@ const ATALHOS: Atalho[] = [
   {
     id: "cartoes",
     Icon: CreditCardDuotone,
-    cor: "text-violet-500",
+    cor: "text-slate-600",
     titulo: "Meus Cartões",
     descricao: "Cadastrar, editar e desativar",
   },
   {
     id: "faturas",
     Icon: ReceiptDuotone,
-    cor: "text-sky-500",
+    cor: "text-slate-600",
     titulo: "Faturas",
     descricao: "Consultar e lançar faturas",
   },

@@ -49,7 +49,7 @@ export function corDaForca(score: number): string {
 /** Classe de TEXTO. Tons 600/700: o 500 reprova em 4,5:1 como texto. */
 export function corDoTextoDaForca(score: number): string {
   return score <= 1
-    ? "text-red-600"
+    ? "text-red-700"
     : score === 2
       ? "text-amber-700"
       : "text-emerald-700";

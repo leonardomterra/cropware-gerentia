@@ -322,7 +322,7 @@ export function CostCentersManager({
                   <span
                     title="Centro padrão"
                     aria-label="Centro padrão"
-                    className="size-9 inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-500"
+                    className="size-9 inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700"
                   >
                     <StarFilled className="size-5" />
                   </span>

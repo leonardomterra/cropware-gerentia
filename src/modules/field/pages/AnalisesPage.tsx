@@ -334,7 +334,7 @@ export default function AnalisesPage() {
                         g.diferenca > 0
                           ? "text-emerald-700"
                           : g.diferenca < 0
-                            ? "text-red-600"
+                            ? "text-red-700"
                             : "text-slate-500",
                       )}
                     >
@@ -388,7 +388,7 @@ function Dado({
           tom === "bom"
             ? "text-emerald-700"
             : tom === "ruim"
-              ? "text-red-600"
+              ? "text-red-700"
               : "text-slate-900",
         )}
       >

@@ -71,7 +71,7 @@ export function ForgotPasswordScreen({
         </div>
 
         {error ? (
-          <p className="text-sm text-red-600 mt-1" role="alert">
+          <p className="text-sm text-red-700 mt-1" role="alert">
             {error}
           </p>
         ) : null}

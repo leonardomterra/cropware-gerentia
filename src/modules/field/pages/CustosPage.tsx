@@ -393,7 +393,7 @@ export default function CustosPage() {
                         className={cn(
                           "px-3 py-2 text-right",
                           dif > 0
-                            ? "text-red-600"
+                            ? "text-red-700"
                             : dif < 0
                               ? "text-emerald-700"
                               : "text-slate-400",

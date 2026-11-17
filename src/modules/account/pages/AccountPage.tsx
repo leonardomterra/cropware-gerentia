@@ -117,7 +117,7 @@ function Section({
             className={cn(
               "mt-0.5 flex size-8 items-center justify-center rounded-md shrink-0",
               tone === "danger"
-                ? "bg-red-50 text-red-600"
+                ? "bg-red-50 text-red-700"
                 : "bg-slate-100 text-slate-600",
             )}
           >
@@ -148,11 +148,12 @@ type SecaoDaConta =
 /**
  * Os atalhos da tela de Conta.
  *
- * Ícones duotone coloridos, como no trilho — cada assunto tem a própria cor,
- * então o olho encontra "Assinatura" pela cor antes de ler o rótulo.
+ * Ícones em grafite, como no menu (paleta do app, 17/11/2026: cor só quando
+ * diz alguma coisa). Até então cada assunto tinha a própria cor.
  *
- * "Zona de Perigo" fica por último E em vermelho: é a única entrada daqui que
- * faz algo irreversível, e a cor precisa dizer isso antes do clique.
+ * A exceção é "Excluir a Conta": por último E em vermelho (status perigo,
+ * texto 700) — é a única entrada daqui que faz algo irreversível, e a cor
+ * precisa dizer isso antes do clique.
  */
 const ATALHOS: {
   id: SecaoDaConta;
@@ -164,42 +165,42 @@ const ATALHOS: {
   {
     id: "perfil",
     Icon: UserDuotone,
-    cor: "text-blue-500",
+    cor: "text-slate-600",
     titulo: "Perfil",
     descricao: "Seu nome e telefone",
   },
   {
     id: "assinatura",
     Icon: CreditCardDuotone,
-    cor: "text-violet-500",
+    cor: "text-slate-600",
     titulo: "Assinatura",
     descricao: "Plano, cobrança e pagamento",
   },
   {
     id: "seguranca",
     Icon: LockDuotone,
-    cor: "text-teal-500",
+    cor: "text-slate-600",
     titulo: "Acesso e Segurança",
     descricao: "E-mail, senha e verificação",
   },
   {
     id: "whatsapp",
     Icon: WhatsappDuotone,
-    cor: "text-emerald-500",
+    cor: "text-slate-600",
     titulo: "WhatsApp",
     descricao: "Número vinculado ao seu acesso",
   },
   {
     id: "aparencia",
     Icon: AparenciaDuotone,
-    cor: "text-amber-500",
+    cor: "text-slate-600",
     titulo: "Aparência",
     descricao: "Tema claro, escuro ou igual ao sistema",
   },
   {
     id: "perigo",
     Icon: WarningDuotone,
-    cor: "text-red-500",
+    cor: "text-red-700",
     // Título = o que a entrada FAZ; subtítulo = o aviso. Ao contrário,
     // "Zona de Perigo" obrigava a ler a segunda linha para descobrir do que se
     // tratava — e num índice a primeira linha é a que se lê.
