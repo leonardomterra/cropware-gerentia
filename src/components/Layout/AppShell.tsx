@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentType,
-  type CSSProperties,
-} from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LayoutDashboard from "~icons/ph/squares-four";
 import ArrowLeftRight from "~icons/ph/arrows-left-right";
@@ -85,8 +79,7 @@ import { getStoredValue, setStoredValue } from "@/utils/appStorage";
 import { mostraProdutores } from "@/utils/modoDeUso";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
-import { Logo } from "@/components/Logo";
-import { LogoWordmark } from "@/components/LogoWordmark";
+import { Logo, LogoName } from "@/components/Logo";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
 import { ImpersonationBanner } from "@/modules/admin/components/ImpersonationBanner";
 import {
@@ -448,9 +441,9 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   /**
-   * Gatilho da conta — o rodapé do trilho. Icone só: a coluna tem 64px, e o
-   * nome do usuário mora dentro do próprio menu (junto da organização e do
-   * perfil, que é o que explica ver ou não ver o dado dos colegas).
+   * Gatilho da conta — o rodapé do menu: ícone + nome do usuário. Organização e
+   * perfil ficam dentro do menu (é o que explica ver ou não ver o dado dos
+   * colegas).
    */
   const accountTrigger = (
     <DropdownMenu>
@@ -458,11 +451,13 @@ export function AppShell() {
         <button
           type="button"
           title={user?.fullName || user?.email || "Conta"}
-          // Mesma medida dos itens do trilho (h-10 / ícone size-6): ele fecha
-          // a mesma coluna, e menor lia como um botão de outra categoria.
-          className="flex items-center justify-center size-10 rounded-md text-teal-600 hover:bg-slate-200 hover:text-teal-700 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md text-sm text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <UserCircleDuotone className="size-6 shrink-0" />
+          <UserCircleDuotone className="size-5 shrink-0 text-teal-600" />
+          <span className="truncate">
+            {user?.fullName?.split(" ")[0] || user?.email || "Conta"}
+          </span>
+          <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -503,8 +498,8 @@ export function AppShell() {
   );
 
   /**
-   * Seletor de módulo — topo do trilho, só quando há mais de um módulo
-   * visível. Mostra o ícone do módulo ativo; o menu lista os módulos com nome.
+   * Seletor de módulo — topo do menu, só quando há mais de um módulo
+   * visível. Mostra ícone e nome do módulo ativo; o menu lista os outros.
    */
   const ativo = moduloPorId(moduloAtivo);
   const seletorDeModulo = (
@@ -514,17 +509,18 @@ export function AppShell() {
           type="button"
           aria-label={`Módulo: ${ativo.nome}. Trocar de módulo`}
           title={`Módulo: ${ativo.nome}`}
-          className="relative flex items-center justify-center w-full h-10 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <ativo.Icon className={cn("size-6 shrink-0", ativo.cor)} />
-          <CaretUpDown className="absolute right-0.5 bottom-0.5 size-3 text-slate-400" />
+          <ativo.Icon className={cn("size-5 shrink-0", ativo.cor)} />
+          <span className="truncate">{ativo.nome}</span>
+          <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side="right"
+        side="bottom"
         align="start"
-        sideOffset={8}
-        className="w-48"
+        sideOffset={4}
+        className="w-52"
       >
         {visiveis.map((id) => {
           const m = moduloPorId(id);
@@ -565,16 +561,17 @@ export function AppShell() {
 
   return (
     <div className="flex overflow-hidden bg-white" style={{ height: "100dvh" }}>
-      {/* TRILHO DESKTOP — coluna de ícones, sem recolher (ver AppSidebar). */}
-      <aside className="hidden md:flex flex-col shrink-0 w-16 h-full min-h-0 border-r border-slate-200 bg-white">
+      {/* MENU DESKTOP — ícone + nome, sem recolher (ver AppSidebar). */}
+      <aside className="hidden md:flex flex-col shrink-0 w-56 h-full min-h-0 border-r border-slate-200 bg-white">
         {/* A divisória é a BORDA deste bloco, e não uma div à parte, para
             fechar na mesma linha do topbar ao lado.
             Antes: h-13 (52px) + uma div de 1px = 53px, enquanto o topbar tem
             h-13 COM a borda por dentro (box-border) = 52px. A régua da esquerda
             ficava 1px abaixo da da direita — e ainda em outro tom
             (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
-        <div className="flex items-center justify-center h-13 shrink-0 border-b border-slate-200">
-          <Logo className="h-6 w-auto opacity-80" />
+        <div className="flex items-center gap-2.5 h-13 shrink-0 px-4 border-b border-slate-200">
+          <Logo className="h-6" />
+          <LogoName className="h-[15px]" />
         </div>
         <AppSidebar
           itens={railItens}
@@ -702,12 +699,9 @@ export function AppShell() {
             minHeight: "calc(3.25rem + env(safe-area-inset-top, 0px))",
           }}
         >
-          <div
-            className="flex items-center gap-2"
-            style={{ ["--logo-size" as string]: "22px" } as CSSProperties}
-          >
-            <Logo className="h-6 w-auto opacity-80" />
-            <LogoWordmark animate={false} className="text-slate-500/80" />
+          <div className="flex items-center gap-2.5">
+            <Logo className="h-6" />
+            <LogoName className="h-4" />
           </div>
         </div>
 

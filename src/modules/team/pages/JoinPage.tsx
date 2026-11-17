@@ -5,8 +5,7 @@ import AlertTriangle from "~icons/ph/warning";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Logo } from "@/components/Logo";
-import { LogoWordmark } from "@/components/LogoWordmark";
+import { Logo, LogoName } from "@/components/Logo";
 import { supabase } from "@/utils/supabase/client";
 import { api, ApiError } from "@/utils/api";
 import { appRedirectBase } from "@/utils/platform";
@@ -104,7 +103,7 @@ export default function JoinPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center">
           <Logo className="h-14 w-auto" />
-          <LogoWordmark animate={false} className="[--logo-size:26px] mt-2.5" />
+          <LogoName className="h-6 mt-3" />
           <h1 className="text-base font-medium text-slate-900 mt-4">Entrar na Equipe</h1>
         </div>
 

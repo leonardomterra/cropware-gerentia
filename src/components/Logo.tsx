@@ -2,48 +2,51 @@ import type { ImgHTMLAttributes } from "react";
 import { cn } from "@/components/ui/utils";
 
 /**
- * Simbolo do gerentia.app - SVG monocromatico (gerentia-symbol.svg), o mesmo
- * usado nos posts do Cropware Studio. viewBox ja cropado no bounding box justo
- * (aspecto ~1.728:1, mais largo que alto). Um unico <path>; cor nativa escura
- * (path preto). Em fundo escuro usar prop `white` (filter brightness/invert);
- * aqui o default e' escuro, pros fundos claros do app.
+ * Marca do gerentia.app, em dois arquivos de `public/`, os dois na cor da marca
+ * (#3C3C42, o grafite da Cropware):
  *
- * (Substitui o antigo /icon.png - o simbolo "rosto" da fase Diretor IA. Marca
- * unica Gerentia; ver docs/GERENTIA-BRAND.md.)
+ * - `Logo` — o símbolo (óculos + bigode), `gerentia-symbol.svg`. Aspecto
+ *   ~1.73:1; dimensionar pela altura (`h-6`, `h-16`…).
+ * - `LogoName` — o nome "gerentia.app" desenhado, `gerentia-name.svg`. Aspecto
+ *   ~5.1:1. Substituiu o nome em texto vivo (fonte Mozilla Headline, com
+ *   animação de digitação) em 17/11/2026: a marca agora é o desenho.
+ *
+ * Em fundo escuro, `white` pinta de branco (filtro). A cor vem do próprio SVG,
+ * então não usar `opacity-*` em cima: muda o tom da marca.
  */
+type Props = ImgHTMLAttributes<HTMLImageElement> & { white?: boolean };
+
+const BRANCO = { filter: "brightness(0) invert(1)" };
+
 export function Logo({
   className,
   white = false,
   alt = "gerentia.app",
   ...props
-}: ImgHTMLAttributes<HTMLImageElement> & { white?: boolean }) {
+}: Props) {
   return (
     <img
       src="/gerentia-symbol.svg"
       alt={alt}
       className={cn("w-auto object-contain", className)}
-      style={white ? { filter: "brightness(0) invert(1)" } : undefined}
+      style={white ? BRANCO : undefined}
       {...props}
     />
   );
 }
 
-/**
- * Wordmark "DIRETOR IA" (so o texto + balaozinho, sem o simbolo), via <img>.
- * Versao estatica do logo, usada em telas fora da sidebar (ex: JoinPage).
- * Na sidebar usamos o <LogoWordmark> (texto vivo + animacao). Cor nativa
- * #111827.
- */
 export function LogoName({
   className,
+  white = false,
   alt = "gerentia.app",
   ...props
-}: ImgHTMLAttributes<HTMLImageElement>) {
+}: Props) {
   return (
     <img
-      src="/logo-farm-name.svg"
+      src="/gerentia-name.svg"
       alt={alt}
       className={cn("w-auto object-contain", className)}
+      style={white ? BRANCO : undefined}
       {...props}
     />
   );

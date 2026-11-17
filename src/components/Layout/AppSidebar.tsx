@@ -1,12 +1,6 @@
 import { type ComponentType, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/components/ui/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export interface RailItem {
   to: string;
@@ -23,23 +17,16 @@ export interface RailItem {
 }
 
 /**
- * Navegação principal do desktop: uma coluna estreita, **um ícone por página**.
+ * Navegação principal do desktop: uma coluna com **ícone e nome** de cada
+ * página.
  *
- * Nasceu com grupos e painel flutuante (o modelo do Flag Field, que tem ~37
- * itens em 9 grupos). Com 11 páginas o agrupamento cobrava um passo a mais para
- * chegar em qualquer lugar sem resolver problema nenhum: o painel existia para
- * caber o que aqui já cabia.
+ * Até 17/11/2026 era só ícone (64px), com o nome num tooltip. Com o módulo
+ * Field o trilho passou de 11 para ~20 telas, e ícone sozinho virou navegação
+ * por tentativa; o nome visível resolve sem o passo do tooltip.
  *
- * O que sustenta o ícone sem rótulo é o **tooltip** — sem ele, ícone sozinho só
- * funciona depois que a pessoa decorou a posição, e até lá ela navega por
- * tentativa. Ele aparece à direita, onde há espaço, e usa o vidro quente do
- * app (o mesmo que distingue "dica" de "menu clicável").
- *
- * A **cor** é o segundo apoio: cada página tem a sua, em duotone. Duotone é o
- * que impede a coluna de virar confete — o segundo tom entra a 20% de opacidade,
- * então o que se vê é um glifo colorido sobre uma lavagem clara, não um bloco
- * chapado. Cor NUNCA é o único código aqui: o tooltip diz o nome e o fundo
- * marca a página aberta.
+ * A **cor** continua: cada página tem a sua, em duotone (o segundo tom a 20%,
+ * então se lê um glifo colorido, não um bloco chapado). É apoio para achar de
+ * relance; quem diz o nome é o texto, e o fundo marca a página aberta.
  */
 export function AppSidebar({
   itens,
@@ -58,66 +45,38 @@ export function AppSidebar({
           {topo}
         </div>
       )}
-      {/* Um provider para o grupo todo: com um por item, cada tooltip teria o
-          próprio atraso e a coluna piscaria ao correr o mouse por ela. */}
-      <TooltipProvider delayDuration={200}>
-        <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-2 space-y-1">
-          {itens.map((it) => (
-            <div key={it.to}>
-              {it.separadorAntes && (
-                <div aria-hidden className="my-2 h-px bg-slate-100" />
-              )}
-              <Tooltip>
-                {/* O gatilho do tooltip envolve um <span>, e NÃO o NavLink.
-                    `asChild` usa o Slot do Radix, que junta os className do pai
-                    e do filho com join(" ") — e o className do NavLink é uma
-                    FUNÇÃO. A junção transformava a função em string, e o <a>
-                    saía com o código-fonte dela no atributo class.
-
-                    O estrago era silencioso: pedaços do texto ainda são classes
-                    válidas ("w-full", "flex", "h-10"), então o trilho parecia
-                    certo — mas `relative` virava `"relative`, com aspa colada, e
-                    não valia. Sem pai posicionado, o badge `absolute` do sino ia
-                    ancorar no canto da PÁGINA e aparecia flutuando no topo à
-                    direita, em todas as telas. */}
-                <TooltipTrigger asChild>
-                  <span className="relative block w-full">
-                    <NavLink
-                      to={it.to}
-                      end={it.end}
-                      aria-label={it.label}
-                      className={({ isActive }) =>
-                        cn(
-                          "relative w-full flex items-center justify-center h-10 rounded-md transition-colors",
-                          isActive ? "bg-slate-200" : "hover:bg-slate-100",
-                        )
-                      }
-                    >
-                      <it.Icon className={cn("size-6 shrink-0", it.cor)} />
-                      {it.badge ? (
-                        <span
-                          aria-hidden
-                          className="pointer-events-none absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center tabular-nums"
-                        >
-                          {it.badge > 9 ? "9+" : it.badge}
-                        </span>
-                      ) : null}
-                    </NavLink>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>
-                  {it.label}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          ))}
-        </nav>
-      </TooltipProvider>
+      <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-2 space-y-0.5">
+        {itens.map((it) => (
+          <div key={it.to}>
+            {it.separadorAntes && (
+              <div aria-hidden className="my-2 h-px bg-slate-100" />
+            )}
+            <NavLink
+              to={it.to}
+              end={it.end}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2.5 h-9 px-2.5 rounded-md text-sm transition-colors",
+                  isActive
+                    ? "bg-slate-200 text-slate-900 font-medium"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                )
+              }
+            >
+              <it.Icon className={cn("size-5 shrink-0", it.cor)} />
+              <span className="truncate">{it.label}</span>
+              {it.badge ? (
+                <span className="ml-auto shrink-0 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] leading-5 text-center tabular-nums">
+                  {it.badge > 99 ? "99+" : it.badge}
+                </span>
+              ) : null}
+            </NavLink>
+          </div>
+        ))}
+      </nav>
 
       {footer && (
-        <div className="shrink-0 border-t border-slate-200 p-2 flex justify-center">
-          {footer}
-        </div>
+        <div className="shrink-0 border-t border-slate-200 p-2">{footer}</div>
       )}
     </>
   );
