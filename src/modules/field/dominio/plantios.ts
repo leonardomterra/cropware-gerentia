@@ -6,6 +6,8 @@
  * desenvolvimento de mercado (campo demonstrativo, GD) dentro da gestão de
  * talhões.
  */
+import { COR, COR_OUTROS } from "@/lib/paleta";
+
 export const CULTURAS = [
   "Soja",
   "Milho",
@@ -33,14 +35,15 @@ export type Finalidade =
   | "third_party"
   | "other";
 
+/** Cores na ordem fixa da paleta do app (src/lib/paleta.ts, 17/11/2026). */
 export const FINALIDADES: Record<Finalidade, { rotulo: string; cor: string }> =
   {
-    grain_production: { rotulo: "Produção de grãos", cor: "#65a30d" },
-    seed_field: { rotulo: "Campo de semente", cor: "#ca8a04" },
-    demo_field: { rotulo: "Campo demonstrativo (GD)", cor: "#7c3aed" },
-    gd_commercial: { rotulo: "GD comercial", cor: "#2563eb" },
-    third_party: { rotulo: "Campo de terceiros", cor: "#64748b" },
-    other: { rotulo: "Outro", cor: "#94a3b8" },
+    grain_production: { rotulo: "Produção de grãos", cor: COR.lime },
+    seed_field: { rotulo: "Campo de semente", cor: COR.blue },
+    demo_field: { rotulo: "Campo demonstrativo (GD)", cor: COR.pink },
+    gd_commercial: { rotulo: "GD comercial", cor: COR.sky },
+    third_party: { rotulo: "Campo de terceiros", cor: COR.orange },
+    other: { rotulo: "Outro", cor: COR_OUTROS },
   };
 
 export type CicloDeVida = "planned" | "active" | "completed";

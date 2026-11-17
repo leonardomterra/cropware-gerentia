@@ -14,10 +14,9 @@ import {
 import { TIPOS } from "@/modules/field/dominio/atividades";
 import { TIPOS_DE_ENSAIO } from "@/modules/field/dominio/ensaios";
 import { FINALIDADES } from "@/modules/field/dominio/plantios";
-import { CORES_DE_CULTURA } from "@/modules/field/dominio/painelDaSafra";
 import { CATEGORIAS as CATEGORIAS_DO_CALENDARIO } from "@/modules/calendario/itens";
 import { CC_COLORS } from "@/modules/cost-centers/types";
-import { ACENTO, FUNDO } from "@/modules/reports/reportTheme";
+import { ccTextColor } from "@/modules/cost-centers/ccIcons";
 import IconeSucesso from "~icons/ph/check-circle-fill";
 import IconeAtencao from "~icons/ph/warning-fill";
 import IconePerigo from "~icons/ph/x-circle-fill";
@@ -32,11 +31,10 @@ import IconeMais from "~icons/ph/plus-bold";
 /**
  * PALETA (DEV, fora de produção). Rota: /paleta. 17/11/2026.
  *
- * Duas metades:
- * - HOJE: o que o app usa, lido das PRÓPRIAS listas do código (importadas, não
- *   copiadas) — se alguém mudar uma cor no domínio, o diagnóstico muda junto.
- * - PROPOSTA: `src/lib/paleta.ts`, aplicada em componentes de verdade, nos
- *   dois temas (o botão no topo troca o tema do app).
+ * Referência da paleta do app (src/lib/paleta.ts), aprovada em 17/11/2026.
+ * A seção "Onde aparece" lê as PRÓPRIAS listas do domínio (importadas, não
+ * copiadas): se alguém mudar uma cor lá, a página mostra. O diagnóstico do
+ * "antes" (cada lista com suas cores) está no histórico: commit ef920d4.
  */
 
 // ------------------------------------------------------------ utilidades
@@ -60,71 +58,6 @@ function oklch(hex: string): { L: number; C: number; H: number } {
     H: ((Math.atan2(bb, a) * 180) / Math.PI + 360) % 360,
   };
 }
-
-/** Matiz do 500 de cada família do Tailwind v4. */
-const FAMILIAS: [string, number][] = [
-  ["vermelho", 25.3],
-  ["rosa-claro", 16.4],
-  ["laranja", 47.6],
-  ["âmbar", 70.1],
-  ["amarelo", 85.9],
-  ["lima", 131.7],
-  ["verde", 149.6],
-  ["esmeralda", 162.5],
-  ["verde-água", 182.5],
-  ["ciano", 215.2],
-  ["céu", 237.3],
-  ["azul", 259.8],
-  ["anil", 277.1],
-  ["violeta", 292.7],
-  ["roxo", 303.9],
-  ["fúcsia", 322.2],
-  ["rosa", 354.3],
-];
-function familia(hex: string): string {
-  const { C, H } = oklch(hex);
-  if (C < 0.06) return "cinza";
-  let melhor = FAMILIAS[0];
-  let dist = 999;
-  for (const f of FAMILIAS) {
-    const d = Math.min(Math.abs(f[1] - H), 360 - Math.abs(f[1] - H));
-    if (d < dist) [melhor, dist] = [f, d];
-  }
-  return melhor[0];
-}
-
-/** Toda cor de dado declarada hoje no código, com o que ela significa. */
-interface UsoDeCor {
-  hex: string;
-  significado: string;
-  onde: string;
-}
-const USOS_HOJE: UsoDeCor[] = [
-  ...Object.values(TIPOS).map((t) => ({
-    hex: t.cor,
-    significado: t.rotulo,
-    onde: "Tipo de atividade",
-  })),
-  ...Object.values(TIPOS_DE_ENSAIO).map((t) => ({
-    hex: t.cor,
-    significado: t.rotulo,
-    onde: "Categoria de ensaio",
-  })),
-  ...Object.values(FINALIDADES).map((t) => ({
-    hex: t.cor,
-    significado: t.rotulo,
-    onde: "Finalidade do plantio",
-  })),
-  ...Object.values(CATEGORIAS_DO_CALENDARIO).map((t) => ({
-    hex: t.cor,
-    significado: t.rotulo,
-    onde: "Calendário",
-  })),
-  { hex: FUNDO.entrada, significado: "Entradas", onde: "Gráfico do Dashboard" },
-  { hex: FUNDO.saida, significado: "Saídas", onde: "Gráfico do Dashboard" },
-  { hex: ACENTO.entrada, significado: "Entrada", onde: "Relatório" },
-  { hex: "#f87171", significado: "Excluir", onde: "Botão de perigo" },
-];
 
 // -------------------------------------------------------------- blocos
 
@@ -192,24 +125,6 @@ function Amostra({
           {sub && <span className="text-slate-400"> · {sub}</span>}
         </span>
       )}
-    </div>
-  );
-}
-
-function Faixa({ cores, rotulo }: { cores: string[]; rotulo: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-44 shrink-0 text-sm text-slate-600">{rotulo}</span>
-      <div className="flex gap-1">
-        {cores.map((c, i) => (
-          <span
-            key={i}
-            className="size-6 rounded"
-            style={{ background: c }}
-            title={c}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -325,6 +240,18 @@ function Rosca({
   );
 }
 
+function ListaDeCores({ itens }: { itens: [string, string][] }) {
+  return (
+    <ul className="space-y-1.5">
+      {itens.map(([rotulo, cor]) => (
+        <li key={rotulo}>
+          <Amostra cor={cor} rotulo={rotulo} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ------------------------------------------------------------ constantes
 
 const ICONE_DO_STATUS: Record<
@@ -376,16 +303,6 @@ export default function PaletaPage() {
   const tinta = (hex: string) =>
     oklch(hex).L > 0.68 ? "text-[#19191d]/70" : "text-branco";
 
-  // Diagnóstico: famílias de cor usadas com mais de um significado.
-  const porFamilia = new Map<string, UsoDeCor[]>();
-  for (const u of USOS_HOJE) {
-    const f = familia(u.hex);
-    porFamilia.set(f, [...(porFamilia.get(f) ?? []), u]);
-  }
-  const sobrecarregadas = [...porFamilia.entries()]
-    .filter(([, us]) => new Set(us.map((u) => u.onde)).size > 1)
-    .sort((a, b) => b[1].length - a[1].length);
-
   return (
     <div className="space-y-10 pb-16">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -420,143 +337,9 @@ export default function PaletaPage() {
         </div>
       </header>
 
-      {/* ============================================================ HOJE */}
-      <Secao
-        titulo="1. Hoje: onde está inconsistente"
-        sub="Cada lista do domínio escolheu suas cores sozinha. O resultado: a mesma cor quer dizer coisas diferentes, o mesmo assunto aparece em cores diferentes, e cada gráfico usa um tom."
-      >
-        <div className="grid gap-3 lg:grid-cols-2">
-          <Cartao titulo="Mesma família de cor, vários significados">
-            <div className="space-y-3">
-              {sobrecarregadas.slice(0, 6).map(([f, us]) => (
-                <div key={f} className="space-y-1">
-                  <p className="text-xs font-medium text-slate-500 capitalize">
-                    {f}
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    {us.map((u, i) => (
-                      <Amostra
-                        key={i}
-                        cor={u.hex}
-                        rotulo={u.significado}
-                        sub={u.onde}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Cartao>
-
-          <div className="space-y-3">
-            <Cartao titulo="Mesmo assunto, cores diferentes">
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-4">
-                  <Amostra
-                    cor={TIPOS.planting.cor}
-                    rotulo="Plantio"
-                    sub="atividade"
-                  />
-                  <Amostra
-                    cor={CATEGORIAS_DO_CALENDARIO.plantio.cor}
-                    rotulo="Plantio"
-                    sub="calendário"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <Amostra
-                    cor={FUNDO.entrada}
-                    rotulo="Entrada"
-                    sub="dashboard"
-                  />
-                  <Amostra
-                    cor={ACENTO.entrada}
-                    rotulo="Entrada"
-                    sub="relatório"
-                  />
-                  <Amostra
-                    cor={CATEGORIAS_DO_CALENDARIO.receber.cor}
-                    rotulo="A receber"
-                    sub="calendário"
-                  />
-                  <Amostra
-                    cor="#14b8a6"
-                    rotulo="Receita"
-                    sub="ícone em Configurações"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <Amostra cor={FUNDO.saida} rotulo="Saída" sub="dashboard" />
-                  <Amostra cor="#f87171" rotulo="Excluir" sub="botão" />
-                  <Amostra
-                    cor={CATEGORIAS_DO_CALENDARIO.pagar.cor}
-                    rotulo="A pagar"
-                    sub="calendário"
-                  />
-                </div>
-              </div>
-            </Cartao>
-
-            <Cartao titulo="Cada gráfico num tom">
-              <div className="space-y-2">
-                <Faixa
-                  rotulo="Dashboard (300)"
-                  cores={[FUNDO.entrada, FUNDO.saida]}
-                />
-                <Faixa rotulo="Centros de custo (400)" cores={CC_COLORS} />
-                <Faixa
-                  rotulo="Atividades (500)"
-                  cores={Object.values(TIPOS).map((t) => t.cor)}
-                />
-                <Faixa
-                  rotulo="Culturas no painel (600)"
-                  cores={CORES_DE_CULTURA}
-                />
-              </div>
-            </Cartao>
-
-            <Cartao titulo="Outros desvios">
-              <ul className="text-sm text-slate-600 space-y-1.5 list-disc pl-4">
-                <li>
-                  <b className="font-medium text-slate-800">
-                    Vermelho fora de erro:
-                  </b>{" "}
-                  centro de custo pode ser vermelho, ícone de "Categorias de
-                  Despesa" é vermelho, "Observação" é rosa-avermelhado.
-                </li>
-                <li>
-                  <b className="font-medium text-slate-800">
-                    Cinza azulado antigo
-                  </b>{" "}
-                  (#64748b, #94a3b8) em "Outros" de ensaio, finalidade e painel,
-                  fora da escala grafite.
-                </li>
-                <li>
-                  <b className="font-medium text-slate-800">
-                    Texto de status em vários degraus:
-                  </b>{" "}
-                  vermelho 600 (37×) e 700 (35×); âmbar em 4 degraus (500 a
-                  800).
-                </li>
-                <li>
-                  <b className="font-medium text-slate-800">
-                    Selo com 20 cores
-                  </b>{" "}
-                  disponíveis, 8 usadas.
-                </li>
-                <li>
-                  <b className="font-medium text-slate-800">Ícones de atalho</b>{" "}
-                  em Configurações e Cartões com uma cor cada, sem significado.
-                </li>
-              </ul>
-            </Cartao>
-          </div>
-        </div>
-      </Secao>
-
       {/* ======================================================= PROPOSTA */}
       <Secao
-        titulo="2. Proposta: quatro famílias, cada uma com um trabalho"
+        titulo="1. Quatro famílias, cada uma com um trabalho"
         sub="Marca, neutros, status e categorias. Cor só entra quando diz alguma coisa; o resto é grafite."
       >
         <div className="grid gap-3 lg:grid-cols-2">
@@ -809,7 +592,7 @@ export default function PaletaPage() {
 
       {/* ====================================================== NA PRÁTICA */}
       <Secao
-        titulo="3. Na prática"
+        titulo="2. Na prática"
         sub="Os mesmos tokens em componentes. Passe o mouse nas barras e fatias."
       >
         <div className="grid gap-3 lg:grid-cols-2">
@@ -955,6 +738,59 @@ export default function PaletaPage() {
             <p className="text-sm text-slate-500">
               Ícone colorido só quando a cor é o status, e com texto junto.
             </p>
+          </Cartao>
+        </div>
+      </Secao>
+
+      {/* ===================================================== ONDE APARECE */}
+      <Secao
+        titulo="3. Onde aparece"
+        sub="As listas do domínio, lidas do código. Quem diz o item é o rótulo; a cor ajuda a achar."
+      >
+        <div className="grid gap-3 lg:grid-cols-3">
+          <Cartao titulo="Atividades (cor por família)">
+            <ListaDeCores
+              itens={Object.values(TIPOS).map((t) => [t.rotulo, t.cor])}
+            />
+          </Cartao>
+          <Cartao titulo="Calendário">
+            <ListaDeCores
+              itens={Object.values(CATEGORIAS_DO_CALENDARIO).map((t) => [
+                t.rotulo,
+                t.cor,
+              ])}
+            />
+          </Cartao>
+          <div className="space-y-3">
+            <Cartao titulo="Tipos de ensaio">
+              <ListaDeCores
+                itens={Object.values(TIPOS_DE_ENSAIO).map((t) => [
+                  t.rotulo,
+                  t.cor,
+                ])}
+              />
+            </Cartao>
+            <Cartao titulo="Finalidade do plantio">
+              <ListaDeCores
+                itens={Object.values(FINALIDADES).map((t) => [t.rotulo, t.cor])}
+              />
+            </Cartao>
+          </div>
+          <Cartao
+            titulo="Centros de custo (cores que a pessoa escolhe)"
+            className="lg:col-span-3"
+          >
+            <div className="flex flex-wrap gap-3">
+              {CC_COLORS.map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-2 rounded-md px-2.5 h-8 text-sm font-medium"
+                  style={{ background: c, color: ccTextColor(c) }}
+                >
+                  Centro
+                </span>
+              ))}
+            </div>
           </Cartao>
         </div>
       </Secao>

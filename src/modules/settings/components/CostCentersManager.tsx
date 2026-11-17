@@ -15,6 +15,7 @@ import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useCostCenters } from "@/modules/cost-centers/hooks/useCostCenters";
 import {
   CC_COLORS,
+  corDoCentro,
   MAX_COST_CENTERS,
   type CostCenter,
 } from "@/modules/cost-centers/types";
@@ -108,7 +109,9 @@ export function CostCentersManager({
     setEditing(cc);
     setForm({
       name: cc.name,
-      color: cc.color || CC_COLORS[0],
+      // Cor antiga (paleta de antes de 17/11/2026) entra já traduzida, para
+      // aparecer marcada no seletor; ao salvar, grava a nova.
+      color: corDoCentro(cc.color) || CC_COLORS[0],
       icon: cc.icon || CC_ICONS[0].slug,
     });
     setDialogOpen(true);

@@ -53,10 +53,11 @@ import Download from "~icons/ph/download-simple";
 import { reportToPdf } from "@/modules/reports/reportPdf";
 import { openReportPage } from "@/modules/reports/reportExport";
 import type { ReportDoc } from "@/modules/reports/reportBuilders";
-import { ACENTO, FUNDO, NEUTRO } from "@/modules/reports/reportTheme";
+import { FUNDO } from "@/modules/reports/reportTheme";
 import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
-import { useCoresDoTema } from "@/lib/tema";
+import { useCoresDoTema, useTema } from "@/lib/tema";
+import { CATEGORIAS, COR_OUTROS, STATUS } from "@/lib/paleta";
 import {
   MonthSwitcher,
   monthRangeISO,
@@ -72,18 +73,15 @@ import {
 } from "../components/PeriodSwitcher";
 
 /**
- * Paleta da rosca de categorias no PDF. Sequência quente→fria em vez de tons de
- * uma cor só: com 5 fatias, uma escala monocromática vira cinza indistinguível
- * quando o relatório é impresso em preto e branco, e aqui a ordem do ranking já
- * carrega a informação.
+ * Paleta da rosca de categorias no PDF: as 5 primeiras cores da paleta do app
+ * (src/lib/paleta.ts, 17/11/2026) e "Outros" em grafite. Matizes diferentes,
+ * e não tons de uma cor só: impresso em preto e branco, uma escala
+ * monocromática vira cinza indistinguível — e a claridade alternada da paleta
+ * pastel ajuda justamente aí.
  */
 const PALETA_ROSCA = [
-  ACENTO.saida,
-  ACENTO.alerta,
-  ACENTO.indigo,
-  ACENTO.teal,
-  ACENTO.roxo,
-  NEUTRO[400],
+  ...CATEGORIAS.slice(0, 5).map((c) => c.claro),
+  COR_OUTROS,
 ];
 
 interface ReceiptItemLite {
@@ -280,15 +278,15 @@ function geometriaDoEixo(props: unknown): GeometriaDoEixo | null {
   return { escala, largura, topo: off.top, altura: off.height };
 }
 
-// Tom 300 nas duas séries, o mesmo da rosca de gastos por centro — o dashboard
-// inteiro fica num nível só de saturação.
+// Desde 17/11/2026 as duas séries usam o "sólido" de STATUS da paleta do app
+// (src/lib/paleta.ts): verde e vermelho em pastel, no mesmo clima das
+// categorias, com o verde mais claro que o vermelho para o daltônico separar.
+// Antes era o 300 do Tailwind (verde menta e vermelho rosado).
 //
 // O vermelho fica no MESMO degrau que o verde: um degrau mais escuro puxaria o
 // olho só para as saídas. E vale só para o gráfico — nos KPIs e nos valores em
 // Lançamentos, despesa segue neutra e o vermelho fica para ALERTA (Vencido,
 // saldo negativo). Aqui a cor não classifica "ruim", só separa duas séries.
-const COLOR_IN = "#6ee7b7"; // emerald-300
-const COLOR_OUT = "#fca5a5"; // red-300
 
 /**
  * Opacidade dos meses fora de foco. Subiu de 0,3 para 0,4 junto com a ida das
@@ -405,6 +403,9 @@ export default function DashboardPage() {
   // Cores do gráfico no tema atual (atributos SVG não leem var(--…)).
   const cor = useCoresDoTema();
   const FOCO_FUNDO = cor[900]; // slate-900 do app
+  const { tema } = useTema();
+  const COLOR_IN = STATUS.sucesso.solido[tema];
+  const COLOR_OUT = STATUS.perigo.solido[tema];
   const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
     "field",
   );

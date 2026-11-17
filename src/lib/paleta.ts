@@ -249,3 +249,25 @@ export function corDaCategoria(
   const c = paleta[i];
   return c ? c[tema] : OUTROS[tema];
 }
+
+// ------------------------------------------------- atalhos para o domínio
+
+/**
+ * As cores das categorias pelo NOME do matiz, no valor do tema claro. É o que
+ * as listas do domínio (atividades, ensaios, finalidades, calendário,
+ * culturas…) usam desde 17/11/2026, no lugar de hex próprio.
+ *
+ * Por que o valor CLARO serve nos dois temas: essas cores também vão para o
+ * mapa (Leaflet), o PDF e o relatório impresso, onde não há tema; e o pastel
+ * claro sobre o fundo escuro passa no validador (contraste 5,9 a 8,9:1). Os
+ * valores `escuro` ficam para gráficos que leem o tema (`corDaCategoria`).
+ */
+export const COR = Object.fromEntries(
+  CATEGORIAS.map((c) => [c.matiz, c.claro]),
+) as Record<
+  "lime" | "blue" | "pink" | "sky" | "orange" | "violet" | "amber" | "teal",
+  string
+>;
+
+/** "Outros", "Outro", sem categoria. */
+export const COR_OUTROS = OUTROS.claro;

@@ -1,3 +1,4 @@
+import { COR, COR_OUTROS } from "@/lib/paleta";
 import type { CategoriaDeProduto } from "./catalogo";
 
 /**
@@ -17,17 +18,19 @@ export type TipoDeEnsaio =
   | "especialidades"
   | "outros";
 
+/** Cores na ordem fixa da paleta do app (src/lib/paleta.ts, 17/11/2026);
+ *  "Outros" em grafite. */
 export const TIPOS_DE_ENSAIO: Record<
   TipoDeEnsaio,
   { rotulo: string; cor: string }
 > = {
-  sementes: { rotulo: "Sementes", cor: "#65a30d" },
-  nutricao: { rotulo: "Nutrição", cor: "#0d9488" },
-  biologicos: { rotulo: "Biológicos", cor: "#16a34a" },
-  defensivos: { rotulo: "Defensivos", cor: "#7c3aed" },
-  fertilizantes: { rotulo: "Fertilizantes", cor: "#ca8a04" },
-  especialidades: { rotulo: "Especialidades", cor: "#db2777" },
-  outros: { rotulo: "Outros", cor: "#64748b" },
+  sementes: { rotulo: "Sementes", cor: COR.lime },
+  nutricao: { rotulo: "Nutrição", cor: COR.blue },
+  biologicos: { rotulo: "Biológicos", cor: COR.pink },
+  defensivos: { rotulo: "Defensivos", cor: COR.sky },
+  fertilizantes: { rotulo: "Fertilizantes", cor: COR.orange },
+  especialidades: { rotulo: "Especialidades", cor: COR.violet },
+  outros: { rotulo: "Outros", cor: COR_OUTROS },
 };
 
 /** Que categorias do catálogo cada tipo de ensaio oferece (TrialManager.tsx:99). */

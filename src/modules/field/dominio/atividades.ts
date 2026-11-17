@@ -6,6 +6,8 @@
  * O valor do tipo é o mesmo do Flag Field (inglês) para a migração de dados da
  * fase 9 ser direta; o que a pessoa vê é o rótulo.
  */
+import { COR } from "@/lib/paleta";
+
 export type TipoDeAtividade =
   | "spraying"
   | "fertilization"
@@ -34,32 +36,51 @@ export interface InfoDoTipo {
   produtosDoCatalogo?: boolean;
 }
 
+/**
+ * COR POR FAMÍLIA, não por tipo (17/11/2026, paleta do app — src/lib/paleta.ts).
+ * São 13 tipos e a paleta tem 8 cores: 13 cores próprias não se distinguem
+ * (antes, violeta era Aplicação aqui e Defensivos nos ensaios; Plantio era lima
+ * aqui e âmbar no calendário). Quem diz o tipo é o rótulo; a cor diz a família:
+ *
+ * - Operação de campo (plantio, colheita, irrigação) ........ lima
+ * - Manejo com produto (aplicação, adubação, calagem, gesso) . azul
+ * - Registro (observação, anotação, amostragem) .............. rosa
+ * - Clima e fazenda (chuva, clima, visita) ................... verde-água
+ *
+ * As 4 foram escolhidas pelo validador para se distinguirem entre si TODAS
+ * (não só vizinhas), porque se misturam no calendário e no mapa.
+ */
+const OPERACAO = COR.lime;
+const MANEJO = COR.blue;
+const REGISTRO = COR.pink;
+const FAZENDA = COR.teal;
+
 export const TIPOS: Record<TipoDeAtividade, InfoDoTipo> = {
   spraying: {
     rotulo: "Aplicação",
-    cor: "#8b5cf6",
+    cor: MANEJO,
     comCusto: true,
     comProdutos: true,
     produtosDoCatalogo: true,
   },
   fertilization: {
     rotulo: "Adubação",
-    cor: "#10b981",
+    cor: MANEJO,
     comCusto: true,
     comProdutos: true,
     produtosDoCatalogo: true,
   },
-  liming: { rotulo: "Calagem", cor: "#d97706", comCusto: true },
-  plastering: { rotulo: "Gessagem", cor: "#b45309", comCusto: true },
-  irrigation: { rotulo: "Irrigação", cor: "#0ea5e9", comCusto: true },
-  harvest: { rotulo: "Colheita", cor: "#ea580c", comCusto: true },
-  planting: { rotulo: "Plantio", cor: "#65a30d", comCusto: true },
-  observation: { rotulo: "Observação", cor: "#e11d48" },
-  annotation: { rotulo: "Anotação", cor: "#06b6d4" },
-  sampling: { rotulo: "Amostragem", cor: "#eab308" },
-  rain: { rotulo: "Chuva", cor: "#38bdf8", daFazenda: true },
-  climate: { rotulo: "Clima", cor: "#7c7c83", daFazenda: true },
-  visit: { rotulo: "Visita", cor: "#6366f1", daFazenda: true },
+  liming: { rotulo: "Calagem", cor: MANEJO, comCusto: true },
+  plastering: { rotulo: "Gessagem", cor: MANEJO, comCusto: true },
+  irrigation: { rotulo: "Irrigação", cor: OPERACAO, comCusto: true },
+  harvest: { rotulo: "Colheita", cor: OPERACAO, comCusto: true },
+  planting: { rotulo: "Plantio", cor: OPERACAO, comCusto: true },
+  observation: { rotulo: "Observação", cor: REGISTRO },
+  annotation: { rotulo: "Anotação", cor: REGISTRO },
+  sampling: { rotulo: "Amostragem", cor: REGISTRO },
+  rain: { rotulo: "Chuva", cor: FAZENDA, daFazenda: true },
+  climate: { rotulo: "Clima", cor: FAZENDA, daFazenda: true },
+  visit: { rotulo: "Visita", cor: FAZENDA, daFazenda: true },
 };
 
 export const ORDEM_DOS_TIPOS: TipoDeAtividade[] = [

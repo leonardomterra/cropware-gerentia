@@ -17,6 +17,8 @@
  * formato do pdf-lib. Mudar a paleta do relatório = editar este arquivo.
  */
 
+import { STATUS } from "@/lib/paleta";
+
 /** Neutros — espelham `--color-slate-*` de app.css (escala GRAFITE da marca
  *  desde 17/11/2026; antes, família NEUTRAL). */
 export const NEUTRO = {
@@ -60,8 +62,10 @@ export const ACENTO = {
  * tela impressa, e um verde diferente no papel denuncia que são dois sistemas.
  */
 export const FUNDO = {
-  entrada: "#6ee7b7", // emerald-300
-  saida: "#fca5a5", // red-300
+  /** "Sólido" de status da paleta do app (src/lib/paleta.ts, 17/11/2026),
+   *  valor do tema claro — o papel não tem tema. */
+  entrada: STATUS.sucesso.solido.claro,
+  saida: STATUS.perigo.solido.claro,
   /** Projeção: cinza, para não competir com o realizado. */
   previsto: "#e2e2e6",
 } as const;

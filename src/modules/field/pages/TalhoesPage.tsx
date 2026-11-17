@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { COR } from "@/lib/paleta";
 import Plant from "~icons/ph/plant-duotone";
 import PencilSimple from "~icons/ph/pencil-simple";
 import MapTrifold from "~icons/ph/map-trifold";
@@ -48,9 +49,10 @@ import {
 } from "../utils/nomes";
 import type { Irrigacao, Talhao } from "../types";
 
+/** Cores da paleta do app (src/lib/paleta.ts): âmbar (seca) e céu (água). */
 const IRRIGACAO: Record<Irrigacao, { rotulo: string; cor: string }> = {
-  sequeiro: { rotulo: "Sequeiro", cor: "#f59e0b" },
-  irrigado: { rotulo: "Irrigado", cor: "#3b82f6" },
+  sequeiro: { rotulo: "Sequeiro", cor: COR.amber },
+  irrigado: { rotulo: "Irrigado", cor: COR.sky },
 };
 
 interface Form {

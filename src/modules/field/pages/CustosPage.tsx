@@ -11,6 +11,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { Ajuda } from "@/components/ui/Ajuda";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
+import { COR_OUTROS } from "@/lib/paleta";
 import { cn } from "@/components/ui/utils";
 import {
   downloadReportCsv,
@@ -503,7 +504,7 @@ function ListaSimples({
                 className="h-full rounded-full"
                 style={{
                   width: `${(i.valor / max) * 100}%`,
-                  backgroundColor: i.cor ?? "#475569",
+                  backgroundColor: i.cor ?? COR_OUTROS,
                 }}
               />
             </div>

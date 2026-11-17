@@ -6,6 +6,8 @@
  *
  * Somente leitura: o clique leva à tela de origem (`destino`), onde se edita.
  */
+import { COR, STATUS } from "@/lib/paleta";
+
 export type Categoria =
   | "pendencia"
   | "pagar"
@@ -29,13 +31,19 @@ export interface ItemDoCalendario {
   farmId: string | null;
 }
 
+/**
+ * Cores da paleta do app (src/lib/paleta.ts, 17/11/2026): "A pagar" e "A
+ * receber" são dinheiro saindo e entrando, então usam as cores de STATUS
+ * (as mesmas do gráfico de entradas × saídas); o resto, categorias —
+ * plantio em lima e atividade em azul, como as famílias de atividade.
+ */
 export const CATEGORIAS: Record<Categoria, { rotulo: string; cor: string }> = {
-  pendencia: { rotulo: "Pendências", cor: "#059669" },
-  pagar: { rotulo: "A pagar", cor: "#dc2626" },
-  receber: { rotulo: "A receber", cor: "#2563eb" },
-  atividade: { rotulo: "Atividades", cor: "#7c3aed" },
-  plantio: { rotulo: "Plantios e colheitas", cor: "#ca8a04" },
-  ensaio: { rotulo: "Ensaios", cor: "#db2777" },
+  pendencia: { rotulo: "Pendências", cor: COR.amber },
+  pagar: { rotulo: "A pagar", cor: STATUS.perigo.solido.claro },
+  receber: { rotulo: "A receber", cor: STATUS.sucesso.solido.claro },
+  atividade: { rotulo: "Atividades", cor: COR.blue },
+  plantio: { rotulo: "Plantios e colheitas", cor: COR.lime },
+  ensaio: { rotulo: "Ensaios", cor: COR.pink },
 };
 
 export const ROTULO_DA_SITUACAO: Record<Situacao, string> = {

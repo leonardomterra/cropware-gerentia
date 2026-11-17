@@ -1,3 +1,4 @@
+import { STATUS, corDaCategoria } from "@/lib/paleta";
 import type { ReportDoc, ReportTable } from "@/modules/reports/reportBuilders";
 import { TIPOS, type TipoDeAtividade } from "./atividades";
 import {
@@ -249,17 +250,12 @@ export function montarPainelDaSafra(e: {
   };
 }
 
-// Paleta das culturas (gráfico). A ordem segue a área — a maior pega a 1ª cor.
-export const CORES_DE_CULTURA = [
-  "#65a30d",
-  "#ca8a04",
-  "#0d9488",
-  "#7c3aed",
-  "#ea580c",
-  "#2563eb",
-  "#db2777",
-  "#64748b",
-];
+/**
+ * Cor da cultura no gráfico: a ordem segue a área — a maior pega a 1ª cor da
+ * paleta do app (src/lib/paleta.ts). Da 9ª em diante, "Outros" (grafite), e
+ * nunca de novo a 1ª: repetir cor faria duas culturas parecerem a mesma.
+ */
+export const corDaCultura = (i: number) => corDaCategoria(i, "claro");
 
 const num = (n: number, c = 2) =>
   n.toLocaleString("pt-BR", { maximumFractionDigits: c });
@@ -293,7 +289,7 @@ export function documentoDoPainel(
         fatias: p.porCultura.map((c, i) => ({
           rotulo: c.cultura,
           valor: c.area,
-          cor: CORES_DE_CULTURA[i % CORES_DE_CULTURA.length],
+          cor: corDaCultura(i),
         })),
       },
     });
@@ -341,7 +337,7 @@ export function documentoDoPainel(
       total: ["Total", p.custo, porHa(p.custo, p.area)],
       chart: {
         tipo: "barras",
-        series: [{ nome: "Custo", cor: "#f87171" }],
+        series: [{ nome: "Custo", cor: STATUS.perigo.solido.claro }],
         grupos: p.custoPorTipo.map((x) => ({
           rotulo: TIPOS[x.tipo].rotulo,
           valores: [x.valor],

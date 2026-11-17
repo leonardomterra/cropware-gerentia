@@ -1,4 +1,6 @@
 import type { ComponentType, SVGProps } from "react";
+import { COR, COR_OUTROS } from "@/lib/paleta";
+import { CC_COLORS, corDoCentro } from "./types";
 // Filled (material-symbols regular) - mais encorpado que o -light/outline e
 // consistente; bom com fundo pintado. Ver Q1/Q2 (2026-06-01).
 import IconHome from "~icons/ph/house-fill";
@@ -80,7 +82,12 @@ export function CostCenterIcon({
   className?: string;
 }) {
   const Icon = (icon && CC_ICON_MAP[icon]) || FallbackIcon;
-  return <Icon className={className} style={{ color: color || "#a1a1aa" }} />;
+  return (
+    <Icon
+      className={className}
+      style={{ color: corDoCentro(color) ?? COR_OUTROS }}
+    />
+  );
 }
 
 /**
@@ -105,7 +112,7 @@ export function CostCenterChip({
         "inline-flex items-center justify-center rounded-md shrink-0 size-6",
         className,
       )}
-      style={{ backgroundColor: color || "#a1a1aa" }}
+      style={{ backgroundColor: corDoCentro(color) ?? COR_OUTROS }}
     >
       <Icon className="size-[62%]" style={{ color: ccTextColor(color) }} />
     </span>
@@ -153,49 +160,40 @@ function lighten(hex: string, factor: number): string {
   return `#${h(ch(0))}${h(ch(2))}${h(ch(4))}`;
 }
 
-/** Cada cor da paleta (Tailwind 400, ver CC_COLORS) -> o 300 da MESMA cor. */
-const CC_LIGHT: Record<string, string> = {
-  "#a1a1aa": "#d4d4d8", // zinc (cinza)
-  "#fbbf24": "#fcd34d", // amber
-  "#34d399": "#6ee7b7", // emerald
-  "#60a5fa": "#93c5fd", // blue
-  "#a78bfa": "#c4b5fd", // violet
-  "#fb923c": "#fdba74", // orange
-  "#f472b6": "#f9a8d4", // pink
-  "#f87171": "#fca5a5", // red
-  "#2dd4bf": "#5eead4", // teal
-};
-
 /**
- * Versao CLARA (Tailwind 300) da cor do CC. Usada nas AREAS GRANDES - hoje as
- * fatias do grafico de gastos por centro -, onde o 400 pesa. Nao vale para
- * texto nem para o tint do icone: la a cor precisa do peso que tem. Cor custom
- * fora da paleta e clareada em direcao ao branco.
+ * Cor do centro nas ÁREAS GRANDES (fatias do gráfico de gastos por centro).
+ * Desde 17/11/2026 a paleta já é pastel (src/lib/paleta.ts), então a cor vai
+ * como está — antes clareava-se o 400 para o 300. Cor custom, fora da paleta,
+ * ainda é clareada em direção ao branco.
  */
 export function ccChartColor(color: string | null | undefined): string {
-  if (!color) return "#d4d4d8";
-  return CC_LIGHT[color.toLowerCase()] || lighten(color, 0.4);
+  const c = corDoCentro(color);
+  if (!c) return COR_OUTROS;
+  return CC_COLORS.includes(c.toLowerCase()) ? c : lighten(c, 0.4);
 }
 
-/** Cada cor da paleta (Tailwind 400, ver CC_COLORS) -> o 700 da MESMA cor. */
+/** Cada cor da paleta → a versão ESCURA dela (OKLCH: mesmo matiz, claridade
+ *  0,40, saturação 0,09). Texto sobre branco ≥ 8,5:1; ícone sobre o chip
+ *  ≥ 3,4:1. Calculado em 17/11/2026 junto com a paleta pastel. */
 const CC_DARK: Record<string, string> = {
-  "#a1a1aa": "#3f3f46", // zinc (cinza)
-  "#fbbf24": "#b45309", // amber
-  "#34d399": "#047857", // emerald
-  "#60a5fa": "#1d4ed8", // blue
-  "#a78bfa": "#5b21b6", // violet (800 - 700 ficava fraco no chip)
-  "#f472b6": "#9d174d", // pink (800)
-  "#f87171": "#991b1b", // red (800)
-  "#2dd4bf": "#0f766e", // teal
+  [COR_OUTROS]: "#4c4c52", // grafite 700
+  [COR.lime]: "#365117",
+  [COR.blue]: "#294778",
+  [COR.pink]: "#6c314b",
+  [COR.sky]: "#004e72",
+  [COR.orange]: "#6e3617",
+  [COR.violet]: "#4a3d73",
+  [COR.amber]: "#663d00",
+  [COR.teal]: "#00574c",
 };
 
 /**
- * Versao ESCURA (Tailwind 700) da cor do CC. Usada como (a) TEXTO do nome do CC
- * e (b) icone SELECIONADO sobre o chip no seletor - a cor clara 400 some como
- * texto/sobre-cor, o 700 da mesma cor da o look tonal e fica legivel. Cor custom
- * fora da paleta cai num darken multiplicativo.
+ * Versão ESCURA da cor do centro. Usada como (a) TEXTO do nome do centro e
+ * (b) ícone sobre o chip — a cor pastel some como texto, a escura do mesmo
+ * matiz dá o look tonal e fica legível. Cor custom cai num darken.
  */
 export function ccTextColor(color: string | null | undefined): string {
-  if (!color) return "#52525b";
-  return CC_DARK[color.toLowerCase()] || darken(color, 0.55);
+  const c = corDoCentro(color);
+  if (!c) return "#4c4c52";
+  return CC_DARK[c.toLowerCase()] || darken(c, 0.55);
 }

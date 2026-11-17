@@ -9,6 +9,7 @@ import { cn } from "@/components/ui/utils";
 import { openExternalUrl } from "@/utils/nativeExport";
 import { useAuth } from "@/contexts/AuthContext";
 import { CostCenterChip } from "@/modules/cost-centers/ccIcons";
+import { corDoCentro } from "@/modules/cost-centers/types";
 import type { Receipt } from "../types";
 import { useAttachmentUrl } from "../hooks/useAttachmentUrl";
 import { useCategories } from "../hooks/useCategories";
@@ -113,7 +114,10 @@ export function PaginaDeAnexo({ receipt, aoVoltar }: PaginaDeAnexoProps) {
           <div
             aria-hidden
             className="w-1 shrink-0"
-            style={{ backgroundColor: cc?.color ?? "var(--color-slate-200)" }}
+            style={{
+              backgroundColor:
+                corDoCentro(cc?.color) ?? "var(--color-slate-200)",
+            }}
           />
           <div className="flex-1 min-w-0 p-4">
             <div className="flex items-start gap-4">

@@ -46,6 +46,7 @@ import {
   CostCenterChip,
   ccTextColor,
 } from "@/modules/cost-centers/ccIcons";
+import { corDoCentro } from "@/modules/cost-centers/types";
 import { ReceiptFiltersBar } from "./ReceiptFiltersBar";
 import { ReceiptsTable } from "./ReceiptsTable";
 import { ReceiptsCards } from "./ReceiptsCards";
@@ -721,7 +722,7 @@ export function ReceiptsListPage({
                               />
                               <span
                                 className="min-w-0 flex-1 truncate"
-                                style={{ color: cc.color ?? undefined }}
+                                style={{ color: corDoCentro(cc.color) ?? undefined }}
                               >
                                 {cc.name}
                               </span>
