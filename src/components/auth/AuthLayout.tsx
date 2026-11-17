@@ -1,8 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import ArrowUpRight from "~icons/ph/arrow-up-right";
-import InstagramLogo from "~icons/ph/instagram-logo";
-import LinkedinLogo from "~icons/ph/linkedin-logo";
 import { Logo, LogoName } from "@/components/Logo";
+import { cn } from "@/components/ui/utils";
 import { openExternalUrl } from "@/utils/nativeExport";
 
 interface AuthLayoutProps {
@@ -11,39 +10,7 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/**
- * Cropware, a empresa por trás do gerentia. Textos e links vêm do site
- * (cropware-site, src/data/site.ts e Footer.astro) — manter os dois iguais.
- */
-const CROPWARE = {
-  site: "https://cropware.com.br",
-  frase:
-    "Os instrumentos do campo, agora inteligentes. Startup de ferramentas para o agro, de Rio Verde — GO.",
-  outros: [
-    {
-      nome: "Coreflow",
-      descricao: "Aferição de vazão de bicos de pulverização",
-      href: "https://cropware.com.br/coreflow",
-    },
-    {
-      nome: "Projetos sob medida",
-      descricao: "Software e agronomia para a sua operação",
-      href: "https://cropware.com.br/servicos",
-    },
-  ],
-  redes: [
-    {
-      nome: "Instagram",
-      Icon: InstagramLogo,
-      href: "https://www.instagram.com/cropware.tech/",
-    },
-    {
-      nome: "LinkedIn",
-      Icon: LinkedinLogo,
-      href: "https://www.linkedin.com/company/cropware-app/",
-    },
-  ],
-};
+const SITE_CROPWARE = "https://cropware.com.br";
 
 /** No app nativo o link abre no navegador do sistema, e não dentro do app. */
 function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
@@ -51,121 +18,74 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
   void openExternalUrl(e.currentTarget.href);
 }
 
-function LinkExterno({
-  href,
-  className,
-  children,
-  ...rest
-}: {
-  href: string;
-  className?: string;
-  children: ReactNode;
-  "aria-label"?: string;
-}) {
+/**
+ * "Ecossistema Cropware" no visual do site (cropware-site, global.css):
+ * rótulo em Space Mono caixa alta com o ponto lima (`.eyebrow.has-dot`), a
+ * logo da Cropware e o endereço com o grifo lima (`.hl`). Lima #B3FF34 é o
+ * acento da marca; grafite #3C3C42 é a cor da logo.
+ */
+function SeloCropware({ compacto = false }: { compacto?: boolean }) {
   return (
     <a
-      href={href}
+      href={SITE_CROPWARE}
       target="_blank"
       rel="noopener"
       onClick={abrirFora}
-      className={className}
-      {...rest}
+      aria-label="Ecossistema Cropware — cropware.com.br"
+      className={cn(
+        "group flex items-center",
+        compacto ? "flex-col gap-2" : "flex-col items-start gap-3",
+      )}
     >
-      {children}
+      <span className="inline-flex items-center gap-2.5 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.06em] text-[#4C4C52]">
+        <span
+          aria-hidden
+          className="size-1.5 rounded-full bg-[#B3FF34] shadow-[0_0_0_3px_rgba(179,255,52,0.35)]"
+        />
+        Ecossistema
+      </span>
+      <span className="flex items-center gap-3">
+        <img
+          src="/cropware-lockup.svg"
+          alt="Cropware"
+          className={compacto ? "h-4 w-auto" : "h-5 w-auto"}
+        />
+        {!compacto && (
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-[#3C3C42]">
+            <span className="px-1 rounded-sm bg-[linear-gradient(transparent_14%,#B3FF34_14%,#B3FF34_90%,transparent_90%)]">
+              cropware.com.br
+            </span>
+            <ArrowUpRight className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </span>
+        )}
+      </span>
     </a>
-  );
-}
-
-/** Bloco "faz parte do ecossistema Cropware" — rodapé do painel da marca. */
-function EcossistemaCropware() {
-  return (
-    <div className="w-full max-w-md space-y-5">
-      <div className="space-y-3">
-        <p className="text-xs text-slate-500">Faz parte do ecossistema</p>
-        <LinkExterno
-          href={CROPWARE.site}
-          aria-label="Cropware — cropware.com.br"
-          className="block w-fit"
-        >
-          <img
-            src="/cropware-lockup.svg"
-            alt="Cropware"
-            className="h-6 w-auto"
-          />
-        </LinkExterno>
-        <p className="text-sm text-slate-600 leading-relaxed text-pretty">
-          {CROPWARE.frase}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {CROPWARE.outros.map((o) => (
-          <LinkExterno
-            key={o.nome}
-            href={o.href}
-            className="group rounded-lg border border-slate-200 bg-white/70 p-3 hover:border-slate-300 hover:bg-white transition-colors"
-          >
-            <span className="flex items-center gap-1 text-sm font-medium text-[#3C3C42]">
-              {o.nome}
-              <ArrowUpRight className="size-3.5 text-slate-400 group-hover:text-slate-600" />
-            </span>
-            <span className="block mt-0.5 text-xs text-slate-500 leading-snug">
-              {o.descricao}
-            </span>
-          </LinkExterno>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <LinkExterno
-          href={CROPWARE.site}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#3C3C42] hover:underline underline-offset-4"
-        >
-          cropware.com.br
-          <ArrowUpRight className="size-3.5" />
-        </LinkExterno>
-        <div className="flex items-center gap-1.5">
-          {CROPWARE.redes.map((r) => (
-            <LinkExterno
-              key={r.nome}
-              href={r.href}
-              aria-label={r.nome}
-              className="inline-flex items-center justify-center size-8 rounded-md text-slate-500 hover:bg-slate-200/60 hover:text-[#3C3C42] transition-colors"
-            >
-              <r.Icon className="size-[18px]" />
-            </LinkExterno>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
 /**
  * Shell das telas de auth (login, signup, forgot, reset). Split-screen: à
- * esquerda a marca (gerentia em cima, ecossistema Cropware no rodapé), à
- * direita o formulário. No mobile o painel esquerdo some: a marca aparece
- * compacta acima do formulário e a Cropware numa linha abaixo dele.
+ * esquerda o símbolo e, no rodapé, o selo do ecossistema Cropware; à direita
+ * o nome "gerentia.app" em cima do formulário. No mobile o painel esquerdo
+ * some: símbolo e nome ficam acima do formulário e o selo, abaixo.
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <main className="min-h-screen w-full flex items-stretch bg-white">
       {/* Painel esquerdo — marca */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center border-r border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 px-12 py-10">
-        <div className="flex-1 flex flex-col items-center justify-center gap-5">
-          <Logo className="h-20" />
-          <LogoName className="h-9" />
+      <div className="hidden lg:flex lg:w-1/2 flex-col border-r border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 px-12 py-10">
+        <div className="flex-1 flex items-center justify-center">
+          <Logo className="h-24" />
         </div>
-        <EcossistemaCropware />
+        <SeloCropware />
       </div>
 
       {/* Painel direito — conteúdo */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-[380px] space-y-6">
-          {/* Marca compacta no mobile (painel esquerdo escondido) */}
-          <div className="lg:hidden flex flex-col items-center gap-3 mb-2">
-            <Logo className="h-12" />
-            <LogoName className="h-6" />
+          <div className="flex flex-col items-center lg:items-start gap-3 mb-8">
+            <Logo className="lg:hidden h-12" />
+            <LogoName className="h-6 lg:h-7" />
           </div>
 
           {(title || subtitle) && (
@@ -186,18 +106,9 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
 
           {children}
 
-          {/* Cropware no mobile: uma linha, sem competir com o formulário. */}
-          <LinkExterno
-            href={CROPWARE.site}
-            className="lg:hidden flex items-center justify-center gap-2 pt-4 text-xs text-slate-500"
-          >
-            Faz parte do ecossistema
-            <img
-              src="/cropware-lockup.svg"
-              alt="Cropware"
-              className="h-3.5 w-auto"
-            />
-          </LinkExterno>
+          <div className="lg:hidden flex justify-center pt-6">
+            <SeloCropware compacto />
+          </div>
         </div>
       </div>
     </main>
