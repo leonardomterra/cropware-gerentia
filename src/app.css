@@ -552,6 +552,54 @@ input:-webkit-autofill:active {
   transition: background-color 9999s ease-in-out 0s;
 }
 
+/* ==========================================================
+   MARCA ANIMADA (tela de entrada) - LogoAnimado.tsx
+   --------------------------------------------------------------
+   "Reflexo e mexidinha": um brilho branco atravessa a armação dos óculos
+   (o rect é recortado pela armação) e o bigode balança. Quando toca:
+   aberturaDaMarca.ts. Movimento reduzido: nada anda.
+   ========================================================== */
+.marca-bigode {
+  transform-box: fill-box;
+  transform-origin: 50% 15%;
+}
+.marca-brilho {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .marca-brilho.marca-brilha {
+    animation: marca-brilha 1s cubic-bezier(0.45, 0, 0.2, 1) 0.3s both;
+  }
+  .marca-bigode.marca-mexe {
+    animation: marca-mexe 0.75s ease-in-out 0.9s both;
+  }
+}
+@keyframes marca-brilha {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(1000px);
+  }
+}
+@keyframes marca-mexe {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: rotate(-6deg);
+  }
+  45% {
+    transform: rotate(5deg);
+  }
+  70% {
+    transform: rotate(-2deg);
+  }
+}
+
 /* Icone de IA "pensando": oscila a opacidade (sem movimento, sem mudar cor),
    em loop. So enquanto processa (AiSuggestButton). Em repouso fica estatico. */
 .ai-think-fade {

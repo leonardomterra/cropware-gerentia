@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import ArrowUpRight from "~icons/ph/arrow-up-right";
-import { Logo, LogoName } from "@/components/Logo";
+import { useAberturaDaMarca } from "@/components/aberturaDaMarca";
+import { NomeDigitado, SimboloAnimado } from "@/components/LogoAnimado";
 import { cn } from "@/components/ui/utils";
 import { openExternalUrl } from "@/utils/nativeExport";
 
@@ -67,12 +68,14 @@ function SeloCropware({ className }: { className?: string }) {
  * some: símbolo e nome ficam acima do formulário e o card, abaixo.
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+  // Abertura animada da marca (visita nova) + reflexo repetindo na tela.
+  const { abertura, pulso } = useAberturaDaMarca();
   return (
     <main className="min-h-screen w-full flex items-stretch bg-white">
       {/* Painel esquerdo — marca */}
       <div className="hidden lg:flex lg:w-1/2 flex-col border-r border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 px-12 py-10">
         <div className="flex-1 flex items-center justify-center">
-          <Logo className="h-24" />
+          <SimboloAnimado tocar={abertura} pulso={pulso} className="h-24" />
         </div>
         <SeloCropware className="w-full max-w-md mx-auto" />
       </div>
@@ -81,8 +84,12 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-[380px] space-y-6">
           <div className="flex flex-col items-center lg:items-start gap-3 mb-8">
-            <Logo className="lg:hidden h-12" />
-            <LogoName className="h-6 lg:h-7" />
+            <SimboloAnimado
+              tocar={abertura}
+              pulso={pulso}
+              className="lg:hidden h-12"
+            />
+            <NomeDigitado digitar={abertura} className="h-6 lg:h-7" />
           </div>
 
           {(title || subtitle) && (
