@@ -655,16 +655,19 @@ export default function PaletaPage() {
                             ? "+ R$ 3.400,00"
                             : "R$ 980,00"}
                       </span>
-                      <span className={cn("size-2.5 rounded-full", s.solido)} />
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ background: s.solido[tema] }}
+                      />
                     </div>
                   </div>
                 );
               })}
             </div>
             <p className="text-sm text-slate-500">
-              Um degrau por uso: texto 700, fundo 50, borda 200, sólido 300,
-              selo 200/900. Vermelho é só erro, saída e excluir; verde é só
-              sucesso e entrada. Sempre com ícone ou rótulo junto.
+              Um degrau por uso: texto 700, fundo 50, borda 200, sólido em
+              pastel, selo 200/900. Vermelho é só erro, saída e excluir; verde é
+              só sucesso e entrada. Sempre com ícone ou rótulo junto.
             </p>
           </Cartao>
 
@@ -849,13 +852,19 @@ export default function PaletaPage() {
                 >
                   <div className="flex items-end gap-0.5 h-28">
                     <div
-                      className={cn("w-6 rounded-t", STATUS.sucesso.solido)}
-                      style={{ height: `${(e as number) * 2}px` }}
+                      className="w-6 rounded-t"
+                      style={{
+                        height: `${(e as number) * 2}px`,
+                        background: STATUS.sucesso.solido[tema],
+                      }}
                       title={`Entradas ${m}`}
                     />
                     <div
-                      className={cn("w-6 rounded-t", STATUS.perigo.solido)}
-                      style={{ height: `${(s as number) * 2}px` }}
+                      className="w-6 rounded-t"
+                      style={{
+                        height: `${(s as number) * 2}px`,
+                        background: STATUS.perigo.solido[tema],
+                      }}
                       title={`Saídas ${m}`}
                     />
                   </div>
@@ -865,13 +874,15 @@ export default function PaletaPage() {
               <ul className="space-y-1.5 text-sm text-slate-700 pb-6">
                 <li className="flex items-center gap-2">
                   <span
-                    className={cn("size-3 rounded-sm", STATUS.sucesso.solido)}
+                    className="size-3 rounded-sm"
+                    style={{ background: STATUS.sucesso.solido[tema] }}
                   />
                   Entradas
                 </li>
                 <li className="flex items-center gap-2">
                   <span
-                    className={cn("size-3 rounded-sm", STATUS.perigo.solido)}
+                    className="size-3 rounded-sm"
+                    style={{ background: STATUS.perigo.solido[tema] }}
                   />
                   Saídas
                 </li>

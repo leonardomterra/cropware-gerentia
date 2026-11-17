@@ -46,10 +46,16 @@ export const STATUS: Record<
     /** Faixa de aviso / fundo de linha marcada. */
     fundo: string;
     borda: string;
-    /** Ponto e barra de gráfico. Tom 300 (17/11/2026), para conversar com as
-     *  categorias pastéis; no escuro espelha para o 700. O botão de excluir e
-     *  a bolinha de notificação seguem no #f87171 (escolha do Leonardo). */
-    solido: string;
+    /**
+     * Ponto e barra de gráfico, em hex por tema. Construído como os pastéis
+     * das categorias (17/11/2026: os tons 300 do Tailwind destoavam deles —
+     * verde menta e vermelho rosado). OKLCH, saturação 0,12; o VERDE é mais
+     * claro (0,80) que o VERMELHO (0,68) de propósito: verde × vermelho é o
+     * par que o daltônico confunde, e a diferença de claridade é o que os
+     * separa (validador: ΔE 11,6 claro / 9,6 escuro, alvo 8). O botão de
+     * excluir e a bolinha de notificação seguem no #f87171 (escolha dele).
+     */
+    solido: { claro: string; escuro: string };
     /** Selo (Badge colorScheme). */
     selo: "emerald" | "amber" | "red" | "blue";
   }
@@ -60,7 +66,7 @@ export const STATUS: Record<
     texto: "text-emerald-700",
     fundo: "bg-emerald-50",
     borda: "border-emerald-200",
-    solido: "bg-emerald-300",
+    solido: { claro: "#6dd6a7", escuro: "#52bc8e" },
     selo: "emerald",
   },
   atencao: {
@@ -69,7 +75,7 @@ export const STATUS: Record<
     texto: "text-amber-700",
     fundo: "bg-amber-50",
     borda: "border-amber-200",
-    solido: "bg-amber-300",
+    solido: { claro: "#eca851", escuro: "#d49648" },
     selo: "amber",
   },
   perigo: {
@@ -78,7 +84,7 @@ export const STATUS: Record<
     texto: "text-red-700",
     fundo: "bg-red-50",
     borda: "border-red-200",
-    solido: "bg-red-300",
+    solido: { claro: "#d87972", escuro: "#c46760" },
     selo: "red",
   },
   info: {
@@ -87,7 +93,7 @@ export const STATUS: Record<
     texto: "text-blue-700",
     fundo: "bg-blue-50",
     borda: "border-blue-200",
-    solido: "bg-blue-300",
+    solido: { claro: "#6d9eef", escuro: "#608cd5" },
     selo: "blue",
   },
 };
