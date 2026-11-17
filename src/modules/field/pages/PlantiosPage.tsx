@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { useCadastros } from "../hooks/useCadastros";
 import { GddDoPlantio } from "../components/GddDoPlantio";
+import { RelatorioDoPlantio } from "../relatorios/RelatorioDoPlantio";
+import { gerarRelatorioDoPlantio } from "../relatorios/doPlantio";
 import { usePermissoesDoCampo } from "../hooks/usePermissoesDoCampo";
 import {
   CartaoDeCadastro,
@@ -303,6 +305,12 @@ export default function PlantiosPage() {
           }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-4"
         >
+          {/* Relatório do plantio (fase 6): só ao ver um plantio salvo. */}
+          {leitura && editando && (
+            <div className="sm:col-span-2">
+              <RelatorioDoPlantio plantio={editando} c={c} />
+            </div>
+          )}
           <Campo rotulo="Talhão" obrigatorio>
             <SearchableSelect
               options={c.talhoes.map((x) => ({
@@ -685,6 +693,13 @@ export default function PlantiosPage() {
                   aoEditar={mexe ? () => abrir(p, false) : undefined}
                   aoExcluir={mexe ? () => setExcluindo(p) : undefined}
                   acoesExtras={[
+                    {
+                      rotulo: "Relatório",
+                      aoEscolher: () =>
+                        void gerarRelatorioDoPlantio(p, c).catch(() =>
+                          toast.error("Não foi possível gerar o relatório."),
+                        ),
+                    },
                     ...(mexe
                       ? p.lifecycle === "completed"
                         ? [

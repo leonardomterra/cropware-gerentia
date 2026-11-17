@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { gddAcumulado, juntarSeries, tbaseDa } from "../dominio/gdd";
-import { localDaFazenda, temperaturasDesde } from "../hooks/useClima";
+import { tbaseDa } from "../dominio/gdd";
+import { gddDoPlantio, localDaFazenda } from "../hooks/useClima";
 import type { Fazenda, Plantio, Talhao } from "../types";
 
 /**
@@ -27,11 +27,8 @@ export function GddDoPlantio({
     if (!local || !inicio || inicio > new Date().toISOString().slice(0, 10))
       return;
     let vivo = true;
-    temperaturasDesde(local, inicio)
-      .then(
-        ({ archive, recente }) =>
-          vivo && setGdd(gddAcumulado(juntarSeries(archive, recente), tbase)),
-      )
+    gddDoPlantio(plantio, fazenda, talhoes)
+      .then((r) => vivo && r && setGdd(r.valor))
       .catch(() => vivo && setErro(true));
     return () => {
       vivo = false;

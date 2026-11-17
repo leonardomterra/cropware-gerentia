@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import type { HoraDoClima } from "../dominio/clima";
-import type { DiaDeTemperatura } from "../dominio/gdd";
+import {
+  gddAcumulado,
+  juntarSeries,
+  tbaseDa,
+  type DiaDeTemperatura,
+} from "../dominio/gdd";
 import { deGeoJson, pontoDoRotulo, type LatLng } from "../geo/geometria";
 import type { Fazenda, Talhao } from "../types";
 
@@ -160,4 +165,23 @@ export async function temperaturasDesde(
     archive: ler(a),
     recente: ler(f).filter((x) => x.data >= inicio && x.data <= hoje),
   };
+}
+
+/**
+ * GDD de um plantio desde a data de plantio, com a temperatura-base da cultura
+ * dele. `null` quando não há local, data ou a data é futura. O componente
+ * GddDoPlantio e o relatório do plantio usam esta mesma função.
+ */
+export async function gddDoPlantio(
+  plantio: { crop: string; planting_date: string | null },
+  fazenda: Fazenda | null,
+  talhoes: Talhao[],
+): Promise<{ valor: number; tbase: number } | null> {
+  const local = fazenda ? localDaFazenda(fazenda, talhoes) : null;
+  const inicio = plantio.planting_date;
+  if (!local || !inicio || inicio > new Date().toISOString().slice(0, 10))
+    return null;
+  const tbase = tbaseDa(plantio.crop);
+  const { archive, recente } = await temperaturasDesde(local, inicio);
+  return { valor: gddAcumulado(juntarSeries(archive, recente), tbase), tbase };
 }
