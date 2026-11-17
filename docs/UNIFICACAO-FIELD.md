@@ -194,7 +194,8 @@ Cada fase vai ao ar sozinha.
     das atividades, painel de plantios com GDD, PDF do plantio, "Iniciar plantio" a partir do
     talhão.
 
-- **Fase 3 (16/11/2026): código pronto na branch** (migration `20261120120000_pendencias_agenda.sql`).
+- **Fase 3 (16/11/2026): no ar** (migration `20261120120000_pendencias_agenda.sql` + servidor, a partir
+  da branch; testes manuais pendentes).
   - A Agenda do Flag Field virou campos da Pendência: hora, tipo, prioridade, local,
     fazenda/talhão.
   - Operação de campo planejada continua sendo Atividade.
