@@ -66,6 +66,12 @@ export const TABELAS_DO_PACOTE: ReadonlyArray<{
   { nome: "farm_plots", porUsuario: "criador" },
   { nome: "farm_plantings", porUsuario: "criador" },
   { nome: "farm_activities", porUsuario: "criador" },
+  // Ensaios: o ensaio e as partes dele são de quem conduz.
+  { nome: "farm_trials", porUsuario: "criador" },
+  { nome: "farm_trial_products", porUsuario: "criador" },
+  { nome: "farm_trial_steps", porUsuario: "criador" },
+  { nome: "farm_trial_evaluations", porUsuario: "criador" },
+  { nome: "farm_trial_harvests", porUsuario: "criador" },
   { nome: "farm_cost_centers", porUsuario: "contexto" },
   { nome: "farm_category_groups", porUsuario: "contexto" },
   { nome: "farm_categories", porUsuario: "contexto" },

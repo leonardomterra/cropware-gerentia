@@ -41,6 +41,7 @@ export function mountAdminExportRoutes(app: Hono) {
       const [
         members, costCenters, categories, receipts, items, tasks, recurring, former,
         producers, farms, plots, seasons, products, plantings, activities,
+        trials, trialProducts, trialSteps, trialEvaluations, trialHarvests,
       ] = await Promise.all([
         admin.from("users_meta").select("*").eq("organization_id", orgId),
         table("farm_cost_centers"),
@@ -57,6 +58,11 @@ export function mountAdminExportRoutes(app: Hono) {
         table("farm_products"),
         table("farm_plantings"),
         table("farm_activities"),
+        table("farm_trials"),
+        table("farm_trial_products"),
+        table("farm_trial_steps"),
+        table("farm_trial_evaluations"),
+        table("farm_trial_harvests"),
       ]);
 
       // E-mail não vive em users_meta: sem ele o backup não identifica ninguém.
@@ -91,6 +97,11 @@ export function mountAdminExportRoutes(app: Hono) {
         products: products.data ?? [],
         plantings: plantings.data ?? [],
         activities: activities.data ?? [],
+        trials: trials.data ?? [],
+        trial_products: trialProducts.data ?? [],
+        trial_steps: trialSteps.data ?? [],
+        trial_evaluations: trialEvaluations.data ?? [],
+        trial_harvests: trialHarvests.data ?? [],
       });
     } catch (resp) {
       if (resp instanceof Response) return resp;
