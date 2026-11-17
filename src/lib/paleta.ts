@@ -15,12 +15,10 @@
  * 3. STATUS — sucesso, atenção, perigo, informação. Significado reservado:
  *    vermelho é SÓ erro/saída/excluir; verde é SÓ sucesso/entrada. Sempre com
  *    ícone ou rótulo junto, nunca a cor sozinha.
- * 4. CATEGORIAS — 8 cores em ORDEM FIXA para identidade (gráficos, selos de
- *    tipo, legenda do calendário). Validadas com o validador da skill dataviz
- *    (OKLab, simulação de daltonismo Machado 2009): pior par vizinho ΔE 14,8
- *    (alvo ≥ 8) e visão normal ≥ 24,9 (piso 15), no claro e no escuro; as 3
- *    primeiras passam também "todos os pares" (gráfico de rosca/dispersão).
- *    A 9ª categoria não ganha cor nova: vira "Outros" (grafite).
+ * 4. CATEGORIAS — 8 cores PASTÉIS em ORDEM FIXA para identidade (gráficos,
+ *    selos de tipo, legenda do calendário). Validadas com o validador da
+ *    skill dataviz (OKLab, simulação de daltonismo Machado 2009) — números
+ *    junto da lista. A 9ª categoria não ganha cor nova: vira "Outros".
  */
 
 // ---------------------------------------------------------------- marca
@@ -48,7 +46,9 @@ export const STATUS: Record<
     /** Faixa de aviso / fundo de linha marcada. */
     fundo: string;
     borda: string;
-    /** Ponto, barra, botão cheio. */
+    /** Ponto e barra de gráfico. Tom 300 (17/11/2026), para conversar com as
+     *  categorias pastéis; no escuro espelha para o 700. O botão de excluir e
+     *  a bolinha de notificação seguem no #f87171 (escolha do Leonardo). */
     solido: string;
     /** Selo (Badge colorScheme). */
     selo: "emerald" | "amber" | "red" | "blue";
@@ -60,7 +60,7 @@ export const STATUS: Record<
     texto: "text-emerald-700",
     fundo: "bg-emerald-50",
     borda: "border-emerald-200",
-    solido: "bg-emerald-400",
+    solido: "bg-emerald-300",
     selo: "emerald",
   },
   atencao: {
@@ -69,7 +69,7 @@ export const STATUS: Record<
     texto: "text-amber-700",
     fundo: "bg-amber-50",
     borda: "border-amber-200",
-    solido: "bg-amber-400",
+    solido: "bg-amber-300",
     selo: "amber",
   },
   perigo: {
@@ -78,7 +78,7 @@ export const STATUS: Record<
     texto: "text-red-700",
     fundo: "bg-red-50",
     borda: "border-red-200",
-    solido: "bg-red-400",
+    solido: "bg-red-300",
     selo: "red",
   },
   info: {
@@ -87,7 +87,7 @@ export const STATUS: Record<
     texto: "text-blue-700",
     fundo: "bg-blue-50",
     borda: "border-blue-200",
-    solido: "bg-blue-400",
+    solido: "bg-blue-300",
     selo: "blue",
   },
 };
@@ -96,29 +96,58 @@ export const STATUS: Record<
 
 export interface CorDeCategoria {
   matiz: string;
-  /** Degrau do Tailwind no claro / no escuro (o escuro NÃO é o espelho
-   *  automático: o espelho 600→400 sai claro demais para marca de gráfico). */
-  degrau: { claro: number; escuro: number };
   claro: string;
   escuro: string;
 }
 
+/**
+ * PASTÉIS (escolha de 17/11/2026: "uns tons um pouco mais pastéis"). Os tons
+ * 300/400 do Tailwind ficam claros mas berrantes (quase neon), e o 300 falha
+ * na distinção entre vizinhos; então a cor é construída em OKLCH: o matiz do
+ * Tailwind, saturação baixa (C 0,13 no claro / 0,12 no escuro) e claridade
+ * ALTERNADA entre vizinhos (0,70/0,78 no claro, 0,64/0,72 no escuro) — com
+ * todas na mesma claridade, os vizinhos ficavam parecidos demais para quem
+ * enxerga normal. A ordem foi escolhida por enumeração para essa alternância.
+ *
+ * Validador da skill dataviz: vizinhos ΔE 13,0 daltonismo / 20,0 visão normal
+ * (claro) e 12,4 / 19,4 (escuro); as 3 primeiras passam "todos os pares".
+ * Custo de ser pastel: no fundo branco ficam entre 1,9 e 2,9:1 de contraste,
+ * abaixo dos 3:1 — por isso todo gráfico leva legenda e valor escrito (regra
+ * de alívio), nunca a cor sozinha.
+ */
 export const CATEGORIAS: CorDeCategoria[] = [
-  { matiz: "lime", degrau: { claro: 600, escuro: 600 }, claro: "#5ea500", escuro: "#5ea500" },
-  { matiz: "blue", degrau: { claro: 600, escuro: 500 }, claro: "#155dfc", escuro: "#2b7fff" },
-  { matiz: "pink", degrau: { claro: 600, escuro: 500 }, claro: "#e60076", escuro: "#f6339a" },
-  { matiz: "violet", degrau: { claro: 600, escuro: 500 }, claro: "#7f22fe", escuro: "#8e51ff" },
-  { matiz: "teal", degrau: { claro: 600, escuro: 600 }, claro: "#009689", escuro: "#009689" },
-  { matiz: "orange", degrau: { claro: 600, escuro: 600 }, claro: "#f54900", escuro: "#f54900" },
-  { matiz: "sky", degrau: { claro: 600, escuro: 600 }, claro: "#0084d1", escuro: "#0084d1" },
-  { matiz: "amber", degrau: { claro: 600, escuro: 600 }, claro: "#e17100", escuro: "#e17100" },
+  { matiz: "lime", claro: "#82af54", escuro: "#729b49" },
+  { matiz: "blue", claro: "#85b8ff", escuro: "#77a5ef" },
+  { matiz: "pink", claro: "#dc7aa3", escuro: "#c46b91" },
+  { matiz: "sky", claro: "#5ac3ff", escuro: "#50afe6" },
+  { matiz: "orange", claro: "#df8353", escuro: "#c67448" },
+  { matiz: "violet", claro: "#baa7ff", escuro: "#a796e9" },
+  { matiz: "amber", claro: "#d18f35", escuro: "#ba7e2d" },
+  { matiz: "teal", claro: "#30d2be", escuro: "#2abdab" },
+];
+
+/** A primeira proposta (tons 600 do Tailwind), guardada para comparar na
+ *  página. Vizinhos ΔE 14,8 / 24,9; contraste ≥ 3:1 no branco. */
+export const CATEGORIAS_VIVAS: CorDeCategoria[] = [
+  { matiz: "lime", claro: "#5ea500", escuro: "#5ea500" },
+  { matiz: "blue", claro: "#155dfc", escuro: "#2b7fff" },
+  { matiz: "pink", claro: "#e60076", escuro: "#f6339a" },
+  { matiz: "violet", claro: "#7f22fe", escuro: "#8e51ff" },
+  { matiz: "teal", claro: "#009689", escuro: "#009689" },
+  { matiz: "orange", claro: "#f54900", escuro: "#f54900" },
+  { matiz: "sky", claro: "#0084d1", escuro: "#0084d1" },
+  { matiz: "amber", claro: "#e17100", escuro: "#e17100" },
 ];
 
 /** "Outros" e o que não tem categoria: grafite 400 (não compete). */
 export const OUTROS = { claro: "#a1a1a7", escuro: "#6a6a72" } as const;
 
 /** Cor da i-ésima categoria no tema; da 9ª em diante, "Outros". */
-export function corDaCategoria(i: number, tema: "claro" | "escuro"): string {
-  const c = CATEGORIAS[i];
+export function corDaCategoria(
+  i: number,
+  tema: "claro" | "escuro",
+  paleta: CorDeCategoria[] = CATEGORIAS,
+): string {
+  const c = paleta[i];
   return c ? c[tema] : OUTROS[tema];
 }
