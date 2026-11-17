@@ -1,5 +1,15 @@
 import type { Hono } from "npm:hono";
 import { getUserClient, requireCanWrite, requireFarmUser } from "../lib/userClient.ts";
+import { resolveFarmPlot } from "../lib/vinculoDoCampo.ts";
+
+/** Tipos da agenda (fase 3 da unificação; check em farm_tasks_kind_check). */
+const KINDS = ["lembrete", "reuniao", "visita", "deslocamento", "manutencao", "outro"];
+/** "14:30" ou "14:30:00" → "14:30"; o resto vira null. */
+function parseTime(v: unknown): string | null {
+  return typeof v === "string" && /^\d{2}:\d{2}(:\d{2})?$/.test(v) ? v.slice(0, 5) : null;
+}
+const texto = (v: unknown, max: number) =>
+  typeof v === "string" ? v.trim().slice(0, max) || null : null;
 
 /**
  * CRUD de farm_tasks — os "Lembretes" da aba Pendencias.
@@ -66,6 +76,9 @@ export function mountTaskRoutes(app: Hono) {
       const title = String(body.title || "").trim().slice(0, 120);
       if (!title) return c.json({ error: "title obrigatorio" }, 400);
       const priority = PRIORITIES.includes(body.priority) ? body.priority : "normal";
+      // Fazenda/talhão (agenda do Field): validados pela RLS de quem pede.
+      const vinculo = await resolveFarmPlot(client, body.farm_id, body.plot_id);
+      if ("error" in vinculo) return c.json({ error: vinculo.error }, 400);
 
       const row = {
         organization_id: auth.organizationId,
@@ -75,6 +88,12 @@ export function mountTaskRoutes(app: Hono) {
         due_date: typeof body.due_date === "string" && body.due_date ? body.due_date : null,
         priority,
         done: body.done === true,
+        // Agenda (fase 3): hora, tipo, local e onde.
+        due_time: parseTime(body.due_time),
+        kind: KINDS.includes(body.kind) ? body.kind : "lembrete",
+        location: texto(body.location, 200),
+        farm_id: vinculo.farm_id,
+        plot_id: vinculo.plot_id,
         // Financeiros — opcionais (o lembrete pode nascer sem valor definido).
         total_value: parseValue(body.total_value),
         cost_center_id: typeof body.cost_center_id === "string" && body.cost_center_id
@@ -104,7 +123,7 @@ export function mountTaskRoutes(app: Hono) {
 
       const ALLOWED = [
         "title", "notes", "due_date", "done", "priority",
-        "total_value", "cost_center_id",
+        "total_value", "cost_center_id", "due_time", "kind", "location",
       ];
       const patch: Record<string, unknown> = {};
       for (const k of ALLOWED) if (k in body) patch[k] = body[k];
@@ -121,6 +140,16 @@ export function mountTaskRoutes(app: Hono) {
       if ("due_date" in patch && !patch.due_date) patch.due_date = null;
       if ("total_value" in patch) patch.total_value = parseValue(patch.total_value);
       if ("cost_center_id" in patch && !patch.cost_center_id) patch.cost_center_id = null;
+      if ("due_time" in patch) patch.due_time = parseTime(patch.due_time);
+      if ("kind" in patch && !KINDS.includes(patch.kind as string)) delete patch.kind;
+      if ("location" in patch) patch.location = texto(patch.location, 200);
+      // Fazenda/talhão: os dois juntos, como nos lançamentos.
+      if ("farm_id" in body || "plot_id" in body) {
+        const vinculo = await resolveFarmPlot(client, body.farm_id, body.plot_id);
+        if ("error" in vinculo) return c.json({ error: vinculo.error }, 400);
+        patch.farm_id = vinculo.farm_id;
+        patch.plot_id = vinculo.plot_id;
+      }
       if (Object.keys(patch).length === 0) return c.json({ error: "no_fields_to_update" }, 400);
 
       const { data, error } = await client
