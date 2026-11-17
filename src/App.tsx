@@ -66,6 +66,9 @@ const IconLabPage = lazyWithRetry(
 const BadgeLabPage = lazyWithRetry(
   () => import("@/modules/dev/pages/BadgeLabPage"),
 );
+const PaletaPage = lazyWithRetry(
+  () => import("@/modules/dev/pages/PaletaPage"),
+);
 const ErrorTestPage = lazyWithRetry(
   () => import("@/modules/dev/pages/ErrorTestPage"),
 );
@@ -548,6 +551,17 @@ function RootRoutes() {
               element={
                 <Suspense fallback={<LoadingScreen />}>
                   <BadgeLabPage />
+                </Suspense>
+              }
+            />
+          )}
+          {/* Paleta do app (proposta de 17/11/2026): só em DEV. */}
+          {import.meta.env.DEV && (
+            <Route
+              path="paleta"
+              element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <PaletaPage />
                 </Suspense>
               }
             />
