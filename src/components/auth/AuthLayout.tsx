@@ -56,7 +56,10 @@ function SeloCropware({ className }: { className?: string }) {
           className="h-[18px] w-auto"
         />
         <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#19191D]">
-          <span className="hidden sm:inline">cropware.com.br</span>
+          <span className="hidden sm:inline">
+            <span className="font-normal text-[#2B2B30]">conheça mais em </span>
+            cropware.com.br
+          </span>
           <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </span>
       </a>
