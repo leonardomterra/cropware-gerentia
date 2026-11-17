@@ -23,47 +23,40 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
  * (cropware-site: `.cw-art bg-volt` + `.cw-tex.is-lime`): fundo lima #B3FF34
  * com o relevo topográfico do Cropware Studio por cima em "sobrepor" (o
  * arquivo é cinza neutro, então desenha relevo claro/escuro sem mudar a cor).
- * Logo da Cropware em grafite à esquerda e o endereço à direita; em cima,
- * "UMA SOLUÇÃO:" centralizado, em Space Mono, como os rótulos (eyebrow) do site.
+ * Logo da Cropware em grafite à esquerda e "conheça mais em cropware.com.br"
+ * à direita.
  */
 function SeloCropware({ className }: { className?: string }) {
   return (
-    <div className={cn("space-y-2.5", className)}>
-      {/* Caixa alta por estilo inline: a utility `.uppercase` é neutralizada
-          no app (app.css). Exceção de marca, como o eyebrow do site. */}
-      <p
-        className="text-center font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.14em] text-[#4C4C52]"
-        style={{ textTransform: "uppercase" }}
-      >
-        Uma solução:
-      </p>
-      <a
-        href={SITE_CROPWARE}
-        target="_blank"
-        rel="noopener"
-        onClick={abrirFora}
-        aria-label="Uma solução Cropware — cropware.com.br"
-        className="group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]"
-      >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.42] mix-blend-overlay"
-          style={{ backgroundImage: "url(/textures/cropware-relevo.webp)" }}
-        />
-        <img
-          src="/cropware-lockup.svg"
-          alt="Cropware"
-          className="h-[18px] w-auto"
-        />
-        <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#19191D]">
-          <span className="hidden sm:inline">
-            <span className="font-normal text-[#2B2B30]">conheça mais em </span>
-            cropware.com.br
-          </span>
-          <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+    <a
+      href={SITE_CROPWARE}
+      target="_blank"
+      rel="noopener"
+      onClick={abrirFora}
+      aria-label="Conheça mais em cropware.com.br"
+      className={cn(
+        "group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]",
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.42] mix-blend-overlay"
+        style={{ backgroundImage: "url(/textures/cropware-relevo.webp)" }}
+      />
+      <img
+        src="/cropware-lockup.svg"
+        alt="Cropware"
+        className="h-[18px] w-auto"
+      />
+      <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#19191D]">
+        <span className="hidden sm:inline">
+          <span className="font-normal text-[#2B2B30]">conheça mais em </span>
+          cropware.com.br
         </span>
-      </a>
-    </div>
+        <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+      </span>
+    </a>
   );
 }
 
