@@ -24,7 +24,7 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
  * com o relevo topográfico do Cropware Studio por cima em "sobrepor" (o
  * arquivo é cinza neutro, então desenha relevo claro/escuro sem mudar a cor).
  * Logo da Cropware em grafite à esquerda e o endereço à direita; em cima,
- * "UMA SOLUÇÃO" em Space Mono, como os rótulos (eyebrow) do site.
+ * "UMA SOLUÇÃO:" centralizado, em Space Mono, como os rótulos (eyebrow) do site.
  */
 function SeloCropware({ className }: { className?: string }) {
   return (
@@ -32,10 +32,10 @@ function SeloCropware({ className }: { className?: string }) {
       {/* Caixa alta por estilo inline: a utility `.uppercase` é neutralizada
           no app (app.css). Exceção de marca, como o eyebrow do site. */}
       <p
-        className="px-1 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.14em] text-[#4C4C52]"
+        className="text-center font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.14em] text-[#4C4C52]"
         style={{ textTransform: "uppercase" }}
       >
-        Uma solução
+        Uma solução:
       </p>
       <a
         href={SITE_CROPWARE}
