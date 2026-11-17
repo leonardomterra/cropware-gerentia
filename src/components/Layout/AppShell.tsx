@@ -640,7 +640,7 @@ export function AppShell() {
                       <span>{item.label}</span>
                       {/* A gaveta desenha o item com markup próprio. */}
                       {item.badgeKey === "notifications" && unread > 0 && (
-                        <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-branco text-[11px] font-medium tabular-nums">
+                        <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-[#f87171] text-branco text-[11px] font-medium tabular-nums">
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
@@ -778,7 +778,7 @@ export function AppShell() {
               <span className="relative inline-flex">
                 <Menu className="size-5" />
                 {unread > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-red-500" />
+                  <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-[#f87171]" />
                 )}
               </span>
             )}

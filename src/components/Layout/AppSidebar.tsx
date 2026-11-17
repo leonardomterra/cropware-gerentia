@@ -64,7 +64,7 @@ export function AppSidebar({
               <it.Icon className="size-5 shrink-0" />
               <span className="truncate">{it.label}</span>
               {it.badge ? (
-                <span className="ml-auto shrink-0 min-w-5 h-5 px-1 rounded-full bg-red-500 text-branco text-[11px] leading-5 text-center tabular-nums">
+                <span className="ml-auto shrink-0 min-w-5 h-5 px-1 rounded-full bg-[#f87171] text-branco text-[11px] leading-5 text-center tabular-nums">
                   {it.badge > 99 ? "99+" : it.badge}
                 </span>
               ) : null}
