@@ -20,6 +20,7 @@ import {
 import type { ReportDoc } from "@/modules/reports/reportBuilders";
 import { Campo } from "../Cadastro";
 import { roiDoEnsaio } from "../../dominio/ensaios";
+import { tabelaDoRoi } from "../../dominio/relatorioDoEnsaio";
 import { lerNumero, numeroParaCampo } from "../../utils/nomes";
 import type { Resultado } from "../../hooks/useCadastros";
 import type { ColheitaDoEnsaioRow, Ensaio, ProdutoNoEnsaio } from "../../types";
@@ -74,6 +75,7 @@ export function AbaRoi({
     if (!res.ok) toast.error(res.erro);
   }
 
+  // A MESMA tabela do relatório completo do ensaio (dominio/relatorioDoEnsaio).
   function documento(): ReportDoc {
     return {
       title: `ROI do ensaio — ${ensaio.name}`,
@@ -82,31 +84,13 @@ export function AbaRoi({
       meta: [],
       tables: [
         {
+          ...tabelaDoRoi(
+            produtos,
+            colheitas,
+            ensaio.sack_price,
+            ensaio.roi_reference_product_id,
+          ),
           title: "Comparativo",
-          columns: [
-            { label: "Produto" },
-            { label: "Papel" },
-            { label: "Custo/ha", money: true },
-            { label: "Prod. (sc/ha)", align: "right" },
-            { label: "Ganho/ha", money: true },
-            { label: "Lucro/ha", money: true },
-            { label: "ROI", align: "right" },
-            { label: "Custo em sacas", align: "right" },
-          ],
-          rows: linhas.map((l) => [
-            l.produto.name + (l.ehReferencia ? " (referência)" : ""),
-            l.produto.role === "principal" ? "Principal" : "Concorrente",
-            l.produto.cost_ha ?? 0,
-            l.produtividade != null ? sc(l.produtividade) : "—",
-            l.ganho ?? 0,
-            l.lucro ?? 0,
-            l.ehReferencia
-              ? "Referência"
-              : l.roi != null
-                ? `${l.roi.toLocaleString("pt-BR")}%`
-                : "—",
-            l.custoEmSacas != null ? sc(l.custoEmSacas) : "—",
-          ]),
         },
       ],
     };

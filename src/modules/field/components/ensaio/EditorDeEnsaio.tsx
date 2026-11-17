@@ -11,6 +11,8 @@ import { AbaColheita } from "./AbaColheita";
 import { AbaRoi } from "./AbaRoi";
 import { TIPOS_DE_ENSAIO } from "../../dominio/ensaios";
 import type { DadosDosEnsaios } from "../../hooks/useEnsaios";
+import { BotoesDoRelatorio } from "../../relatorios/BotoesDoRelatorio";
+import { dadosDoEnsaio, relatorioDoEnsaio } from "../../relatorios/doEnsaio";
 import type { Resultado } from "../../hooks/useCadastros";
 import type {
   Fazenda,
@@ -88,6 +90,13 @@ export function EditorDeEnsaio({
             "Novo ensaio"
           )}
         </span>
+        {/* Relatório completo (fase 6): produtos, avaliações, colheita, ROI. */}
+        {ensaio && (
+          <BotoesDoRelatorio
+            className="sm:ml-auto"
+            {...relatorioDoEnsaio(dadosDoEnsaio(ensaio, dados, cadastros))}
+          />
+        )}
       </div>
 
       <Tabs value={aba} onValueChange={setAba}>

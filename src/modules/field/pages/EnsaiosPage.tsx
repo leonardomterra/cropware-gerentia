@@ -21,6 +21,7 @@ import { usePermissoesDoCampo } from "../hooks/usePermissoesDoCampo";
 import { CartaoDeCadastro, GradeDeCartoes } from "../components/Cadastro";
 import { BotaoNovo, BuscaDaLista } from "../components/BuscaDaLista";
 import { EditorDeEnsaio } from "../components/ensaio/EditorDeEnsaio";
+import { dadosDoEnsaio, gerarRelatorioDoEnsaio } from "../relatorios/doEnsaio";
 import { TIPOS_DE_ENSAIO } from "../dominio/ensaios";
 import { normalizarNome } from "../utils/nomes";
 import type { Ensaio, Plantio } from "../types";
@@ -290,8 +291,13 @@ export default function EnsaiosPage() {
                   aoAbrir={() => setAberto({ id: e.id })}
                   aoEditar={mexe ? () => setAberto({ id: e.id }) : undefined}
                   aoExcluir={mexe ? () => setExcluindo(e) : undefined}
-                  acoesExtras={
-                    mexe
+                  acoesExtras={[
+                    {
+                      rotulo: "Relatório",
+                      aoEscolher: () =>
+                        void gerarRelatorioDoEnsaio(dadosDoEnsaio(e, d, c)),
+                    },
+                    ...(mexe
                       ? e.lifecycle === "active"
                         ? [
                             {
@@ -306,8 +312,8 @@ export default function EnsaiosPage() {
                               aoEscolher: () => void mudarSituacao(e, "active"),
                             },
                           ]
-                      : []
-                  }
+                      : []),
+                  ]}
                 />
               );
             })}
