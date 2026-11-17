@@ -1199,6 +1199,18 @@ input:-webkit-autofill:active {
 }
 
 /* ==========================================================
+   ÍCONE LIMA (menu lateral) - AppSidebar/AppShell
+   --------------------------------------------------------------
+   Ícone Phosphor duotone numa cor só: o contorno segue a cor do texto
+   (currentColor, grafite) e o segundo tom — o path com opacity=".2" — vira
+   o lima da Cropware, cheio. Lima puro no contorno some no fundo branco.
+   ========================================================== */
+.icone-lima path[opacity] {
+  fill: #b3ff34;
+  opacity: 1;
+}
+
+/* ==========================================================
    MARCA ANIMADA (tela de entrada) - LogoAnimado.tsx
    --------------------------------------------------------------
    "Reflexo e mexidinha": um brilho branco atravessa a armação dos óculos

@@ -6,8 +6,6 @@ export interface RailItem {
   to: string;
   label: string;
   Icon: ComponentType<{ className?: string }>;
-  /** Classe de cor do ícone (duotone). Ver a paleta em AppShell/RAIL_ITENS. */
-  cor: string;
   /** Rota exata (ex.: "/" e "/admin", que são prefixo de tudo). */
   end?: boolean;
   /** Contador (notificações não lidas). 0 = sem selo. */
@@ -24,9 +22,10 @@ export interface RailItem {
  * Field o trilho passou de 11 para ~20 telas, e ícone sozinho virou navegação
  * por tentativa; o nome visível resolve sem o passo do tooltip.
  *
- * A **cor** continua: cada página tem a sua, em duotone (o segundo tom a 20%,
- * então se lê um glifo colorido, não um bloco chapado). É apoio para achar de
- * relance; quem diz o nome é o texto, e o fundo marca a página aberta.
+ * Os ícones têm **uma cor só** (17/11/2026): contorno na cor do texto e miolo
+ * no lima da Cropware (`.icone-lima`, app.css). Até então cada página tinha
+ * seu matiz, e o menu ficava colorido demais. Quem diz o nome é o texto, e o
+ * fundo marca a página aberta.
  */
 export function AppSidebar({
   itens,
@@ -63,7 +62,7 @@ export function AppSidebar({
                 )
               }
             >
-              <it.Icon className={cn("size-5 shrink-0", it.cor)} />
+              <it.Icon className="icone-lima size-5 shrink-0" />
               <span className="truncate">{it.label}</span>
               {it.badge ? (
                 <span className="ml-auto shrink-0 min-w-5 h-5 px-1 rounded-full bg-red-500 text-branco text-[11px] leading-5 text-center tabular-nums">

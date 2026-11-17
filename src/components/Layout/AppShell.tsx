@@ -247,43 +247,43 @@ const ACCOUNT_NAV_ITEM: NavItem = {
 };
 
 /**
- * O trilho do desktop: **um ícone por página**, com cor e tooltip próprios.
+ * O trilho do desktop: **um ícone por página**, ao lado do nome.
  *
- * Este mapa é o botão de ajuste — ordem e cor se editam aqui, sem tocar em
+ * Este mapa é o botão de ajuste — a ordem se edita aqui, sem tocar em
  * componente nenhum. Rota fora do mapa não entra no trilho.
  *
- * Sobre a paleta: cada página tem seu matiz, e nenhum se repete no bloco de
- * cima. Os do master ficam abaixo de uma divisória. A cor é APOIO, nunca o
- * código — quem diz o nome é o tooltip.
+ * Cor: todos iguais desde 17/11/2026 (contorno grafite, miolo lima da
+ * Cropware — `.icone-lima` em app.css). Antes cada página tinha seu matiz, e
+ * o menu ficava colorido demais.
  */
-const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
-  "/": { Icon: RailDashboard, cor: "text-sky-600" },
-  "/lancamentos": { Icon: RailLancamentos, cor: "text-indigo-600" },
-  "/notas": { Icon: RailNotas, cor: "text-amber-600" },
-  "/cartoes": { Icon: RailCartoes, cor: "text-violet-600" },
-  "/recorrencias": { Icon: RailRecorrencias, cor: "text-cyan-600" },
-  "/relatorios": { Icon: RailRelatorios, cor: "text-blue-600" },
-  "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
-  "/campo/produtores": { Icon: RailProdutores, cor: "text-teal-700" },
-  "/campo/fazendas": { Icon: RailFazendas, cor: "text-amber-700" },
-  "/campo/painel": { Icon: RailPainel, cor: "text-cyan-700" },
-  "/campo/talhoes": { Icon: RailTalhoes, cor: "text-lime-700" },
-  "/campo/plantios": { Icon: RailPlantios, cor: "text-yellow-700" },
-  "/campo/atividades": { Icon: RailAtividades, cor: "text-violet-600" },
-  "/campo/custos": { Icon: RailCustos, cor: "text-blue-600" },
-  "/campo/ensaios": { Icon: RailEnsaios, cor: "text-pink-600" },
-  "/campo/ndvi": { Icon: RailNdvi, cor: "text-green-700" },
-  "/campo/clima": { Icon: RailClima, cor: "text-sky-600" },
-  "/campo/analises": { Icon: RailAnalises, cor: "text-emerald-700" },
-  "/campo/safras": { Icon: RailSafras, cor: "text-orange-600" },
-  "/campo/catalogo": { Icon: RailCatalogo, cor: "text-fuchsia-600" },
-  "/calendario": { Icon: RailCalendario, cor: "text-teal-600" },
-  "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
-  "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
-  "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
-  "/equipe": { Icon: RailEquipe, cor: "text-purple-600" },
-  "/admin": { Icon: RailUsuarios, cor: "text-fuchsia-600" },
-  "/admin/organizacoes": { Icon: RailOrganizacoes, cor: "text-stone-600" },
+const RAIL_ICONES: Record<string, { Icon: NavItem["icon"] }> = {
+  "/": { Icon: RailDashboard },
+  "/lancamentos": { Icon: RailLancamentos },
+  "/notas": { Icon: RailNotas },
+  "/cartoes": { Icon: RailCartoes },
+  "/recorrencias": { Icon: RailRecorrencias },
+  "/relatorios": { Icon: RailRelatorios },
+  "/anexos": { Icon: RailAnexos },
+  "/campo/produtores": { Icon: RailProdutores },
+  "/campo/fazendas": { Icon: RailFazendas },
+  "/campo/painel": { Icon: RailPainel },
+  "/campo/talhoes": { Icon: RailTalhoes },
+  "/campo/plantios": { Icon: RailPlantios },
+  "/campo/atividades": { Icon: RailAtividades },
+  "/campo/custos": { Icon: RailCustos },
+  "/campo/ensaios": { Icon: RailEnsaios },
+  "/campo/ndvi": { Icon: RailNdvi },
+  "/campo/clima": { Icon: RailClima },
+  "/campo/analises": { Icon: RailAnalises },
+  "/campo/safras": { Icon: RailSafras },
+  "/campo/catalogo": { Icon: RailCatalogo },
+  "/calendario": { Icon: RailCalendario },
+  "/pendencias": { Icon: RailPendencias },
+  "/notificacoes": { Icon: RailNotificacoes },
+  "/configuracoes": { Icon: RailConfiguracoes },
+  "/equipe": { Icon: RailEquipe },
+  "/admin": { Icon: RailUsuarios },
+  "/admin/organizacoes": { Icon: RailOrganizacoes },
 };
 
 /**
@@ -524,7 +524,7 @@ export function AppShell() {
           title={`Módulo: ${ativo.nome}`}
           className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <ativo.Icon className={cn("size-5 shrink-0", ativo.cor)} />
+          <ativo.Icon className="icone-lima size-5 shrink-0" />
           <span className="truncate">{ativo.nome}</span>
           <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
         </button>
@@ -543,7 +543,7 @@ export function AppShell() {
               onSelect={() => trocarModulo(id)}
               className={cn(id === moduloAtivo && "font-semibold")}
             >
-              <m.Icon className={cn("size-5 shrink-0", m.cor)} />
+              <m.Icon className="icone-lima size-5 shrink-0" />
               {m.nome}
             </DropdownMenuItem>
           );
@@ -564,7 +564,6 @@ export function AppShell() {
       to: item.to,
       label: item.label,
       Icon: visual.Icon,
-      cor: visual.cor,
       end: item.end,
       badge: item.badgeKey === "notifications" ? unread : 0,
       // Divisória separando o bloco do master do app do cliente.

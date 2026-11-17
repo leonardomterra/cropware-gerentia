@@ -19,8 +19,6 @@ export interface Modulo {
   id: ModuloId;
   nome: string;
   Icon: ComponentType<{ className?: string }>;
-  /** Cor do ícone no seletor do trilho (duotone, como o resto do trilho). */
-  cor: string;
 }
 
 export const MODULOS: Modulo[] = [
@@ -28,9 +26,8 @@ export const MODULOS: Modulo[] = [
     id: "financas",
     nome: "Finanças",
     Icon: IconeFinancas,
-    cor: "text-indigo-600",
   },
-  { id: "field", nome: "Field", Icon: IconeField, cor: "text-lime-700" },
+  { id: "field", nome: "Field", Icon: IconeField },
 ];
 
 export const moduloPorId = (id: ModuloId) => MODULOS.find((m) => m.id === id)!;
