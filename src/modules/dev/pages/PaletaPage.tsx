@@ -311,9 +311,8 @@ export default function PaletaPage() {
             Paleta do app
           </h1>
           <p className="text-sm text-slate-500 max-w-2xl">
-            Em cima, o que o app usa hoje, lido do próprio código. Embaixo, a
-            proposta (<code className="text-xs">src/lib/paleta.ts</code>)
-            aplicada em componentes de verdade.
+            A paleta do app, aprovada em 17/11/2026 e aplicada nas telas. Fonte
+            única: <code className="text-xs">src/lib/paleta.ts</code>.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

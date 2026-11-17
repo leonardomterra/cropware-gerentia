@@ -303,3 +303,19 @@ Testar na **web** (abre a página de imprimir) e no **celular** (gera PDF e abre
       legíveis.
 - [ ] Avisos (toast) no tema do app; barra de status do celular escura com ícones claros.
 - [ ] Relatórios/PDF continuam claros (são para imprimir).
+
+### Paleta do app (17/11/2026)
+
+Referência: `localhost:3000/paleta` (só em desenvolvimento). Conferir nos dois temas.
+
+- [ ] **Atividades:** a bolinha de cada tipo segue a família — operação de campo (plantio, colheita, irrigação) em lima, manejo com produto (aplicação, adubação, calagem, gessagem) em azul, registro (observação, anotação, amostragem) em rosa, clima e fazenda (chuva, clima, visita) em verde-água. Ver em Atividades (seletor de tipo e lista), no bloco do Campo no Dashboard e em Custos.
+- [ ] **Calendário:** "A pagar" em vermelho pastel, "A receber" em verde pastel, plantios em lima, atividades em azul, ensaios em rosa, pendências em âmbar.
+- [ ] **Ensaios e plantios:** faixa do cartão na cor do tipo de ensaio / da finalidade (pastéis); "Outros"/"Outro" em cinza.
+- [ ] **Talhões:** sequeiro em âmbar, irrigado em céu.
+- [ ] **Painel da safra:** rosca de culturas nos pastéis, na ordem da área; da 9ª cultura em diante, cinza (não repete a 1ª cor).
+- [ ] **Dashboard:** barras de entradas × saídas em verde e vermelho pastéis (verde mais claro); meses fora de foco esmaecidos como antes. No escuro, os tons do escuro.
+- [ ] **Relatórios (PDF/impressão):** barras de entradas/saídas e rosca de categorias nos pastéis.
+- [ ] **Centros de custo:** os já cadastrados aparecem nas cores novas sem precisar editar (o vermelho antigo vira rosa). Em Configurações → Centros de Custo, o seletor mostra cinza + 8 pastéis (sem vermelho); editar e salvar grava a cor nova. Conferir chip e nome legíveis nas listas de lançamentos/recibos.
+- [ ] **Texto de status:** mensagens de erro, valores negativos e avisos num tom só (700); botões "Excluir" de texto ficam vermelhos e escurecem no hover.
+- [ ] **Ícones de atalho** (Configurações, Cartões, Conta, tipos de backup) em grafite; exceções em cor: "Excluir a Conta" (vermelho), backups de saída (âmbar) e pré-operação (vermelho).
+
