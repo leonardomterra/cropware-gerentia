@@ -250,6 +250,7 @@ export function useAtividades() {
         ...x,
         treated_area_ha: num(x.treated_area_ha),
         cost_total: num(x.cost_total),
+        attachments: x.attachments ?? [],
       })),
     );
     setCarregando(false);

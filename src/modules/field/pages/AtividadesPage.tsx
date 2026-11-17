@@ -37,6 +37,8 @@ import {
   type LinhaDeProduto,
 } from "../components/linhasDeProduto";
 import { FormularioDeProduto } from "../components/FormularioDeProduto";
+import { AnexosDoCampo, type AnexoDoCampo } from "../components/AnexosDoCampo";
+import Paperclip from "~icons/ph/paperclip";
 import {
   CATEGORIAS_DE_ANOTACAO,
   ESTADIOS,
@@ -129,6 +131,7 @@ interface Form {
   observacoes: ObservacaoDaAtividade[];
   /** Campos do tipo, como texto (números com vírgula). */
   det: Partial<Record<keyof DetalhesDaAtividade, string>>;
+  anexos: AnexoDoCampo[];
   notes: string;
 }
 
@@ -283,6 +286,7 @@ export default function AtividadesPage() {
         produtos: [linhaVazia()],
         observacoes: [{ categoria: "", alvo: "", severidade: "" }],
         det: {},
+        anexos: [],
         notes: "",
       });
       return;
@@ -309,6 +313,7 @@ export default function AtividadesPage() {
         ? x.details.observacoes
         : [{ categoria: "", alvo: "", severidade: "" }],
       det,
+      anexos: x.attachments ?? [],
       notes: x.notes ?? "",
     });
   }
@@ -376,6 +381,7 @@ export default function AtividadesPage() {
           ? custoDaAtividade(form.type, produtos, details, area)
           : null,
         details,
+        attachments: form.anexos,
         notes: form.notes.trim() || null,
       },
       editando?.id,
@@ -980,6 +986,15 @@ export default function AtividadesPage() {
               </div>,
             )}
 
+          <div className="sm:col-span-2 space-y-1.5">
+            <p className="text-sm text-slate-700">Fotos e arquivos</p>
+            <AnexosDoCampo
+              anexos={form.anexos}
+              aoMudar={(a) => set("anexos", a)}
+              somenteLeitura={leitura}
+            />
+          </div>
+
           {info.comCusto && (
             <div className="sm:col-span-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 tabular-nums">
               Custo agronômico:{" "}
@@ -1144,10 +1159,21 @@ export default function AtividadesPage() {
                     x.cost_total ? brl(x.cost_total) : null,
                   ]}
                   selos={
-                    x.status === "planejada" ? (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                        Planejada
-                      </span>
+                    x.status === "planejada" ||
+                    (x.attachments?.length ?? 0) > 0 ? (
+                      <>
+                        {x.status === "planejada" && (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                            Planejada
+                          </span>
+                        )}
+                        {(x.attachments?.length ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200">
+                            <Paperclip className="size-3" />
+                            {x.attachments.length}
+                          </span>
+                        )}
+                      </>
                     ) : undefined
                   }
                   aoAbrir={() => abrir(x, true)}

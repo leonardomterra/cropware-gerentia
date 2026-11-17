@@ -19,6 +19,7 @@ import {
 import { cn } from "@/components/ui/utils";
 import { Campo } from "../Cadastro";
 import { SubPagina } from "./SubPagina";
+import { AnexosDoCampo, type AnexoDoCampo } from "../AnexosDoCampo";
 import {
   ESCALAS,
   ESTADIOS_DE_ENSAIO,
@@ -610,6 +611,9 @@ function PreenchimentoDaAvaliacao({
     atual?.values ?? {},
   );
   const [notes, setNotes] = useState(atual?.notes ?? "");
+  const [anexos, setAnexos] = useState<AnexoDoCampo[]>(
+    atual?.attachments ?? [],
+  );
   const [salvando, setSalvando] = useState(false);
 
   return (
@@ -629,6 +633,7 @@ function PreenchimentoDaAvaliacao({
           await salvar({
             date: data,
             values: valores,
+            attachments: anexos,
             notes: notes.trim() || null,
           });
           setSalvando(false);
@@ -686,6 +691,14 @@ function PreenchimentoDaAvaliacao({
             onChange={(e) => setNotes(e.target.value)}
           />
         </Campo>
+        <div className="sm:col-span-2 space-y-1.5">
+          <p className="text-sm text-slate-700">Fotos e arquivos</p>
+          <AnexosDoCampo
+            anexos={anexos}
+            aoMudar={setAnexos}
+            somenteLeitura={somenteLeitura}
+          />
+        </div>
       </form>
     </SubPagina>
   );

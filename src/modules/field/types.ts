@@ -149,6 +149,8 @@ export interface Atividade {
   products: ProdutoDaAtividade[];
   cost_total: number | null;
   details: DetalhesDaAtividade;
+  /** Fotos e PDFs (fase 5): keys do R2 privado. */
+  attachments: import("./components/AnexosDoCampo").AnexoDoCampo[];
   notes: string | null;
   created_at: string;
 }
@@ -222,6 +224,7 @@ export interface AvaliacaoDoEnsaio {
   date: string;
   values: Record<string, string>;
   characteristics: import("./dominio/ensaios").Caracteristica[] | null;
+  attachments: import("./components/AnexosDoCampo").AnexoDoCampo[];
   notes: string | null;
   created_at: string;
 }
