@@ -230,8 +230,8 @@ Cada fase vai ao ar sozinha.
   - **Ficou para depois:** o visualizador com zoom e o valor no clique do NDVI; o relatório de
     NDVI; apagar no R2 o anexo removido; o clima e a janela de aplicação pelo WhatsApp (fase 7).
 
-- **Fase 6 (16/11/2026): pronta na branch** (sem migration; o servidor só ganhou a rota
-  `GET /campo/anexos/arquivo`, que vai junto no próximo `deploy:edge`; testes manuais pendentes).
+- **Fase 6 (16/11/2026): no ar** (sem migration; servidor publicado a partir da branch com a rota
+  `GET /campo/anexos/arquivo`; testes manuais pendentes).
   - Mesmo formato de relatório do financeiro (`ReportDoc`): CSV, página de imprimir na web, PDF no
     celular. Fotos opcionais ("Relatório com fotos"), no fim, com legenda.
   - **Relatório do plantio:** ficha, atividades, custo por tipo, lançamentos do talhão à parte,
