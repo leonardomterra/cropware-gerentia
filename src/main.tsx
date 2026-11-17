@@ -7,8 +7,6 @@ import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource-variable/mozilla-text";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
-// Fonte do desenho do nome "gerentia.app": só para o "/módulo" ao lado dele.
-import "@fontsource/wdxl-lubrifont-sc/latin-400.css";
 import "./app.css";
 import App from "./App";
 import { iniciarTema } from "./lib/tema";
