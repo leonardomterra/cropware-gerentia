@@ -12,15 +12,15 @@ import { Ajuda } from "@/components/ui/Ajuda";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { BOTAO_BARRA, ICONE_BOTAO_BARRA } from "@/lib/ui-tokens";
 import { cn } from "@/components/ui/utils";
-import { supabase } from "@/utils/supabase/client";
 import {
   downloadReportCsv,
   openReportPage,
 } from "@/modules/reports/reportExport";
 import type { ReportDoc } from "@/modules/reports/reportBuilders";
 import { useAtividades, useCadastros } from "../hooks/useCadastros";
+import { useLancamentosDoCampo } from "../hooks/useLancamentosDoCampo";
 import { TIPOS } from "../dominio/atividades";
-import { dentroDaJanela, type LancamentoDoCampo } from "../dominio/custo";
+import { dentroDaJanela } from "../dominio/custo";
 import { montarCustosPorTalhao, porHa } from "../dominio/relatorioDeCustos";
 
 const brl = (n: number) =>
@@ -29,32 +29,6 @@ const ha = (n: number) =>
   n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 const hojeIso = () => new Date().toISOString().slice(0, 10);
-
-/** Lançamentos de despesa ligados a fazenda/talhão — a parte "realizado". */
-function useLancamentosDoCampo() {
-  const [lancamentos, setLancamentos] = useState<LancamentoDoCampo[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  useEffect(() => {
-    void supabase
-      .from("farm_receipts")
-      .select(
-        "farm_id, plot_id, total_value, direction, status, doc_type, is_estimated, transaction_date, paid_date",
-      )
-      .not("farm_id", "is", null)
-      .eq("direction", "expense")
-      .limit(10000)
-      .then(({ data }) => {
-        setLancamentos(
-          ((data as LancamentoDoCampo[]) ?? []).map((r) => ({
-            ...r,
-            total_value: Number(r.total_value),
-          })),
-        );
-        setCarregando(false);
-      });
-  }, []);
-  return { lancamentos, carregando };
-}
 
 /**
  * Custo por talhão — o agronômico (o que as atividades dizem) ao lado do

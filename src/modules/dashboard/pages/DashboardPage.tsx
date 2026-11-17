@@ -12,6 +12,8 @@ import {
   Text as TextoSVG,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
+import { modulosVisiveis } from "@/lib/modulos";
+import { BlocoDoCampoNoDashboard } from "@/modules/field/components/BlocoDoCampoNoDashboard";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -399,7 +401,10 @@ function dueLabel(days: number): string {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isMaster } = useAuth();
+  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
+    "field",
+  );
   // allCategories (e nao `categories`): aqui so resolvemos ROTULO de
   // lancamento ja gravado, que pode apontar pra categoria desativada.
   const { allCategories: categories } = useCategories();
@@ -1461,6 +1466,10 @@ export default function DashboardPage() {
           </ul>
         </div>
       )}
+
+      {/* O campo (fase 3 da unificação) — só com o módulo Field visível; o
+          bloco carrega os próprios dados. */}
+      {fieldVisivel && <BlocoDoCampoNoDashboard />}
 
       {/* Prévia do lançamento (Próximos Vencimentos) — só leitura. */}
       <Dialog
