@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Plant from "~icons/ph/plant-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +69,7 @@ const hojeIso = () => new Date().toISOString().slice(0, 10);
  */
 export default function PlantiosPage() {
   const c = useCadastros();
+  const navigate = useNavigate();
   const { podeCriar, podeMexer } = usePermissoesDoCampo();
   const [busca, setBusca] = useState("");
   const [fSafra, setFSafra] = useState("todas");
@@ -672,8 +673,8 @@ export default function PlantiosPage() {
                   aoAbrir={() => abrir(p, true)}
                   aoEditar={mexe ? () => abrir(p, false) : undefined}
                   aoExcluir={mexe ? () => setExcluindo(p) : undefined}
-                  acoesExtras={
-                    mexe
+                  acoesExtras={[
+                    ...(mexe
                       ? p.lifecycle === "completed"
                         ? [
                             {
@@ -687,8 +688,20 @@ export default function PlantiosPage() {
                               aoEscolher: () => void mudarCiclo(p, "completed"),
                             },
                           ]
-                      : []
-                  }
+                      : []),
+                    // Campo demonstrativo / GD: o ensaio nasce ligado a este plantio.
+                    ...(podeCriar &&
+                    (p.purpose === "demo_field" ||
+                      p.purpose === "gd_commercial")
+                      ? [
+                          {
+                            rotulo: "Criar ensaio neste plantio",
+                            aoEscolher: () =>
+                              navigate(`/campo/ensaios?plantio=${p.id}`),
+                          },
+                        ]
+                      : []),
+                  ]}
                 />
               );
             })}

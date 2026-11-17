@@ -11,7 +11,8 @@ export type Categoria =
   | "pagar"
   | "receber"
   | "atividade"
-  | "plantio";
+  | "plantio"
+  | "ensaio";
 export type Situacao = "atrasado" | "pendente" | "planejado" | "feito";
 
 export interface ItemDoCalendario {
@@ -34,6 +35,7 @@ export const CATEGORIAS: Record<Categoria, { rotulo: string; cor: string }> = {
   receber: { rotulo: "A receber", cor: "#2563eb" },
   atividade: { rotulo: "Atividades", cor: "#7c3aed" },
   plantio: { rotulo: "Plantios e colheitas", cor: "#ca8a04" },
+  ensaio: { rotulo: "Ensaios", cor: "#db2777" },
 };
 
 export const ROTULO_DA_SITUACAO: Record<Situacao, string> = {
@@ -71,6 +73,14 @@ export interface AtividadeIn {
   onde: string;
   farm_id: string;
 }
+export interface EnsaioIn {
+  id: string;
+  nome: string;
+  farm_id: string;
+  implantation_date: string | null;
+  /** Datas em que houve avaliação. */
+  datasDeAvaliacao: string[];
+}
 export interface PlantioIn {
   id: string;
   nome: string;
@@ -98,6 +108,7 @@ export function montarItens(
     lancamentos: LancamentoIn[];
     atividades: AtividadeIn[];
     plantios: PlantioIn[];
+    ensaios?: EnsaioIn[];
   },
   hoje: string,
 ): ItemDoCalendario[] {
@@ -186,6 +197,33 @@ export function montarItens(
         ),
         destino: `/campo/plantios?abrir=${p.id}`,
         farmId: p.farm_id,
+      });
+    }
+  }
+
+  for (const e of fontes.ensaios ?? []) {
+    const base = {
+      hora: null,
+      detalhe: null,
+      categoria: "ensaio" as const,
+      situacao: "feito" as const,
+      destino: `/campo/ensaios?abrir=${e.id}`,
+      farmId: e.farm_id,
+    };
+    if (e.implantation_date) {
+      itens.push({
+        ...base,
+        id: `e:${e.id}`,
+        data: e.implantation_date,
+        titulo: `Implantação: ${e.nome}`,
+      });
+    }
+    for (const d of new Set(e.datasDeAvaliacao)) {
+      itens.push({
+        ...base,
+        id: `v:${e.id}:${d}`,
+        data: d,
+        titulo: `Avaliação: ${e.nome}`,
       });
     }
   }

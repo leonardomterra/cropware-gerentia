@@ -48,6 +48,10 @@ import ClipboardText from "~icons/ph/clipboard-text";
 import ChartBar from "~icons/ph/chart-bar";
 import CalendarBlank from "~icons/ph/calendar";
 import Flask from "~icons/ph/flask";
+import TestTube from "~icons/ph/test-tube";
+import ChartLineUp from "~icons/ph/chart-line-up";
+import RailEnsaios from "~icons/ph/test-tube-duotone";
+import RailAnalises from "~icons/ph/chart-line-up-duotone";
 import RailPlantios from "~icons/ph/grains-duotone";
 import RailAtividades from "~icons/ph/clipboard-text-duotone";
 import RailCustos from "~icons/ph/chart-bar-duotone";
@@ -176,6 +180,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: ChartBar,
     modulo: "field",
   },
+  // Fase 4 — ensaios (desenvolvimento de mercado).
+  { to: "/campo/ensaios", label: "Ensaios", icon: TestTube, modulo: "field" },
+  {
+    to: "/campo/analises",
+    label: "Análises de Ensaios",
+    icon: ChartLineUp,
+    modulo: "field",
+  },
   {
     to: "/campo/safras",
     label: "Safras",
@@ -246,6 +258,8 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/campo/plantios": { Icon: RailPlantios, cor: "text-yellow-700" },
   "/campo/atividades": { Icon: RailAtividades, cor: "text-violet-600" },
   "/campo/custos": { Icon: RailCustos, cor: "text-blue-600" },
+  "/campo/ensaios": { Icon: RailEnsaios, cor: "text-pink-600" },
+  "/campo/analises": { Icon: RailAnalises, cor: "text-emerald-700" },
   "/campo/safras": { Icon: RailSafras, cor: "text-orange-600" },
   "/campo/catalogo": { Icon: RailCatalogo, cor: "text-fuchsia-600" },
   "/calendario": { Icon: RailCalendario, cor: "text-teal-600" },
@@ -274,6 +288,8 @@ const RAIL_ORDEM = [
   "/campo/plantios",
   "/campo/atividades",
   "/campo/custos",
+  "/campo/ensaios",
+  "/campo/analises",
   "/campo/fazendas",
   "/campo/produtores",
   "/campo/safras",

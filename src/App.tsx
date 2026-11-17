@@ -99,6 +99,12 @@ const SafrasPage = lazyWithRetry(
 const CatalogoPage = lazyWithRetry(
   () => import("@/modules/field/pages/CatalogoPage"),
 );
+const EnsaiosPage = lazyWithRetry(
+  () => import("@/modules/field/pages/EnsaiosPage"),
+);
+const AnalisesPage = lazyWithRetry(
+  () => import("@/modules/field/pages/AnalisesPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -466,6 +472,26 @@ function RootRoutes() {
                   <ModuloGate modulo="field">
                     <Suspense fallback={<LoadingScreen />}>
                       <CatalogoPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/ensaios"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <EnsaiosPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/analises"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AnalisesPage />
                     </Suspense>
                   </ModuloGate>
                 }

@@ -147,3 +147,55 @@ antecipar essa migração só para ter massa de teste.
       planejadas (e atrasadas), colheitas previstas e o custo da safra vigente.
 - [ ] Os números e as listas levam às telas certas.
 - [ ] Sem talhões, ou sem o Field, o bloco não aparece.
+
+## Fase 4 — ensaios e análises (desenvolvimento de mercado)
+
+**Lista de Ensaios:**
+- [ ] Cartão com a cor do tipo, onde fica, "Principal: X · Concorrente: Y", quantidade de
+      avaliações e o selo Conduzindo / Colhido / Concluído.
+- [ ] Filtro por fazenda pega também ensaio SEM talhão (bug do Flag Field corrigido).
+- [ ] Concluir e Reativar pelo menu ⋯; excluir mostra a cascata (produtos, avaliações, colheitas).
+
+**Configuração:**
+- [ ] Fazenda, cultura e nome obrigatórios; talhão, plantio e safra opcionais.
+- [ ] Escolher um plantio já sugere a cultura e a safra dele.
+- [ ] Criar o ensaio libera as outras abas e pula para Produtos.
+
+**Produtos:**
+- [ ] A busca no catálogo mostra só as categorias do tipo (sementes: só da mesma cultura).
+- [ ] "+ Principal" / "+ Concorrente"; "Cadastrar no catálogo" sem sair do ensaio.
+- [ ] Editar: papel, dose e unidade (ou população em sementes), custo R$/ha. Sem dose (ou sem
+      população), aparece o selo "Preencher".
+- [ ] Remover produto avisa quantas avaliações e colheitas vão junto.
+
+**Avaliações:**
+- [ ] Nova etapa: tipo, estádio e características. A sugestão preenche unidade e escala.
+- [ ] Grade produto × etapa com "X de Y preenchidas"; a avaliação completa fica verde.
+- [ ] Qualitativa com escala: escolhe da lista (nota 1–9, 1–5, presente/ausente...).
+- [ ] Excluir a etapa avisa quantas avaliações vão junto.
+- [ ] Avaliação sem etapa aparece em "Avaliações avulsas" (para testar, precisa vir do bot na
+      fase 7 ou de um insert direto).
+
+**Colheita:**
+- [ ] Manual (sc/ha) ou calculada (3.000 kg em 0,5 ha = 100 sc/ha).
+- [ ] 60 sc/ha a 18% corrigida para 13% = 56,55. A prévia e o salvo mostram o MESMO número.
+- [ ] Uma colheita por produto: o produto já colhido sai da lista.
+
+**ROI:**
+- [ ] Preço da saca e custo por produto salvam ao sair do campo.
+- [ ] Referência automática = 1º principal com colheita; dá para escolher outra.
+- [ ] Referência 62 sc, testado 68 sc, custo R$ 260, saca R$ 120: ganho R$ 720, lucro R$ 460,
+      ROI 176,9%.
+- [ ] CSV e Imprimir / PDF.
+
+**Análises (`/campo/analises`):**
+- [ ] O ranking junta o mesmo produto do catálogo entre ensaios (média, mín.–máx., nº de
+      ensaios).
+- [ ] Ganho por ensaio com o selo de quem venceu; resumo com ganho médio, vitórias e empates.
+- [ ] Filtros (fazenda, cultura, safra, tipo, situação); CSV e imprimir.
+
+**Integrações:**
+- [ ] Plantio com finalidade "Campo demonstrativo (GD)" ou "GD comercial": o menu ⋯ tem "Criar
+      ensaio neste plantio", que abre o ensaio já com talhão, plantio, cultura e safra.
+- [ ] Calendário: categoria "Ensaios" com a implantação e os dias de avaliação; "Abrir" leva ao
+      ensaio.

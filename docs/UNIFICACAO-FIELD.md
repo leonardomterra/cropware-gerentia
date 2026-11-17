@@ -204,6 +204,17 @@ Cada fase vai ao ar sozinha.
   - **Ficou para depois:** pendência com hora/tipo pelo WhatsApp (fase 7); notificação de
     atividade planejada pelo cron; visão semanal do calendário.
 
+- **Fase 4 (16/11/2026): código pronto na branch** (migration `20261121120000_field_ensaios.sql`).
+  - Ensaios com tabelas próprias: produtos, etapas, avaliações, colheitas. Cada parte salva na
+    hora.
+  - **ROI com o custo total do produto** (decisão de 16/11), numa função só.
+  - Correção de umidade igual na prévia e no salvar.
+  - Avaliações avulsas visíveis.
+  - Análises com ranking por produto do catálogo.
+  - Atalho "Criar ensaio neste plantio"; ensaios no calendário.
+  - **Ficou para depois:** fotos e anexos das avaliações, que entram junto com os das atividades;
+    PDF completo do ensaio (fase 6); ferramentas de ensaio no WhatsApp (fase 7); Excel.
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no

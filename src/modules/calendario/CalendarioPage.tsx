@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { modulosVisiveis } from "@/lib/modulos";
 import { useTasks } from "@/modules/tasks/hooks/useTasks";
 import { useReceipts } from "@/modules/receipts/hooks/useReceipts";
+import { useEnsaios } from "@/modules/field/hooks/useEnsaios";
 import {
   useAtividades,
   useCadastros,
@@ -41,6 +42,7 @@ import {
   montarItens,
   type AtividadeIn,
   type Categoria,
+  type EnsaioIn,
   type ItemDoCalendario,
   type PlantioIn,
 } from "./itens";
@@ -52,6 +54,7 @@ const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 interface DadosDoCampo {
   atividades: AtividadeIn[];
   plantios: PlantioIn[];
+  ensaios: EnsaioIn[];
   fazendas: { id: string; name: string }[];
   carregando: boolean;
 }
@@ -72,6 +75,7 @@ export default function CalendarioPage() {
 function ComCampo() {
   const c = useCadastros();
   const a = useAtividades();
+  const en = useEnsaios();
   const campo = useMemo<DadosDoCampo>(() => {
     const talhao = new Map(c.talhoes.map((t) => [t.id, t]));
     const fazenda = new Map(c.fazendas.map((f) => [f.id, f.name]));
@@ -103,8 +107,17 @@ function ComCampo() {
           lifecycle: p.lifecycle,
         };
       }),
+      ensaios: en.ensaios.map((e) => ({
+        id: e.id,
+        nome: `${e.crop} · ${e.name}`,
+        farm_id: e.farm_id,
+        implantation_date: e.implantation_date,
+        datasDeAvaliacao: en.avaliacoes
+          .filter((v) => v.trial_id === e.id)
+          .map((v) => v.date),
+      })),
       fazendas: c.fazendas.map((f) => ({ id: f.id, name: f.name })),
-      carregando: c.carregando || a.carregando,
+      carregando: c.carregando || a.carregando || en.carregando,
     };
   }, [
     c.talhoes,
@@ -113,6 +126,9 @@ function ComCampo() {
     c.carregando,
     a.atividades,
     a.carregando,
+    en.ensaios,
+    en.avaliacoes,
+    en.carregando,
   ]);
   return <Calendario campo={campo} />;
 }
@@ -149,6 +165,7 @@ function Calendario({ campo }: { campo: DadosDoCampo | null }) {
           })),
           atividades: campo?.atividades ?? [],
           plantios: campo?.plantios ?? [],
+          ensaios: campo?.ensaios ?? [],
         },
         hoje,
       ),
@@ -166,7 +183,7 @@ function Calendario({ campo }: { campo: DadosDoCampo | null }) {
   }, [visiveis]);
 
   const categoriasDisponiveis = (Object.keys(CATEGORIAS) as Categoria[]).filter(
-    (k) => campo || (k !== "atividade" && k !== "plantio"),
+    (k) => campo || (k !== "atividade" && k !== "plantio" && k !== "ensaio"),
   );
   const carregando =
     carregandoTarefas || carregandoContas || !!campo?.carregando;
