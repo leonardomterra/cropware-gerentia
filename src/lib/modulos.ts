@@ -33,11 +33,16 @@ export const MODULOS: Modulo[] = [
 export const moduloPorId = (id: ModuloId) => MODULOS.find((m) => m.id === id)!;
 
 /**
- * Chave de lançamento do Field. Enquanto for `false`, o módulo só aparece para
- * o master — mesmo que a org tenha direito a ele (o trial libera todos os
- * módulos). Vira `true` quando as telas do Field estiverem prontas para uso.
+ * Chave de lançamento do Field. Com `false`, o módulo só aparecia para o
+ * master — mesmo que a org tivesse direito a ele (o trial libera todos os
+ * módulos).
+ *
+ * LIGADA em 17/11/2026, na branch da unificação, para o Leonardo ver o Field na
+ * própria conta (direito por cortesia: organizations.modulos_cortesia). Só vai
+ * ao ar no merge na main — e aí o Field aparece para toda org com direito,
+ * inclusive as em trial. É o lançamento previsto na fase 9.
  */
-export const FIELD_LIBERADO = false;
+export const FIELD_LIBERADO = true;
 
 /**
  * Módulos com direito de uso. `null` (o servidor não conseguiu calcular, ou a
