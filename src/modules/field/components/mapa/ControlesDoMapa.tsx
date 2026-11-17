@@ -35,7 +35,7 @@ export function BotaoDoMapa({
       className={cn(
         "size-9 inline-flex items-center justify-center rounded-md shadow-md border transition-colors",
         ativo
-          ? "bg-slate-900 text-white border-slate-900"
+          ? "bg-slate-800 text-white border-slate-800"
           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50",
       )}
     >

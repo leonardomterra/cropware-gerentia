@@ -139,7 +139,7 @@ export function useTema(): {
  */
 const ESCALA: Record<
   Tema,
-  Record<"white" | 100 | 200 | 400 | 500 | 900, string>
+  Record<"white" | 100 | 200 | 400 | 500 | 800 | 900, string>
 > = {
   claro: {
     white: "#ffffff",
@@ -147,6 +147,7 @@ const ESCALA: Record<
     200: "#e2e2e6",
     400: "#a1a1a7",
     500: "#7c7c83",
+    800: "#3c3c42",
     900: "#2b2b30",
   },
   escuro: {
@@ -155,6 +156,7 @@ const ESCALA: Record<
     200: "#33333a",
     400: "#6a6a72",
     500: "#9a9aa2",
+    800: "#e2e2e6",
     900: "#eeeef1",
   },
 };

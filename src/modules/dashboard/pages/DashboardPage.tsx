@@ -228,14 +228,6 @@ function caminhoDeRodape(
     .join(" ");
 }
 
-/** Fundo da faixa do mês na moldura em foco. É o MESMO vidro do mês ativo no
- *  seletor de meses (`bg-slate-900/65`): os dois falam de "mês selecionado", e
- *  cores
- *  diferentes fariam parecer que falam de coisas diferentes. Em `fill` +
- *  `fillOpacity` em vez do #686868 já composto para continuar certo se o fundo
- *  do card mudar. */
-const FOCO_OPACIDADE = 0.65;
-
 /** Altura da faixa do mês, abaixo da base das barras. O rótulo é centrado nela
  *  (`tickSize=0` + `tickMargin` na metade, e `verticalAnchor="middle"`), em vez
  *  de pendurado no deslocamento padrão do recharts: aquele encostava o texto no
@@ -402,7 +394,11 @@ export default function DashboardPage() {
   const { user, isMaster } = useAuth();
   // Cores do gráfico no tema atual (atributos SVG não leem var(--…)).
   const cor = useCoresDoTema();
-  const FOCO_FUNDO = cor[900]; // slate-900 do app
+  /** Fundo da faixa do mês em foco: GRAFITE sólido (slate-800, a cor da
+   *  logo), o MESMO do mês ativo na régua de meses — os dois falam de "mês
+   *  selecionado". Era um vidro translúcido (900 a 65%), que lia cinza
+   *  (17/11/2026). No escuro inverte (claro, texto escuro), como a régua. */
+  const FOCO_FUNDO = cor[800];
   const { tema } = useTema();
   const COLOR_IN = STATUS.sucesso.solido[tema];
   const COLOR_OUT = STATUS.perigo.solido[tema];
@@ -1158,7 +1154,6 @@ export default function DashboardPage() {
                                 8,
                               )}
                               fill={FOCO_FUNDO}
-                              fillOpacity={FOCO_OPACIDADE}
                             />
                             <rect
                               x={esq}

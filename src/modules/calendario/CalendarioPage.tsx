@@ -385,7 +385,7 @@ function Calendario({ campo }: { campo: DadosDoCampo | null }) {
                     className={cn(
                       "text-xs px-1",
                       iso === hoje
-                        ? "inline-flex items-center justify-center size-5 rounded-full bg-slate-900 text-white"
+                        ? "inline-flex items-center justify-center size-5 rounded-full bg-slate-800 text-white"
                         : foraDoMes
                           ? "text-slate-300"
                           : "text-slate-500",

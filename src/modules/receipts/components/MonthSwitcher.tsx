@@ -170,6 +170,7 @@ export function MonthSwitcher({
           <div className={cn("flex items-center gap-1", stretch && "flex-1")}>
             {chipMonths.map((m) => {
               const selected = sameMonth(m, value);
+              const atual = sameMonth(m, today);
               return (
                 <button
                   key={`${m.year}-${m.month}`}
@@ -182,18 +183,26 @@ export function MonthSwitcher({
                     "h-9 rounded-md text-sm capitalize transition-colors border",
                     stretch ? "flex-1 min-w-0 px-1" : "px-3 whitespace-nowrap",
                     selected
-                      ? // Mesmo vidro dos menus: o mês ativo é o único bloco
-                        // pintado da faixa, e chapado ele puxava o olho mais que a
-                        // própria lista. Sobre a área branca a transparência não
-                        // TEM o que revelar — o efeito aqui é o bloco ficar mais
-                        // leve, não translúcido de fato.
-                        "tema-claro bg-slate-900/65 backdrop-blur-sm text-white font-medium border-transparent"
+                      ? // GRAFITE sólido (slate-800, a cor da logo) — o padrão
+                        // de "selecionado" do app inteiro (17/11/2026). Era um
+                        // vidro translúcido (900 a 65%) que lia cinza, e no
+                        // tema escuro sumia no fundo. No escuro o 800 inverte
+                        // sozinho: chip claro, texto escuro.
+                        "bg-slate-800 text-white font-medium border-transparent"
                       : // Recuado, não ilegível: `slate-500` dá 4,74:1 no branco,
                         // acima do mínimo de 4,5. O `slate-400` que pareceria mais
                         // "apagado" cai pra 2,52:1 — e estes são alvos de clique,
                         // não decoração.
                         "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+                    // O MÊS ATUAL (17/11/2026), quando não é o escolhido: borda e
+                    // texto um degrau acima, para achar "hoje" na régua sem
+                    // competir com o mês ativo, que segue sendo o único pintado.
+                    !selected &&
+                      atual &&
+                      "border-slate-400 text-slate-800 font-medium",
                   )}
+                  aria-current={atual ? "date" : undefined}
+                  title={atual ? "Mês atual" : undefined}
                 >
                   {MONTHS_SHORT[m.month - 1]}
                   {m.year !== value.year ? (

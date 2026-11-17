@@ -752,7 +752,7 @@ export function ReceiptsListPage({
                             className={cn(
                               "flex-1 px-3 py-2 text-sm transition-colors",
                               !onlyMine
-                                ? "bg-slate-900 text-white"
+                                ? "bg-slate-800 text-white"
                                 : "bg-white text-slate-600 hover:bg-slate-50",
                             )}
                           >
@@ -764,7 +764,7 @@ export function ReceiptsListPage({
                             className={cn(
                               "flex-1 px-3 py-2 text-sm border-l border-slate-200 transition-colors",
                               onlyMine
-                                ? "bg-slate-900 text-white"
+                                ? "bg-slate-800 text-white"
                                 : "bg-white text-slate-600 hover:bg-slate-50",
                             )}
                           >

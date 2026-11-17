@@ -386,7 +386,7 @@ export function EditorDeTalhao({
       className={cn(
         "h-9 px-3 inline-flex items-center gap-1.5 rounded-md text-sm transition-colors",
         modo === m
-          ? "bg-slate-900 text-white"
+          ? "bg-slate-800 text-white"
           : "bg-slate-100 text-slate-700 hover:bg-slate-200",
       )}
     >
