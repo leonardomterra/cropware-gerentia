@@ -19,12 +19,14 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
 }
 
 /**
- * "Ecossistema Cropware" no visual do site (cropware-site, global.css):
- * rótulo em Space Mono caixa alta com o ponto lima (`.eyebrow.has-dot`), a
- * logo da Cropware e o endereço com o grifo lima (`.hl`). Lima #B3FF34 é o
- * acento da marca; grafite #3C3C42 é a cor da logo.
+ * Card "Ecossistema Cropware", numa linha, no visual das faixas lima do site
+ * (cropware-site: `.cw-art bg-volt` + `.cw-tex.is-lime`): fundo lima #B3FF34
+ * com o relevo topográfico do Cropware Studio por cima em "sobrepor" (o
+ * arquivo é cinza neutro, então desenha relevo claro/escuro sem mudar a cor).
+ * Rótulo em Space Mono com o ponto escuro (`.eyebrow.has-dot.is-on-lime`),
+ * logo da Cropware em grafite e o endereço à direita.
  */
-function SeloCropware({ compacto = false }: { compacto?: boolean }) {
+function SeloCropware({ className }: { className?: string }) {
   return (
     <a
       href={SITE_CROPWARE}
@@ -33,31 +35,30 @@ function SeloCropware({ compacto = false }: { compacto?: boolean }) {
       onClick={abrirFora}
       aria-label="Ecossistema Cropware — cropware.com.br"
       className={cn(
-        "group flex items-center",
-        compacto ? "flex-col gap-2" : "flex-col items-start gap-3",
+        "group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]",
+        className,
       )}
     >
-      <span className="inline-flex items-center gap-2.5 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.06em] text-[#4C4C52]">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.42] mix-blend-overlay"
+        style={{ backgroundImage: "url(/textures/cropware-relevo.webp)" }}
+      />
+      <span className="inline-flex items-center gap-2.5 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.08em] text-[#2B2B30]">
         <span
           aria-hidden
-          className="size-1.5 rounded-full bg-[#B3FF34] shadow-[0_0_0_3px_rgba(179,255,52,0.35)]"
+          className="size-1.5 rounded-full bg-[#19191D] shadow-[0_0_0_3px_rgba(25,25,29,0.14)]"
         />
         Ecossistema
       </span>
-      <span className="flex items-center gap-3">
-        <img
-          src="/cropware-lockup.svg"
-          alt="Cropware"
-          className={compacto ? "h-4 w-auto" : "h-5 w-auto"}
-        />
-        {!compacto && (
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-[#3C3C42]">
-            <span className="px-1 rounded-sm bg-[linear-gradient(transparent_14%,#B3FF34_14%,#B3FF34_90%,transparent_90%)]">
-              cropware.com.br
-            </span>
-            <ArrowUpRight className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </span>
-        )}
+      <img
+        src="/cropware-lockup.svg"
+        alt="Cropware"
+        className="h-[18px] w-auto"
+      />
+      <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#19191D]">
+        <span className="hidden sm:inline">cropware.com.br</span>
+        <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       </span>
     </a>
   );
@@ -65,9 +66,9 @@ function SeloCropware({ compacto = false }: { compacto?: boolean }) {
 
 /**
  * Shell das telas de auth (login, signup, forgot, reset). Split-screen: à
- * esquerda o símbolo e, no rodapé, o selo do ecossistema Cropware; à direita
+ * esquerda o símbolo e, no rodapé, o card do ecossistema Cropware; à direita
  * o nome "gerentia.app" em cima do formulário. No mobile o painel esquerdo
- * some: símbolo e nome ficam acima do formulário e o selo, abaixo.
+ * some: símbolo e nome ficam acima do formulário e o card, abaixo.
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
@@ -77,7 +78,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
         <div className="flex-1 flex items-center justify-center">
           <Logo className="h-24" />
         </div>
-        <SeloCropware />
+        <SeloCropware className="w-full max-w-md mx-auto" />
       </div>
 
       {/* Painel direito — conteúdo */}
@@ -106,9 +107,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
 
           {children}
 
-          <div className="lg:hidden flex justify-center pt-6">
-            <SeloCropware compacto />
-          </div>
+          <SeloCropware className="lg:hidden mt-10" />
         </div>
       </div>
     </main>
