@@ -49,6 +49,10 @@ import ChartBar from "~icons/ph/chart-bar";
 import CalendarBlank from "~icons/ph/calendar";
 import Flask from "~icons/ph/flask";
 import TestTube from "~icons/ph/test-tube";
+import Globe from "~icons/ph/globe-hemisphere-west";
+import CloudSun from "~icons/ph/cloud-sun";
+import RailNdvi from "~icons/ph/globe-hemisphere-west-duotone";
+import RailClima from "~icons/ph/cloud-sun-duotone";
 import ChartLineUp from "~icons/ph/chart-line-up";
 import RailEnsaios from "~icons/ph/test-tube-duotone";
 import RailAnalises from "~icons/ph/chart-line-up-duotone";
@@ -166,6 +170,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
   { to: "/campo/talhoes", label: "Talhões", icon: Plant, modulo: "field" },
+  // Fase 5 — satélite e clima.
+  { to: "/campo/ndvi", label: "NDVI", icon: Globe, modulo: "field" },
+  { to: "/campo/clima", label: "Clima", icon: CloudSun, modulo: "field" },
   // Fase 2 — safra.
   { to: "/campo/plantios", label: "Plantios", icon: Grains, modulo: "field" },
   {
@@ -259,6 +266,8 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/campo/atividades": { Icon: RailAtividades, cor: "text-violet-600" },
   "/campo/custos": { Icon: RailCustos, cor: "text-blue-600" },
   "/campo/ensaios": { Icon: RailEnsaios, cor: "text-pink-600" },
+  "/campo/ndvi": { Icon: RailNdvi, cor: "text-green-700" },
+  "/campo/clima": { Icon: RailClima, cor: "text-sky-600" },
   "/campo/analises": { Icon: RailAnalises, cor: "text-emerald-700" },
   "/campo/safras": { Icon: RailSafras, cor: "text-orange-600" },
   "/campo/catalogo": { Icon: RailCatalogo, cor: "text-fuchsia-600" },
@@ -285,6 +294,8 @@ const RAIL_ORDEM = [
   "/relatorios",
   "/anexos",
   "/campo/talhoes",
+  "/campo/ndvi",
+  "/campo/clima",
   "/campo/plantios",
   "/campo/atividades",
   "/campo/custos",

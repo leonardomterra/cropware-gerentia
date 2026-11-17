@@ -105,6 +105,10 @@ const EnsaiosPage = lazyWithRetry(
 const AnalisesPage = lazyWithRetry(
   () => import("@/modules/field/pages/AnalisesPage"),
 );
+const NdviPage = lazyWithRetry(() => import("@/modules/field/pages/NdviPage"));
+const ClimaPage = lazyWithRetry(
+  () => import("@/modules/field/pages/ClimaPage"),
+);
 
 type AuthView = "login" | "signup" | "forgot";
 
@@ -492,6 +496,26 @@ function RootRoutes() {
                   <ModuloGate modulo="field">
                     <Suspense fallback={<LoadingScreen />}>
                       <AnalisesPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/ndvi"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <NdviPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/clima"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <ClimaPage />
                     </Suspense>
                   </ModuloGate>
                 }

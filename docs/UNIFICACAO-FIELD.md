@@ -216,6 +216,19 @@ Cada fase vai ao ar sozinha.
   - **Ficou para depois:** fotos e anexos das avaliações, que entram junto com os das atividades;
     PDF completo do ensaio (fase 6); ferramentas de ensaio no WhatsApp (fase 7); Excel.
 
+- **Fase 5 (16/11/2026): código pronto na branch** (migration `20261122120000_field_ndvi_anexos.sql`).
+  - **NDVI** e mais 7 vistas (cor real, NDRE, NDMI, SAVI, GNDVI, EVI, PSRI), pelo Planetary
+    Computer via servidor:
+    - teto de 120 imagens por mês por org, sem plano (decisão de 16/11);
+    - imagem como camada no mapa.
+  - **Clima** pelo Open-Meteo direto do navegador, com janela de aplicação; GDD por plantio.
+  - **Fotos e PDFs** em atividades e avaliações (R2 privado).
+  - **Corrigido do Flag Field:** o teto que nunca bloqueava, a imagem de outra data, o offset
+    aplicado a toda cena, a legenda descasada, a estatística inventada, o vento ×3,6, a umidade
+    faltando e o GDD médio entre culturas.
+  - **Ficou para depois:** o visualizador com zoom e o valor no clique do NDVI; o relatório de
+    NDVI; apagar no R2 o anexo removido; o clima e a janela de aplicação pelo WhatsApp (fase 7).
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no

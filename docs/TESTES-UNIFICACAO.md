@@ -199,3 +199,36 @@ antecipar essa migração só para ter massa de teste.
       ensaio neste plantio", que abre o ensaio já com talhão, plantio, cultura e safra.
 - [ ] Calendário: categoria "Ensaios" com a implantação e os dias de avaliação; "Abrir" leva ao
       ensaio.
+
+## Fase 5 — NDVI, clima, GDD e anexos
+
+**NDVI (`/campo/ndvi`, ou "Ver NDVI" no menu ⋯ do talhão):**
+- [ ] Só aparecem talhões com contorno; sem nenhum, o aviso manda desenhar.
+- [ ] "Buscar imagens" lista as datas com a % do TALHÃO sem nuvem (as menos de 30% somem).
+- [ ] Cor real e os índices NDVI, NDRE, NDMI, SAVI, GNDVI, EVI e PSRI como camada sobre o
+      satélite, no lugar certo e sem esticar.
+- [ ] A legenda bate com as cores da imagem; o PSRI tem a paleta invertida.
+- [ ] Estatísticas: média, mediana, mín., máx. e % sem nuvem. Lavoura fechada dá NDVI perto de
+      0,8 (o desconto de +1000 do Sentinel-2).
+- [ ] Contador "X de 120 imagens este mês". Voltar a uma imagem já vista não gasta de novo.
+- [ ] "Comparar duas datas" lado a lado.
+- [ ] Ao bater 120 imagens, a 121ª dá a mensagem do teto (o teto do Flag Field nunca bloqueava).
+
+**Clima (`/campo/clima`):**
+- [ ] Usa a sede da fazenda, ou o meio do 1º talhão desenhado; "Onde estou" usa o GPS.
+- [ ] Vento em km/h realista (o Flag Field mostrava 3,6× maior).
+- [ ] Janela de aplicação: até 3 horas, com a nota e os motivos (vento, calmaria, umidade, calor,
+      horário); chuva na hora ou nas 2 seguintes exclui a hora.
+- [ ] Previsão de 7 dias (máx./mín., chuva % e mm, vento, UV).
+- [ ] Dashboard: o bloco "Campo" mostra o clima de agora e a melhor janela.
+
+**GDD:**
+- [ ] Plantio salvo, aberto em leitura: "Graus-dia desde o plantio: X (temperatura-base Y °C)",
+      com a base da cultura (soja 10, algodão 15, trigo 5...).
+
+**Fotos e arquivos:**
+- [ ] Atividade: "Adicionar foto ou PDF" (no celular abre a câmera); a miniatura aparece; tocar
+      abre; o "x" tira do registro; até 10.
+- [ ] A lista de atividades mostra o clipe com a quantidade.
+- [ ] Avaliação de ensaio: as mesmas fotos e arquivos.
+- [ ] Usuário de outra organização não abre a foto (link restrito à pasta da org).
