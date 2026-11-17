@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Plant from "~icons/ph/plant-duotone";
 import PencilSimple from "~icons/ph/pencil-simple";
@@ -76,6 +77,7 @@ function areaDoForm(f: Form): number | null {
  */
 export default function TalhoesPage() {
   const c = useCadastros();
+  const navigate = useNavigate();
   const { podeCriar, podeMexer, comProdutores } = usePermissoesDoCampo();
   const [busca, setBusca] = useState("");
   const [fFazenda, setFFazenda] = useState("todas");
@@ -538,6 +540,17 @@ export default function TalhoesPage() {
                   aoAbrir={() => abrir(t, true)}
                   aoEditar={mexe ? () => abrir(t, false) : undefined}
                   aoExcluir={mexe ? () => void pedirExclusao(t) : undefined}
+                  acoesExtras={
+                    t.geometry?.type === "Polygon"
+                      ? [
+                          {
+                            rotulo: "Ver NDVI",
+                            aoEscolher: () =>
+                              navigate(`/campo/ndvi?talhao=${t.id}`),
+                          },
+                        ]
+                      : []
+                  }
                 />
               );
             })}
