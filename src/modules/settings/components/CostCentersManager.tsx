@@ -296,7 +296,7 @@ export function CostCentersManager({
       {loading ? (
         <LoadingState />
       ) : costCenters.length === 0 ? (
-        <EmptyStateCard title="Nenhum centro de custo ainda" />
+        <EmptyStateCard compacto title="Nenhum centro de custo ainda" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ordered.map((cc) => (

@@ -444,6 +444,7 @@ export function CategoriesManager({
         <LoadingState />
       ) : sections.length === 0 ? (
         <EmptyStateCard
+          compacto
           title={
             searching
               ? "Nenhuma categoria encontrada"

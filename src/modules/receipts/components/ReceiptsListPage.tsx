@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import Tray from "~icons/ph/tray";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ArrowDownNarrowWide from "~icons/ph/arrow-down";
@@ -937,7 +939,7 @@ export function ReceiptsListPage({
             {loading && receipts.length === 0
               ? "Carregando…"
               : receipts.length === 0
-                ? emptyLabel
+                ? null // o aviso de vazio já está no meio da tela
                 : `Mostrando ${receipts.length} ${maiuscula(receipts.length === 1 ? countNoun.one : countNoun.many)}`}
             {isRefetching ? (
               <Loader2 className="size-3 text-slate-400" />
@@ -976,7 +978,25 @@ export function ReceiptsListPage({
             loading && "opacity-50 pointer-events-none",
           )}
         >
-          {isMobile ? (
+          {/* Lista vazia (17/11/2026): o estado vazio padrão do app, direto
+              na tela, no lugar da tabela só com cabeçalho e uma linha cinza.
+              Durante o carregamento a área só guarda a altura — o aviso de
+              "vazio" piscaria antes de os lançamentos chegarem. */}
+          {sortedReceipts.length === 0 ? (
+            loading ? (
+              <div className="min-h-[40vh] sm:min-h-[calc(100dvh-16rem)]" />
+            ) : (
+              <EmptyStateCard
+                icon={Tray}
+                title={emptyLabel}
+                description={
+                  temFiltroAtivo
+                    ? "Nada com os filtros atuais. Limpe os filtros ou troque o mês."
+                    : "Troque o mês acima ou crie um novo lançamento."
+                }
+              />
+            )
+          ) : isMobile ? (
             <ReceiptsCards
               receipts={sortedReceipts}
               onView={openView}
