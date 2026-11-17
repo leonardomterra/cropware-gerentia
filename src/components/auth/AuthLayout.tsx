@@ -19,12 +19,11 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
 }
 
 /**
- * Card "Ecossistema Cropware", numa linha, no visual das faixas lima do site
+ * Card da Cropware, numa linha, no visual das faixas lima do site
  * (cropware-site: `.cw-art bg-volt` + `.cw-tex.is-lime`): fundo lima #B3FF34
  * com o relevo topográfico do Cropware Studio por cima em "sobrepor" (o
  * arquivo é cinza neutro, então desenha relevo claro/escuro sem mudar a cor).
- * Rótulo em Space Mono com o ponto escuro (`.eyebrow.has-dot.is-on-lime`),
- * logo da Cropware em grafite e o endereço à direita.
+ * Logo da Cropware em grafite à esquerda e o endereço à direita.
  */
 function SeloCropware({ className }: { className?: string }) {
   return (
@@ -33,7 +32,7 @@ function SeloCropware({ className }: { className?: string }) {
       target="_blank"
       rel="noopener"
       onClick={abrirFora}
-      aria-label="Ecossistema Cropware — cropware.com.br"
+      aria-label="Cropware — cropware.com.br"
       className={cn(
         "group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]",
         className,
@@ -44,13 +43,6 @@ function SeloCropware({ className }: { className?: string }) {
         className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.42] mix-blend-overlay"
         style={{ backgroundImage: "url(/textures/cropware-relevo.webp)" }}
       />
-      <span className="inline-flex items-center gap-2.5 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.08em] text-[#2B2B30]">
-        <span
-          aria-hidden
-          className="size-1.5 rounded-full bg-[#19191D] shadow-[0_0_0_3px_rgba(25,25,29,0.14)]"
-        />
-        Ecossistema
-      </span>
       <img
         src="/cropware-lockup.svg"
         alt="Cropware"
@@ -66,7 +58,7 @@ function SeloCropware({ className }: { className?: string }) {
 
 /**
  * Shell das telas de auth (login, signup, forgot, reset). Split-screen: à
- * esquerda o símbolo e, no rodapé, o card do ecossistema Cropware; à direita
+ * esquerda o símbolo e, no rodapé, o card da Cropware; à direita
  * o nome "gerentia.app" em cima do formulário. No mobile o painel esquerdo
  * some: símbolo e nome ficam acima do formulário e o card, abaixo.
  */
