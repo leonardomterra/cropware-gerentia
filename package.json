@@ -31,6 +31,7 @@
     "@fontsource/alumni-sans": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/space-mono": "^5.2.9",
+    "@fontsource/wdxl-lubrifont-sc": "^5.3.1",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",

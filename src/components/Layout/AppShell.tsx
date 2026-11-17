@@ -81,7 +81,7 @@ import { getStoredValue, setStoredValue } from "@/utils/appStorage";
 import { mostraProdutores } from "@/utils/modoDeUso";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
-import { Logo, LogoName } from "@/components/Logo";
+import { Logo, LogoName, LogoNameDoModulo } from "@/components/Logo";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
 import { ImpersonationBanner } from "@/modules/admin/components/ImpersonationBanner";
 import {
@@ -583,8 +583,9 @@ export function AppShell() {
             ficava 1px abaixo da da direita — e ainda em outro tom
             (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
         <div className="flex items-center gap-2.5 h-13 shrink-0 px-4 border-b border-slate-200">
-          {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. */}
-          <LogoName className="h-[18px]" />
+          {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. Ao
+              lado, o módulo ativo, como endereço ("gerentia.app/field"). */}
+          <LogoNameDoModulo modulo={ativo.nome.toLowerCase()} />
         </div>
         <AppSidebar
           itens={railItens}

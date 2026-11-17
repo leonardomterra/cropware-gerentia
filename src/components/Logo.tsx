@@ -52,3 +52,30 @@ export function LogoName({
     />
   );
 }
+
+/** Fonte em que o nome "gerentia.app" foi desenhado (WDXL Lubrifont SC). */
+const FONTE_DA_MARCA = "'WDXL Lubrifont SC', ui-sans-serif, sans-serif";
+
+/**
+ * O nome com o módulo ativo ao lado, como um endereço: "gerentia.app/field"
+ * (17/11/2026, topo do menu lateral). O "/módulo" vai em texto vivo, na mesma
+ * fonte do desenho, em cinza — lê como continuação do nome sem virar parte da
+ * marca. Tamanho calibrado para o nome a 18px de altura.
+ */
+export function LogoNameDoModulo({ modulo }: { modulo: string }) {
+  return (
+    <span
+      className="flex items-center min-w-0"
+      aria-label={`gerentia.app/${modulo}`}
+    >
+      <LogoName className="h-[18px] shrink-0" alt="" />
+      <span
+        aria-hidden
+        className="truncate leading-none text-slate-400"
+        style={{ fontFamily: FONTE_DA_MARCA, fontSize: 23.5, marginTop: -1 }}
+      >
+        /{modulo}
+      </span>
+    </span>
+  );
+}
