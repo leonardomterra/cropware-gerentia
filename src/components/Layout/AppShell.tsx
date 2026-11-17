@@ -583,8 +583,8 @@ export function AppShell() {
             ficava 1px abaixo da da direita — e ainda em outro tom
             (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
         <div className="flex items-center gap-2.5 h-13 shrink-0 px-4 border-b border-slate-200">
-          <Logo className="h-6" />
-          <LogoName className="h-[15px]" />
+          {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. */}
+          <LogoName className="h-[18px]" />
         </div>
         <AppSidebar
           itens={railItens}
