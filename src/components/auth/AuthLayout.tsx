@@ -24,7 +24,7 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
  * com o relevo topográfico do Cropware Studio por cima em "sobrepor" (o
  * arquivo é cinza neutro, então desenha relevo claro/escuro sem mudar a cor).
  * Logo da Cropware em grafite à esquerda e o endereço à direita; em cima,
- * "ECOSSISTEMA" em Space Mono, como os rótulos (eyebrow) do site.
+ * "UMA SOLUÇÃO" em Space Mono, como os rótulos (eyebrow) do site.
  */
 function SeloCropware({ className }: { className?: string }) {
   return (
@@ -35,14 +35,14 @@ function SeloCropware({ className }: { className?: string }) {
         className="px-1 font-['Space_Mono',ui-monospace,monospace] text-[11px] tracking-[0.14em] text-[#4C4C52]"
         style={{ textTransform: "uppercase" }}
       >
-        Ecossistema
+        Uma solução
       </p>
       <a
         href={SITE_CROPWARE}
         target="_blank"
         rel="noopener"
         onClick={abrirFora}
-        aria-label="Ecossistema Cropware — cropware.com.br"
+        aria-label="Uma solução Cropware — cropware.com.br"
         className="group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]"
       >
         <span
