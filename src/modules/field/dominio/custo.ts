@@ -106,6 +106,8 @@ export interface LancamentoDoCampo {
   is_estimated: boolean | null;
   transaction_date: string | null;
   paid_date: string | null;
+  /** Só para mostrar (relatório do plantio). */
+  description?: string | null;
 }
 
 /**

@@ -10,7 +10,7 @@ export function useLancamentosDoCampo() {
     void supabase
       .from("farm_receipts")
       .select(
-        "farm_id, plot_id, total_value, direction, status, doc_type, is_estimated, transaction_date, paid_date",
+        "farm_id, plot_id, total_value, direction, status, doc_type, is_estimated, transaction_date, paid_date, description",
       )
       .not("farm_id", "is", null)
       .eq("direction", "expense")

@@ -26,6 +26,9 @@ export interface ReportColumn {
   /** largura fixa (CSS) p/ alinhar colunas entre tabelas (table-fixed). As
    *  colunas sem width dividem o espaço restante. */
   width?: string;
+  /** Texto longo (observações, lista de produtos): no PDF quebra em linhas em
+   *  vez de cortar com "…". A página HTML já quebra sozinha. */
+  wrap?: boolean;
 }
 export type ReportCell = string | number;
 export interface ReportTable {

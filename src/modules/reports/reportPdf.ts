@@ -292,7 +292,34 @@ export async function reportToPdf(
       color: import("pdf-lib").RGB,
       opts: { header?: boolean; total?: boolean; zebra?: boolean } = {},
     ) => {
-      const rh = size + 11;
+      // Colunas `wrap` quebram em linhas (até 8); as outras cortam com "…".
+      const linhaH = size + 3;
+      const linhasDe = (cell: unknown, i: number): string[] => {
+        const col = t.columns[i];
+        const raw = opts.header
+          ? String(cell)
+          : dispCell(cell as ReportCell, col);
+        const maxW = widths[i] - pad * 2;
+        if (!col.wrap || opts.header) return [fit(raw, f, size, maxW)];
+        const out: string[] = [];
+        let atual = "";
+        for (const palavra of san(raw).split(/\s+/).filter(Boolean)) {
+          const tenta = atual ? `${atual} ${palavra}` : palavra;
+          if (f.widthOfTextAtSize(tenta, size) <= maxW || !atual) atual = tenta;
+          else {
+            out.push(atual);
+            atual = palavra;
+          }
+        }
+        if (atual) out.push(atual);
+        const max = 8;
+        const linhas = out.length > max ? out.slice(0, max) : out;
+        if (out.length > max) linhas[max - 1] += "…";
+        return linhas.length ? linhas.map((l) => fit(l, f, size, maxW)) : [""];
+      };
+      const celulas = cells.map(linhasDe);
+      const nLinhas = Math.max(1, ...celulas.map((c) => c.length));
+      const rh = size + 11 + (nLinhas - 1) * linhaH;
       ensure(rh);
       // Faixa alternada: em tabela longa é o que impede o olho de pular de
       // linha ao atravessar a folha.
@@ -314,17 +341,13 @@ export async function reportToPdf(
         });
       }
       const baseline = y - size - 3;
-      cells.forEach((cell, i) => {
-        const col = t.columns[i];
-        const raw = opts.header
-          ? String(cell)
-          : dispCell(cell as ReportCell, col);
-        const right = col.align === "right";
-        const maxW = widths[i] - pad * 2;
-        const s = fit(raw, f, size, maxW);
-        const w = f.widthOfTextAtSize(s, size);
-        const tx = right ? xs[i] + widths[i] - pad - w : xs[i] + pad;
-        draw(s, tx, baseline, size, f, color);
+      celulas.forEach((linhas, i) => {
+        const right = t.columns[i].align === "right";
+        linhas.forEach((s, k) => {
+          const w = f.widthOfTextAtSize(s, size);
+          const tx = right ? xs[i] + widths[i] - pad - w : xs[i] + pad;
+          draw(s, tx, baseline - k * linhaH, size, f, color);
+        });
       });
       y -= rh;
       if (!opts.total) {
