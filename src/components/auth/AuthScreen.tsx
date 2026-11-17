@@ -12,7 +12,7 @@ interface AuthScreenProps {
 
 /**
  * Tela de login. Form enxuto portado do nxsagr (email + senha + Entrar +
- * "Esqueci minha senha"), dentro do AuthLayout split-screen. Mantem o
+ * "Esqueci Minha Senha"), dentro do AuthLayout split-screen. Mantem o
  * "Criar Conta" (signup publico do gerentia, que o nxsagr nao tem). Sem
  * titulo proprio: no login a marca no painel esquerdo ja contextualiza.
  */
@@ -116,7 +116,7 @@ export function AuthScreen({
           className="w-full text-center text-slate-500 hover:text-slate-700"
           style={{ fontSize: "13px" }}
         >
-          Esqueci minha senha
+          Esqueci Minha Senha
         </button>
       </form>
     </AuthLayout>

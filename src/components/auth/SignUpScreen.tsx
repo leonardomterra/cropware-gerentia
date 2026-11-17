@@ -14,6 +14,8 @@ import { cn } from "@/components/ui/utils";
 import { Obrigatorio } from "@/components/ui/Obrigatorio";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "./AuthLayout";
+import { LinkExterno } from "./LinkExterno";
+import { LINKS_LEGAIS } from "./linksLegais";
 import { FIELD_LIBERADO } from "@/lib/modulos";
 import type { ModoDeUso } from "@/utils/modoDeUso";
 import { CampoModoDeUso } from "@/modules/field/components/CampoModoDeUso";
@@ -234,6 +236,24 @@ export function SignUpScreen({ onGoToLogin }: SignUpScreenProps) {
             {error}
           </p>
         ) : null}
+
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Ao criar a conta, você concorda com os{" "}
+          <LinkExterno
+            href={LINKS_LEGAIS.termos}
+            className="text-slate-700 underline underline-offset-2"
+          >
+            Termos de Uso
+          </LinkExterno>{" "}
+          e a{" "}
+          <LinkExterno
+            href={LINKS_LEGAIS.privacidade}
+            className="text-slate-700 underline underline-offset-2"
+          >
+            Política de Privacidade
+          </LinkExterno>
+          .
+        </p>
 
         <Button
           type="submit"

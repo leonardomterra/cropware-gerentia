@@ -1,9 +1,10 @@
-import type { MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import ArrowUpRight from "~icons/ph/arrow-up-right";
 import { useAberturaDaMarca } from "@/components/aberturaDaMarca";
 import { NomeDigitado, SimboloAnimado } from "@/components/LogoAnimado";
 import { cn } from "@/components/ui/utils";
-import { openExternalUrl } from "@/utils/nativeExport";
+import { LinkExterno } from "./LinkExterno";
+import { LINKS_LEGAIS } from "./linksLegais";
 
 interface AuthLayoutProps {
   title?: string;
@@ -12,12 +13,6 @@ interface AuthLayoutProps {
 }
 
 const SITE_CROPWARE = "https://cropware.com.br";
-
-/** No app nativo o link abre no navegador do sistema, e não dentro do app. */
-function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
-  e.preventDefault();
-  void openExternalUrl(e.currentTarget.href);
-}
 
 /**
  * Card da Cropware, numa linha, no visual das faixas lima do site
@@ -29,11 +24,8 @@ function abrirFora(e: MouseEvent<HTMLAnchorElement>) {
  */
 function SeloCropware({ className }: { className?: string }) {
   return (
-    <a
+    <LinkExterno
       href={SITE_CROPWARE}
-      target="_blank"
-      rel="noopener"
-      onClick={abrirFora}
       aria-label="Conheça mais em cropware.com.br"
       className={cn(
         "group relative isolate overflow-hidden flex items-center gap-4 h-14 px-5 rounded-2xl bg-[#B3FF34] text-[#19191D] transition-shadow hover:shadow-[0_18px_40px_-16px_rgba(25,25,29,0.35)]",
@@ -57,7 +49,34 @@ function SeloCropware({ className }: { className?: string }) {
         </span>
         <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       </span>
-    </a>
+    </LinkExterno>
+  );
+}
+
+/**
+ * Rodapé legal: termos, privacidade e ajuda, e o © da Cropware. Mesma altura
+ * do card da Cropware (h-14) para os dois fecharem na mesma linha no desktop.
+ */
+function RodapeLegal({ className }: { className?: string }) {
+  const link = "hover:text-slate-700 hover:underline underline-offset-4";
+  return (
+    <footer
+      className={cn(
+        "flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-400",
+        className,
+      )}
+    >
+      <LinkExterno href={LINKS_LEGAIS.termos} className={link}>
+        Termos de Uso
+      </LinkExterno>
+      <LinkExterno href={LINKS_LEGAIS.privacidade} className={link}>
+        Política de Privacidade
+      </LinkExterno>
+      <LinkExterno href={LINKS_LEGAIS.ajuda} className={link}>
+        Ajuda
+      </LinkExterno>
+      <span>© {new Date().getFullYear()} Cropware</span>
+    </footer>
   );
 }
 
@@ -65,7 +84,8 @@ function SeloCropware({ className }: { className?: string }) {
  * Shell das telas de auth (login, signup, forgot, reset). Split-screen: à
  * esquerda o símbolo e, no rodapé, o card da Cropware; à direita
  * o nome "gerentia.app" em cima do formulário. No mobile o painel esquerdo
- * some: símbolo e nome ficam acima do formulário e o card, abaixo.
+ * some: símbolo e nome ficam acima do formulário e o card, abaixo. O rodapé
+ * legal fecha a coluna da direita (no celular, depois do card).
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   // Abertura animada da marca (visita nova) + reflexo repetindo na tela.
@@ -81,37 +101,42 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
       </div>
 
       {/* Painel direito — conteúdo */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-[380px] space-y-6">
-          <div className="flex flex-col items-center lg:items-start gap-3 mb-8">
-            <SimboloAnimado
-              tocar={abertura}
-              pulso={pulso}
-              className="lg:hidden h-12"
-            />
-            <NomeDigitado digitar={abertura} className="h-6 lg:h-7" />
-          </div>
-
-          {(title || subtitle) && (
-            <div className="space-y-1">
-              {title && (
-                <h1
-                  className="text-slate-900"
-                  style={{ fontSize: "16px", fontWeight: 600 }}
-                >
-                  {title}
-                </h1>
-              )}
-              {subtitle && (
-                <p style={{ fontSize: "14px", color: "#a3a3a3" }}>{subtitle}</p>
-              )}
+      <div className="flex-1 flex flex-col p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:px-12 lg:py-10">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-[380px] space-y-6">
+            <div className="flex flex-col items-center lg:items-start gap-3 mb-8">
+              <SimboloAnimado
+                tocar={abertura}
+                pulso={pulso}
+                className="lg:hidden h-12"
+              />
+              <NomeDigitado digitar={abertura} className="h-6 lg:h-7" />
             </div>
-          )}
 
-          {children}
+            {(title || subtitle) && (
+              <div className="space-y-1">
+                {title && (
+                  <h1
+                    className="text-slate-900"
+                    style={{ fontSize: "16px", fontWeight: 600 }}
+                  >
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p style={{ fontSize: "14px", color: "#a3a3a3" }}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            )}
 
-          <SeloCropware className="lg:hidden mt-10" />
+            {children}
+
+            <SeloCropware className="lg:hidden mt-10" />
+          </div>
         </div>
+        <RodapeLegal className="mt-8 lg:mt-0 lg:h-14" />
       </div>
     </main>
   );
