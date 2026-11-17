@@ -26,12 +26,23 @@ export function AuthScreen({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Lê do FORMULÁRIO, não do estado: o preenchimento automático do Chrome
+    // mostra e-mail e senha salvos, mas só os entrega à página depois de uma
+    // interação — o estado do React fica vazio até lá. O clique em "Entrar"
+    // é essa interação, então aqui os valores já estão disponíveis.
+    const dados = new FormData(e.currentTarget);
+    const emailDigitado = String(dados.get("email") ?? email).trim();
+    const senhaDigitada = String(dados.get("password") ?? password);
+    if (!emailDigitado || !senhaDigitada) {
+      setError("Preencha o e-mail e a senha.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      await signIn(email.trim(), password);
+      await signIn(emailDigitado, senhaDigitada);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao entrar.");
     } finally {
@@ -39,7 +50,10 @@ export function AuthScreen({
     }
   };
 
-  const disabled = submitting || !email || !password;
+  // Só desabilita enquanto envia. Desabilitar com campo "vazio" travava o
+  // login com senha salva no Chrome (17/11/2026): o botão ficava cinza com os
+  // campos visivelmente preenchidos.
+  const disabled = submitting;
 
   return (
     <AuthLayout>
@@ -48,6 +62,7 @@ export function AuthScreen({
           <Label htmlFor="signin-email">E-mail</Label>
           <Input
             id="signin-email"
+            name="email"
             type="email"
             placeholder="seu@e-mail.com"
             value={email}
@@ -63,6 +78,7 @@ export function AuthScreen({
           <Label htmlFor="signin-password">Senha</Label>
           <Input
             id="signin-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
