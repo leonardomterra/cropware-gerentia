@@ -194,6 +194,15 @@ Cada fase vai ao ar sozinha.
     das atividades, painel de plantios com GDD, PDF do plantio, "Iniciar plantio" a partir do
     talhão.
 
+- **Fase 3 (16/11/2026): código pronto na branch** (migration `20261120120000_pendencias_agenda.sql`).
+  - A Agenda do Flag Field virou campos da Pendência: hora, tipo, prioridade, local,
+    fazenda/talhão.
+  - Operação de campo planejada continua sendo Atividade.
+  - Concluir rápido só para pendência sem valor.
+  - Calendário único (financeiro + campo), como tela fixa; bloco "Campo" no Dashboard.
+  - **Ficou para depois:** pendência com hora/tipo pelo WhatsApp (fase 7); notificação de
+    atividade planejada pelo cron; visão semanal do calendário.
+
 ## 10. Em aberto
 
 - **Decidido (16/11):** produtor opcional, definido pelo tipo de uso. O tipo é escolhido no

@@ -118,3 +118,32 @@ antecipar essa migração só para ter massa de teste.
 - [ ] Lançamento ligado só à fazenda aparece em "Só da fazenda" e não entra no R$/ha.
 - [ ] Filtro por fazenda.
 - [ ] Exportar CSV; "Imprimir / PDF" abre a página com o gráfico agronômico × realizado.
+
+## Fase 3 — rotina (Pendências com agenda, Calendário, Field no Dashboard)
+
+**Pendências:**
+- [ ] Formulário com Hora, Tipo (Lembrete, Reunião, Visita, Deslocamento, Manutenção, Outro),
+      Prioridade e Local.
+- [ ] Com o Field visível: Fazenda e Talhão, com o talhão filtrado pela fazenda.
+- [ ] Coluna Lembretes agrupada: Atrasados, Hoje, Próximos 7 dias, Depois, Sem data,
+      Resolvidos. Os grupos só aparecem na ordem "vencimento".
+- [ ] Pendência SEM valor tem o botão "Concluir"; COM valor continua resolvida pela conversão em
+      lançamento.
+- [ ] Cartão de compromisso (reunião, visita...) sem valor não mostra "R$ 0,00 / Sem centro";
+      mostra o tipo, o local, onde e "às HH:MM".
+- [ ] Prioridade alta mostra a bandeira vermelha.
+
+**Calendário (`/calendario`, item fixo do trilho):**
+- [ ] Mostra pendências com data e contas a pagar/receber em aberto (pagas não aparecem).
+- [ ] Com o Field: atividades (planejada atrasada em vermelho) e plantio/colheita prevista.
+- [ ] Visão Mês (até 3 por dia + "+N mais") e Lista; no celular, sempre lista.
+- [ ] ‹ Hoje ›; a legenda liga e desliga categorias; filtro por fazenda.
+- [ ] Clicar num item → detalhe → "Abrir" leva ao item: pendência abre o formulário; conta abre o
+      lançamento; atividade e plantio abrem em leitura.
+- [ ] Usuário sem o Field: o calendário só mostra pendências e contas (nada do campo).
+
+**Dashboard:**
+- [ ] Com o Field e talhões cadastrados: bloco "Campo" com plantios em andamento, atividades
+      planejadas (e atrasadas), colheitas previstas e o custo da safra vigente.
+- [ ] Os números e as listas levam às telas certas.
+- [ ] Sem talhões, ou sem o Field, o bloco não aparece.
