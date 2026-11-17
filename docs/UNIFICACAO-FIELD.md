@@ -204,7 +204,8 @@ Cada fase vai ao ar sozinha.
   - **Ficou para depois:** pendência com hora/tipo pelo WhatsApp (fase 7); notificação de
     atividade planejada pelo cron; visão semanal do calendário.
 
-- **Fase 4 (16/11/2026): código pronto na branch** (migration `20261121120000_field_ensaios.sql`).
+- **Fase 4 (16/11/2026): no ar** (migration `20261121120000_field_ensaios.sql` + servidor, a partir da
+  branch; testes manuais pendentes).
   - Ensaios com tabelas próprias: produtos, etapas, avaliações, colheitas. Cada parte salva na
     hora.
   - **ROI com o custo total do produto** (decisão de 16/11), numa função só.
