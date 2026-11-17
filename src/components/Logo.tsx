@@ -69,10 +69,10 @@ export function LogoNameDoModulo({ modulo }: { modulo: string }) {
       <LogoName className="h-[18px] shrink-0" alt="" />
       <span
         aria-hidden
-        className="truncate text-[15px] leading-none font-medium text-slate-400"
+        className="truncate text-[13px] leading-none text-slate-400"
         style={{ marginTop: 1 }}
       >
-        /<span className="ml-[3px]">{modulo}</span>
+        /<span className="ml-px">{modulo}</span>
       </span>
     </span>
   );
