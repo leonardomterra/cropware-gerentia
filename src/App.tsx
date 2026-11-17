@@ -51,6 +51,9 @@ const JoinPage = lazyWithRetry(() => import("@/modules/team/pages/JoinPage"));
 const RecurringPage = lazyWithRetry(
   () => import("@/modules/recurring/pages/RecurringPage"),
 );
+const CalendarioPage = lazyWithRetry(
+  () => import("@/modules/calendario/CalendarioPage"),
+);
 const PendenciasPage = lazyWithRetry(
   () => import("@/modules/tasks/pages/PendenciasPage"),
 );
@@ -230,6 +233,15 @@ function RootRoutes() {
                   <ReceiptsPage />
                 </Suspense>
               </ModuloGate>
+            }
+          />
+          {/* Calendário único (fase 3): tela FIXA, dos dois módulos. */}
+          <Route
+            path="calendario"
+            element={
+              <Suspense fallback={<LoadingScreen />}>
+                <CalendarioPage />
+              </Suspense>
             }
           />
           <Route

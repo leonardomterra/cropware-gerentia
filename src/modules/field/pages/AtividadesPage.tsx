@@ -1,5 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import ClipboardText from "~icons/ph/clipboard-text-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -322,6 +323,20 @@ export default function AtividadesPage() {
     if (f.plot_id) return talhaoPorId.get(f.plot_id)?.area_ha ?? null;
     return null;
   }
+
+  // `?abrir=<id>` — o Calendário manda para cá com o item a abrir (em leitura).
+  const [params, setParams] = useSearchParams();
+  const abrirId = params.get("abrir");
+  useEffect(() => {
+    if (!abrirId || a.carregando || c.carregando) return;
+    const alvo = a.atividades.find((x) => x.id === abrirId);
+    if (alvo) abrir(alvo, true);
+    setParams((p) => {
+      p.delete("abrir");
+      return p;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirId, a.carregando || c.carregando]);
 
   async function salvar() {
     if (!form || !form.farm_id || !form.date) return;

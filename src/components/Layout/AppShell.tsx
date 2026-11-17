@@ -15,6 +15,8 @@ import Assessment from "~icons/ph/file-text";
 import SlidersHorizontal from "~icons/ph/sliders-horizontal";
 import Repeat from "~icons/ph/arrows-clockwise";
 import Checklist from "~icons/ph/list-checks";
+import CalendarDots from "~icons/ph/calendar-dots";
+import RailCalendario from "~icons/ph/calendar-dots-duotone";
 import NotificationsIcon from "~icons/ph/bell";
 import Users from "~icons/ph/users";
 import ManageAccounts from "~icons/ph/user-gear";
@@ -127,6 +129,8 @@ const NAV_ITEMS: NavItem[] = [
     modulo: "financas",
   },
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  // Fixas (dos dois módulos): o calendário junta financeiro e campo.
+  { to: "/calendario", label: "Calendário", icon: CalendarDots },
   { to: "/pendencias", label: "Pendências", icon: Checklist },
   {
     to: "/notificacoes",
@@ -244,6 +248,7 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/campo/custos": { Icon: RailCustos, cor: "text-blue-600" },
   "/campo/safras": { Icon: RailSafras, cor: "text-orange-600" },
   "/campo/catalogo": { Icon: RailCatalogo, cor: "text-fuchsia-600" },
+  "/calendario": { Icon: RailCalendario, cor: "text-teal-600" },
   "/pendencias": { Icon: RailPendencias, cor: "text-emerald-600" },
   "/notificacoes": { Icon: RailNotificacoes, cor: "text-rose-600" },
   "/configuracoes": { Icon: RailConfiguracoes, cor: "text-slate-600" },
@@ -273,6 +278,7 @@ const RAIL_ORDEM = [
   "/campo/produtores",
   "/campo/safras",
   "/campo/catalogo",
+  "/calendario",
   "/pendencias",
   "/notificacoes",
   "/configuracoes",

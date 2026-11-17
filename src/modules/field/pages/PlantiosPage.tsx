@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import Plant from "~icons/ph/plant-duotone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,6 +187,20 @@ export default function PlantiosPage() {
           },
     );
   }
+
+  // `?abrir=<id>` — o Calendário manda para cá com o item a abrir (em leitura).
+  const [params, setParams] = useSearchParams();
+  const abrirId = params.get("abrir");
+  useEffect(() => {
+    if (!abrirId || c.carregando) return;
+    const alvo = c.plantios.find((x) => x.id === abrirId);
+    if (alvo) abrir(alvo, true);
+    setParams((p) => {
+      p.delete("abrir");
+      return p;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirId, c.carregando]);
 
   async function salvar() {
     if (!form || !form.plot_id || !form.crop) return;
