@@ -53,6 +53,8 @@ import Globe from "~icons/ph/globe-hemisphere-west";
 import CloudSun from "~icons/ph/cloud-sun";
 import RailNdvi from "~icons/ph/globe-hemisphere-west-duotone";
 import RailClima from "~icons/ph/cloud-sun-duotone";
+import ChartPieSlice from "~icons/ph/chart-pie-slice";
+import RailPainel from "~icons/ph/chart-pie-slice-duotone";
 import ChartLineUp from "~icons/ph/chart-line-up";
 import RailEnsaios from "~icons/ph/test-tube-duotone";
 import RailAnalises from "~icons/ph/chart-line-up-duotone";
@@ -168,6 +170,13 @@ const NAV_ITEMS: NavItem[] = [
     modulo: "field",
     soConsultor: true,
   },
+  // Fase 6 — painel da safra.
+  {
+    to: "/campo/painel",
+    label: "Painel da Safra",
+    icon: ChartPieSlice,
+    modulo: "field",
+  },
   { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
   { to: "/campo/talhoes", label: "Talhões", icon: Plant, modulo: "field" },
   // Fase 5 — satélite e clima.
@@ -261,6 +270,7 @@ const RAIL_ICONES: Record<string, { Icon: NavItem["icon"]; cor: string }> = {
   "/anexos": { Icon: RailAnexos, cor: "text-orange-600" },
   "/campo/produtores": { Icon: RailProdutores, cor: "text-teal-700" },
   "/campo/fazendas": { Icon: RailFazendas, cor: "text-amber-700" },
+  "/campo/painel": { Icon: RailPainel, cor: "text-cyan-700" },
   "/campo/talhoes": { Icon: RailTalhoes, cor: "text-lime-700" },
   "/campo/plantios": { Icon: RailPlantios, cor: "text-yellow-700" },
   "/campo/atividades": { Icon: RailAtividades, cor: "text-violet-600" },
@@ -293,6 +303,7 @@ const RAIL_ORDEM = [
   "/recorrencias",
   "/relatorios",
   "/anexos",
+  "/campo/painel",
   "/campo/talhoes",
   "/campo/ndvi",
   "/campo/clima",

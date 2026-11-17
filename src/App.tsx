@@ -106,6 +106,9 @@ const AnalisesPage = lazyWithRetry(
   () => import("@/modules/field/pages/AnalisesPage"),
 );
 const NdviPage = lazyWithRetry(() => import("@/modules/field/pages/NdviPage"));
+const PainelPage = lazyWithRetry(
+  () => import("@/modules/field/pages/PainelPage"),
+);
 const ClimaPage = lazyWithRetry(
   () => import("@/modules/field/pages/ClimaPage"),
 );
@@ -496,6 +499,16 @@ function RootRoutes() {
                   <ModuloGate modulo="field">
                     <Suspense fallback={<LoadingScreen />}>
                       <AnalisesPage />
+                    </Suspense>
+                  </ModuloGate>
+                }
+              />
+              <Route
+                path="campo/painel"
+                element={
+                  <ModuloGate modulo="field">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <PainelPage />
                     </Suspense>
                   </ModuloGate>
                 }
