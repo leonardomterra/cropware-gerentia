@@ -22,6 +22,7 @@ import CreditCardDuotone from "~icons/ph/credit-card-duotone";
 import LockDuotone from "~icons/ph/lock-duotone";
 import WhatsappDuotone from "~icons/ph/whatsapp-logo-duotone";
 import WarningDuotone from "~icons/ph/warning-duotone";
+import AparenciaDuotone from "~icons/ph/circle-half-duotone";
 import { BOTAO_BARRA, BOTAO_BARRA_PRIMARIO } from "@/lib/ui-tokens";
 import {
   Select,
@@ -46,6 +47,7 @@ import { CampoModoDeUso } from "@/modules/field/components/CampoModoDeUso";
 import { supabase } from "@/utils/supabase/client";
 import { WhatsAppLinkCard } from "../components/WhatsAppLinkCard";
 import { SubscriptionCard } from "../components/SubscriptionCard";
+import { AparenciaCard } from "../components/AparenciaCard";
 
 // "Função"/"Organização" ocultas no app individual (sem conceito de equipe).
 // Reativar junto com a aba Equipe quando existir o app multi-usuario.
@@ -140,6 +142,7 @@ type SecaoDaConta =
   | "assinatura"
   | "seguranca"
   | "whatsapp"
+  | "aparencia"
   | "perigo";
 
 /**
@@ -185,6 +188,13 @@ const ATALHOS: {
     cor: "text-emerald-500",
     titulo: "WhatsApp",
     descricao: "Número vinculado ao seu acesso",
+  },
+  {
+    id: "aparencia",
+    Icon: AparenciaDuotone,
+    cor: "text-amber-500",
+    titulo: "Aparência",
+    descricao: "Tema claro, escuro ou igual ao sistema",
   },
   {
     id: "perigo",
@@ -568,6 +578,8 @@ export default function AccountPage() {
       )}
 
       {secao === "assinatura" && <SubscriptionCard />}
+
+      {secao === "aparencia" && <AparenciaCard />}
 
       {secao === "seguranca" && (
         <Section icon={Lock} title="Acesso e Segurança" semCabecalho>

@@ -66,6 +66,9 @@ import UserCircle from "~icons/ph/user-circle";
 import UserCircleDuotone from "~icons/ph/user-circle-duotone";
 import LogOut from "~icons/ph/sign-out";
 import HelpCircle from "~icons/ph/question";
+import Moon from "~icons/ph/moon";
+import Sun from "~icons/ph/sun";
+import { useTema } from "@/lib/tema";
 import Menu from "~icons/ph/list";
 import X from "~icons/ph/x";
 import { ROLE_LABELS, useAuth } from "@/contexts/AuthContext";
@@ -322,6 +325,13 @@ const CHAVE_MODULO_ATIVO = "gerentia.moduloAtivo";
 /** Link de navegacao da sidebar. Icone sempre; label some quando colapsada. */
 export function AppShell() {
   const { user, signOut, isAdmin, isViewer, isTeamOrg, isMaster } = useAuth();
+  // Atalho claro/escuro no menu da conta (a escolha completa, com "igual ao
+  // sistema", fica em Conta > Aparência).
+  const { tema, escolher: escolherTema } = useTema();
+  const rotuloDoTema =
+    tema === "escuro" ? "Usar Tema Claro" : "Usar Tema Escuro";
+  const alternarTema = () =>
+    escolherTema(tema === "escuro" ? "claro" : "escuro");
   // Contador vem do NotificationsProvider (envolve o AppShell em App.tsx), o
   // mesmo estado que a página lê — marcar lida lá atualiza o badge aqui.
   const { unread } = useNotifications();
@@ -489,6 +499,9 @@ export function AppShell() {
           Conta
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => {}}>Ajuda</DropdownMenuItem>
+        <DropdownMenuItem onSelect={alternarTema}>
+          {rotuloDoTema}
+        </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem onSelect={() => void signOut()}>
           Sair
@@ -627,7 +640,7 @@ export function AppShell() {
                       <span>{item.label}</span>
                       {/* A gaveta desenha o item com markup próprio. */}
                       {item.badgeKey === "notifications" && unread > 0 && (
-                        <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-medium tabular-nums">
+                        <span className="ml-auto shrink-0 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-500 text-branco text-[11px] font-medium tabular-nums">
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
@@ -654,6 +667,18 @@ export function AppShell() {
               >
                 <HelpCircle className="size-5 shrink-0" />
                 Ajuda
+              </button>
+              <button
+                type="button"
+                onClick={alternarTema}
+                className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                {tema === "escuro" ? (
+                  <Sun className="size-5 shrink-0" />
+                ) : (
+                  <Moon className="size-5 shrink-0" />
+                )}
+                {rotuloDoTema}
               </button>
               <button
                 type="button"

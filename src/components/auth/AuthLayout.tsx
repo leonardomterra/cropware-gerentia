@@ -124,7 +124,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
                   </h1>
                 )}
                 {subtitle && (
-                  <p style={{ fontSize: "14px", color: "#a1a1a7" }}>
+                  <p style={{ fontSize: "14px", color: "var(--color-slate-400)" }}>
                     {subtitle}
                   </p>
                 )}

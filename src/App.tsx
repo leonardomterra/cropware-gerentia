@@ -7,7 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { isNativeCapacitorApp } from "@/utils/platform";
+import { pintarBarraDeStatus } from "@/lib/tema";
 import { PaywallGate } from "@/components/billing/PaywallGate";
 import { Paywall } from "@/components/billing/Paywall";
 import { ModuloGate } from "@/components/billing/ModuloGate";
@@ -164,16 +164,10 @@ function RootRoutes() {
     "field",
   );
 
-  // App nativo: status bar branca na tela de login (deslogado) e slate-100
-  // (cor do cabeçalho) quando logado — consistência visual com o AppShell.
+  // Barra de status: cor da superfície na tela de entrada (deslogado) e do
+  // cabeçalho do celular quando logado, no tema atual (lib/tema.ts).
   useEffect(() => {
-    if (!isNativeCapacitorApp()) return;
-    const color = user ? "#f1f1f3" : "#ffffff";
-    import("@capacitor/status-bar")
-      .then(({ StatusBar }) =>
-        StatusBar.setBackgroundColor({ color }).catch(() => {}),
-      )
-      .catch(() => {});
+    pintarBarraDeStatus(user ? "cabecalho" : "superficie");
   }, [user]);
 
   if (loading) return <LoadingScreen />;

@@ -33,7 +33,7 @@ export function BatchActionBar({
     <div
       className={cn(
         "fixed z-[200] flex items-center gap-3 whitespace-nowrap",
-        "rounded-[14px] border border-white/10 bg-slate-900/65 backdrop-blur-sm text-white shadow-xl",
+        "tema-claro rounded-[14px] border border-white/10 bg-slate-900/65 backdrop-blur-sm text-white shadow-xl",
         "animate-in slide-in-from-bottom-4 duration-300",
         // No celular ela pousa ACIMA da barra "Menu" do rodapé (h-12 = 3rem),
         // que continua sendo o caminho de navegação enquanto a seleção existe.

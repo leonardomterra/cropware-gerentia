@@ -38,7 +38,7 @@ import { cn } from "@/components/ui/utils";
  * que faz a transparência aparecer.
  */
 export const SUPERFICIE_ESCURA =
-  "rounded-xl border border-white/10 bg-slate-900/65 backdrop-blur-sm text-white shadow-xl";
+  "tema-claro rounded-xl border border-white/10 bg-slate-900/65 backdrop-blur-sm text-white shadow-xl";
 
 /**
  * Vidro do tooltip. Mesma família, com duas diferenças deliberadas:
@@ -57,7 +57,7 @@ export const SUPERFICIE_ESCURA =
  * piso, porque o texto é de 13px.
  */
 export const SUPERFICIE_TOOLTIP =
-  "rounded-lg border border-white/10 bg-stone-800/65 backdrop-blur-sm backdrop-saturate-150 text-white shadow-lg";
+  "tema-claro rounded-lg border border-white/10 bg-stone-800/65 backdrop-blur-sm backdrop-saturate-150 text-white shadow-lg";
 
 /**
  * Conteúdo de DropdownMenu escuro — é o PADRÃO do componente, não anotação de
@@ -91,7 +91,7 @@ export const MENU_ESCURO = cn(
  * ela, um painel com muitos campos era cortado sem rolagem.
  */
 export const PAINEL_ESCURO = cn(
-  "p-4 space-y-3 z-[999] rounded-xl border border-white/10 text-white",
+  "tema-claro p-4 space-y-3 z-[999] rounded-xl border border-white/10 text-white",
   "bg-slate-900/65 backdrop-blur-sm",
   "max-h-[min(70vh,var(--radix-popover-content-available-height))] overflow-y-auto",
 );

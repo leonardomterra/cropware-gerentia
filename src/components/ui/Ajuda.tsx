@@ -83,7 +83,7 @@ export function Ajuda({
             uma frase explicativa. */}
         <DialogPrimitive.Overlay
           className={cn(
-            "fixed inset-0 z-[2000] bg-slate-900/20 backdrop-blur-sm",
+            "tema-claro fixed inset-0 z-[2000] bg-slate-900/20 backdrop-blur-sm",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           )}

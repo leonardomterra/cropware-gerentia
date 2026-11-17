@@ -1,12 +1,16 @@
 "use client";
 
 import { Toaster as Sonner, ToasterProps } from "sonner";
+import { useTema } from "@/lib/tema";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  // Segue o tema do app (lib/tema.ts), não o do sistema: quem escolheu
+  // "Claro" num sistema escuro continua com toast claro.
+  const { tema } = useTema();
   return (
     <Sonner
-      theme="light"
+      theme={tema === "escuro" ? "dark" : "light"}
       className="toaster group"
       position={isMobile ? "bottom-center" : "top-right"}
       expand={true}

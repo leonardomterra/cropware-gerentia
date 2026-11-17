@@ -19,6 +19,10 @@ import {
  * branco atravessa a armação dos óculos (recortado por ela) e o bigode dá uma
  * mexidinha. Keyframes em app.css (.marca-*).
  */
+/** Cor da marca por CSS (app.css, --cor-marca): clara no tema escuro. Em
+ *  `style`, e não no atributo `fill`, que não garante ler variável CSS. */
+const MARCA = { fill: "var(--cor-marca)" };
+
 export function SimboloAnimado({
   tocar,
   pulso,
@@ -50,12 +54,12 @@ export function SimboloAnimado({
           <stop offset="1" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={OCULOS} fill="#3C3C42" fillRule="evenodd" />
+      <path d={OCULOS} style={MARCA} fillRule="evenodd" />
       {/* key = pulso: remontar reinicia a animação CSS. */}
       <path
         key={`b${pulso}`}
         d={BIGODE}
-        fill="#3C3C42"
+        style={MARCA}
         className={cn("marca-bigode", ativo && "marca-mexe")}
       />
       <g clipPath={`url(#armacao-${id})`}>
@@ -157,7 +161,7 @@ export function NomeDigitado({
       style={{ aspectRatio: "2278 / 447" }}
     >
       <g transform={NOME_TRANSFORM_EXTERNO}>
-        <g ref={grupo} transform={NOME_TRANSFORM_INTERNO} fill="#3C3C42">
+        <g ref={grupo} transform={NOME_TRANSFORM_INTERNO} style={MARCA}>
           {LETRAS.map((d, i) => (
             <path key={i} d={d} />
           ))}
@@ -168,8 +172,7 @@ export function NomeDigitado({
             width="0.9"
             height="0"
             rx="0.2"
-            fill="#3C3C42"
-            style={{ opacity: 0 }}
+            style={{ ...MARCA, opacity: 0 }}
           />
         </g>
       </g>

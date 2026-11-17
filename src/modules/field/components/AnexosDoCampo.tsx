@@ -95,7 +95,7 @@ function Miniatura({
           type="button"
           aria-label={`Remover ${a.nome}`}
           onClick={aoRemover}
-          className="absolute top-0.5 right-0.5 size-5 rounded-full bg-black/60 text-white flex items-center justify-center"
+          className="absolute top-0.5 right-0.5 size-5 rounded-full bg-black/60 text-branco flex items-center justify-center"
         >
           <X className="size-3" />
         </button>

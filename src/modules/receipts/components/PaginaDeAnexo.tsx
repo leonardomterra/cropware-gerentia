@@ -113,7 +113,7 @@ export function PaginaDeAnexo({ receipt, aoVoltar }: PaginaDeAnexoProps) {
           <div
             aria-hidden
             className="w-1 shrink-0"
-            style={{ backgroundColor: cc?.color ?? "#e2e2e6" }}
+            style={{ backgroundColor: cc?.color ?? "var(--color-slate-200)" }}
           />
           <div className="flex-1 min-w-0 p-4">
             <div className="flex items-start gap-4">

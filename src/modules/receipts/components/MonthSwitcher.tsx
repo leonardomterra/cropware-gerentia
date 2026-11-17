@@ -187,7 +187,7 @@ export function MonthSwitcher({
                         // própria lista. Sobre a área branca a transparência não
                         // TEM o que revelar — o efeito aqui é o bloco ficar mais
                         // leve, não translúcido de fato.
-                        "bg-slate-900/65 backdrop-blur-sm text-white font-medium border-transparent"
+                        "tema-claro bg-slate-900/65 backdrop-blur-sm text-white font-medium border-transparent"
                       : // Recuado, não ilegível: `slate-500` dá 4,74:1 no branco,
                         // acima do mínimo de 4,5. O `slate-400` que pareceria mais
                         // "apagado" cai pra 2,52:1 — e estes são alvos de clique,

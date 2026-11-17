@@ -10,6 +10,7 @@ import {
   legendaDeSeries,
   type Forma,
 } from "@/modules/reports/reportCharts";
+import { NEUTRO } from "@/modules/reports/reportTheme";
 import { cn } from "@/components/ui/utils";
 
 /**
@@ -25,29 +26,55 @@ function celula(v: ReportCell, col: ReportColumn): string {
   return String(v ?? "");
 }
 
+/**
+ * As formas trazem as cores do PAPEL (reportTheme): texto e linhas em grafite
+ * fixo. Na tela, os neutros viram a variável do tema — senão o texto grafite
+ * some no fundo escuro. As cores de dado (barras, fatias) ficam como estão.
+ * Vai em `style`, que lê var(--…); o atributo `fill` não garante.
+ */
+const NEUTRO_NA_TELA = new Map<string, string>(
+  Object.entries(NEUTRO).map(([n, hex]) => [hex, `var(--color-slate-${n})`]),
+);
+const naTela = (cor?: string) =>
+  cor ? (NEUTRO_NA_TELA.get(cor.toLowerCase()) ?? cor) : undefined;
+
 function FormaSvg({ f }: { f: Forma }) {
   if (f.tipo === "ret")
     return (
-      <rect x={f.x} y={f.y} width={f.w} height={f.h} rx={1.5} fill={f.cor} />
+      <rect
+        x={f.x}
+        y={f.y}
+        width={f.w}
+        height={f.h}
+        rx={1.5}
+        style={{ fill: naTela(f.cor) }}
+      />
     );
   if (f.tipo === "path")
     return (
       <path
         d={f.d}
-        fill={f.cor ?? "none"}
         fillOpacity={f.opacidade}
-        stroke={f.contorno}
         strokeWidth={f.contorno ? 1 : undefined}
+        style={{ fill: naTela(f.cor) ?? "none", stroke: naTela(f.contorno) }}
       />
     );
   if (f.tipo === "linha")
-    return <line x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2} stroke={f.cor} />;
+    return (
+      <line
+        x1={f.x1}
+        y1={f.y1}
+        x2={f.x2}
+        y2={f.y2}
+        style={{ stroke: naTela(f.cor) }}
+      />
+    );
   return (
     <text
       x={f.x}
       y={f.y}
       fontSize={f.tamanho}
-      fill={f.cor}
+      style={{ fill: naTela(f.cor) }}
       textAnchor={
         f.ancora === "meio" ? "middle" : f.ancora === "fim" ? "end" : "start"
       }

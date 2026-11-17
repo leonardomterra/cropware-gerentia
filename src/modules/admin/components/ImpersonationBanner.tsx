@@ -19,7 +19,7 @@ export function ImpersonationBanner() {
   if (!state) return null;
 
   return (
-    <div className="bg-amber-500 text-white text-sm px-4 py-2 flex items-center justify-center gap-3 shrink-0">
+    <div className="bg-amber-500 text-branco text-sm px-4 py-2 flex items-center justify-center gap-3 shrink-0">
       <span>
         Visualizando como{" "}
         <strong>{state.targetName || state.targetEmail}</strong>

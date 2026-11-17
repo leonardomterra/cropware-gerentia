@@ -56,6 +56,7 @@ import type { ReportDoc } from "@/modules/reports/reportBuilders";
 import { ACENTO, FUNDO, NEUTRO } from "@/modules/reports/reportTheme";
 import { exportFile } from "@/utils/nativeExport";
 import { isNativeCapacitorApp } from "@/utils/platform";
+import { useCoresDoTema } from "@/lib/tema";
 import {
   MonthSwitcher,
   monthRangeISO,
@@ -235,7 +236,6 @@ function caminhoDeRodape(
  *  diferentes fariam parecer que falam de coisas diferentes. Em `fill` +
  *  `fillOpacity` em vez do #686868 já composto para continuar certo se o fundo
  *  do card mudar. */
-const FOCO_FUNDO = "#2b2b30"; // slate-900 do app
 const FOCO_OPACIDADE = 0.65;
 
 /** Altura da faixa do mês, abaixo da base das barras. O rótulo é centrado nela
@@ -402,6 +402,9 @@ function dueLabel(days: number): string {
 
 export default function DashboardPage() {
   const { user, isMaster } = useAuth();
+  // Cores do gráfico no tema atual (atributos SVG não leem var(--…)).
+  const cor = useCoresDoTema();
+  const FOCO_FUNDO = cor[900]; // slate-900 do app
   const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
     "field",
   );
@@ -1123,7 +1126,7 @@ export default function DashboardPage() {
                                 height={alturaMoldura}
                                 rx={8}
                                 fill="none"
-                                stroke="#f1f1f3"
+                                stroke={cor[100]}
                                 strokeWidth={1}
                               />
                               <line
@@ -1131,7 +1134,7 @@ export default function DashboardPage() {
                                 y1={base}
                                 x2={esq + largMoldura}
                                 y2={base}
-                                stroke="#f1f1f3"
+                                stroke={cor[100]}
                                 strokeWidth={1}
                               />
                             </g>
@@ -1165,7 +1168,7 @@ export default function DashboardPage() {
                               // Mesma borda do card (slate-200). O mês em foco é
                               // um bloco dentro do card, não um card por cima
                               // dele — uma borda mais escura o descolava.
-                              stroke="#e2e2e6"
+                              stroke={cor[200]}
                               strokeWidth={1}
                             />
                           </g>
@@ -1177,7 +1180,7 @@ export default function DashboardPage() {
               />
               <XAxis
                 dataKey="mes"
-                stroke="#a1a1a7"
+                stroke={cor[400]}
                 fontSize={14}
                 tickLine={false}
                 axisLine={false}
@@ -1206,7 +1209,7 @@ export default function DashboardPage() {
                       textAnchor="middle"
                       verticalAnchor="middle"
                       fontSize={14}
-                      fill={d?.sel ? "#ffffff" : "#a1a1a7"}
+                      fill={d?.sel ? cor.white : cor[400]}
                     >
                       {isMobile ? (d?.mesNum ?? "") : payload.value}
                     </TextoSVG>
@@ -1216,8 +1219,8 @@ export default function DashboardPage() {
               <Tooltip
                 cursor={{ fill: "rgba(0,0,0,0.03)" }}
                 contentStyle={{
-                  background: "white",
-                  border: "1px solid #e2e2e6",
+                  background: "var(--color-white)",
+                  border: "1px solid var(--color-slate-200)",
                   borderRadius: 6,
                   fontSize: 14,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -1365,8 +1368,8 @@ export default function DashboardPage() {
                       <Tooltip
                         formatter={(v: number) => fmtBRLfull(v)}
                         contentStyle={{
-                          background: "white",
-                          border: "1px solid #e2e2e6",
+                          background: "var(--color-white)",
+                          border: "1px solid var(--color-slate-200)",
                           borderRadius: 6,
                           fontSize: 14,
                           boxShadow: "0 2px 8px rgba(0,0,0,0.06)",

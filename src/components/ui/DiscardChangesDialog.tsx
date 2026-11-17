@@ -34,7 +34,7 @@ export function DiscardChangesDialog({
         <AlertDialogHeader className="space-y-3">
           <AlertDialogTitle
             className="font-medium"
-            style={{ fontSize: "16px", color: "#2b2b30" }}
+            style={{ fontSize: "16px", color: "var(--color-slate-900)" }}
           >
             {title}
           </AlertDialogTitle>
@@ -42,13 +42,13 @@ export function DiscardChangesDialog({
             <div className="space-y-3">
               <p
                 className="font-normal leading-relaxed"
-                style={{ fontSize: "14px", color: "#7c7c83" }}
+                style={{ fontSize: "14px", color: "var(--color-slate-500)" }}
               >
                 {description}
               </p>
               <p
                 className="font-normal"
-                style={{ fontSize: "14px", color: "#a1a1a7" }}
+                style={{ fontSize: "14px", color: "var(--color-slate-400)" }}
               >
                 As alterações não salvas serão perdidas permanentemente.
               </p>

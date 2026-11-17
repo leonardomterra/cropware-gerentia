@@ -304,7 +304,7 @@ function Calendario({ campo }: { campo: DadosDoCampo | null }) {
               <span
                 className="size-2.5 rounded-full"
                 style={{
-                  backgroundColor: ativo ? CATEGORIAS[k].cor : "#cbd5e1",
+                  backgroundColor: ativo ? CATEGORIAS[k].cor : "var(--color-slate-300)",
                 }}
               />
               {CATEGORIAS[k].rotulo}

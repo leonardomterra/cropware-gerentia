@@ -18,7 +18,7 @@ const badgeVariants = cva(
         secondary:
           "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90",
+          "border-transparent bg-destructive text-branco [a&]:hover:bg-destructive/90",
         outline: "bg-slate-100 text-slate-700 [a&]:hover:bg-slate-200",
       },
       size: {
@@ -48,14 +48,16 @@ const badgeVariants = cva(
         // conferido: 7,05 / 6,76 / 6,90 : 1, tudo acima do AA.
         //
         // Confira e recalibre em /badges (só em DEV).
-        amber: "bg-[oklch(0.914_0.075_95.746)] text-amber-900",
+        amber:
+          "bg-[oklch(0.914_0.075_95.746)] dark:bg-amber-200 text-amber-900",
         emerald: "bg-emerald-200 text-emerald-900",
         red: "bg-red-200 text-red-900",
         blue: "bg-blue-200 text-blue-900",
         // Extended
         green: "bg-green-200 text-green-900",
         orange: "bg-orange-200 text-orange-900",
-        yellow: "bg-[oklch(0.914_0.075_101.54)] text-yellow-900",
+        yellow:
+          "bg-[oklch(0.914_0.075_101.54)] dark:bg-yellow-200 text-yellow-900",
         purple: "bg-purple-200 text-purple-900",
         cyan: "bg-cyan-200 text-cyan-900",
         teal: "bg-teal-200 text-teal-900",
@@ -63,7 +65,9 @@ const badgeVariants = cva(
         pink: "bg-pink-200 text-pink-900",
         rose: "bg-rose-200 text-rose-900",
         sky: "bg-sky-200 text-sky-900",
-        lime: "bg-[oklch(0.914_0.075_124.321)] text-lime-900",
+        // `dark:bg-*-200`: o tom calibrado acima é fixo (claro); no tema escuro
+        // o 200 espelha para o 800, como os outros selos.
+        lime: "bg-[oklch(0.914_0.075_124.321)] dark:bg-lime-200 text-lime-900",
         gray: "bg-gray-200 text-gray-900 border-transparent",
         white: "bg-white text-slate-600 border-slate-200",
         // Nenhuma cor (para uso com className custom)

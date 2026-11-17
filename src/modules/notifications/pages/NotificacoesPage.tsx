@@ -101,7 +101,7 @@ export default function NotificacoesPage() {
                 repete, ele precisa escurecer. O sinal forte fica na bolinha do
                 sino, no trilho, onde ele compete com o resto da tela; aqui
                 dentro, já na página de notificações, ele não precisa gritar. */}
-            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-400 text-white text-[11px] tabular-nums">
+            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-400 text-branco text-[11px] tabular-nums">
               {unread > 99 ? "99+" : unread}
             </span>
           </Button>

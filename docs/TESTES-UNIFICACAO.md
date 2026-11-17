@@ -272,3 +272,34 @@ Testar na **web** (abre a página de imprimir) e no **celular** (gera PDF e abre
 - [ ] Relatórios → "com anexos" continua juntando as notas no PDF (web e celular).
 - [ ] Notas → selecionar várias → Imprimir continua juntando os anexos.
 - [ ] Um lançamento com emoji na descrição não derruba mais o PDF do celular.
+
+## Ajustes visuais — marca, entrada e tema escuro (17/11/2026)
+
+**Marca e entrada:**
+- [ ] Logo (óculos) e nome "gerentia.app" desenhado em `#3C3C42` na entrada, no menu e no
+      cabeçalho do celular.
+- [ ] Entrada (abrir numa janela anônima para ver a abertura): brilho na armação, mexidinha
+      do bigode e o nome digitado com cursor. F5 em seguida não repete; com a tela aberta, o
+      brilho volta a cada ~20 s. Com "reduzir movimento" no sistema, nada anda.
+- [ ] Card limão da Cropware (relevo do site) leva a cropware.com.br; no app instalado abre
+      fora do app.
+- [ ] Rodapé: Termos de Uso, Política de Privacidade, Ajuda — os três abrem.
+- [ ] Criar conta: frase de aceite com os dois links acima do botão.
+
+**Cores da marca:**
+- [ ] Botão principal (Novo Lançamento, Salvar, Entrar) em `#3C3C42`; cinzas do app com o
+      leve tom frio do grafite (menu, bordas, textos de apoio).
+- [ ] Menu lateral com ícone + nome; seletor de módulo e conta com nome.
+
+**Tema escuro (Conta → Aparência; atalho no menu da conta e na gaveta do celular):**
+- [ ] Claro / Escuro / Igual ao Sistema; a escolha vale para o aparelho e sobrevive ao F5,
+      sem piscar branco ao abrir.
+- [ ] "Igual ao Sistema" troca sozinho quando o sistema troca.
+- [ ] Passar pelas telas no escuro: Dashboard (gráfico e tooltip), Lançamentos, Notas,
+      Cartões, Recorrências, Relatórios, Calendário, Pendências, Configurações, e no Field:
+      Painel da Safra (gráficos), Talhões/mapa, NDVI, Plantios, Atividades, Ensaios.
+      Procurar texto que some no fundo, caixa clara sobrando, selo ilegível.
+- [ ] Menus de ação, filtros e dicas continuam no vidro escuro; diálogos de confirmação
+      legíveis.
+- [ ] Avisos (toast) no tema do app; barra de status do celular escura com ícones claros.
+- [ ] Relatórios/PDF continuam claros (são para imprimir).

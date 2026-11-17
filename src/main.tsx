@@ -9,6 +9,7 @@ import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "./app.css";
 import App from "./App";
+import { iniciarTema } from "./lib/tema";
 import { isCapacitorIOS, isNativeCapacitorApp } from "./utils/platform";
 
 // No iOS nativo, ativa a marca/fonte específica (.native-ios vive no app.css).
@@ -16,16 +17,17 @@ if (isCapacitorIOS()) {
   document.documentElement.classList.add("native-ios");
 }
 
-// App nativo (iOS/Android): status bar combinando com a UI clara (header bg-slate-100),
-// ícones escuros sobre fundo branco. Import dinâmico — o plugin só existe no app nativo.
+// Tema claro/escuro (lib/tema.ts): classe .dark no <html>, cor do navegador e
+// barra de status do app nativo. O index.html já aplicou a classe antes do
+// React; aqui liga o resto e passa a seguir o sistema.
+iniciarTema();
+
+// App nativo (iOS/Android): a status bar não sobrepõe a página. Cor e estilo
+// (ícones claros/escuros) vêm do tema — lib/tema.ts, pintarBarraDeStatus.
 if (isNativeCapacitorApp()) {
   import("@capacitor/status-bar")
-    .then(({ StatusBar, Style }) => {
+    .then(({ StatusBar }) => {
       StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-      StatusBar.setStyle({ style: Style.Light }).catch(() => {}); // Style.Light = texto/ícones escuros (p/ fundo claro)
-      // Cor inicial branca = tela de login (primeiro paint, deslogado). Depois a
-      // cor é dirigida pelo estado de auth em RootRoutes (login branco / app slate-100).
-      StatusBar.setBackgroundColor({ color: "#ffffff" }).catch(() => {});
     })
     .catch(() => {});
 

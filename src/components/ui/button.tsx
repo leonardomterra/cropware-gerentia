@@ -33,7 +33,7 @@ const buttonVariants = cva(
         //
         // Sem sombra, como os demais botões do app depois da padronização dos
         // diálogos: sombra em botão sólido era o resto do visual antigo.
-        destructive: "bg-[#f87171] text-white hover:bg-[#ef4444] shadow-none",
+        destructive: "bg-[#f87171] text-branco hover:bg-[#ef4444] shadow-none",
         link: "text-slate-700 underline-offset-2 hover:underline hover:text-slate-900",
       },
       size: {

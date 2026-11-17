@@ -2,15 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SubscriptionCard } from "@/modules/account/components/SubscriptionCard";
-import { isNativeCapacitorApp } from "@/utils/platform";
-
-/** Pinta o status bar nativo (no-op no web). */
-function setStatusBarColor(color: string) {
-  if (!isNativeCapacitorApp()) return;
-  import("@capacitor/status-bar")
-    .then(({ StatusBar }) => StatusBar.setBackgroundColor({ color }).catch(() => {}))
-    .catch(() => {});
-}
+import { pintarBarraDeStatus } from "@/lib/tema";
 
 /**
  * Tela cheia mostrada quando o acesso acabou (trial vencido E sem assinatura
@@ -22,11 +14,11 @@ function setStatusBarColor(color: string) {
 export function Paywall({ onRecheck }: { onRecheck: () => void }) {
   const { signOut } = useAuth();
 
-  // Status bar branca enquanto o paywall (fundo branco) está visível; volta pro
-  // slate-100 do app ao desmontar (ex.: assinou e voltou pro app).
+  // Barra de status na cor da superfície enquanto o paywall está visível; volta
+  // à do cabeçalho do app ao desmontar (ex.: assinou e voltou pro app).
   useEffect(() => {
-    setStatusBarColor("#ffffff");
-    return () => setStatusBarColor("#f1f1f3");
+    pintarBarraDeStatus("superficie");
+    return () => pintarBarraDeStatus("cabecalho");
   }, []);
 
   return (
