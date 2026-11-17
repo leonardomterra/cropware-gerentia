@@ -58,6 +58,7 @@ import RailCustos from "~icons/ph/chart-bar-fill";
 import RailSafras from "~icons/ph/calendar-fill";
 import RailCatalogo from "~icons/ph/flask-fill";
 import CaretUpDown from "~icons/ph/caret-up-down";
+import CaretDown from "~icons/ph/caret-down";
 import UserCircle from "~icons/ph/user-circle";
 // Gatilho da CONTA: cheio e grafite como o resto do menu (17/11/2026). Até
 // então era teal em duotone; com o primeiro nome ao lado, não precisa mais de
@@ -81,7 +82,7 @@ import { getStoredValue, setStoredValue } from "@/utils/appStorage";
 import { mostraProdutores } from "@/utils/modoDeUso";
 import { AppSidebar, type RailItem } from "./AppSidebar";
 import { useNotifications } from "@/modules/notifications/hooks/useNotifications";
-import { Logo, LogoName, LogoNameDoModulo } from "@/components/Logo";
+import { Logo, LogoName } from "@/components/Logo";
 import { PageBreadcrumb } from "@/components/Layout/PageBreadcrumb";
 import { ImpersonationBanner } from "@/modules/admin/components/ImpersonationBanner";
 import {
@@ -512,28 +513,35 @@ export function AppShell() {
   );
 
   /**
-   * Seletor de módulo — topo do menu, só quando há mais de um módulo
-   * visível. Mostra ícone e nome do módulo ativo; o menu lista os outros.
+   * SELO do módulo, no topo do menu, à direita do nome (17/11/2026). Grafite,
+   * como todo "selecionado" do app. Com mais de um módulo ele É o seletor: tem
+   * setinha e abre a lista; com um só, é só identificação. Substituiu a caixa
+   * de seletor que ficava abaixo do nome — o módulo aparecia duas vezes.
    */
   const ativo = moduloPorId(moduloAtivo);
-  const seletorDeModulo = (
+  const SELO_DO_MODULO =
+    "h-6 shrink-0 inline-flex items-center rounded-md bg-slate-800 text-white text-xs font-medium";
+  const seloDoModulo = variosModulos ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label={`Módulo: ${ativo.nome}. Trocar de módulo`}
-          title={`Módulo: ${ativo.nome}`}
-          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+          title="Trocar de módulo"
+          // gap-1.5 + pr-2: a seta não encosta no nome (pedido do Leonardo).
+          className={cn(
+            SELO_DO_MODULO,
+            "gap-1.5 pl-2.5 pr-2 hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
+          )}
         >
-          <ativo.Icon className="size-5 shrink-0" />
-          <span className="truncate">{ativo.nome}</span>
-          <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
+          {ativo.nome}
+          <CaretDown className="size-3 shrink-0 opacity-70" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side="bottom"
-        align="start"
-        sideOffset={4}
+        align="end"
+        sideOffset={6}
         className="w-52"
       >
         {visiveis.map((id) => {
@@ -551,6 +559,8 @@ export function AppShell() {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
+  ) : (
+    <span className={cn(SELO_DO_MODULO, "px-2.5")}>{ativo.nome}</span>
   );
 
   /** Itens do trilho, na ordem do mapa e já filtrados por papel — página que o
@@ -575,23 +585,21 @@ export function AppShell() {
   return (
     <div className="flex overflow-hidden bg-white" style={{ height: "100dvh" }}>
       {/* MENU DESKTOP — ícone + nome, sem recolher (ver AppSidebar). */}
-      <aside className="hidden md:flex flex-col shrink-0 w-56 h-full min-h-0 border-r border-slate-200 bg-white">
+      <aside className="hidden md:flex flex-col shrink-0 w-60 h-full min-h-0 border-r border-slate-200 bg-white">
         {/* A divisória é a BORDA deste bloco, e não uma div à parte, para
             fechar na mesma linha do topbar ao lado.
             Antes: h-13 (52px) + uma div de 1px = 53px, enquanto o topbar tem
             h-13 COM a borda por dentro (box-border) = 52px. A régua da esquerda
             ficava 1px abaixo da da direita — e ainda em outro tom
             (slate-100 x slate-200), então as duas liam como linhas diferentes. */}
-        <div className="flex items-center gap-2.5 h-13 shrink-0 px-4 border-b border-slate-200">
-          {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. Ao
-              lado, o módulo ativo, como endereço ("gerentia.app/field"). */}
-          <LogoNameDoModulo modulo={ativo.nome.toLowerCase()} />
+        <div className="flex items-center justify-between gap-2 h-13 shrink-0 px-4 border-b border-slate-200">
+          {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. Nome
+              a 20px e selo do módulo na ponta, para ocupar a largura. O menu
+              foi de 224 para 240px para caber "Finanças" + seta com folga. */}
+          <LogoName className="h-5 shrink-0" />
+          {seloDoModulo}
         </div>
-        <AppSidebar
-          itens={railItens}
-          footer={accountTrigger}
-          topo={variosModulos ? seletorDeModulo : undefined}
-        />
+        <AppSidebar itens={railItens} footer={accountTrigger} />
       </aside>
 
       {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua

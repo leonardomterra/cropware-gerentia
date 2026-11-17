@@ -29,20 +29,12 @@ export interface RailItem {
 export function AppSidebar({
   itens,
   footer,
-  topo,
 }: {
   itens: RailItem[];
   footer?: ReactNode;
-  /** Acima dos ícones: o seletor de módulo, quando há mais de um (AppShell). */
-  topo?: ReactNode;
 }) {
   return (
     <>
-      {topo && (
-        <div className="shrink-0 px-2 pt-2 pb-1 border-b border-slate-100">
-          {topo}
-        </div>
-      )}
       <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-2 space-y-0.5">
         {itens.map((it) => (
           <div key={it.to}>

@@ -52,28 +52,3 @@ export function LogoName({
     />
   );
 }
-
-/**
- * O nome com o módulo ativo ao lado, como um endereço: "gerentia.app/field"
- * (17/11/2026, topo do menu lateral). O "/módulo" vai em texto vivo, na fonte
- * do app e em cinza — complemento, não parte da marca. (Na fonte do desenho,
- * WDXL Lubrifont SC, foi testado e descartado.) Tamanho calibrado para o nome
- * a 18px de altura.
- */
-export function LogoNameDoModulo({ modulo }: { modulo: string }) {
-  return (
-    <span
-      className="flex items-center gap-1 min-w-0"
-      aria-label={`gerentia.app/${modulo}`}
-    >
-      <LogoName className="h-[18px] shrink-0" alt="" />
-      <span
-        aria-hidden
-        className="truncate text-sm leading-none text-slate-400"
-        style={{ marginTop: 1 }}
-      >
-        /<span className="ml-px">{modulo}</span>
-      </span>
-    </span>
-  );
-}
