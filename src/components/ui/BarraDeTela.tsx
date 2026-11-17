@@ -33,10 +33,9 @@ export interface CampoDaBarra {
    */
   ativo?: boolean;
   /**
-   * Na barra do desktop, fica com a largura do próprio campo em vez de uma
-   * coluna inteira da grade. Para seletor curto de largura fixa (o "Mês" do
-   * Dashboard): na grade de colunas iguais sobrava um vão entre ele e o campo
-   * seguinte (17/11/2026).
+   * Na barra do desktop, fica com a largura do próprio campo em vez da
+   * largura padrão dos campos (w-56). Para seletor com largura própria (o
+   * "Mês" do Dashboard).
    */
   encolher?: boolean;
 }
@@ -120,7 +119,6 @@ export function BarraDeTela({
   const [expandido, setExpandido] = useState(false);
 
   const camposNaBarra = isMobile ? [] : campos;
-  const algumEncolhe = camposNaBarra.some((c) => c.encolher);
   const camposNoPainel = isMobile ? campos : [];
   const temPainel = painel != null || camposNoPainel.length > 0;
   const contagem = filtrosAtivos + camposNoPainel.filter((c) => c.ativo).length;
@@ -220,46 +218,34 @@ export function BarraDeTela({
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 w-full", className)}>
-      {/* Grade e não flex: num flex a largura mínima do item é o `min-content`,
-          e bastava um nome de centro maior para a busca encolher. */}
-      {/* Com um campo que ENCOLHE, a grade vira fileira: o curto fica com a
-          própria largura e os outros dividem o resto, até um teto (sem teto,
-          um campo esticaria até os botões da direita). */}
-      <div
-        className={cn(
-          algumEncolhe
-            ? "flex flex-1 min-w-0 gap-2"
-            : "grid flex-1 min-w-0 gap-2 grid-cols-1",
-          !algumEncolhe && camposNaBarra.length === 1 && "sm:grid-cols-2",
-          !algumEncolhe &&
-            camposNaBarra.length >= 2 &&
-            "sm:grid-cols-2 lg:grid-cols-3",
-        )}
-      >
-        {algumEncolhe && busca ? (
-          <div className="flex-1 min-w-0 max-w-md">{busca}</div>
-        ) : (
-          busca
-        )}
-        {camposNaBarra.map((c) => (
-          <div
-            key={c.rotulo}
-            className={
-              algumEncolhe
-                ? c.encolher
-                  ? "shrink-0"
-                  : "flex flex-1 min-w-0 max-w-md"
-                : undefined
-            }
-          >
-            {c.campo}
-          </div>
-        ))}
+    <div
+      className={cn(
+        "flex flex-wrap xl:flex-nowrap items-center gap-2 w-full",
+        className,
+      )}
+    >
+      {/* UMA LINHA (17/11/2026): busca estica, cada campo tem largura FIXA e
+          os botões ficam na ponta. Antes era uma grade de 3 colunas: com busca
+          + 3 campos o quarto item caía sozinho numa 2ª linha e o botão ficava
+          centralizado entre as duas — desalinhado em quase toda tela do
+          Field. Faltando espaço, campos e busca encolhem até 160px; abaixo
+          de xl a linha pode quebrar. */}
+      {busca ? <div className="flex-1 min-w-40">{busca}</div> : null}
+      {camposNaBarra.map((c) => (
+        <div
+          key={c.rotulo}
+          className={c.encolher ? "shrink-0" : "w-56 min-w-40 shrink"}
+        >
+          {c.campo}
+        </div>
+      ))}
+      {/* Botões num grupo encostado à direita (`ml-auto`), também quando a
+          linha quebra; sem busca, é ele que empurra os botões para a ponta. */}
+      <div className="flex items-center gap-2 ml-auto shrink-0">
+        {botaoFiltros}
+        {acoes}
+        {acaoPrincipal}
       </div>
-      {botaoFiltros}
-      {acoes}
-      {acaoPrincipal}
     </div>
   );
 }
