@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
-import IconeFinancas from "~icons/ph/currency-circle-dollar-duotone";
-import IconeField from "~icons/ph/plant-duotone";
+import IconeFinancas from "~icons/ph/currency-circle-dollar-fill";
+import IconeField from "~icons/ph/plant-fill";
 
 /**
  * Módulos do gerentia — ver docs/UNIFICACAO-FIELD.md.

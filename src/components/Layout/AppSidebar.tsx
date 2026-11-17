@@ -22,8 +22,8 @@ export interface RailItem {
  * Field o trilho passou de 11 para ~20 telas, e ícone sozinho virou navegação
  * por tentativa; o nome visível resolve sem o passo do tooltip.
  *
- * Os ícones têm **uma cor só** (17/11/2026): o grafite do próprio texto, em
- * duotone. Até então cada página tinha seu matiz, e o menu ficava colorido
+ * Os ícones têm **uma cor só** (17/11/2026): cheios (fill), no grafite do
+ * próprio texto. Até então cada página tinha seu matiz, e o menu ficava colorido
  * demais. Quem diz o nome é o texto, e o fundo marca a página aberta.
  */
 export function AppSidebar({

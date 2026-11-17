@@ -289,7 +289,7 @@ Testar na **web** (abre a página de imprimir) e no **celular** (gera PDF e abre
 **Cores da marca:**
 - [ ] Botão principal (Novo Lançamento, Salvar, Entrar) em `#3C3C42`; cinzas do app com o
       leve tom frio do grafite (menu, bordas, textos de apoio).
-- [ ] Menu lateral com ícone + nome; seletor de módulo e conta com nome; topo só com o nome "gerentia.app"; ícones numa cor só (grafite), legíveis no claro e no escuro.
+- [ ] Menu lateral com ícone + nome; seletor de módulo e conta com nome; topo só com o nome "gerentia.app"; ícones cheios, numa cor só (grafite), legíveis no claro e no escuro.
 
 **Tema escuro (Conta → Aparência; atalho no menu da conta e na gaveta do celular):**
 - [ ] Claro / Escuro / Igual ao Sistema; a escolha vale para o aparelho e sobrevive ao F5,

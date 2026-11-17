@@ -10,7 +10,7 @@ import SlidersHorizontal from "~icons/ph/sliders-horizontal";
 import Repeat from "~icons/ph/arrows-clockwise";
 import Checklist from "~icons/ph/list-checks";
 import CalendarDots from "~icons/ph/calendar-dots";
-import RailCalendario from "~icons/ph/calendar-dots-duotone";
+import RailCalendario from "~icons/ph/calendar-dots-fill";
 import NotificationsIcon from "~icons/ph/bell";
 import Users from "~icons/ph/users";
 import ManageAccounts from "~icons/ph/user-gear";
@@ -18,22 +18,22 @@ import Domain from "~icons/ph/buildings";
 // Duotone, um por página, no trilho do desktop. Duotone e não sólido: o segundo
 // tom entra a 20% de opacidade, então a coluna lê como glifo colorido sobre
 // lavagem clara — sólidos, 13 matizes empilhados virariam confete.
-import RailDashboard from "~icons/ph/squares-four-duotone";
-import RailLancamentos from "~icons/ph/arrows-left-right-duotone";
-import RailNotas from "~icons/ph/receipt-duotone";
-import RailCartoes from "~icons/ph/credit-card-duotone";
-import RailRecorrencias from "~icons/ph/arrows-clockwise-duotone";
-import RailRelatorios from "~icons/ph/file-text-duotone";
-import RailAnexos from "~icons/ph/folder-open-duotone";
-import RailPendencias from "~icons/ph/list-checks-duotone";
-import RailNotificacoes from "~icons/ph/bell-duotone";
-import RailConfiguracoes from "~icons/ph/sliders-horizontal-duotone";
-import RailEquipe from "~icons/ph/users-duotone";
-import RailUsuarios from "~icons/ph/user-gear-duotone";
-import RailOrganizacoes from "~icons/ph/buildings-duotone";
-import RailTalhoes from "~icons/ph/plant-duotone";
-import RailFazendas from "~icons/ph/barn-duotone";
-import RailProdutores from "~icons/ph/user-list-duotone";
+import RailDashboard from "~icons/ph/squares-four-fill";
+import RailLancamentos from "~icons/ph/arrows-left-right-fill";
+import RailNotas from "~icons/ph/receipt-fill";
+import RailCartoes from "~icons/ph/credit-card-fill";
+import RailRecorrencias from "~icons/ph/arrows-clockwise-fill";
+import RailRelatorios from "~icons/ph/file-text-fill";
+import RailAnexos from "~icons/ph/folder-open-fill";
+import RailPendencias from "~icons/ph/list-checks-fill";
+import RailNotificacoes from "~icons/ph/bell-fill";
+import RailConfiguracoes from "~icons/ph/sliders-horizontal-fill";
+import RailEquipe from "~icons/ph/users-fill";
+import RailUsuarios from "~icons/ph/user-gear-fill";
+import RailOrganizacoes from "~icons/ph/buildings-fill";
+import RailTalhoes from "~icons/ph/plant-fill";
+import RailFazendas from "~icons/ph/barn-fill";
+import RailProdutores from "~icons/ph/user-list-fill";
 import Plant from "~icons/ph/plant";
 import Barn from "~icons/ph/barn";
 import UserList from "~icons/ph/user-list";
@@ -45,25 +45,24 @@ import Flask from "~icons/ph/flask";
 import TestTube from "~icons/ph/test-tube";
 import Globe from "~icons/ph/globe-hemisphere-west";
 import CloudSun from "~icons/ph/cloud-sun";
-import RailNdvi from "~icons/ph/globe-hemisphere-west-duotone";
-import RailClima from "~icons/ph/cloud-sun-duotone";
+import RailNdvi from "~icons/ph/globe-hemisphere-west-fill";
+import RailClima from "~icons/ph/cloud-sun-fill";
 import ChartPieSlice from "~icons/ph/chart-pie-slice";
-import RailPainel from "~icons/ph/chart-pie-slice-duotone";
+import RailPainel from "~icons/ph/chart-pie-slice-fill";
 import ChartLineUp from "~icons/ph/chart-line-up";
-import RailEnsaios from "~icons/ph/test-tube-duotone";
-import RailAnalises from "~icons/ph/chart-line-up-duotone";
-import RailPlantios from "~icons/ph/grains-duotone";
-import RailAtividades from "~icons/ph/clipboard-text-duotone";
-import RailCustos from "~icons/ph/chart-bar-duotone";
-import RailSafras from "~icons/ph/calendar-duotone";
-import RailCatalogo from "~icons/ph/flask-duotone";
+import RailEnsaios from "~icons/ph/test-tube-fill";
+import RailAnalises from "~icons/ph/chart-line-up-fill";
+import RailPlantios from "~icons/ph/grains-fill";
+import RailAtividades from "~icons/ph/clipboard-text-fill";
+import RailCustos from "~icons/ph/chart-bar-fill";
+import RailSafras from "~icons/ph/calendar-fill";
+import RailCatalogo from "~icons/ph/flask-fill";
 import CaretUpDown from "~icons/ph/caret-up-down";
 import UserCircle from "~icons/ph/user-circle";
-// Duotone e em cor própria só no gatilho da CONTA: ele é o único item do
-// trilho que não leva a uma tela de trabalho — leva a você. O segundo tom e o
-// teal (que não é usado por nenhum estado do app) o separam da fileira de
-// ícones sem precisar de rótulo, que ali não cabe.
-import UserCircleDuotone from "~icons/ph/user-circle-duotone";
+// Gatilho da CONTA: cheio e grafite como o resto do menu (17/11/2026). Até
+// então era teal em duotone; com o primeiro nome ao lado, não precisa mais de
+// cor própria para se distinguir.
+import UserCircleFill from "~icons/ph/user-circle-fill";
 import LogOut from "~icons/ph/sign-out";
 import HelpCircle from "~icons/ph/question";
 import Moon from "~icons/ph/moon";
@@ -252,9 +251,11 @@ const ACCOUNT_NAV_ITEM: NavItem = {
  * Este mapa é o botão de ajuste — a ordem se edita aqui, sem tocar em
  * componente nenhum. Rota fora do mapa não entra no trilho.
  *
- * Cor: todos em grafite desde 17/11/2026 (a cor do texto, em duotone). Antes
- * cada página tinha seu matiz, e o menu ficava colorido demais; o lima da
- * Cropware no miolo também foi testado e chamava atenção demais.
+ * Estilo: ícones CHEIOS (Phosphor fill), na cor do texto (grafite), desde
+ * 17/11/2026. Antes cada página tinha seu matiz em duotone, e o menu ficava
+ * colorido demais. Testados e descartados: miolo lima da Cropware (chamava
+ * atenção demais), duotone grafite, só contorno e contorno com cheio na
+ * página aberta — o cheio combina com o nome da marca, que também é cheio.
  */
 const RAIL_ICONES: Record<string, { Icon: NavItem["icon"] }> = {
   "/": { Icon: RailDashboard },
@@ -463,7 +464,7 @@ export function AppShell() {
           title={user?.fullName || user?.email || "Conta"}
           className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md text-sm text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
         >
-          <UserCircleDuotone className="size-5 shrink-0 text-teal-600" />
+          <UserCircleFill className="size-5 shrink-0" />
           <span className="truncate">
             {user?.fullName?.split(" ")[0] || user?.email || "Conta"}
           </span>
