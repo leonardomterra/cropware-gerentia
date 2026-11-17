@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { openExternalUrl } from "@/utils/nativeExport";
+import { LINKS_LEGAIS } from "@/components/auth/linksLegais";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LayoutDashboard from "~icons/ph/squares-four";
 import ArrowLeftRight from "~icons/ph/arrows-left-right";
@@ -57,7 +59,6 @@ import RailAtividades from "~icons/ph/clipboard-text-fill";
 import RailCustos from "~icons/ph/chart-bar-fill";
 import RailSafras from "~icons/ph/calendar-fill";
 import RailCatalogo from "~icons/ph/flask-fill";
-import CaretUpDown from "~icons/ph/caret-up-down";
 import CaretDown from "~icons/ph/caret-down";
 import UserCircle from "~icons/ph/user-circle";
 // Gatilho da CONTA: cheio e grafite como o resto do menu (17/11/2026). Até
@@ -90,7 +91,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/components/ui/utils";
@@ -456,59 +456,65 @@ export function AppShell() {
    * perfil ficam dentro do menu (é o que explica ver ou não ver o dado dos
    * colegas).
    */
-  const accountTrigger = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          title={user?.fullName || user?.email || "Conta"}
-          className="flex items-center gap-2.5 w-full h-10 px-2.5 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-        >
-          <UserCircleFill className="size-5 shrink-0" />
-          <span className="truncate">
-            {user?.fullName?.split(" ")[0] || user?.email || "Conta"}
-          </span>
-          <CaretUpDown className="ml-auto size-3.5 shrink-0 text-slate-400" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        align="start"
-        sideOffset={6}
-        className="w-56"
+  /**
+   * Ações da conta, à DIREITA da faixa do breadcrumb (17/11/2026). Eram um
+   * menu suspenso com o nome no rodapé do menu lateral; viraram botões à
+   * vista: tema e ajuda só com ícone, conta com o primeiro nome, e sair.
+   * A ajuda abre a do site da Cropware — as ajudas ficam centralizadas lá.
+   * Em org com equipe, a organização e o perfil vão no `title` da conta (era
+   * o cabeçalho do menu suspenso).
+   */
+  const primeiroNome = user?.fullName?.split(" ")[0] || user?.email || "Conta";
+  const BOTAO_DO_TOPO =
+    "h-8 inline-flex items-center gap-1.5 rounded-md text-sm text-[#19191d] hover:bg-black/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-black/20";
+  const abrirAjuda = () => void openExternalUrl(LINKS_LEGAIS.ajuda);
+  const acoesDaConta = (
+    <div className="flex items-center gap-0.5 shrink-0">
+      <button
+        type="button"
+        onClick={alternarTema}
+        title={rotuloDoTema}
+        aria-label={rotuloDoTema}
+        className={cn(BOTAO_DO_TOPO, "size-8 justify-center")}
       >
-        {/* Em org com equipe o usuario precisa saber ONDE esta e COM QUE
-              perfil — e' o que explica ver (ou nao ver) o dado dos colegas.
-              No assinante avulso isso e' redundante e fica escondido. */}
-        {isTeamOrg && (
-          <>
-            <div className="px-2 py-1.5">
-              <p className="text-xs font-medium text-slate-900 truncate">
-                {user?.organizationName}
-              </p>
-              <p className="text-[11px] text-slate-500">
-                {user ? ROLE_LABELS[user.role] : ""}
-              </p>
-            </div>
-            <DropdownMenuSeparator className="bg-white/10" />
-          </>
+        {tema === "escuro" ? (
+          <Sun className="size-[18px]" />
+        ) : (
+          <Moon className="size-[18px]" />
         )}
-        {/* Sem ícones: são três palavras curtas, e o ícone ali não distingue
-            nada — só repete o rótulo. (Nos menus de ORDENAR eles ficam, porque
-            lá separam critérios parecidos.) */}
-        <DropdownMenuItem onSelect={() => navigate("/conta")}>
-          Conta
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => {}}>Ajuda</DropdownMenuItem>
-        <DropdownMenuItem onSelect={alternarTema}>
-          {rotuloDoTema}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuItem onSelect={() => void signOut()}>
-          Sair
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </button>
+      <button
+        type="button"
+        onClick={abrirAjuda}
+        title="Ajuda (cropware.com.br)"
+        aria-label="Ajuda"
+        className={cn(BOTAO_DO_TOPO, "size-8 justify-center")}
+      >
+        <HelpCircle className="size-[18px]" />
+      </button>
+      <span aria-hidden className="mx-1.5 h-5 w-px bg-black/15" />
+      <button
+        type="button"
+        onClick={() => navigate("/conta")}
+        title={
+          isTeamOrg && user
+            ? `Conta · ${user.organizationName} · ${ROLE_LABELS[user.role]}`
+            : "Conta"
+        }
+        className={cn(BOTAO_DO_TOPO, "px-2.5 max-w-48")}
+      >
+        <UserCircleFill className="size-[18px] shrink-0" />
+        <span className="truncate">{primeiroNome}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        className={cn(BOTAO_DO_TOPO, "px-2.5")}
+      >
+        <LogOut className="size-[18px] shrink-0" />
+        Sair
+      </button>
+    </div>
   );
 
   /**
@@ -603,7 +609,7 @@ export function AppShell() {
           <LogoName className="h-5 shrink-0" style={{ filter: "none" }} />
           {seloDoModulo}
         </div>
-        <AppSidebar itens={railItens} footer={accountTrigger} />
+        <AppSidebar itens={railItens} />
       </aside>
 
       {/* BOTTOM SHEET MOBILE: menu que sobe ACIMA da barra "Menu" (que continua
@@ -675,7 +681,10 @@ export function AppShell() {
               </button>
               <button
                 type="button"
-                onClick={() => setMobileOpen(false)}
+                onClick={() => {
+                  setMobileOpen(false);
+                  abrirAjuda();
+                }}
                 className="flex items-center justify-start gap-2.5 h-11 px-3 rounded-md text-sm text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 <HelpCircle className="size-5 shrink-0" />
@@ -727,6 +736,7 @@ export function AppShell() {
           <div className="flex-1 min-w-0">
             <PageBreadcrumb segments={breadcrumbSegments} embedded />
           </div>
+          {acoesDaConta}
         </div>
 
         {/* MOBILE: cabeçalho com a logo centralizada (safe-area no topo) */}
