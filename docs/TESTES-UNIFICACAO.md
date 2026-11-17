@@ -232,3 +232,43 @@ antecipar essa migração só para ter massa de teste.
 - [ ] A lista de atividades mostra o clipe com a quantidade.
 - [ ] Avaliação de ensaio: as mesmas fotos e arquivos.
 - [ ] Usuário de outra organização não abre a foto (link restrito à pasta da org).
+
+## Fase 6 — relatórios (plantio, ensaio, painel da safra)
+
+Testar na **web** (abre a página de imprimir) e no **celular** (gera PDF e abre o compartilhar).
+
+**Relatório do plantio (menu ⋯ do cartão → "Relatório", ou os botões no topo do plantio aberto):**
+- [ ] Cartões: área, custo agronômico, R$/ha e produtividade (ou graus-dia, sem colheita).
+- [ ] "Dados do plantio": produtor, fazenda, talhão, safra, cultura, finalidade, datas, área,
+      população, semente, graus-dia e observações (texto longo quebra em linhas no PDF).
+- [ ] "Atividades": todas as do plantio, por data, com produtos e dose; o total soma só as
+      realizadas (as planejadas aparecem em "Dados do plantio" como "Planejado (a fazer)").
+- [ ] "Custo agronômico por tipo" com a rosca; R$/ha pela área do plantio (a parcial, se for).
+- [ ] "Lançamentos do financeiro no talhão": os do talhão na janela da safra (sem safra, do plantio
+      até a colheita), à parte do agronômico; fatura e previsto ficam fora.
+- [ ] "Relatório com fotos (N)" só aparece com foto ou PDF nas atividades; as fotos vão no fim,
+      cada uma com a legenda "data · tipo · arquivo".
+- [ ] CSV abre no Excel com as mesmas tabelas.
+
+**Relatório do ensaio (menu ⋯ do cartão, ou os botões no topo do ensaio aberto):**
+- [ ] "Dados do ensaio" e "Produtos" (dose, população, custo/ha).
+- [ ] Uma tabela por etapa de avaliação (produto × características); produto sem avaliação
+      aparece com "—"; as avulsas (WhatsApp) numa tabela à parte.
+- [ ] "Colheita" com as barras por produto; a produtividade é a mesma da aba Colheita.
+- [ ] "ROI" igual ao da aba ROI (mesma conta; o botão da aba ROI continua gerando só o ROI).
+- [ ] Com fotos: legenda "etapa · data · produto · arquivo".
+
+**Painel da safra (`/campo/painel`, primeiro item do Field no trilho):**
+- [ ] Abre na safra vigente; troca safra e fazenda.
+- [ ] Cartões: área plantada, plantios, atividades atrasadas (planejadas com data passada),
+      colheitas previstas nos próximos 15 dias.
+- [ ] Área por cultura (rosca) e por finalidade; produtividade colhida por cultura (média
+      ponderada pela área, sc/ha separado de t/ha); custo agronômico por tipo (barras).
+- [ ] Tabela dos plantios com situação e atividades feitas/total (e atrasadas).
+- [ ] Plantio sem safra marcada entra pela data de plantio dentro da janela da safra.
+- [ ] CSV e Relatório; o link leva a Custo por Talhão.
+
+**Sem regressão no financeiro:**
+- [ ] Relatórios → "com anexos" continua juntando as notas no PDF (web e celular).
+- [ ] Notas → selecionar várias → Imprimir continua juntando os anexos.
+- [ ] Um lançamento com emoji na descrição não derruba mais o PDF do celular.

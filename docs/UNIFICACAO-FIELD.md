@@ -230,6 +230,20 @@ Cada fase vai ao ar sozinha.
   - **Ficou para depois:** o visualizador com zoom e o valor no clique do NDVI; o relatório de
     NDVI; apagar no R2 o anexo removido; o clima e a janela de aplicação pelo WhatsApp (fase 7).
 
+- **Fase 6 (16/11/2026): pronta na branch** (sem migration; o servidor só ganhou a rota
+  `GET /campo/anexos/arquivo`, que vai junto no próximo `deploy:edge`; testes manuais pendentes).
+  - Mesmo formato de relatório do financeiro (`ReportDoc`): CSV, página de imprimir na web, PDF no
+    celular. Fotos opcionais ("Relatório com fotos"), no fim, com legenda.
+  - **Relatório do plantio:** ficha, atividades, custo por tipo, lançamentos do talhão à parte,
+    GDD e produtividade colhida.
+  - **Relatório do ensaio:** produtos, uma tabela por etapa, avulsas, colheita e ROI — a aba ROI
+    usa a mesma tabela.
+  - **Painel da safra** (`/campo/painel`) no lugar do painel de plantios do Flag Field, sem repetir
+    o Dashboard nem Custos.
+  - **De quebra:** o PDF do celular deixou de quebrar com emoji ou seta no texto (valia também
+    para o financeiro); colunas de texto longo quebram linha no PDF em vez de cortar.
+  - **Ficou para depois:** mapa do talhão no relatório (junto com o relatório de NDVI).
+
 ## 10. Em aberto
 
 - **LEMBRAR O LEONARDO ao fim da unificação:** criar a chave do Microsoft Planetary Computer e
