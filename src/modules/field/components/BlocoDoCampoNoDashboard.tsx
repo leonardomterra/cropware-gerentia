@@ -8,6 +8,8 @@ import { areaDoPlantio, dentroDaJanela } from "../dominio/custo";
 import { montarCustosPorTalhao, porHa } from "../dominio/relatorioDeCustos";
 import { somarDias } from "@/modules/tasks/agrupar";
 import { cn } from "@/components/ui/utils";
+import { localDaFazenda, useClima } from "../hooks/useClima";
+import { ResumoDoClima } from "./ClimaDoCampo";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", {
@@ -79,6 +81,13 @@ export function BlocoDoCampoNoDashboard() {
     };
   }, [c.talhoes, c.plantios, c.safras, a.atividades, l.lancamentos, hoje]);
 
+  // Clima da primeira fazenda com local (sede ou talhão desenhado).
+  const fazendaDoClima =
+    c.fazendas.find((f) => localDaFazenda(f, c.talhoes)) ?? null;
+  const { clima } = useClima(
+    fazendaDoClima ? localDaFazenda(fazendaDoClima, c.talhoes) : null,
+  );
+
   if (c.carregando || a.carregando) return null;
   // Nada cadastrado ainda: o bloco não tem o que dizer.
   if (c.talhoes.length === 0) return null;
@@ -137,6 +146,18 @@ export function BlocoDoCampoNoDashboard() {
           link={dados.safra ? "/campo/custos" : "/campo/safras"}
         />
       </div>
+
+      {clima && fazendaDoClima && (
+        <div className="space-y-1">
+          <p className="text-xs text-slate-500">
+            Clima · {fazendaDoClima.name}{" "}
+            <Link to="/campo/clima" className="hover:text-slate-900">
+              (ver previsão)
+            </Link>
+          </p>
+          <ResumoDoClima clima={clima} compacto />
+        </div>
+      )}
 
       {(dados.proximas.length > 0 ||
         dados.atrasadas.length > 0 ||

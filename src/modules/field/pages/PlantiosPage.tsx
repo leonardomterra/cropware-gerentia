@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCadastros } from "../hooks/useCadastros";
+import { GddDoPlantio } from "../components/GddDoPlantio";
 import { usePermissoesDoCampo } from "../hooks/usePermissoesDoCampo";
 import {
   CartaoDeCadastro,
@@ -519,6 +520,16 @@ export default function PlantiosPage() {
                 />
               </Campo>
             </>
+          )}
+          {/* GDD só ao ver um plantio já salvo (fase 5). */}
+          {leitura && editando && (
+            <div className="sm:col-span-2">
+              <GddDoPlantio
+                plantio={editando}
+                fazenda={t ? (fazendaPorId.get(t.farm_id) ?? null) : null}
+                talhoes={c.talhoes}
+              />
+            </div>
           )}
           <Campo
             rotulo="Observações"
