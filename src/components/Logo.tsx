@@ -63,7 +63,7 @@ export function LogoName({
 export function LogoNameDoModulo({ modulo }: { modulo: string }) {
   return (
     <span
-      className="flex items-center gap-0.5 min-w-0"
+      className="flex items-center gap-1 min-w-0"
       aria-label={`gerentia.app/${modulo}`}
     >
       <LogoName className="h-[18px] shrink-0" alt="" />
