@@ -1,4 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
+import MapPin from "~icons/ph/map-pin";
+import Flag from "~icons/ph/flag-fill";
 import Plus from "~icons/ph/plus";
 import Pencil from "~icons/ph/pencil-simple";
 import Trash2 from "~icons/ph/trash";
@@ -59,7 +62,11 @@ import {
   origemDoLembrete,
 } from "../components/MarcaDeOrigem";
 import { useTasks } from "../hooks/useTasks";
-import type { Task, TaskInput } from "../types";
+import type { Task, TaskInput, TaskKind, TaskPriority } from "../types";
+import { ROTULO_DO_GRUPO, TIPOS_DE_PENDENCIA, agrupar } from "../agrupar";
+import { modulosVisiveis } from "@/lib/modulos";
+import { useOpcoesDeVinculo } from "@/modules/field/hooks/useOpcoesDeVinculo";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   useReceipts,
   updateReceipt,
@@ -170,6 +177,13 @@ interface FormStateTask {
   notes: string;
   total_value: string; // mascarado (formatBRLInput), igual ao form de lançamento
   cost_center_id: string;
+  // Agenda (fase 3 da unificação).
+  due_time: string;
+  kind: TaskKind;
+  priority: TaskPriority;
+  location: string;
+  farm_id: string;
+  plot_id: string;
 }
 
 const EMPTY_FORM: FormStateTask = {
@@ -178,11 +192,31 @@ const EMPTY_FORM: FormStateTask = {
   notes: "",
   total_value: "",
   cost_center_id: NO_CC,
+  due_time: "",
+  kind: "lembrete",
+  priority: "normal",
+  location: "",
+  farm_id: "",
+  plot_id: "",
 };
 
 export default function PendenciasPage() {
-  const { user, isViewer } = useAuth();
+  const { user, isViewer, isMaster } = useAuth();
   const { tasks, loading, create, update, remove, toggleDone } = useTasks();
+  // Fazenda/talhão do compromisso — só com o módulo Field visível.
+  const fieldVisivel = modulosVisiveis(user?.modules, isMaster).includes(
+    "field",
+  );
+  const vinculo = useOpcoesDeVinculo(fieldVisivel);
+  const nomeDaFazenda = new Map(vinculo.fazendas.map((f) => [f.id, f.name]));
+  const nomeDoTalhao = new Map(vinculo.talhoes.map((t) => [t.id, t.name]));
+  const ondeFica = (t: Task) =>
+    [
+      t.plot_id ? nomeDoTalhao.get(t.plot_id) : null,
+      t.farm_id ? nomeDaFazenda.get(t.farm_id) : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
   const {
     receipts,
     loading: finLoading,
@@ -247,9 +281,29 @@ export default function PendenciasPage() {
         ? formatBRLInput(String(Math.round(t.total_value * 100)))
         : "",
       cost_center_id: t.cost_center_id || NO_CC,
+      due_time: t.due_time ? t.due_time.slice(0, 5) : "",
+      kind: t.kind ?? "lembrete",
+      priority: t.priority ?? "normal",
+      location: t.location || "",
+      farm_id: t.farm_id || "",
+      plot_id: t.plot_id || "",
     });
     setFormAberto(true);
   }
+
+  // `?abrir=<id>` — o Calendário manda para cá com o lembrete a abrir.
+  const [params, setParams] = useSearchParams();
+  const abrirId = params.get("abrir");
+  useEffect(() => {
+    if (!abrirId || loading) return;
+    const t = tasks.find((x) => x.id === abrirId);
+    if (t) openEdit(t);
+    setParams((p) => {
+      p.delete("abrir");
+      return p;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirId, loading, tasks]);
 
   async function handleSubmit() {
     const title = form.title.trim();
@@ -266,6 +320,14 @@ export default function PendenciasPage() {
       total_value: Number.isFinite(v) && v > 0 ? v : null,
       cost_center_id:
         form.cost_center_id === NO_CC ? null : form.cost_center_id,
+      due_time: form.due_time || null,
+      kind: form.kind,
+      priority: form.priority,
+      location: form.location.trim() || null,
+      // Sem o Field visível, não mexe no vínculo (o servidor mantém o que há).
+      ...(fieldVisivel
+        ? { farm_id: form.farm_id || null, plot_id: form.plot_id || null }
+        : {}),
     };
     const ok = editing
       ? await update(editing.id, payload)
@@ -524,6 +586,119 @@ export default function PendenciasPage() {
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Hora
+              </label>
+              <Input
+                type="time"
+                value={form.due_time}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, due_time: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Tipo
+              </label>
+              <Select
+                value={form.kind}
+                onValueChange={(v) =>
+                  setForm((s) => ({ ...s, kind: v as TaskKind }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPOS_DE_PENDENCIA).map(([v, rotulo]) => (
+                    <SelectItem key={v} value={v}>
+                      {rotulo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Prioridade
+              </label>
+              <Select
+                value={form.priority}
+                onValueChange={(v) =>
+                  setForm((s) => ({ ...s, priority: v as TaskPriority }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 block mb-1">
+                Local
+              </label>
+              <Input
+                placeholder="Endereço ou online"
+                value={form.location}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, location: e.target.value }))
+                }
+                maxLength={200}
+              />
+            </div>
+          </div>
+          {fieldVisivel && vinculo.fazendas.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Fazenda
+                </label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "Sem fazenda" },
+                    ...vinculo.fazendas.map((f) => ({
+                      value: f.id,
+                      label: f.name,
+                    })),
+                  ]}
+                  value={form.farm_id}
+                  onValueChange={(v) =>
+                    setForm((s) => ({
+                      ...s,
+                      farm_id: v,
+                      plot_id: v === s.farm_id ? s.plot_id : "",
+                    }))
+                  }
+                  searchPlaceholder="Buscar fazenda..."
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">
+                  Talhão
+                </label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "Fazenda inteira" },
+                    ...vinculo.talhoes
+                      .filter((t) => t.farm_id === form.farm_id)
+                      .map((t) => ({ value: t.id, label: t.name })),
+                  ]}
+                  value={form.plot_id}
+                  onValueChange={(v) => setForm((s) => ({ ...s, plot_id: v }))}
+                  searchPlaceholder="Buscar talhão..."
+                  disabled={!form.farm_id}
+                />
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {ccs.length > 1 && (
               <div>
@@ -704,20 +879,41 @@ export default function PendenciasPage() {
               text="Nenhum lembrete"
             />
           ) : (
-            visibleTasks.map((t) => (
-              <TaskCard
-                key={t.id}
-                t={t}
-                cc={
-                  t.cost_center_id
-                    ? (ccById.get(t.cost_center_id) ?? null)
-                    : null
-                }
-                onToggleDone={() => void toggleDone(t)}
-                onEdit={() => openEdit(t)}
-                onRemove={() => setPendingRemove(t)}
-                onConvert={(kind) => openConvert(t, kind)}
-              />
+            // Na ordem por vencimento, a coluna vem em grupos (Atrasados, Hoje,
+            // Próximos 7 dias...). Nas outras ordens o agrupamento brigaria
+            // com o critério escolhido, então fica a lista corrida.
+            (ordem === "vencimento"
+              ? agrupar(visibleTasks, todayISO())
+              : [{ grupo: null, itens: visibleTasks }]
+            ).map(({ grupo, itens }) => (
+              <div key={grupo ?? "todos"} className="space-y-2">
+                {grupo && (
+                  <h3
+                    className={cn(
+                      "text-xs font-medium uppercase tracking-wide pt-1",
+                      grupo === "atrasados" ? "text-red-700" : "text-slate-400",
+                    )}
+                  >
+                    {ROTULO_DO_GRUPO[grupo]} · {itens.length}
+                  </h3>
+                )}
+                {itens.map((t) => (
+                  <TaskCard
+                    key={t.id}
+                    t={t}
+                    cc={
+                      t.cost_center_id
+                        ? (ccById.get(t.cost_center_id) ?? null)
+                        : null
+                    }
+                    onde={ondeFica(t)}
+                    onToggleDone={() => void toggleDone(t)}
+                    onEdit={() => openEdit(t)}
+                    onRemove={() => setPendingRemove(t)}
+                    onConvert={(kind) => openConvert(t, kind)}
+                  />
+                ))}
+              </div>
             ))
           )}
         </Column>
@@ -875,12 +1071,15 @@ function ConvertMenuItem({
 // Card de lembrete no mesmo padrão dos financeiros. Ativo: Converter / Editar /
 // Excluir. Resolvido (= virou lançamento): disabled + Reativar / Tirar.
 //
-// NÃO tem "Concluir" avulso: todo lembrete é financeiro, então resolver um é
-// convertê-lo em lançamento — um "concluir" que não gera lançamento só some com
-// o compromisso sem registrar o dinheiro (decisão 15/07).
+// "Concluir" avulso SÓ quando não há valor. A decisão de 15/07 era "todo
+// lembrete é financeiro, resolver é converter em lançamento" — e continua
+// valendo para o lembrete COM valor. Desde a fase 3 da unificação (16/11) a
+// pendência também guarda agenda (reunião, visita...), que não tem dinheiro a
+// registrar: obrigar a converter isso em lançamento não faria sentido.
 function TaskCard({
   t,
   cc,
+  onde,
   onToggleDone,
   onEdit,
   onRemove,
@@ -888,6 +1087,8 @@ function TaskCard({
 }: {
   t: Task;
   cc: CostCenter | null;
+  /** "Talhão · Fazenda" (agenda do Field), quando houver. */
+  onde: string | null;
   onToggleDone: () => void;
   onEdit: () => void;
   onRemove: () => void;
@@ -911,29 +1112,59 @@ function TaskCard({
         >
           {t.title.toUpperCase()}
         </span>
-      </div>
-      <div
-        className={cn(
-          "font-medium",
-          hasValue && !t.done ? "text-slate-900" : "text-slate-400",
-        )}
-      >
-        {fmtBRL(t.total_value ?? 0)}
-      </div>
-      <div className="flex items-center gap-1.5 text-sm text-slate-500 min-w-0">
-        {cc && (
-          <CostCenterChip
-            icon={cc.icon}
-            color={cc.color}
-            className="size-5 shrink-0"
+        {t.priority === "high" && !t.done && (
+          <Flag
+            className="size-4 shrink-0 text-red-600"
+            aria-label="Prioridade alta"
           />
         )}
-        <span className={cn("truncate", !cc && "text-slate-400")}>
-          {cc ? cc.name : "Sem centro"}
-        </span>
       </div>
+      {(t.kind && t.kind !== "lembrete") || onde || t.location ? (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 min-w-0">
+          {t.kind && t.kind !== "lembrete" && (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+              {TIPOS_DE_PENDENCIA[t.kind]}
+            </span>
+          )}
+          {(onde || t.location) && (
+            <span className="inline-flex items-center gap-1 truncate min-w-0">
+              <MapPin className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {[onde, t.location].filter(Boolean).join(" · ")}
+              </span>
+            </span>
+          )}
+        </div>
+      ) : null}
+      {/* Compromisso de agenda (reunião, visita...) sem valor: as linhas de
+          dinheiro só diriam "R$ 0,00 · Sem centro". */}
+      {(hasValue || t.kind === "lembrete" || !t.kind) && (
+        <>
+          <div
+            className={cn(
+              "font-medium",
+              hasValue && !t.done ? "text-slate-900" : "text-slate-400",
+            )}
+          >
+            {fmtBRL(t.total_value ?? 0)}
+          </div>
+          <div className="flex items-center gap-1.5 text-sm text-slate-500 min-w-0">
+            {cc && (
+              <CostCenterChip
+                icon={cc.icon}
+                color={cc.color}
+                className="size-5 shrink-0"
+              />
+            )}
+            <span className={cn("truncate", !cc && "text-slate-400")}>
+              {cc ? cc.name : "Sem centro"}
+            </span>
+          </div>
+        </>
+      )}
       <div className={cn("text-sm", prazoDoCard(t.due_date, t.done).classe)}>
         {prazoDoCard(t.due_date, t.done).texto}
+        {t.due_date && t.due_time ? ` às ${t.due_time.slice(0, 5)}` : ""}
       </div>
       <div className="flex items-center gap-1 border-t border-slate-100 -mx-3 px-3 pt-2 mt-auto">
         {t.done ? (
@@ -952,6 +1183,13 @@ function TaskCard({
           </>
         ) : (
           <>
+            {!hasValue && (
+              <ActionIconButton
+                icon={CheckCircle}
+                label="Concluir"
+                onClick={onToggleDone}
+              />
+            )}
             <Popover open={convOpen} onOpenChange={setConvOpen}>
               <PopoverTrigger asChild>
                 <button

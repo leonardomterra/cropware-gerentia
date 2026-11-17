@@ -1,4 +1,12 @@
 export type TaskPriority = "low" | "normal" | "high";
+/** Tipo do compromisso — a Agenda do Flag Field entrou aqui (fase 3). */
+export type TaskKind =
+  | "lembrete"
+  | "reuniao"
+  | "visita"
+  | "deslocamento"
+  | "manutencao"
+  | "outro";
 
 /**
  * Um Lembrete: compromisso financeiro que ainda não virou lançamento.
@@ -21,6 +29,12 @@ export interface Task {
   /** Como o lembrete entrou: "manual" (tela) ou "whatsapp"/"telegram" (IA leu
    *  de texto livre — valor e data podem ter sido interpretados errado). */
   source: "manual" | "whatsapp" | "telegram";
+  /** Agenda (fase 3): hora "HH:MM[:SS]", tipo, local, fazenda/talhão. */
+  due_time: string | null;
+  kind: TaskKind;
+  location: string | null;
+  farm_id: string | null;
+  plot_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,4 +47,9 @@ export interface TaskInput {
   priority?: TaskPriority;
   total_value?: number | null;
   cost_center_id?: string | null;
+  due_time?: string | null;
+  kind?: TaskKind;
+  location?: string | null;
+  farm_id?: string | null;
+  plot_id?: string | null;
 }
