@@ -6,7 +6,7 @@ import { CC_COLORS, corDoCentro } from "./types";
 import IconHome from "~icons/ph/house-fill";
 import IconPerson from "~icons/ph/user-fill";
 import IconAgriculture from "~icons/ph/tractor-fill";
-import IconEco from "~icons/ph/plant-fill";
+import IconEco from "~icons/ph/leaf-fill";
 import IconStore from "~icons/ph/storefront-fill";
 import IconCar from "~icons/ph/car-fill";
 import IconSavings from "~icons/ph/piggy-bank-fill";

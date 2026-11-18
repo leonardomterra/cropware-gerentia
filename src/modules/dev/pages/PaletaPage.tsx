@@ -21,7 +21,7 @@ import IconeSucesso from "~icons/ph/check-circle-fill";
 import IconeAtencao from "~icons/ph/warning-fill";
 import IconePerigo from "~icons/ph/x-circle-fill";
 import IconeInfo from "~icons/ph/info-fill";
-import IconePlanta from "~icons/ph/plant-fill";
+import IconePlanta from "~icons/ph/leaf-fill";
 import IconeGrafico from "~icons/ph/chart-bar-fill";
 import IconeCalendario from "~icons/ph/calendar-dots-fill";
 import IconeArquivo from "~icons/ph/file-text-fill";
