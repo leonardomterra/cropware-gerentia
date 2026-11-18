@@ -461,12 +461,14 @@ export function AppShell() {
    * menu suspenso com o nome no rodapé do menu lateral; viraram botões à
    * vista: tema e ajuda só com ícone, conta com o primeiro nome, e sair.
    * A ajuda abre a do site da Cropware — as ajudas ficam centralizadas lá.
+   * Hover SÓLIDO em grafite com texto branco (o selo do módulo e o item ativo
+   * do menu): uma película translúcida deixava o relevo da faixa aparecer.
    * Em org com equipe, a organização e o perfil vão no `title` da conta (era
    * o cabeçalho do menu suspenso).
    */
   const primeiroNome = user?.fullName?.split(" ")[0] || user?.email || "Conta";
   const BOTAO_DO_TOPO =
-    "h-8 inline-flex items-center gap-1.5 rounded-md text-sm text-[#19191d] hover:bg-black/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-black/20";
+    "h-8 inline-flex items-center gap-1.5 rounded-md text-sm text-[#19191d] hover:bg-[#3c3c42] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-black/20";
   const abrirAjuda = () => void openExternalUrl(LINKS_LEGAIS.ajuda);
   const acoesDaConta = (
     <div className="flex items-center gap-0.5 shrink-0">
