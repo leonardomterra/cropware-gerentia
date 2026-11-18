@@ -562,7 +562,6 @@ export function AppShell() {
               onSelect={() => trocarModulo(id)}
               className={cn(id === moduloAtivo && "font-semibold")}
             >
-              <m.Icon className="size-5 shrink-0" />
               {m.nome}
             </DropdownMenuItem>
           );
