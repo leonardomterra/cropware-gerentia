@@ -5,8 +5,6 @@ import "@fontsource/alumni-sans/600.css";
 import "@fontsource/alumni-sans/800.css";
 import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource-variable/mozilla-text";
-// Nome dos módulos no selo do menu ("finance", "field"), 18/11/2026.
-import "@fontsource-variable/dm-sans";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "./app.css";
