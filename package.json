@@ -30,6 +30,7 @@
     "@fontsource-variable/mozilla-text": "^5.2.2",
     "@fontsource/alumni-sans": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/press-start-2p": "^5.3.0",
     "@fontsource/space-mono": "^5.2.9",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.3",
