@@ -24,7 +24,9 @@ export interface Modulo {
 export const MODULOS: Modulo[] = [
   {
     id: "financas",
-    nome: "Finanças",
+    // "Finance" e não "Finanças" (18/11/2026): os nomes dos módulos são de
+    // produto, e ficam consistentes com o "Field".
+    nome: "Finance",
     Icon: IconeFinancas,
   },
   { id: "field", nome: "Field", Icon: IconeField },

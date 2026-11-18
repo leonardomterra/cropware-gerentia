@@ -527,7 +527,7 @@ export function AppShell() {
    */
   const ativo = moduloPorId(moduloAtivo);
   const SELO_DO_MODULO =
-    "h-6 shrink-0 inline-flex items-center rounded-md bg-slate-800 text-white text-xs font-medium";
+    "fonte-modulo h-6 shrink-0 inline-flex items-center rounded-md bg-slate-800 text-white text-[13px] font-medium";
   const seloDoModulo = variosModulos ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -560,7 +560,7 @@ export function AppShell() {
               className={cn(id === moduloAtivo && "font-semibold")}
             >
               <m.Icon className="size-5 shrink-0" />
-              {m.nome}
+              <span className="fonte-modulo">{m.nome}</span>
             </DropdownMenuItem>
           );
         })}
@@ -605,7 +605,7 @@ export function AppShell() {
         <div className="faixa-lima tema-claro -mr-px flex items-center justify-between gap-2 h-13 shrink-0 px-4 border-b">
           {/* Só o nome no menu (17/11/2026): o símbolo fica na entrada. Nome
               a 20px e selo do módulo na ponta, para ocupar a largura. O menu
-              foi de 224 para 240px para caber "Finanças" + seta com folga. */}
+              foi de 224 para 240px para caber o nome + seta com folga. */}
           {/* filter: none — no tema escuro a marca clareia sozinha (app.css,
               .marca-img); sobre o lima ela fica grafite. */}
           <LogoName className="h-5 shrink-0" style={{ filter: "none" }} />

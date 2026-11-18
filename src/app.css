@@ -1198,6 +1198,14 @@ input:-webkit-autofill:active {
   filter: brightness(0) invert(0.89);
 }
 
+/* Nome do módulo ("finance", "field") no selo do menu e na troca de módulo
+   (18/11/2026): DM Sans em minúsculas, como nome de produto. */
+.fonte-modulo {
+  font-family: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+
 /* ==========================================================
    FAIXA LIMA (topo do app) - AppShell, 17/11/2026 (em teste)
    --------------------------------------------------------------
