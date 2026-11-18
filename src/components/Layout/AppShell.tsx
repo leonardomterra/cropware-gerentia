@@ -33,10 +33,10 @@ import RailConfiguracoes from "~icons/ph/sliders-horizontal-fill";
 import RailEquipe from "~icons/ph/users-fill";
 import RailUsuarios from "~icons/ph/user-gear-fill";
 import RailOrganizacoes from "~icons/ph/buildings-fill";
-import RailTalhoes from "~icons/ph/polygon-fill";
+import RailTalhoes from "~icons/ph/rows-fill";
 import RailFazendas from "~icons/ph/barn-fill";
 import RailProdutores from "~icons/ph/user-list-fill";
-import Poligono from "~icons/ph/polygon";
+import Linhas from "~icons/ph/rows";
 import Barn from "~icons/ph/barn";
 import UserList from "~icons/ph/user-list";
 import Folha from "~icons/ph/leaf";
@@ -175,7 +175,7 @@ const NAV_ITEMS: NavItem[] = [
     modulo: "field",
   },
   { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
-  { to: "/campo/talhoes", label: "Talhões", icon: Poligono, modulo: "field" },
+  { to: "/campo/talhoes", label: "Talhões", icon: Linhas, modulo: "field" },
   // Fase 5 — satélite e clima.
   { to: "/campo/ndvi", label: "NDVI", icon: Globe, modulo: "field" },
   { to: "/campo/clima", label: "Clima", icon: CloudSun, modulo: "field" },
