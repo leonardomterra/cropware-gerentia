@@ -1199,8 +1199,8 @@ input:-webkit-autofill:active {
 }
 
 /* Nome do módulo no selo do menu (18/11/2026): Press Start 2P (fonte de
-   pixel), em minúsculas. Testadas e descartadas antes: DM Sans minúscula e a
-   tipografia dos badges em maiúsculas. Fonte de pixel: tamanho em múltiplo
+   pixel), em MAIÚSCULAS. Testadas e descartadas antes: DM Sans minúscula, a
+   tipografia dos badges em maiúsculas e a própria Press Start minúscula. Fonte de pixel: tamanho em múltiplo
    de 8 para o desenho não borrar; `line-height: 1` e um ajuste de 1px para
    o texto cair no meio do selo. */
 .fonte-modulo {
@@ -1209,7 +1209,7 @@ input:-webkit-autofill:active {
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0;
-  text-transform: lowercase;
+  text-transform: uppercase;
   padding-top: 1px;
 }
 
