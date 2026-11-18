@@ -33,13 +33,13 @@ import RailConfiguracoes from "~icons/ph/sliders-horizontal-fill";
 import RailEquipe from "~icons/ph/users-fill";
 import RailUsuarios from "~icons/ph/user-gear-fill";
 import RailOrganizacoes from "~icons/ph/buildings-fill";
-import RailTalhoes from "~icons/ph/leaf-fill";
+import RailTalhoes from "~icons/ph/polygon-fill";
 import RailFazendas from "~icons/ph/barn-fill";
 import RailProdutores from "~icons/ph/user-list-fill";
-import Plant from "~icons/ph/leaf";
+import Poligono from "~icons/ph/polygon";
 import Barn from "~icons/ph/barn";
 import UserList from "~icons/ph/user-list";
-import Grains from "~icons/ph/grains";
+import Folha from "~icons/ph/leaf";
 import ClipboardText from "~icons/ph/clipboard-text";
 import ChartBar from "~icons/ph/chart-bar";
 import CalendarBlank from "~icons/ph/calendar";
@@ -54,7 +54,7 @@ import RailPainel from "~icons/ph/chart-pie-slice-fill";
 import ChartLineUp from "~icons/ph/chart-line-up";
 import RailEnsaios from "~icons/ph/test-tube-fill";
 import RailAnalises from "~icons/ph/chart-line-up-fill";
-import RailPlantios from "~icons/ph/grains-fill";
+import RailPlantios from "~icons/ph/leaf-fill";
 import RailAtividades from "~icons/ph/clipboard-text-fill";
 import RailCustos from "~icons/ph/chart-bar-fill";
 import RailSafras from "~icons/ph/calendar-fill";
@@ -175,12 +175,12 @@ const NAV_ITEMS: NavItem[] = [
     modulo: "field",
   },
   { to: "/campo/fazendas", label: "Fazendas", icon: Barn, modulo: "field" },
-  { to: "/campo/talhoes", label: "Talhões", icon: Plant, modulo: "field" },
+  { to: "/campo/talhoes", label: "Talhões", icon: Poligono, modulo: "field" },
   // Fase 5 — satélite e clima.
   { to: "/campo/ndvi", label: "NDVI", icon: Globe, modulo: "field" },
   { to: "/campo/clima", label: "Clima", icon: CloudSun, modulo: "field" },
   // Fase 2 — safra.
-  { to: "/campo/plantios", label: "Plantios", icon: Grains, modulo: "field" },
+  { to: "/campo/plantios", label: "Plantios", icon: Folha, modulo: "field" },
   {
     to: "/campo/atividades",
     label: "Atividades",
