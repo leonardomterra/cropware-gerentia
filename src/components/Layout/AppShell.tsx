@@ -538,7 +538,10 @@ export function AppShell() {
           // gap-1.5 + pr-2: a seta não encosta no nome (pedido do Leonardo).
           className={cn(
             SELO_DO_MODULO,
-            "gap-1.5 pl-2.5 pr-2 hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300",
+            // Sem anel de foco: o anel cinza-claro ficava em volta do selo
+            // depois de fechar o menu (o foco volta para ele). Aberto ou com
+            // foco de teclado, o selo só escurece um tom.
+            "gap-1.5 pl-2.5 pr-2 outline-none hover:bg-slate-900 focus-visible:bg-slate-900 data-[state=open]:bg-slate-900 transition-colors",
           )}
         >
           {ativo.nome}
