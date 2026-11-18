@@ -527,7 +527,7 @@ export function AppShell() {
    */
   const ativo = moduloPorId(moduloAtivo);
   const SELO_DO_MODULO =
-    "fonte-modulo h-6 shrink-0 inline-flex items-center rounded-md bg-slate-800 text-white text-[13px] font-medium";
+    "fonte-modulo h-[26px] shrink-0 inline-flex items-center rounded-md bg-slate-800 text-white text-[15px] font-medium";
   const seloDoModulo = variosModulos ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
